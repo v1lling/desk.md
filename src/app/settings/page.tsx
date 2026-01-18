@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useSettingsStore } from "@/stores/settings";
 import { useAreas } from "@/stores/areas";
@@ -15,10 +16,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw } from "lucide-react";
+import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircle2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { getAreas, isTauri } from "@/lib/orbit";
+import type { Area } from "@/types";
 
 export default function SettingsPage() {
   const {
@@ -28,17 +38,74 @@ export default function SettingsPage() {
     setDataPath,
     setTheme,
     setSidebarCollapsed,
+    setCurrentAreaId,
+    setSetupCompleted,
     reset,
   } = useSettingsStore();
 
   const queryClient = useQueryClient();
   const { data: areas = [] } = useAreas();
 
-  const handleDataPathChange = (newPath: string) => {
-    setDataPath(newPath);
-    // Invalidate all queries so they refetch from the new path
+  // State for data path change dialog
+  const [pendingPath, setPendingPath] = useState("");
+  const [pathDialogOpen, setPathDialogOpen] = useState(false);
+  const [isCheckingPath, setIsCheckingPath] = useState(false);
+  const [foundAreas, setFoundAreas] = useState<Area[]>([]);
+
+  const handleCheckDataPath = async () => {
+    if (!pendingPath.trim()) return;
+
+    setIsCheckingPath(true);
+
+    try {
+      // Temporarily set the path so getAreas knows where to look
+      const oldPath = dataPath;
+      setDataPath(pendingPath);
+
+      if (isTauri()) {
+        const existingAreas = await getAreas();
+        setFoundAreas(existingAreas);
+        setPathDialogOpen(true);
+      } else {
+        // In browser mode, just update the path
+        queryClient.invalidateQueries();
+        toast.success("Data path updated");
+      }
+
+      // If dialog will open, restore old path until user confirms
+      if (isTauri()) {
+        setDataPath(oldPath);
+      }
+    } catch (error) {
+      console.error("Error checking path:", error);
+      setFoundAreas([]);
+      setPathDialogOpen(true);
+    } finally {
+      setIsCheckingPath(false);
+    }
+  };
+
+  const handleConfirmPathChange = (useExisting: boolean) => {
+    setDataPath(pendingPath);
     queryClient.invalidateQueries();
-    toast.success("Data path updated");
+
+    if (useExisting && foundAreas.length > 0) {
+      // Use first existing area
+      setCurrentAreaId(foundAreas[0].id);
+      toast.success(`Switched to ${pendingPath} with existing data`);
+    } else if (foundAreas.length === 0) {
+      // No areas found - trigger setup wizard for this path
+      setSetupCompleted(false);
+      toast.success("Data path updated. Create your first area.");
+    } else {
+      // User wants to create new despite existing
+      setSetupCompleted(false);
+      toast.success("Data path updated. Setup wizard will guide you.");
+    }
+
+    setPathDialogOpen(false);
+    setPendingPath("");
+    setFoundAreas([]);
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
@@ -158,16 +225,18 @@ export default function SettingsPage() {
                 <div className="flex gap-2">
                   <Input
                     id="data-path"
-                    value={dataPath}
-                    onChange={(e) => setDataPath(e.target.value)}
+                    value={pendingPath || dataPath}
+                    onChange={(e) => setPendingPath(e.target.value)}
                     placeholder="~/Orbit"
                     className="font-mono text-sm"
                   />
                   <Button
                     variant="outline"
-                    onClick={() => handleDataPathChange(dataPath)}
+                    onClick={handleCheckDataPath}
+                    disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
                   >
-                    Save
+                    {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Change
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -236,6 +305,79 @@ export default function SettingsPage() {
           </Card>
         </div>
       </main>
+
+      {/* Data Path Change Dialog */}
+      <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            {foundAreas.length > 0 ? (
+              <>
+                <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                </div>
+                <DialogTitle>Existing Data Found</DialogTitle>
+                <DialogDescription>
+                  Found {foundAreas.length} area{foundAreas.length > 1 ? "s" : ""} at this location.
+                </DialogDescription>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FolderPlus className="h-6 w-6 text-primary" />
+                </div>
+                <DialogTitle>Empty Location</DialogTitle>
+                <DialogDescription>
+                  No Orbit data found at this path. You&apos;ll need to create your first area.
+                </DialogDescription>
+              </>
+            )}
+          </DialogHeader>
+
+          {foundAreas.length > 0 && (
+            <div className="space-y-2 py-2">
+              {foundAreas.map((area) => (
+                <div
+                  key={area.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: area.color || "#3b82f6" }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">{area.name}</p>
+                    {area.description && (
+                      <p className="text-xs text-muted-foreground">{area.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 pt-2">
+            {foundAreas.length > 0 ? (
+              <>
+                <Button onClick={() => handleConfirmPathChange(true)}>
+                  Use Existing Data
+                </Button>
+                <Button variant="outline" onClick={() => handleConfirmPathChange(false)}>
+                  Start Fresh Instead
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => handleConfirmPathChange(false)}>
+                  Continue to Setup
+                </Button>
+                <Button variant="outline" onClick={() => setPathDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
