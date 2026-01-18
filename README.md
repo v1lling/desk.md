@@ -11,12 +11,14 @@ Area (Client)
   └── Project
         ├── Tasks (kanban board)
         ├── Notes (meeting logs, decisions)
-        └── Context (AI knowledge base)
+        ├── Meetings
+        └── Context (AI knowledge base - future)
 ```
 
 **Key ideas:**
 - **Areas** separate your clients/workspaces completely
 - **Projects** contain everything related to that work
+- **Unassigned** items can exist without a project for quick capture
 - **Markdown files** underneath - portable, grep-able, yours forever
 - **AI-ready** - each project has context that powers smart assistance
 
@@ -34,30 +36,29 @@ Area (Client)
 
 ```bash
 npm install
-npm run dev           # Web development
-npm run tauri dev     # Desktop development
+npm run dev           # Web development (mock data)
+npm run tauri dev     # Desktop development (real file system)
 ```
 
-## Current Status
+## Current Status: v0.2
 
-All core phases complete:
-- ✅ Foundation (app shell, areas, settings, setup wizard)
-- ✅ Tasks & Kanban (drag-drop board, task CRUD)
-- ✅ Projects (list, project hub with tabs)
-- ✅ Notes (list, editor with markdown preview)
-- ✅ Settings & Polish (theme toggle, toast notifications)
-
-**Currently using mock data** - file system integration is next.
+Working features:
+- Areas with color coding and switching
+- Projects with status tracking (active/paused/completed/archived)
+- Tasks: Kanban board with drag-drop, quick add, detail panel
+- Notes: WYSIWYG markdown editor (Tiptap)
+- Meetings: List view with editor
+- Unassigned items: Tasks/notes not linked to any project
+- Project reassignment: Move tasks/notes between projects
+- Settings: Theme toggle, data path configuration
+- Setup wizard with existing data detection
+- File system: All data in portable markdown
 
 ## Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Project overview & AI context
-- [docs/PROGRESS.md](./docs/PROGRESS.md) - Detailed implementation progress
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) - System design
 - [docs/FEATURES.md](./docs/FEATURES.md) - Feature specs
-- [docs/PHASES.md](./docs/PHASES.md) - Implementation roadmap
-- [docs/DATA-MODELS.md](./docs/DATA-MODELS.md) - Data structures
-- [docs/QUICKSTART.md](./docs/QUICKSTART.md) - Setup guide
 
 ## Data Storage
 
@@ -69,11 +70,14 @@ Orbit stores everything in `~/Orbit/` as markdown files:
 │   ├── client-a/
 │   │   ├── area.md
 │   │   └── projects/
+│   │       ├── _unassigned/      # Items not in a project
+│   │       │   ├── tasks/
+│   │       │   └── notes/
 │   │       ├── project-1/
 │   │       │   ├── project.md
 │   │       │   ├── tasks/
 │   │       │   ├── notes/
-│   │       │   └── context/
+│   │       │   └── meetings/
 │   │       └── project-2/
 │   └── client-b/
 └── config.json

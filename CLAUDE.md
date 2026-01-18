@@ -11,6 +11,7 @@ Area (Client/Workspace)
   └── Project
         ├── Tasks
         ├── Notes
+        ├── Meetings
         └── Context (AI knowledge - future)
 ```
 
@@ -30,10 +31,14 @@ Area (Client/Workspace)
 │   └── {area}/
 │       ├── area.md
 │       └── projects/
+│           ├── _unassigned/        # Tasks/notes not in a project
+│           │   ├── tasks/*.md
+│           │   └── notes/*.md
 │           └── {project}/
 │               ├── project.md
 │               ├── tasks/*.md
-│               └── notes/*.md
+│               ├── notes/*.md
+│               └── meetings/*.md
 └── config.json
 ```
 
@@ -52,26 +57,40 @@ npm run dev        # Browser with mock data
 npm run tauri dev  # Desktop with file system
 ```
 
-## Current State: v0.1
+## Current State: v0.2
 
 Working features:
 - Areas with color coding
 - Projects with status tracking
 - Tasks: Kanban board (4 columns), drag-drop, detail panel, quick add
 - Notes: WYSIWYG markdown editor (Tiptap)
-- Settings: Theme toggle
+- Meetings: List view with editor
+- Unassigned items: Tasks/notes can exist without a project
+- Project reassignment: Move tasks/notes between projects
+- Settings: Theme toggle, data path configuration
 - File system: All data in portable markdown
 
 ## What's Next
 
-- **Inbox**: Quick capture tasks without assigning to a project, sort later (`areas/{area}/_inbox/tasks/`)
 - Global search / Cmd+K
 - Keyboard shortcuts
 - AI context integration
 - Email integration
+
+## Architecture
+
+Key modules in `src/lib/orbit/`:
+- `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS)
+- `search.ts` - Cross-area search helpers
+- `calculations.ts` - Business logic (task stats)
+- `parser.ts` - Markdown/frontmatter parsing
+- `tauri-fs.ts` - File system abstraction (Tauri/mock)
+
+Design tokens in `src/lib/design-tokens.ts` for consistent styling.
 
 ## Dev Notes
 
 - Routes use query params (`/projects/view?id=xxx`) due to static export
 - Mock data in `lib/orbit/*.ts` - only used when `isTauri() === false`
 - Tiptap editor stores markdown internally, converts to/from HTML for editing
+- `_unassigned` is a special directory for items not belonging to a project
