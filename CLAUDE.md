@@ -33,12 +33,14 @@ Area (Client/Workspace)
 │       └── projects/
 │           ├── _unassigned/        # Tasks/notes not in a project
 │           │   ├── tasks/*.md
-│           │   └── notes/*.md
+│           │   ├── notes/*.md
+│           │   └── .view.json      # UI state (task order, etc.)
 │           └── {project}/
 │               ├── project.md
 │               ├── tasks/*.md
 │               ├── notes/*.md
-│               └── meetings/*.md
+│               ├── meetings/*.md
+│               └── .view.json      # UI state (task order, etc.)
 └── config.json
 ```
 
@@ -87,6 +89,30 @@ Key modules in `src/lib/orbit/`:
 - `tauri-fs.ts` - File system abstraction (Tauri/mock)
 
 Design tokens in `src/lib/design-tokens.ts` for consistent styling.
+
+## Data Storage Patterns
+
+**Content vs Display Data Separation:**
+
+| Type | Format | Location | Purpose |
+|------|--------|----------|---------|
+| Content data | Markdown + YAML frontmatter | `*.md` files | Tasks, notes, projects - the actual work |
+| Global config | JSON | `~/Orbit/config.json` | App-wide settings (theme, current area) |
+| View state | JSON | `.view.json` per project | UI preferences (task order, collapsed state) |
+
+**Key principle:** Content data belongs in markdown (portable, grep-able). UI/display preferences belong in `.view.json` files (not part of the content, can be regenerated).
+
+Example `.view.json`:
+```json
+{
+  "taskOrder": {
+    "todo": ["task-id-1", "task-id-2"],
+    "doing": ["task-id-3"]
+  }
+}
+```
+
+If `.view.json` is missing or corrupted, the app falls back to default ordering (by created date). No data loss.
 
 ## Dev Notes
 
