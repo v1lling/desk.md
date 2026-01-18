@@ -16,6 +16,7 @@ export {
   useUpdateTask,
   useDeleteTask,
   useMoveTask,
+  useMoveTaskToProject,
   groupTasksByStatus,
   taskKeys,
 } from "./tasks";
@@ -35,6 +36,7 @@ export {
   useCreateNote,
   useUpdateNote,
   useDeleteNote,
+  useMoveNoteToProject,
   noteKeys,
 } from "./notes";
 export {

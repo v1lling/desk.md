@@ -353,3 +353,81 @@ export async function deleteNote(
 
   return false;
 }
+
+/**
+ * Move note to a different project (physically moves the file)
+ */
+export async function moveNoteToProject(
+  noteId: string,
+  areaId: string,
+  fromProjectId: string,
+  toProjectId: string
+): Promise<Note | null> {
+  if (!isTauri()) {
+    const index = mockNotes.findIndex((n) => n.id === noteId && n.areaId === areaId);
+    if (index === -1) return null;
+    mockNotes[index] = { ...mockNotes[index], projectId: toProjectId };
+    return mockNotes[index];
+  }
+
+  if (fromProjectId === toProjectId) {
+    // No move needed
+    const notes = await getNotes(areaId);
+    return notes.find((n) => n.id === noteId) || null;
+  }
+
+  const orbitPath = await getOrbitPath();
+
+  // Find the source file
+  const fromNotesPath =
+    fromProjectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
+      : await joinPath(orbitPath, "areas", areaId, "projects", fromProjectId, "notes");
+
+  if (!(await exists(fromNotesPath))) return null;
+
+  const entries = await readDir(fromNotesPath);
+  let sourceFilename: string | null = null;
+
+  for (const entry of entries) {
+    if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === noteId) {
+      sourceFilename = entry.name;
+      break;
+    }
+  }
+
+  if (!sourceFilename) return null;
+
+  const sourceFilePath = await joinPath(fromNotesPath, sourceFilename);
+
+  // Read the note content
+  const content = await readTextFile(sourceFilePath);
+  const { data, content: body } = parseMarkdown<NoteFrontmatter>(content);
+
+  // Ensure target directory exists
+  const toNotesPath =
+    toProjectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
+      : await joinPath(orbitPath, "areas", areaId, "projects", toProjectId, "notes");
+
+  await mkdir(toNotesPath);
+
+  // Write to new location
+  const targetFilePath = await joinPath(toNotesPath, sourceFilename);
+  const fileContent = serializeMarkdown(data, body);
+  await writeTextFile(targetFilePath, fileContent);
+
+  // Delete original file
+  await removeFile(sourceFilePath);
+
+  return {
+    id: noteId,
+    projectId: toProjectId,
+    areaId,
+    filePath: targetFilePath,
+    title: data.title,
+    created: normalizeDate(data.created),
+    content: body,
+    preview: generatePreview(body),
+  };
+}

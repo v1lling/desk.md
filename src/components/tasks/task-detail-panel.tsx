@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Calendar, Flag } from "lucide-react";
-import { useUpdateTask, useDeleteTask } from "@/stores";
+import { Trash2, Calendar, Flag, FolderKanban } from "lucide-react";
+import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects } from "@/stores";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -46,12 +46,24 @@ const priorityOptions: { value: TaskPriority; label: string; color: string }[] =
 export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const moveTaskToProject = useMoveTaskToProject();
+  const { data: projects = [] } = useProjects(task?.areaId || null);
 
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [due, setDue] = useState("");
   const [content, setContent] = useState("");
+  const [projectId, setProjectId] = useState("");
+
+  // Project options for dropdown
+  const projectOptions = useMemo(
+    () => [
+      { value: "_unassigned", label: "No project" },
+      ...projects.map((p) => ({ value: p.id, label: p.name })),
+    ],
+    [projects]
+  );
 
   // Sync state when task changes
   useEffect(() => {
@@ -61,30 +73,69 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       setPriority(task.priority || "none");
       setDue(task.due || "");
       setContent(task.content);
+      setProjectId(task.projectId);
     }
   }, [task]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!task) return;
 
-    updateTask.mutate(
-      {
-        taskId: task.id,
-        areaId: task.areaId,
-        projectId: task.projectId,
-        updates: {
-          title,
-          status,
-          priority: priority === "none" ? undefined : priority,
-          due: due || undefined,
-          content,
+    // If project changed, move the file first
+    if (projectId !== task.projectId) {
+      moveTaskToProject.mutate(
+        {
+          taskId: task.id,
+          areaId: task.areaId,
+          fromProjectId: task.projectId,
+          toProjectId: projectId,
         },
-      },
-      {
-        onSuccess: () => toast.success("Task updated"),
-        onError: () => toast.error("Failed to update task"),
-      }
-    );
+        {
+          onSuccess: (movedTask) => {
+            // Now update other fields if needed
+            if (movedTask) {
+              updateTask.mutate(
+                {
+                  taskId: task.id,
+                  areaId: task.areaId,
+                  projectId: projectId,
+                  updates: {
+                    title,
+                    status,
+                    priority: priority === "none" ? undefined : priority,
+                    due: due || undefined,
+                    content,
+                  },
+                },
+                {
+                  onSuccess: () => toast.success("Task updated"),
+                  onError: () => toast.error("Failed to update task"),
+                }
+              );
+            }
+          },
+          onError: () => toast.error("Failed to move task"),
+        }
+      );
+    } else {
+      updateTask.mutate(
+        {
+          taskId: task.id,
+          areaId: task.areaId,
+          projectId: task.projectId,
+          updates: {
+            title,
+            status,
+            priority: priority === "none" ? undefined : priority,
+            due: due || undefined,
+            content,
+          },
+        },
+        {
+          onSuccess: () => toast.success("Task updated"),
+          onError: () => toast.error("Failed to update task"),
+        }
+      );
+    }
     onClose();
   };
 
@@ -166,18 +217,39 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
             </div>
           </div>
 
-          {/* Due Date */}
-          <div className="space-y-2">
-            <Label htmlFor="due">Due Date</Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="due"
-                type="date"
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
-                className="pl-10"
-              />
+          {/* Project & Due Date row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Project</Label>
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="flex items-center gap-2">
+                        <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                        {opt.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="due">Due Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="due"
+                  type="date"
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
 

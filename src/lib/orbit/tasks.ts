@@ -369,3 +369,83 @@ export async function moveTask(
 ): Promise<Task | null> {
   return updateTask(taskId, { status: newStatus }, areaId, projectId);
 }
+
+/**
+ * Move task to a different project (physically moves the file)
+ */
+export async function moveTaskToProject(
+  taskId: string,
+  areaId: string,
+  fromProjectId: string,
+  toProjectId: string
+): Promise<Task | null> {
+  if (!isTauri()) {
+    const index = mockTasks.findIndex((t) => t.id === taskId && t.areaId === areaId);
+    if (index === -1) return null;
+    mockTasks[index] = { ...mockTasks[index], projectId: toProjectId };
+    return mockTasks[index];
+  }
+
+  if (fromProjectId === toProjectId) {
+    // No move needed
+    const tasks = await getTasks(areaId);
+    return tasks.find((t) => t.id === taskId) || null;
+  }
+
+  const orbitPath = await getOrbitPath();
+
+  // Find the source file
+  const fromTasksPath =
+    fromProjectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
+      : await joinPath(orbitPath, "areas", areaId, "projects", fromProjectId, "tasks");
+
+  if (!(await exists(fromTasksPath))) return null;
+
+  const entries = await readDir(fromTasksPath);
+  let sourceFilename: string | null = null;
+
+  for (const entry of entries) {
+    if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === taskId) {
+      sourceFilename = entry.name;
+      break;
+    }
+  }
+
+  if (!sourceFilename) return null;
+
+  const sourceFilePath = await joinPath(fromTasksPath, sourceFilename);
+
+  // Read the task content
+  const content = await readTextFile(sourceFilePath);
+  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+
+  // Ensure target directory exists
+  const toTasksPath =
+    toProjectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
+      : await joinPath(orbitPath, "areas", areaId, "projects", toProjectId, "tasks");
+
+  await mkdir(toTasksPath);
+
+  // Write to new location
+  const targetFilePath = await joinPath(toTasksPath, sourceFilename);
+  const fileContent = serializeMarkdown(data, body);
+  await writeTextFile(targetFilePath, fileContent);
+
+  // Delete original file
+  await removeFile(sourceFilePath);
+
+  return {
+    id: taskId,
+    projectId: toProjectId,
+    areaId,
+    filePath: targetFilePath,
+    title: data.title,
+    status: data.status,
+    priority: data.priority,
+    due: data.due ? normalizeDate(data.due) : undefined,
+    created: normalizeDate(data.created),
+    content: body,
+  };
+}

@@ -166,6 +166,33 @@ export function useMoveTask() {
 }
 
 /**
+ * Hook to move a task to a different project
+ */
+export function useMoveTaskToProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      areaId,
+      fromProjectId,
+      toProjectId,
+    }: {
+      taskId: string;
+      areaId: string;
+      fromProjectId: string;
+      toProjectId: string;
+    }) => taskLib.moveTaskToProject(taskId, areaId, fromProjectId, toProjectId),
+    onSuccess: (_result, variables) => {
+      // Invalidate area tasks to refresh the lists
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.byArea(variables.areaId),
+      });
+    },
+  });
+}
+
+/**
  * Helper to group tasks by status for Kanban view
  */
 export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {

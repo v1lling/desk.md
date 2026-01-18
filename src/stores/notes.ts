@@ -116,3 +116,30 @@ export function useDeleteNote() {
     },
   });
 }
+
+/**
+ * Hook to move a note to a different project
+ */
+export function useMoveNoteToProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      noteId,
+      areaId,
+      fromProjectId,
+      toProjectId,
+    }: {
+      noteId: string;
+      areaId: string;
+      fromProjectId: string;
+      toProjectId: string;
+    }) => noteLib.moveNoteToProject(noteId, areaId, fromProjectId, toProjectId),
+    onSuccess: (_result, variables) => {
+      // Invalidate area notes to refresh the lists
+      queryClient.invalidateQueries({
+        queryKey: noteKeys.byArea(variables.areaId),
+      });
+    },
+  });
+}
