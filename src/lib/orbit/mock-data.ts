@@ -46,7 +46,7 @@ export const mockProjects: Project[] = [
     description: "Swiss Library Service Key authentication system",
     created: "2024-01-01",
     taskCount: 4,
-    tasksByStatus: { todo: 1, doing: 2, done: 1 },
+    tasksByStatus: { todo: 1, doing: 2, waiting: 0, done: 1 },
   },
   {
     id: "alma-migration",
@@ -56,7 +56,7 @@ export const mockProjects: Project[] = [
     description: "Migration of library data to Ex Libris Alma",
     created: "2024-01-05",
     taskCount: 1,
-    tasksByStatus: { todo: 1, doing: 0, done: 0 },
+    tasksByStatus: { todo: 1, doing: 0, waiting: 0, done: 0 },
   },
   {
     id: "api-v2",
@@ -66,7 +66,7 @@ export const mockProjects: Project[] = [
     description: "Next generation REST API",
     created: "2023-11-15",
     taskCount: 0,
-    tasksByStatus: { todo: 0, doing: 0, done: 0 },
+    tasksByStatus: { todo: 0, doing: 0, waiting: 0, done: 0 },
   },
   {
     id: "main",
@@ -76,7 +76,7 @@ export const mockProjects: Project[] = [
     description: "Primary SSS development work",
     created: "2024-01-10",
     taskCount: 0,
-    tasksByStatus: { todo: 0, doing: 0, done: 0 },
+    tasksByStatus: { todo: 0, doing: 0, waiting: 0, done: 0 },
   },
 ];
 

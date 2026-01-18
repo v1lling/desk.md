@@ -19,6 +19,7 @@ export interface Project {
   tasksByStatus?: {
     todo: number;
     doing: number;
+    waiting: number;
     done: number;
   };
   noteCount?: number;
@@ -40,7 +41,7 @@ export interface Task {
   content: string;         // Markdown body
 }
 
-export type TaskStatus = 'todo' | 'doing' | 'done';
+export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 // Note - lives under a project

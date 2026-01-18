@@ -15,6 +15,8 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea, useProjects } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
 
@@ -25,11 +27,14 @@ interface KanbanBoardProps {
   showProject?: boolean;
   /** Optional pre-filtered tasks to display instead of fetching all */
   tasks?: Task[];
+  /** Whether to show the Done column by default (default: false) */
+  showDoneByDefault?: boolean;
 }
 
-export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: externalTasks }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: externalTasks, showDoneByDefault = false }: KanbanBoardProps) {
   const currentArea = useCurrentArea();
   const currentAreaId = currentArea?.id || null;
+  const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
   const allTasksQuery = useTasks(projectId ? null : currentAreaId);
@@ -90,7 +95,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
 
       // Determine new status - could be dropping on a column or another task
       let newStatus: TaskStatus;
-      if (overId === "todo" || overId === "doing" || overId === "done") {
+      if (overId === "todo" || overId === "doing" || overId === "waiting" || overId === "done") {
         // Dropped on a column
         newStatus = overId;
       } else {
@@ -141,12 +146,53 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           getProjectName={getProjectName}
         />
         <KanbanColumn
-          status="done"
-          tasks={groupedTasks.done}
+          status="waiting"
+          tasks={groupedTasks.waiting}
           onTaskClick={onTaskClick}
           showProject={showProject}
           getProjectName={getProjectName}
         />
+        {showDone ? (
+          <div className="flex flex-col h-full min-w-[300px] w-[300px]">
+            <div className="flex items-center gap-2.5 mb-4 px-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <h3 className="font-semibold text-[13px] text-foreground/80">Done</h3>
+              <span className="text-[11px] text-muted-foreground tabular-nums font-medium">
+                {groupedTasks.done.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowDone(false)}
+                title="Hide Done column"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <KanbanColumn
+              status="done"
+              tasks={groupedTasks.done}
+              onTaskClick={onTaskClick}
+              showProject={showProject}
+              getProjectName={getProjectName}
+              hideHeader
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col h-full min-w-[120px]">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto py-2 px-3 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowDone(true)}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              <span className="text-[13px]">Show Done</span>
+              <span className="ml-2 text-[11px] tabular-nums">({groupedTasks.done.length})</span>
+            </Button>
+          </div>
+        )}
       </div>
       <DragOverlay>
         {activeTask ? (

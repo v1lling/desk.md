@@ -172,6 +172,7 @@ export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
   return {
     todo: tasks.filter((t) => t.status === "todo"),
     doing: tasks.filter((t) => t.status === "doing"),
+    waiting: tasks.filter((t) => t.status === "waiting"),
     done: tasks.filter((t) => t.status === "done"),
   };
 }

@@ -15,11 +15,14 @@ interface KanbanColumnProps {
   onTaskClick?: (task: Task) => void;
   showProject?: boolean;
   getProjectName?: (projectId: string) => string;
+  /** Hide the column header (used when parent provides custom header) */
+  hideHeader?: boolean;
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
   todo: { label: "To Do", color: "bg-muted-foreground/50" },
   doing: { label: "In Progress", color: "bg-blue-500" },
+  waiting: { label: "Waiting", color: "bg-amber-500" },
   done: { label: "Done", color: "bg-emerald-500" },
 };
 
@@ -29,6 +32,7 @@ export function KanbanColumn({
   onTaskClick,
   showProject,
   getProjectName,
+  hideHeader,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -37,15 +41,17 @@ export function KanbanColumn({
   const config = statusConfig[status];
 
   return (
-    <div className="flex flex-col h-full min-w-[300px] w-[300px]">
+    <div className={cn("flex flex-col h-full", !hideHeader && "min-w-[300px] w-[300px]")}>
       {/* Column header */}
-      <div className="flex items-center gap-2.5 mb-4 px-1">
-        <div className={cn("w-2 h-2 rounded-full", config.color)} />
-        <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
-        <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
-          {tasks.length}
-        </span>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-2.5 mb-4 px-1">
+          <div className={cn("w-2 h-2 rounded-full", config.color)} />
+          <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
+          <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
+            {tasks.length}
+          </span>
+        </div>
+      )}
 
       {/* Drop zone */}
       <div

@@ -118,11 +118,12 @@ function readObsidianTasks(): Array<{
 }
 
 // Map Obsidian status to Orbit status (they should be the same, but normalize)
-function mapStatus(status: string | undefined): "todo" | "doing" | "done" {
+function mapStatus(status: string | undefined): "todo" | "doing" | "waiting" | "done" {
   if (!status) return "todo";
   const s = status.toLowerCase();
   if (s === "done" || s === "completed") return "done";
   if (s === "doing" || s === "in progress" || s === "in_progress") return "doing";
+  if (s === "waiting") return "waiting";
   return "todo";
 }
 
