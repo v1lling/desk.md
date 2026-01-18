@@ -180,18 +180,15 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
             />
           </div>
         ) : (
-          <div className="flex flex-col h-full min-w-[120px]">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto py-2 px-3 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowDone(true)}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              <span className="text-[13px]">Show Done</span>
-              <span className="ml-2 text-[11px] tabular-nums">({groupedTasks.done.length})</span>
-            </Button>
-          </div>
+          <button
+            onClick={() => setShowDone(true)}
+            className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors text-[12px] font-medium self-start mt-0.5"
+            title="Show Done column"
+          >
+            <Eye className="h-3 w-3" />
+            <span>Done</span>
+            <span className="tabular-nums opacity-70">{groupedTasks.done.length}</span>
+          </button>
         )}
       </div>
       <DragOverlay>
