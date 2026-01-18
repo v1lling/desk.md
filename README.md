@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Orbit
 
-## Getting Started
+> Project-centric work management for freelancers and consultants.
 
-First, run the development server:
+## What is Orbit?
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Orbit is a desktop app that organizes your work around **projects**, not notes. Built for people who manage multiple clients and need a single place for tasks, notes, and project context.
+
+```
+Area (Client)
+  └── Project
+        ├── Tasks (kanban board)
+        ├── Notes (meeting logs, decisions)
+        └── Context (AI knowledge base)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Key ideas:**
+- **Areas** separate your clients/workspaces completely
+- **Projects** contain everything related to that work
+- **Markdown files** underneath - portable, grep-able, yours forever
+- **AI-ready** - each project has context that powers smart assistance
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend**: Next.js 16, React, TypeScript, Tailwind CSS
+- **Desktop**: Tauri 2.9 (Rust shell, ~15MB binary)
+- **UI**: shadcn/ui
+- **State**: Zustand + TanStack Query
+- **Drag & Drop**: @dnd-kit
+- **Notifications**: Sonner
+- **Storage**: Local markdown files
 
-## Learn More
+## Quick Start
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev           # Web development
+npm run tauri dev     # Desktop development
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Current Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+All core phases complete:
+- ✅ Foundation (app shell, areas, settings, setup wizard)
+- ✅ Tasks & Kanban (drag-drop board, task CRUD)
+- ✅ Projects (list, project hub with tabs)
+- ✅ Notes (list, editor with markdown preview)
+- ✅ Settings & Polish (theme toggle, toast notifications)
 
-## Deploy on Vercel
+**Currently using mock data** - file system integration is next.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [CLAUDE.md](./CLAUDE.md) - Project overview & AI context
+- [docs/PROGRESS.md](./docs/PROGRESS.md) - Detailed implementation progress
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) - System design
+- [docs/FEATURES.md](./docs/FEATURES.md) - Feature specs
+- [docs/PHASES.md](./docs/PHASES.md) - Implementation roadmap
+- [docs/DATA-MODELS.md](./docs/DATA-MODELS.md) - Data structures
+- [docs/QUICKSTART.md](./docs/QUICKSTART.md) - Setup guide
+
+## Data Storage
+
+Orbit stores everything in `~/Orbit/` as markdown files:
+
+```
+~/Orbit/
+├── areas/
+│   ├── client-a/
+│   │   ├── area.md
+│   │   └── projects/
+│   │       ├── project-1/
+│   │       │   ├── project.md
+│   │       │   ├── tasks/
+│   │       │   ├── notes/
+│   │       │   └── context/
+│   │       └── project-2/
+│   └── client-b/
+└── config.json
+```
+
+## License
+
+Private project.
