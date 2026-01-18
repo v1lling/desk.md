@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -40,44 +39,48 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         <AreaSwitcher collapsed={collapsed} />
       </div>
 
-      <Separator />
-
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-2">
+        <div className="space-y-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                )}
+              >
+                <item.icon className={cn(
+                  "h-[18px] w-[18px] shrink-0 transition-colors",
+                  isActive ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/60"
+                )} />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      <Separator />
-
       {/* Footer */}
-      <div className="p-2">
+      <div className="px-3 pb-3 pt-2 border-t border-sidebar-border/50">
         <Link
           href="/settings"
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
             pathname === "/settings"
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
           )}
         >
-          <Settings className="h-5 w-5 shrink-0" />
+          <Settings className={cn(
+            "h-[18px] w-[18px] shrink-0 transition-colors",
+            pathname === "/settings" ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/60"
+          )} />
           {!collapsed && <span>Settings</span>}
         </Link>
 
@@ -86,11 +89,11 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            className="w-full mt-2 justify-center"
+            className="w-full mt-2 justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
           >
             <ChevronLeft
               className={cn(
-                "h-4 w-4 transition-transform",
+                "h-4 w-4 transition-transform duration-200",
                 collapsed && "rotate-180"
               )}
             />

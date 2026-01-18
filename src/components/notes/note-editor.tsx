@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Trash2, Eye, Edit2 } from "lucide-react";
+import { Loader2, Trash2, Eye, Edit2 } from "lucide-react";
 import { useUpdateNote, useDeleteNote } from "@/stores";
 import type { Note } from "@/types";
 import { toast } from "sonner";
@@ -164,16 +164,15 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col">
-        <SheetHeader>
-          <SheetTitle>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
-              placeholder="Note title"
-            />
-          </SheetTitle>
+      <SheetContent className="w-full sm:max-w-2xl flex flex-col px-0">
+        <SheetHeader className="pb-4 border-b border-border/60 space-y-1">
+          <SheetTitle className="sr-only">Edit Note</SheetTitle>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="text-lg font-semibold tracking-tight border-none p-0 h-auto focus-visible:ring-0"
+            placeholder="Note title"
+          />
           <p className="text-xs text-muted-foreground">
             Created: {note.created}
           </p>
@@ -182,7 +181,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as "edit" | "preview")}
-          className="flex-1 flex flex-col mt-4"
+          className="flex-1 flex flex-col py-4 px-6 overflow-hidden"
         >
           <TabsList className="w-fit">
             <TabsTrigger value="edit" className="gap-2">
@@ -195,35 +194,35 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="edit" className="flex-1 mt-4">
+          <TabsContent value="edit" className="flex-1 mt-4 overflow-hidden">
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="h-full min-h-[400px] resize-none font-mono text-sm"
+              className="h-full min-h-[300px] resize-none font-mono text-sm"
               placeholder="Write your note in markdown..."
             />
           </TabsContent>
 
           <TabsContent value="preview" className="flex-1 mt-4 overflow-auto">
-            <div className="prose prose-sm dark:prose-invert max-w-none p-4 border rounded-md min-h-[400px]">
+            <div className="prose prose-sm dark:prose-invert max-w-none p-4 border border-border/60 rounded-lg min-h-[300px] bg-muted/20">
               {renderMarkdown(content)}
             </div>
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-between pt-4 border-t mt-4">
+        <div className="flex justify-between pt-4 px-6 pb-6 border-t border-border/60">
           <Button
-            variant="destructive"
-            size="sm"
+            variant="outline"
+            size="icon"
             onClick={handleDelete}
             disabled={deleteNote.isPending}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             {deleteNote.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="h-4 w-4" />
             )}
-            Delete
           </Button>
 
           <div className="flex gap-2">
@@ -231,10 +230,8 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={updateNote.isPending}>
-              {updateNote.isPending ? (
+              {updateNote.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
               )}
               Save
             </Button>

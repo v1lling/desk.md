@@ -16,9 +16,9 @@ interface KanbanColumnProps {
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
-  todo: { label: "To Do", color: "bg-slate-500" },
+  todo: { label: "To Do", color: "bg-muted-foreground/50" },
   doing: { label: "In Progress", color: "bg-blue-500" },
-  done: { label: "Done", color: "bg-green-500" },
+  done: { label: "Done", color: "bg-emerald-500" },
 };
 
 export function KanbanColumn({ status, tasks, onTaskClick }: KanbanColumnProps) {
@@ -29,26 +29,31 @@ export function KanbanColumn({ status, tasks, onTaskClick }: KanbanColumnProps) 
   const config = statusConfig[status];
 
   return (
-    <div className="flex flex-col h-full min-w-[280px] w-[280px]">
-      <div className="flex items-center gap-2 mb-3 px-1">
+    <div className="flex flex-col h-full min-w-[300px] w-[300px]">
+      {/* Column header */}
+      <div className="flex items-center gap-2.5 mb-4 px-1">
         <div className={cn("w-2 h-2 rounded-full", config.color)} />
-        <h3 className="font-semibold text-sm">{config.label}</h3>
-        <span className="text-xs text-muted-foreground ml-auto">
+        <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
+        <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
           {tasks.length}
         </span>
       </div>
+
+      {/* Drop zone */}
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 rounded-lg p-2 transition-colors min-h-[200px]",
-          isOver ? "bg-accent/50" : "bg-muted/30"
+          "flex-1 rounded-xl p-2 transition-all duration-200 min-h-[200px]",
+          isOver
+            ? "bg-accent/70 ring-2 ring-ring/20"
+            : "bg-muted/20"
         )}
       >
         <SortableContext
           items={tasks.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -59,7 +64,7 @@ export function KanbanColumn({ status, tasks, onTaskClick }: KanbanColumnProps) 
           </div>
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
             No tasks
           </div>
         )}

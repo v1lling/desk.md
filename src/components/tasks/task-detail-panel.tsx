@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Calendar, Flag, FileText } from "lucide-react";
+import { Trash2, Calendar, Flag } from "lucide-react";
 import { useUpdateTask, useDeleteTask } from "@/stores";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
@@ -38,9 +38,9 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
 ];
 
 const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: "text-red-500" },
-  { value: "medium", label: "Medium", color: "text-yellow-500" },
-  { value: "low", label: "Low", color: "text-green-500" },
+  { value: "high", label: "High", color: "text-rose-600 dark:text-rose-400" },
+  { value: "medium", label: "Medium", color: "text-amber-600 dark:text-amber-400" },
+  { value: "low", label: "Low", color: "text-emerald-600 dark:text-emerald-400" },
 ];
 
 export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
@@ -107,12 +107,12 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-left">Edit Task</SheetTitle>
+      <SheetContent className="w-[400px] sm:w-[500px] flex flex-col px-0">
+        <SheetHeader className="pb-4 border-b border-border/60">
+          <SheetTitle>Edit Task</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 mt-6">
+        <div className="flex-1 overflow-y-auto py-6 px-6 space-y-5">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -183,42 +183,38 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
           {/* Content */}
           <div className="space-y-2">
-            <Label htmlFor="content">
-              <span className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Notes
-              </span>
-            </Label>
+            <Label htmlFor="content">Notes</Label>
             <Textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Add notes, details, or checklist items..."
-              className="min-h-[200px] resize-none"
+              className="min-h-[180px] resize-none"
             />
           </div>
 
           {/* File path (read-only info) */}
-          <div className="text-xs text-muted-foreground border-t pt-4">
-            <p className="truncate" title={task.filePath}>
+          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
+            <p className="truncate font-mono" title={task.filePath}>
               {task.filePath}
             </p>
-            <p className="mt-1">Created: {task.created}</p>
+            <p className="mt-1.5">Created: {task.created}</p>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-4 border-t">
-            <Button onClick={handleSave} className="flex-1">
-              Save Changes
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+        {/* Actions - fixed at bottom */}
+        <div className="flex gap-2 pt-4 px-6 pb-6 border-t border-border/60">
+          <Button onClick={handleSave} className="flex-1">
+            Save Changes
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleDelete}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { FolderKanban, CheckCircle2, Circle, Clock } from "lucide-react";
 import type { Project, ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { statusColors } from "@/lib/design-tokens";
 
 interface ProjectCardProps {
   project: Project;
@@ -13,27 +14,23 @@ interface ProjectCardProps {
 
 const statusConfig: Record<
   ProjectStatus,
-  { label: string; color: string; icon: React.ReactNode }
+  { label: string; icon: React.ReactNode }
 > = {
   active: {
     label: "Active",
-    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-    icon: <Circle className="h-3 w-3 fill-current" />,
+    icon: <Circle className="h-2.5 w-2.5 fill-current" />,
   },
   paused: {
     label: "Paused",
-    color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-    icon: <Clock className="h-3 w-3" />,
+    icon: <Clock className="h-2.5 w-2.5" />,
   },
   completed: {
     label: "Completed",
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    icon: <CheckCircle2 className="h-3 w-3" />,
+    icon: <CheckCircle2 className="h-2.5 w-2.5" />,
   },
   archived: {
     label: "Archived",
-    color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-    icon: <FolderKanban className="h-3 w-3" />,
+    icon: <FolderKanban className="h-2.5 w-2.5" />,
   },
 };
 
@@ -45,46 +42,62 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <Link href={`/projects/view?id=${project.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base font-semibold line-clamp-1">
+      <Card className={cn(
+        "cursor-pointer h-full border-border/60",
+        "shadow-sm hover:shadow-md hover:border-border",
+        "transition-all duration-150"
+      )}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle className="text-[15px] font-semibold line-clamp-1 text-foreground/90">
               {project.name}
             </CardTitle>
-            <Badge variant="secondary" className={cn("text-xs shrink-0", status.color)}>
-              <span className="mr-1">{status.icon}</span>
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[10px] font-medium shrink-0 gap-1 px-1.5 py-0.5",
+                statusColors[project.status]
+              )}
+            >
+              {status.icon}
               {status.label}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {project.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            <p className="text-[13px] text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
               {project.description}
             </p>
           )}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {/* Task progress */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Tasks</span>
-              <span>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground font-medium">Tasks</span>
+              <span className="text-foreground/70 tabular-nums">
                 {doneTasks}/{totalTasks}
               </span>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all"
+                className="h-full bg-foreground/80 rounded-full transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
             {/* Task breakdown */}
             {totalTasks > 0 && (
-              <div className="flex gap-3 text-xs text-muted-foreground">
+              <div className="flex gap-3 text-[11px] text-muted-foreground pt-0.5">
                 {project.tasksByStatus?.todo ? (
-                  <span>{project.tasksByStatus.todo} todo</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                    {project.tasksByStatus.todo} todo
+                  </span>
                 ) : null}
                 {project.tasksByStatus?.doing ? (
-                  <span>{project.tasksByStatus.doing} in progress</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    {project.tasksByStatus.doing} in progress
+                  </span>
                 ) : null}
               </div>
             )}

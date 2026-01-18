@@ -32,9 +32,9 @@ interface QuickAddTaskProps {
 }
 
 const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: "text-red-500" },
-  { value: "medium", label: "Medium", color: "text-yellow-500" },
-  { value: "low", label: "Low", color: "text-green-500" },
+  { value: "high", label: "High", color: "text-rose-600 dark:text-rose-400" },
+  { value: "medium", label: "Medium", color: "text-amber-600 dark:text-amber-400" },
+  { value: "low", label: "Low", color: "text-emerald-600 dark:text-emerald-400" },
 ];
 
 export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskProps) {
