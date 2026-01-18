@@ -1,56 +1,89 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Calendar, Users } from "lucide-react";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { Calendar, Users, ChevronRight } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { Meeting } from "@/types";
 
 interface MeetingCardProps {
   meeting: Meeting;
   onClick?: () => void;
+  isLatest?: boolean;
 }
 
-function formatRelativeDate(dateStr: string): string {
+function formatMeetingDate(dateStr: string): string {
   try {
     const date = parseISO(dateStr);
-    return formatDistanceToNow(date, { addSuffix: true });
+    return format(date, "EEE, MMM d");
   } catch {
     return dateStr;
   }
 }
 
-export function MeetingCard({ meeting, onClick }: MeetingCardProps) {
+export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
   return (
-    <Card
-      className="cursor-pointer hover:bg-accent/50 transition-colors"
+    <button
       onClick={onClick}
+      className={cn(
+        "w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3 group",
+        isLatest
+          ? "bg-violet-500/10 hover:bg-violet-500/15 ring-1 ring-violet-500/20"
+          : "hover:bg-accent/50"
+      )}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-violet-500/10 rounded-md">
-            <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium truncate">{meeting.title}</h3>
-            <p className="text-xs text-muted-foreground" title={meeting.date}>
-              {formatRelativeDate(meeting.date)}
-            </p>
-          </div>
+      <div
+        className={cn(
+          "p-1.5 rounded-md shrink-0",
+          isLatest ? "bg-violet-500/20" : "bg-muted"
+        )}
+      >
+        <Calendar
+          className={cn(
+            "h-3.5 w-3.5",
+            isLatest
+              ? "text-violet-600 dark:text-violet-400"
+              : "text-muted-foreground"
+          )}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "font-medium truncate",
+              isLatest && "text-violet-700 dark:text-violet-300"
+            )}
+          >
+            {meeting.title}
+          </span>
+          {isLatest && (
+            <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded shrink-0">
+              Latest
+            </span>
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-2">
-        {meeting.attendees && meeting.attendees.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Users className="h-3 w-3" />
-            {meeting.attendees.length} attendees
-          </div>
-        )}
-        {meeting.preview && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {meeting.preview}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{formatMeetingDate(meeting.date)}</span>
+          {meeting.attendees && meeting.attendees.length > 0 && (
+            <>
+              <span>·</span>
+              <span className="flex items-center gap-0.5">
+                <Users className="h-3 w-3" />
+                {meeting.attendees.length}
+              </span>
+            </>
+          )}
+          {meeting.preview && (
+            <>
+              <span>·</span>
+              <span className="truncate">{meeting.preview}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+    </button>
   );
 }
