@@ -21,8 +21,6 @@ interface MeetingFrontmatter {
   date: string;
   created: string;
   attendees?: string[];
-  duration?: number;
-  location?: string;
 }
 
 /**
@@ -65,8 +63,6 @@ async function readProjectMeetings(
           date: normalizeDate(data.date || data.created),
           created: normalizeDate(data.created),
           attendees: data.attendees,
-          duration: data.duration,
-          location: data.location,
           content: body,
           preview: generatePreview(body),
         });
@@ -151,8 +147,6 @@ export async function createMeeting(data: {
   title: string;
   date?: string;
   attendees?: string[];
-  duration?: number;
-  location?: string;
   content?: string;
 }): Promise<Meeting> {
   const meetingDate = data.date || todayISO();
@@ -169,8 +163,6 @@ export async function createMeeting(data: {
     date: meetingDate,
     created: todayISO(),
     attendees: data.attendees,
-    duration: data.duration,
-    location: data.location,
     content,
     preview: generatePreview(content),
   };
@@ -196,8 +188,6 @@ export async function createMeeting(data: {
     date: meeting.date,
     created: meeting.created,
     ...(meeting.attendees && { attendees: meeting.attendees }),
-    ...(meeting.duration && { duration: meeting.duration }),
-    ...(meeting.location && { location: meeting.location }),
   };
 
   const fileContent = serializeMarkdown(frontmatter, meeting.content);
@@ -211,7 +201,7 @@ export async function createMeeting(data: {
  */
 export async function updateMeeting(
   meetingId: string,
-  updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "duration" | "location" | "content">>,
+  updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>,
   areaId?: string,
   projectId?: string
 ): Promise<Meeting | null> {
@@ -246,8 +236,6 @@ export async function updateMeeting(
             ...(updates.title && { title: updates.title }),
             ...(updates.date && { date: updates.date }),
             ...(updates.attendees !== undefined && { attendees: updates.attendees }),
-            ...(updates.duration !== undefined && { duration: updates.duration }),
-            ...(updates.location !== undefined && { location: updates.location }),
           };
 
           const updatedContent = updates.content !== undefined ? updates.content : body;
@@ -263,8 +251,6 @@ export async function updateMeeting(
             date: updatedData.date,
             created: normalizeDate(data.created),
             attendees: updatedData.attendees,
-            duration: updatedData.duration,
-            location: updatedData.location,
             content: updatedContent,
             preview: generatePreview(updatedContent),
           };
@@ -295,8 +281,6 @@ export async function updateMeeting(
         ...(updates.title && { title: updates.title }),
         ...(updates.date && { date: updates.date }),
         ...(updates.attendees !== undefined && { attendees: updates.attendees }),
-        ...(updates.duration !== undefined && { duration: updates.duration }),
-        ...(updates.location !== undefined && { location: updates.location }),
       };
 
       const updatedContent = updates.content !== undefined ? updates.content : meeting.content;
@@ -308,8 +292,6 @@ export async function updateMeeting(
         title: updatedData.title,
         date: updatedData.date,
         attendees: updatedData.attendees,
-        duration: updatedData.duration,
-        location: updatedData.location,
         content: updatedContent,
         preview: generatePreview(updatedContent),
       };

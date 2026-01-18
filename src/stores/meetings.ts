@@ -58,8 +58,6 @@ export function useCreateMeeting() {
       title: string;
       date?: string;
       attendees?: string[];
-      duration?: number;
-      location?: string;
       content?: string;
     }) => meetingLib.createMeeting(data),
     onSuccess: (newMeeting) => {
@@ -86,7 +84,7 @@ export function useUpdateMeeting() {
       meetingId: string;
       areaId: string;
       projectId: string;
-      updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "duration" | "location" | "content">>;
+      updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>;
     }) => meetingLib.updateMeeting(meetingId, updates, areaId, projectId),
     onSuccess: (updatedMeeting, variables) => {
       if (updatedMeeting) {

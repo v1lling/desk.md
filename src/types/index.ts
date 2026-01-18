@@ -66,8 +66,6 @@ export interface Meeting {
   date: string;            // ISO date - when the meeting occurred
   created: string;         // ISO date - when the note was created
   attendees?: string[];    // List of attendee names
-  duration?: number;       // Duration in minutes
-  location?: string;       // Meeting location (Zoom, office, etc.)
   content: string;         // Markdown body (agenda, notes, action items)
   preview?: string;        // First ~100 chars
 }

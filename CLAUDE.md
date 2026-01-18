@@ -64,7 +64,7 @@ Working features:
 
 ## What's Next
 
-- Inbox for unassigned tasks
+- **Inbox**: Quick capture tasks without assigning to a project, sort later (`areas/{area}/_inbox/tasks/`)
 - Global search / Cmd+K
 - Keyboard shortcuts
 - AI context integration

@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Clock, MapPin, Users, Loader2 } from "lucide-react";
+import { Calendar, Users, Loader2 } from "lucide-react";
 import { useCreateMeeting, useProjects, useCurrentArea } from "@/stores";
 import { toast } from "sonner";
 
@@ -40,8 +39,6 @@ export function NewMeetingModal({
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [attendees, setAttendees] = useState("");
-  const [duration, setDuration] = useState("");
-  const [location, setLocation] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
   useEffect(() => {
@@ -67,8 +64,6 @@ export function NewMeetingModal({
         title: title.trim(),
         date: date || undefined,
         attendees: attendeesList.length > 0 ? attendeesList : undefined,
-        duration: duration ? parseInt(duration, 10) : undefined,
-        location: location.trim() || undefined,
       });
 
       toast.success("Meeting created");
@@ -77,8 +72,6 @@ export function NewMeetingModal({
       setTitle("");
       setDate(new Date().toISOString().split("T")[0]);
       setAttendees("");
-      setDuration("");
-      setLocation("");
       onClose();
     } catch (error) {
       console.error("Failed to create meeting:", error);
@@ -90,8 +83,6 @@ export function NewMeetingModal({
     setTitle("");
     setDate(new Date().toISOString().split("T")[0]);
     setAttendees("");
-    setDuration("");
-    setLocation("");
     onClose();
   };
 
@@ -146,47 +137,17 @@ export function NewMeetingModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="meeting-duration">Duration (min)</Label>
+              <Label htmlFor="meeting-attendees">Attendees</Label>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="meeting-duration"
-                  type="number"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="30"
-                  min="1"
+                  id="meeting-attendees"
+                  value={attendees}
+                  onChange={(e) => setAttendees(e.target.value)}
+                  placeholder="John, Sarah..."
                   className="pl-10"
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="meeting-location">Location</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="meeting-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Zoom, Teams, Office..."
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="meeting-attendees">Attendees</Label>
-            <div className="relative">
-              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Textarea
-                id="meeting-attendees"
-                value={attendees}
-                onChange={(e) => setAttendees(e.target.value)}
-                placeholder="John, Sarah, Mike (comma-separated)"
-                className="pl-10 min-h-[60px] resize-none"
-              />
             </div>
           </div>
 

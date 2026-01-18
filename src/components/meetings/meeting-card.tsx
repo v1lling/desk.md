@@ -1,12 +1,22 @@
 "use client";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import type { Meeting } from "@/types";
 
 interface MeetingCardProps {
   meeting: Meeting;
   onClick?: () => void;
+}
+
+function formatRelativeDate(dateStr: string): string {
+  try {
+    const date = parseISO(dateStr);
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return dateStr;
+  }
 }
 
 export function MeetingCard({ meeting, onClick }: MeetingCardProps) {
@@ -22,31 +32,19 @@ export function MeetingCard({ meeting, onClick }: MeetingCardProps) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium truncate">{meeting.title}</h3>
-            <p className="text-xs text-muted-foreground">{meeting.date}</p>
+            <p className="text-xs text-muted-foreground" title={meeting.date}>
+              {formatRelativeDate(meeting.date)}
+            </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-2">
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {meeting.attendees && meeting.attendees.length > 0 && (
-            <span className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {meeting.attendees.length}
-            </span>
-          )}
-          {meeting.duration && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {meeting.duration}m
-            </span>
-          )}
-          {meeting.location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {meeting.location}
-            </span>
-          )}
-        </div>
+        {meeting.attendees && meeting.attendees.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Users className="h-3 w-3" />
+            {meeting.attendees.length} attendees
+          </div>
+        )}
         {meeting.preview && (
           <p className="text-sm text-muted-foreground line-clamp-2">
             {meeting.preview}
