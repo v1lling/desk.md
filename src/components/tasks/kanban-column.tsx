@@ -13,6 +13,8 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
+  showProject?: boolean;
+  getProjectName?: (projectId: string) => string;
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
@@ -21,7 +23,13 @@ const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
   done: { label: "Done", color: "bg-emerald-500" },
 };
 
-export function KanbanColumn({ status, tasks, onTaskClick }: KanbanColumnProps) {
+export function KanbanColumn({
+  status,
+  tasks,
+  onTaskClick,
+  showProject,
+  getProjectName,
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -59,6 +67,8 @@ export function KanbanColumn({ status, tasks, onTaskClick }: KanbanColumnProps) 
                 key={task.id}
                 task={task}
                 onClick={() => onTaskClick?.(task)}
+                showProject={showProject}
+                projectName={getProjectName?.(task.projectId)}
               />
             ))}
           </div>

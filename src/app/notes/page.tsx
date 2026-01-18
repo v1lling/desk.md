@@ -3,18 +3,12 @@
 import { useState, useMemo } from "react";
 import { Header } from "@/components/layout/header";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
+import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { useNotes, useProjects, useCurrentArea } from "@/stores";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { FolderKanban } from "lucide-react";
 import type { Note } from "@/types";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 export default function NotesPage() {
   const currentArea = useCurrentArea();
@@ -52,6 +46,12 @@ export default function NotesPage() {
     return project?.name || projectId;
   };
 
+  // Prepare filter options
+  const projectOptions = useMemo(
+    () => projects.map((p) => ({ value: p.id, label: p.name })),
+    [projects]
+  );
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -63,23 +63,21 @@ export default function NotesPage() {
       />
 
       {/* Filter Bar */}
-      <div className="px-6 py-3 border-b flex items-center gap-4">
-        <span className="text-sm text-muted-foreground">Filter by project:</span>
-        <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All projects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All projects</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Badge variant="secondary">{filteredNotes.length} notes</Badge>
-      </div>
+      <EntityFilterBar
+        filters={[
+          {
+            id: "project",
+            label: "Project",
+            value: filterProject,
+            onChange: setFilterProject,
+            options: projectOptions,
+            allLabel: "All projects",
+            width: "w-[200px]",
+          },
+        ]}
+        count={filteredNotes.length}
+        countLabel="notes"
+      />
 
       <main className="flex-1 overflow-auto p-6">
         {isLoading ? (

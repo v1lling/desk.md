@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical } from "lucide-react";
+import { Calendar, GripVertical, FolderKanban } from "lucide-react";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { priorityColors } from "@/lib/design-tokens";
@@ -12,9 +12,11 @@ import { priorityColors } from "@/lib/design-tokens";
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  showProject?: boolean;
+  projectName?: string;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, showProject, projectName }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -48,6 +50,14 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
           <div className="flex-1 min-w-0 cursor-pointer">
+            {showProject && projectName && (
+              <div className="flex items-center gap-1 mb-1.5">
+                <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground truncate">
+                  {projectName}
+                </span>
+              </div>
+            )}
             <h4 className="font-medium text-sm leading-snug mb-2 line-clamp-2 text-foreground/90">
               {task.title}
             </h4>

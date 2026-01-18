@@ -15,25 +15,43 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
-import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea } from "@/stores";
+import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea, useProjects } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
 
 interface KanbanBoardProps {
   projectId?: string;
   onTaskClick?: (task: Task) => void;
+  /** When true, shows project name on task cards (used on All Tasks page) */
+  showProject?: boolean;
+  /** Optional pre-filtered tasks to display instead of fetching all */
+  tasks?: Task[];
 }
 
-export function KanbanBoard({ projectId, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: externalTasks }: KanbanBoardProps) {
   const currentArea = useCurrentArea();
   const currentAreaId = currentArea?.id || null;
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
   const allTasksQuery = useTasks(projectId ? null : currentAreaId);
   const projectTasksQuery = useProjectTasks(projectId ? currentAreaId : null, projectId || null);
+  const { data: projects = [] } = useProjects(currentAreaId);
 
-  const { data: tasks = [], isLoading } = projectId ? projectTasksQuery : allTasksQuery;
+  // Use external tasks if provided (for filtering), otherwise use query results
+  const queryResult = projectId ? projectTasksQuery : allTasksQuery;
+  const { data: fetchedTasks = [], isLoading } = queryResult;
+  const tasks = externalTasks ?? fetchedTasks;
+
   const moveTask = useMoveTask();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  // Helper to get project name by ID
+  const getProjectName = useCallback(
+    (taskProjectId: string) => {
+      const project = projects.find((p) => p.id === taskProjectId);
+      return project?.name || taskProjectId;
+    },
+    [projects]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -112,20 +130,32 @@ export function KanbanBoard({ projectId, onTaskClick }: KanbanBoardProps) {
           status="todo"
           tasks={groupedTasks.todo}
           onTaskClick={onTaskClick}
+          showProject={showProject}
+          getProjectName={getProjectName}
         />
         <KanbanColumn
           status="doing"
           tasks={groupedTasks.doing}
           onTaskClick={onTaskClick}
+          showProject={showProject}
+          getProjectName={getProjectName}
         />
         <KanbanColumn
           status="done"
           tasks={groupedTasks.done}
           onTaskClick={onTaskClick}
+          showProject={showProject}
+          getProjectName={getProjectName}
         />
       </div>
       <DragOverlay>
-        {activeTask ? <TaskCard task={activeTask} /> : null}
+        {activeTask ? (
+          <TaskCard
+            task={activeTask}
+            showProject={showProject}
+            projectName={showProject ? getProjectName(activeTask.projectId) : undefined}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
