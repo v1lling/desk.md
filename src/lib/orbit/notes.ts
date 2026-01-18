@@ -93,11 +93,18 @@ export async function getNotes(areaId: string): Promise<Note[]> {
   const allNotes: Note[] = [];
 
   for (const entry of projectEntries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_inbox") {
+    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_unassigned") {
       const projectPath = await joinPath(projectsPath, entry.name);
       const projectNotes = await readProjectNotes(areaId, entry.name, projectPath);
       allNotes.push(...projectNotes);
     }
+  }
+
+  // Also read unassigned notes
+  const unassignedPath = await joinPath(orbitPath, "areas", areaId, "_unassigned");
+  if (await exists(unassignedPath)) {
+    const unassignedNotes = await readProjectNotes(areaId, "_unassigned", unassignedPath);
+    allNotes.push(...unassignedNotes);
   }
 
   // Sort all notes by created date (newest first)
@@ -118,7 +125,10 @@ export async function getNotesByProject(
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath =
+    projectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned")
+      : await joinPath(orbitPath, "areas", areaId, "projects", projectId);
 
   return readProjectNotes(areaId, projectId, projectPath);
 }
@@ -165,7 +175,10 @@ export async function createNote(data: {
   }
 
   const orbitPath = await getOrbitPath();
-  const notesPath = await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "notes");
+  const notesPath =
+    data.projectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", data.areaId, "_unassigned", "notes")
+      : await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "notes");
 
   // Ensure notes directory exists
   await mkdir(notesPath);
@@ -210,7 +223,10 @@ export async function updateNote(
   // If we have areaId and projectId, we can directly locate the file
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const notesPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
+    const notesPath =
+      projectId === "_unassigned"
+        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
+        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
 
     if (await exists(notesPath)) {
       const entries = await readDir(notesPath);
@@ -300,7 +316,10 @@ export async function deleteNote(
   // If we have areaId and projectId, we can directly locate the file
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const notesPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
+    const notesPath =
+      projectId === "_unassigned"
+        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
+        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
 
     if (await exists(notesPath)) {
       const entries = await readDir(notesPath);

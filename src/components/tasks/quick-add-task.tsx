@@ -125,7 +125,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
                     {project.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="_inbox">Inbox (no project)</SelectItem>
+                <SelectItem value="_unassigned">Unassigned</SelectItem>
               </SelectContent>
             </Select>
           </div>

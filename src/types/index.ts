@@ -30,7 +30,7 @@ export type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 // Task - lives under a project
 export interface Task {
   id: string;              // Filename without .md
-  projectId: string;       // Parent project (or "_inbox")
+  projectId: string;       // Parent project (or "_unassigned")
   areaId: string;
   filePath: string;        // Full path to file
   title: string;

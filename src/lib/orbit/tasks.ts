@@ -96,9 +96,9 @@ export async function getTasks(areaId: string): Promise<Task[]> {
   }
 
   // Also read inbox tasks
-  const inboxPath = await joinPath(orbitPath, "areas", areaId, "_inbox");
+  const inboxPath = await joinPath(orbitPath, "areas", areaId, "_unassigned");
   if (await exists(inboxPath)) {
-    const inboxTasks = await readProjectTasks(areaId, "_inbox", inboxPath);
+    const inboxTasks = await readProjectTasks(areaId, "_unassigned", inboxPath);
     allTasks.push(...inboxTasks);
   }
 
@@ -118,8 +118,8 @@ export async function getTasksByProject(
 
   const orbitPath = await getOrbitPath();
   const projectPath =
-    projectId === "_inbox"
-      ? await joinPath(orbitPath, "areas", areaId, "_inbox")
+    projectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", areaId, "_unassigned")
       : await joinPath(orbitPath, "areas", areaId, "projects", projectId);
 
   return readProjectTasks(areaId, projectId, projectPath);
@@ -171,8 +171,8 @@ export async function createTask(data: {
 
   const orbitPath = await getOrbitPath();
   const tasksPath =
-    data.projectId === "_inbox"
-      ? await joinPath(orbitPath, "areas", data.areaId, "_inbox", "tasks")
+    data.projectId === "_unassigned"
+      ? await joinPath(orbitPath, "areas", data.areaId, "_unassigned", "tasks")
       : await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "tasks");
 
   // Ensure tasks directory exists
@@ -216,8 +216,8 @@ export async function updateTask(
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
     const tasksPath =
-      projectId === "_inbox"
-        ? await joinPath(orbitPath, "areas", areaId, "_inbox", "tasks")
+      projectId === "_unassigned"
+        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
         : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "tasks");
 
     // Find the task file by ID
@@ -321,8 +321,8 @@ export async function deleteTask(
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
     const tasksPath =
-      projectId === "_inbox"
-        ? await joinPath(orbitPath, "areas", areaId, "_inbox", "tasks")
+      projectId === "_unassigned"
+        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
         : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "tasks");
 
     if (await exists(tasksPath)) {

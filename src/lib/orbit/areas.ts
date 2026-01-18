@@ -120,8 +120,9 @@ export async function createArea(data: {
   // Create area directory structure
   await mkdir(areaPath);
   await mkdir(await joinPath(areaPath, "projects"));
-  await mkdir(await joinPath(areaPath, "_inbox"));
-  await mkdir(await joinPath(areaPath, "_inbox", "tasks"));
+  await mkdir(await joinPath(areaPath, "_unassigned"));
+  await mkdir(await joinPath(areaPath, "_unassigned", "tasks"));
+  await mkdir(await joinPath(areaPath, "_unassigned", "notes"));
 
   // Create area.md
   const frontmatter: AreaFrontmatter = {

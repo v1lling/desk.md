@@ -80,7 +80,7 @@ export async function getProjects(areaId: string): Promise<Project[]> {
   const projects: Project[] = [];
 
   for (const entry of entries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_inbox") {
+    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_unassigned") {
       try {
         const projectPath = await joinPath(projectsPath, entry.name);
         const projectMdPath = await joinPath(projectPath, "project.md");

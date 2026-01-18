@@ -109,6 +109,7 @@ export function NewNoteModal({
                     {project.name}
                   </SelectItem>
                 ))}
+                <SelectItem value="_unassigned">Unassigned</SelectItem>
               </SelectContent>
             </Select>
           </div>
