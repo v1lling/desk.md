@@ -48,7 +48,7 @@ export function KanbanColumn({
     <div className={cn("flex flex-col h-full", !hideHeader && "min-w-[300px] w-[300px]")}>
       {/* Column header */}
       {!hideHeader && (
-        <div className="flex items-center gap-2.5 mb-4 px-1">
+        <div className="flex items-center gap-2.5 mb-4 px-1 flex-shrink-0">
           <div className={cn("w-2 h-2 rounded-full", config.color)} />
           <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
           <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
@@ -57,37 +57,39 @@ export function KanbanColumn({
         </div>
       )}
 
-      {/* Drop zone */}
-      <div
-        ref={setNodeRef}
-        className={cn(
-          "flex-1 rounded-xl p-2 transition-all duration-200 min-h-[200px]",
-          showHighlight
-            ? "bg-accent/70 ring-2 ring-ring/20"
-            : "bg-muted/20"
-        )}
-      >
-        <SortableContext
-          items={tasks.map((t) => t.id)}
-          strategy={verticalListSortingStrategy}
+      {/* Scrollable drop zone */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+        <div
+          ref={setNodeRef}
+          className={cn(
+            "rounded-xl p-2 transition-all duration-200 min-h-full",
+            showHighlight
+              ? "bg-accent/70 ring-2 ring-ring/20"
+              : "bg-muted/20"
+          )}
         >
-          <div className="space-y-2.5">
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onClick={() => onTaskClick?.(task)}
-                showProject={showProject}
-                projectName={getProjectName?.(task.projectId)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-        {tasks.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
-            No tasks
-          </div>
-        )}
+          <SortableContext
+            items={tasks.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2.5">
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onClick={() => onTaskClick?.(task)}
+                  showProject={showProject}
+                  projectName={getProjectName?.(task.projectId)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          {tasks.length === 0 && (
+            <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
+              No tasks
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
