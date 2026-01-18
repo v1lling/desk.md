@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
-import { useProject, useProjectTasks, useProjectNotes, useCurrentArea } from "@/stores";
-import type { Task, Note } from "@/types";
+import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
+import { useProject, useProjectTasks, useProjectNotes, useProjectMeetings, useCurrentArea } from "@/stores";
+import type { Task, Note, Meeting } from "@/types";
 import {
   LayoutGrid,
   FileText,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Circle,
   ArrowLeft,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -36,12 +38,15 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
   );
   const { data: tasks = [] } = useProjectTasks(currentAreaId, projectId);
   const { data: notes = [] } = useProjectNotes(currentAreaId, projectId);
+  const { data: meetings = [] } = useProjectMeetings(currentAreaId, projectId);
 
   const [activeTab, setActiveTab] = useState("tasks");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewNote, setShowNewNote] = useState(false);
+  const [showNewMeeting, setShowNewMeeting] = useState(false);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -49,6 +54,10 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
 
   const handleNoteClick = (note: Note) => {
     setSelectedNote(note);
+  };
+
+  const handleMeetingClick = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
   };
 
   // Calculate task stats
@@ -138,6 +147,13 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
                 {notes.length}
               </Badge>
             </TabsTrigger>
+            <TabsTrigger value="meetings" className="gap-2">
+              <Users className="h-4 w-4" />
+              Meetings
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {meetings.length}
+              </Badge>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -196,7 +212,7 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
             {/* Quick Actions */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Quick Actions</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button onClick={() => setShowNewTask(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Task
@@ -204,6 +220,10 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
                 <Button variant="outline" onClick={() => setShowNewNote(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Note
+                </Button>
+                <Button variant="outline" onClick={() => setShowNewMeeting(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Meeting
                 </Button>
               </div>
             </div>
@@ -235,6 +255,19 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
             <NoteList notes={notes} onNoteClick={handleNoteClick} />
           </div>
         </TabsContent>
+
+        {/* Meetings Tab */}
+        <TabsContent value="meetings" className="flex-1 mt-0 flex flex-col">
+          <div className="px-6 py-3 flex justify-end border-b">
+            <Button size="sm" onClick={() => setShowNewMeeting(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Meeting
+            </Button>
+          </div>
+          <div className="flex-1 p-6 overflow-auto">
+            <MeetingList meetings={meetings} onMeetingClick={handleMeetingClick} />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Task Detail Panel */}
@@ -262,6 +295,20 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
       <NewNoteModal
         open={showNewNote}
         onClose={() => setShowNewNote(false)}
+        defaultProjectId={projectId}
+      />
+
+      {/* Meeting Editor */}
+      <MeetingEditor
+        meeting={selectedMeeting}
+        open={!!selectedMeeting}
+        onClose={() => setSelectedMeeting(null)}
+      />
+
+      {/* New Meeting Modal */}
+      <NewMeetingModal
+        open={showNewMeeting}
+        onClose={() => setShowNewMeeting(false)}
         defaultProjectId={projectId}
       />
     </div>

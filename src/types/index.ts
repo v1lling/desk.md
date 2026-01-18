@@ -55,6 +55,22 @@ export interface Note {
   preview?: string;        // First ~100 chars
 }
 
+// Meeting - lives under a project
+export interface Meeting {
+  id: string;              // Filename without .md
+  projectId: string;
+  areaId: string;
+  filePath: string;
+  title: string;
+  date: string;            // ISO date - when the meeting occurred
+  created: string;         // ISO date - when the note was created
+  attendees?: string[];    // List of attendee names
+  duration?: number;       // Duration in minutes
+  location?: string;       // Meeting location (Zoom, office, etc.)
+  content: string;         // Markdown body (agenda, notes, action items)
+  preview?: string;        // First ~100 chars
+}
+
 // App configuration
 export interface OrbitConfig {
   dataPath: string;
