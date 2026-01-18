@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
-import { useProject, useProjectTasks, useProjectNotes } from "@/stores";
-import { useSettingsStore } from "@/stores/settings";
+import { useProject, useProjectTasks, useProjectNotes, useCurrentArea } from "@/stores";
 import type { Task, Note } from "@/types";
 import {
   LayoutGrid,
@@ -21,20 +20,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { statusColors } from "@/lib/design-tokens";
 
 interface ProjectPageClientProps {
   projectId: string;
 }
 
-const statusColors = {
-  active: "bg-green-500/10 text-green-600 border-green-500/20",
-  paused: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  completed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  archived: "bg-gray-500/10 text-gray-600 border-gray-500/20",
-};
-
 export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
-  const currentAreaId = useSettingsStore((state) => state.currentAreaId);
+  const currentArea = useCurrentArea();
+  const currentAreaId = currentArea?.id || null;
 
   const { data: project, isLoading: projectLoading } = useProject(
     currentAreaId,
@@ -124,32 +118,23 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
         onValueChange={setActiveTab}
         className="flex-1 flex flex-col"
       >
-        <div className="border-b border-border px-6">
-          <TabsList className="h-12 bg-transparent p-0 gap-4">
-            <TabsTrigger
-              value="overview"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-            >
-              <Info className="h-4 w-4 mr-2" />
+        <div className="px-6 pt-2">
+          <TabsList className="h-10 w-auto">
+            <TabsTrigger value="overview" className="gap-2">
+              <Info className="h-4 w-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger
-              value="tasks"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-            >
-              <LayoutGrid className="h-4 w-4 mr-2" />
+            <TabsTrigger value="tasks" className="gap-2">
+              <LayoutGrid className="h-4 w-4" />
               Tasks
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {taskStats.total}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="notes"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-            >
-              <FileText className="h-4 w-4 mr-2" />
+            <TabsTrigger value="notes" className="gap-2">
+              <FileText className="h-4 w-4" />
               Notes
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {notes.length}
               </Badge>
             </TabsTrigger>

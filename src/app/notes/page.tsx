@@ -3,8 +3,7 @@
 import { useState, useMemo } from "react";
 import { Header } from "@/components/layout/header";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
-import { useNotes, useProjects } from "@/stores";
-import { useSettingsStore } from "@/stores/settings";
+import { useNotes, useProjects, useCurrentArea } from "@/stores";
 import {
   Select,
   SelectContent,
@@ -18,7 +17,8 @@ import type { Note } from "@/types";
 import Link from "next/link";
 
 export default function NotesPage() {
-  const currentAreaId = useSettingsStore((state) => state.currentAreaId);
+  const currentArea = useCurrentArea();
+  const currentAreaId = currentArea?.id || null;
   const { data: notes = [], isLoading } = useNotes(currentAreaId);
   const { data: projects = [] } = useProjects(currentAreaId);
 

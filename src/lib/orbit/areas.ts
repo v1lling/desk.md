@@ -14,24 +14,7 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-
-// Mock data for browser development
-const mockAreas: Area[] = [
-  {
-    id: "slsp",
-    name: "SLSP",
-    description: "Swiss Library Service Platform",
-    color: "#3b82f6",
-    created: "2024-01-01",
-  },
-  {
-    id: "sss",
-    name: "SSS",
-    description: "SSS Project",
-    color: "#10b981",
-    created: "2024-01-15",
-  },
-];
+import { mockAreas } from "./mock-data";
 
 interface AreaFrontmatter {
   name: string;

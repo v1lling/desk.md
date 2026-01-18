@@ -14,50 +14,7 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-
-// Mock projects for browser development
-let mockProjects: Project[] = [
-  {
-    id: "slskey",
-    areaId: "slsp",
-    name: "SLSKey",
-    status: "active",
-    description: "Swiss Library Service Key authentication system",
-    created: "2024-01-01",
-    taskCount: 4,
-    tasksByStatus: { todo: 1, doing: 2, done: 1 },
-  },
-  {
-    id: "alma-migration",
-    areaId: "slsp",
-    name: "Alma Migration",
-    status: "active",
-    description: "Migration of library data to Ex Libris Alma",
-    created: "2024-01-05",
-    taskCount: 1,
-    tasksByStatus: { todo: 1, doing: 0, done: 0 },
-  },
-  {
-    id: "api-v2",
-    areaId: "slsp",
-    name: "API v2",
-    status: "paused",
-    description: "Next generation REST API",
-    created: "2023-11-15",
-    taskCount: 0,
-    tasksByStatus: { todo: 0, doing: 0, done: 0 },
-  },
-  {
-    id: "main",
-    areaId: "sss",
-    name: "Main Project",
-    status: "active",
-    description: "Primary SSS development work",
-    created: "2024-01-10",
-    taskCount: 0,
-    tasksByStatus: { todo: 0, doing: 0, done: 0 },
-  },
-];
+import { mockProjects } from "./mock-data";
 
 interface ProjectFrontmatter {
   name: string;

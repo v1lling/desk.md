@@ -16,21 +16,12 @@ import { useCreateArea } from "@/stores/areas";
 import { useSettingsStore } from "@/stores/settings";
 import { slugify } from "@/lib/orbit/parser";
 import { toast } from "sonner";
+import { areaColorOptions } from "@/lib/design-tokens";
 
 interface NewAreaModalProps {
   open: boolean;
   onClose: () => void;
 }
-
-const colorOptions = [
-  { value: "#3b82f6", label: "Blue" },
-  { value: "#10b981", label: "Green" },
-  { value: "#f59e0b", label: "Orange" },
-  { value: "#ef4444", label: "Red" },
-  { value: "#8b5cf6", label: "Purple" },
-  { value: "#ec4899", label: "Pink" },
-  { value: "#6b7280", label: "Gray" },
-];
 
 export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
   const createArea = useCreateArea();
@@ -38,7 +29,7 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState(colorOptions[0].value);
+  const [color, setColor] = useState(areaColorOptions[0].value);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +54,7 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
       // Reset form
       setName("");
       setDescription("");
-      setColor(colorOptions[0].value);
+      setColor(areaColorOptions[0].value);
       onClose();
     } catch (error) {
       console.error("Failed to create area:", error);
@@ -74,7 +65,7 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
   const handleClose = () => {
     setName("");
     setDescription("");
-    setColor(colorOptions[0].value);
+    setColor(areaColorOptions[0].value);
     onClose();
   };
 
@@ -119,7 +110,7 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
           <div className="space-y-2">
             <Label>Color</Label>
             <div className="flex gap-2 flex-wrap">
-              {colorOptions.map((opt) => (
+              {areaColorOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"

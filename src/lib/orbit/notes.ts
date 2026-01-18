@@ -14,40 +14,7 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-
-// Mock notes for browser development
-let mockNotes: Note[] = [
-  {
-    id: "2024-01-15-meeting-zb-winterthur",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/notes/2024-01-15-meeting-zb-winterthur.md",
-    title: "Meeting with ZB Winterthur",
-    created: "2024-01-15",
-    content: "# Meeting with ZB Winterthur\n\n**Date:** 2024-01-15\n**Attendees:** John, Sarah, Mike\n\n## Agenda\n- Discuss webhook integration\n- Review timeline\n- Address security concerns\n\n## Notes\nThey want to go live by end of February. Need to prioritize the webhook setup.\n\n## Action Items\n- [ ] Send API documentation\n- [ ] Schedule follow-up call\n- [ ] Prepare security audit report",
-    preview: "Meeting with ZB Winterthur - Date: 2024-01-15, Attendees: John, Sarah, Mike...",
-  },
-  {
-    id: "2024-01-12-api-changes",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/notes/2024-01-12-api-changes.md",
-    title: "API v2 Changes Summary",
-    created: "2024-01-12",
-    content: "# API v2 Changes Summary\n\n## Breaking Changes\n- Authentication endpoint moved to `/auth/v2`\n- Response format changed to JSON:API spec\n- Rate limiting now 100 req/min\n\n## New Features\n- Batch operations support\n- Webhook callbacks\n- GraphQL endpoint (beta)\n\n## Migration Guide\nSee docs at `/docs/migration-v2`",
-    preview: "API v2 Changes Summary - Breaking Changes: Authentication endpoint moved...",
-  },
-  {
-    id: "2024-01-10-alma-kickoff",
-    projectId: "alma-migration",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/alma-migration/notes/2024-01-10-alma-kickoff.md",
-    title: "Alma Migration Kickoff",
-    created: "2024-01-10",
-    content: "# Alma Migration Kickoff\n\n## Project Overview\nMigrating from legacy system to Ex Libris Alma.\n\n## Timeline\n- Phase 1: Data mapping (Jan-Feb)\n- Phase 2: Test migration (Mar)\n- Phase 3: Production migration (Apr)\n\n## Team\n- Lead: Maria\n- Technical: Alex, Chris\n- Support: Lisa",
-    preview: "Alma Migration Kickoff - Project Overview: Migrating from legacy system to Ex Libris Alma...",
-  },
-];
+import { mockNotes } from "./mock-data";
 
 interface NoteFrontmatter {
   title: string;

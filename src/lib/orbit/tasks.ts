@@ -14,65 +14,7 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-
-// Mock tasks for browser development
-let mockTasks: Task[] = [
-  {
-    id: "2024-01-15-setup-webhook",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-15-setup-webhook.md",
-    title: "Setup webhook for ZB Winterthur",
-    status: "doing",
-    priority: "high",
-    due: "2024-01-20",
-    created: "2024-01-15",
-    content: "Configure Alma webhook endpoint for the new library.\n\n## Steps\n- [ ] Get API credentials\n- [ ] Configure endpoint\n- [ ] Test with sample user",
-  },
-  {
-    id: "2024-01-14-review-docs",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-14-review-docs.md",
-    title: "Review API documentation",
-    status: "todo",
-    priority: "medium",
-    created: "2024-01-14",
-    content: "Go through the updated API docs and note any breaking changes.",
-  },
-  {
-    id: "2024-01-13-fix-auth-bug",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-13-fix-auth-bug.md",
-    title: "Fix authentication timeout bug",
-    status: "done",
-    priority: "high",
-    created: "2024-01-13",
-    content: "Users getting logged out after 5 minutes. Need to increase token lifetime.",
-  },
-  {
-    id: "2024-01-12-write-specs",
-    projectId: "alma-migration",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/alma-migration/tasks/2024-01-12-write-specs.md",
-    title: "Write migration specs",
-    status: "todo",
-    priority: "low",
-    created: "2024-01-12",
-    content: "Document the data migration process for Alma.",
-  },
-  {
-    id: "2024-01-11-email-followup",
-    projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-11-email-followup.md",
-    title: "Email follow-up with library",
-    status: "doing",
-    created: "2024-01-11",
-    content: "Follow up on the integration timeline.",
-  },
-];
+import { mockTasks } from "./mock-data";
 
 interface TaskFrontmatter {
   title: string;

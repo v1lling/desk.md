@@ -15,8 +15,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
-import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus } from "@/stores";
-import { useSettingsStore } from "@/stores/settings";
+import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
 
 interface KanbanBoardProps {
@@ -25,7 +24,8 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ projectId, onTaskClick }: KanbanBoardProps) {
-  const currentAreaId = useSettingsStore((state) => state.currentAreaId);
+  const currentArea = useCurrentArea();
+  const currentAreaId = currentArea?.id || null;
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
   const allTasksQuery = useTasks(projectId ? null : currentAreaId);
