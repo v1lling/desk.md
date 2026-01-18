@@ -42,20 +42,20 @@ export function NewNoteModal({
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
   useEffect(() => {
-    if (!projectId && projects.length > 0) {
-      setProjectId(defaultProjectId || projects[0].id);
+    if (defaultProjectId) {
+      setProjectId(defaultProjectId);
     }
-  }, [projects, projectId, defaultProjectId]);
+  }, [defaultProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !currentArea || !projectId) return;
+    if (!title.trim() || !currentArea) return;
 
     try {
       await createNote.mutateAsync({
         areaId: currentArea.id,
-        projectId,
+        projectId: projectId || "_unassigned",
         title: title.trim(),
         content: content || undefined,
       });
@@ -98,18 +98,18 @@ export function NewNoteModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Project</Label>
+            <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select project" />
+                <SelectValue placeholder="No project" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">No project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="_unassigned">Unassigned</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -131,7 +131,7 @@ export function NewNoteModal({
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || !projectId || createNote.isPending}
+              disabled={!title.trim() || createNote.isPending}
             >
               {createNote.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

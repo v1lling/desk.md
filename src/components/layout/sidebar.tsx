@@ -7,8 +7,7 @@ import {
   FolderKanban,
   FileText,
   Settings,
-  ChevronLeft,
-  CircleDashed
+  ChevronLeft
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,7 +22,6 @@ const navItems = [
   { href: "/", label: "All Tasks", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/notes", label: "Notes", icon: FileText },
-  { href: "/unassigned", label: "Unassigned", icon: CircleDashed },
 ];
 
 export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {

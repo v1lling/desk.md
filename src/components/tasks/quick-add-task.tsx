@@ -48,12 +48,12 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
-  // Set default project when projects load
+  // Set default project when provided
   useEffect(() => {
-    if (!projectId && projects.length > 0) {
-      setProjectId(defaultProjectId || projects[0].id);
+    if (defaultProjectId) {
+      setProjectId(defaultProjectId);
     }
-  }, [projects, projectId, defaultProjectId]);
+  }, [defaultProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +63,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
     try {
       await createTask.mutateAsync({
         areaId: currentArea.id,
-        projectId,
+        projectId: projectId || "_unassigned",
         title: title.trim(),
         priority: priority === "none" ? undefined : priority,
         due: due || undefined,
@@ -112,20 +112,20 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
             />
           </div>
 
-          {/* Project */}
+          {/* Project (optional) */}
           <div className="space-y-2">
-            <Label>Project</Label>
+            <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select project" />
+                <SelectValue placeholder="No project" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">No project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="_unassigned">Unassigned</SelectItem>
               </SelectContent>
             </Select>
           </div>
