@@ -18,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SettingsPage() {
   const {
@@ -27,12 +28,16 @@ export default function SettingsPage() {
     setDataPath,
     setTheme,
     setSidebarCollapsed,
+    reset,
   } = useSettingsStore();
 
+  const queryClient = useQueryClient();
   const { data: areas = [] } = useAreas();
 
   const handleDataPathChange = (newPath: string) => {
     setDataPath(newPath);
+    // Invalidate all queries so they refetch from the new path
+    queryClient.invalidateQueries();
     toast.success("Data path updated");
   };
 
@@ -52,10 +57,14 @@ export default function SettingsPage() {
   };
 
   const handleResetSettings = () => {
-    if (confirm("Are you sure you want to reset all settings to defaults? This will not delete your data.")) {
-      setDataPath("~/Orbit");
-      setTheme("system");
-      setSidebarCollapsed(false);
+    if (confirm("Are you sure you want to reset all settings to defaults? This will show the setup wizard again.")) {
+      reset();
+      // Invalidate all queries
+      queryClient.invalidateQueries();
+      // Apply system theme
+      const root = document.documentElement;
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", systemDark);
       toast.success("Settings reset to defaults");
     }
   };
@@ -221,7 +230,7 @@ export default function SettingsPage() {
                 Reset All Settings
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                This will reset appearance and data path settings. Your actual data files will not be deleted.
+                This will reset all settings and show the setup wizard again. Your data files will not be deleted.
               </p>
             </CardContent>
           </Card>
