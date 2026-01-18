@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateArea } from "@/stores/areas";
-import { initOrbitDirectory, slugify } from "@/lib/orbit";
-import { Rocket, FolderOpen, Palette, Loader2 } from "lucide-react";
+import { initOrbitDirectory, slugify, getAreas, isTauri } from "@/lib/orbit";
+import { Rocket, FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
+import type { Area } from "@/types";
 
-type Step = "welcome" | "data-folder" | "first-area" | "complete";
+type Step = "welcome" | "data-folder" | "existing-detected" | "first-area";
 
 const COLORS = [
   "#3b82f6", // blue
@@ -28,15 +29,51 @@ export function SetupWizard() {
   const [dataPath, setDataPath] = useState("~/Orbit");
   const [areaName, setAreaName] = useState("");
   const [areaColor, setAreaColor] = useState(COLORS[0]);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [existingAreas, setExistingAreas] = useState<Area[]>([]);
 
   const setSettingsDataPath = useSettingsStore((state) => state.setDataPath);
   const setSetupCompleted = useSettingsStore((state) => state.setSetupCompleted);
   const setCurrentAreaId = useSettingsStore((state) => state.setCurrentAreaId);
   const createArea = useCreateArea();
 
-  const handleComplete = async () => {
-    setIsCreating(true);
+  const handleCheckDataFolder = async () => {
+    setIsLoading(true);
+
+    try {
+      // Save the data path first so getAreas knows where to look
+      setSettingsDataPath(dataPath);
+
+      // Only check for existing areas in Tauri mode
+      if (isTauri()) {
+        const areas = await getAreas();
+        if (areas.length > 0) {
+          setExistingAreas(areas);
+          setStep("existing-detected");
+          return;
+        }
+      }
+
+      // No existing data, proceed to create first area
+      setStep("first-area");
+    } catch (error) {
+      console.error("Error checking data folder:", error);
+      setStep("first-area");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUseExisting = () => {
+    // Use the first existing area as the current one
+    if (existingAreas.length > 0) {
+      setCurrentAreaId(existingAreas[0].id);
+    }
+    setSetupCompleted(true);
+  };
+
+  const handleCreateNew = async () => {
+    setIsLoading(true);
 
     try {
       // Save settings
@@ -62,7 +99,7 @@ export function SetupWizard() {
       setCurrentAreaId(areaId);
       setSetupCompleted(true);
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
@@ -117,11 +154,55 @@ export function SetupWizard() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep("welcome")}>
+                <Button variant="outline" onClick={() => setStep("welcome")} disabled={isLoading}>
                   Back
                 </Button>
-                <Button className="flex-1" onClick={() => setStep("first-area")}>
+                <Button className="flex-1" onClick={handleCheckDataFolder} disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Continue
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === "existing-detected" && (
+          <>
+            <CardHeader>
+              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              </div>
+              <CardTitle>Existing Data Found</CardTitle>
+              <CardDescription>
+                We found {existingAreas.length} existing area{existingAreas.length > 1 ? "s" : ""} in this folder.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {existingAreas.map((area) => (
+                  <div
+                    key={area.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: area.color || "#3b82f6" }}
+                    />
+                    <div>
+                      <p className="font-medium text-sm">{area.name}</p>
+                      {area.description && (
+                        <p className="text-xs text-muted-foreground">{area.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button className="w-full" onClick={handleUseExisting}>
+                  Use Existing Data
+                </Button>
+                <Button variant="outline" onClick={() => setStep("first-area")}>
+                  Create New Area Instead
                 </Button>
               </div>
             </CardContent>
@@ -167,15 +248,19 @@ export function SetupWizard() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep("data-folder")} disabled={isCreating}>
+                <Button
+                  variant="outline"
+                  onClick={() => existingAreas.length > 0 ? setStep("existing-detected") : setStep("data-folder")}
+                  disabled={isLoading}
+                >
                   Back
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={handleComplete}
-                  disabled={!areaName.trim() || isCreating}
+                  onClick={handleCreateNew}
+                  disabled={!areaName.trim() || isLoading}
                 >
-                  {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Area
                 </Button>
               </div>
