@@ -38,6 +38,7 @@ export const PATH_SEGMENTS = {
 export const FILE_NAMES = {
   AREA_MD: "area.md",
   PROJECT_MD: "project.md",
+  VIEW_STATE: ".view.json",
 } as const;
 
 // =============================================================================

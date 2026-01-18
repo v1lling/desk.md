@@ -53,6 +53,5 @@ export {
   useUpdateTaskOrder,
   useRemoveTaskFromOrder,
   sortTasksByOrder,
-  calculateNewOrder,
   viewStateKeys,
 } from "./view-state";

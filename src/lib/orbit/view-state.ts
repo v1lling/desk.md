@@ -1,7 +1,10 @@
 /**
  * View State Management
  *
- * Handles per-project UI state stored in .view.json files.
+ * Handles UI state stored in .view.json files:
+ * - Per-project: areas/{area}/projects/{project}/.view.json
+ * - Per-area (All Tasks): areas/{area}/.view.json
+ *
  * This is separate from content data (markdown files) and represents
  * display preferences like task ordering within columns.
  *
@@ -15,46 +18,57 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-import { PATH_SEGMENTS } from "./constants";
-import type { TaskStatus } from "@/types";
+import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
+import type { TaskStatus, ProjectViewState } from "@/types";
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
-export interface ProjectViewState {
-  /** Task ordering by status column */
-  taskOrder?: Record<TaskStatus, string[]>;
-}
-
-const VIEW_STATE_FILE = ".view.json";
+// Re-export type for external use (canonical definition in @/types)
+export type { ProjectViewState } from "@/types";
 
 // =============================================================================
 // READ/WRITE OPERATIONS
 // =============================================================================
 
 /**
- * Get the path to a project's .view.json file
+ * Get the path to a .view.json file
+ * - If projectId is provided: areas/{area}/projects/{project}/.view.json
+ * - If projectId is null: areas/{area}/.view.json (for All Tasks view)
  */
-async function getViewStatePath(areaId: string, projectId: string): Promise<string> {
+async function getViewStatePath(
+  areaId: string,
+  projectId: string | null
+): Promise<string> {
   const orbitPath = await getOrbitPath();
-  return joinPath(
+
+  if (projectId) {
+    // Project-level view state
+    return await joinPath(
+      orbitPath,
+      PATH_SEGMENTS.AREAS,
+      areaId,
+      PATH_SEGMENTS.PROJECTS,
+      projectId,
+      FILE_NAMES.VIEW_STATE
+    );
+  }
+
+  // Area-level view state (All Tasks)
+  return await joinPath(
     orbitPath,
     PATH_SEGMENTS.AREAS,
     areaId,
-    PATH_SEGMENTS.PROJECTS,
-    projectId,
-    VIEW_STATE_FILE
+    FILE_NAMES.VIEW_STATE
   );
 }
 
 /**
- * Read the view state for a project
+ * Read the view state for a project or area
+ * @param areaId - The area ID
+ * @param projectId - The project ID, or null for area-level (All Tasks)
  * Returns empty object if file doesn't exist or is invalid
  */
 export async function getViewState(
   areaId: string,
-  projectId: string
+  projectId: string | null
 ): Promise<ProjectViewState> {
   try {
     const path = await getViewStatePath(areaId, projectId);
@@ -74,17 +88,18 @@ export async function getViewState(
     return parsed as ProjectViewState;
   } catch (error) {
     // If file is corrupted or unreadable, return empty state
-    console.warn(`Failed to read view state for ${areaId}/${projectId}:`, error);
+    const location = projectId ? `${areaId}/${projectId}` : areaId;
+    console.warn(`Failed to read view state for ${location}:`, error);
     return {};
   }
 }
 
 /**
- * Write the view state for a project
+ * Write the view state for a project or area
  */
 export async function saveViewState(
   areaId: string,
-  projectId: string,
+  projectId: string | null,
   state: ProjectViewState
 ): Promise<void> {
   const path = await getViewStatePath(areaId, projectId);
@@ -97,7 +112,7 @@ export async function saveViewState(
  */
 export async function updateTaskOrder(
   areaId: string,
-  projectId: string,
+  projectId: string | null,
   taskOrder: Record<TaskStatus, string[]>
 ): Promise<void> {
   const existing = await getViewState(areaId, projectId);
@@ -113,7 +128,7 @@ export async function updateTaskOrder(
  */
 export async function getTaskOrderForStatus(
   areaId: string,
-  projectId: string,
+  projectId: string | null,
   status: TaskStatus
 ): Promise<string[] | undefined> {
   const state = await getViewState(areaId, projectId);
@@ -163,63 +178,11 @@ export function sortTasksByOrder<T extends { id: string; created: string }>(
 }
 
 /**
- * Calculate new order array after a drag-and-drop operation
- *
- * @param currentOrder - Current order array (or undefined for default)
- * @param taskIds - All task IDs in the column
- * @param activeId - The task being dragged
- * @param overId - The task being dropped on (or column id if empty)
- * @returns New order array
- */
-export function calculateNewOrder(
-  currentOrder: string[] | undefined,
-  taskIds: string[],
-  activeId: string,
-  overId: string
-): string[] {
-  // Start with current order or default to taskIds order
-  const order = currentOrder ? [...currentOrder] : [...taskIds];
-
-  // Filter to only include existing task IDs (cleanup stale references)
-  const validOrder = order.filter(id => taskIds.includes(id));
-
-  // Add any new tasks that aren't in the order yet
-  const missingTasks = taskIds.filter(id => !validOrder.includes(id));
-  const workingOrder = [...validOrder, ...missingTasks];
-
-  // Find positions
-  const activeIndex = workingOrder.indexOf(activeId);
-  const overIndex = workingOrder.indexOf(overId);
-
-  if (activeIndex === -1) {
-    // Task not in order yet, add it at the over position
-    if (overIndex === -1) {
-      return [...workingOrder, activeId];
-    }
-    workingOrder.splice(overIndex, 0, activeId);
-    return workingOrder;
-  }
-
-  if (overIndex === -1) {
-    // Dropping at end of column
-    workingOrder.splice(activeIndex, 1);
-    workingOrder.push(activeId);
-    return workingOrder;
-  }
-
-  // Move within the array
-  workingOrder.splice(activeIndex, 1);
-  workingOrder.splice(overIndex, 0, activeId);
-
-  return workingOrder;
-}
-
-/**
  * Remove a task from all order arrays (call when deleting a task)
  */
 export async function removeTaskFromOrder(
   areaId: string,
-  projectId: string,
+  projectId: string | null,
   taskId: string
 ): Promise<void> {
   const state = await getViewState(areaId, projectId);

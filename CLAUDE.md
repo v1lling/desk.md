@@ -30,6 +30,7 @@ Area (Client/Workspace)
 ├── areas/
 │   └── {area}/
 │       ├── area.md
+│       ├── .view.json              # Area-level UI state (All Tasks ordering)
 │       └── projects/
 │           ├── _unassigned/        # Tasks/notes not in a project
 │           │   ├── tasks/*.md

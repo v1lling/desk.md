@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2, Calendar, Flag, FolderKanban } from "lucide-react";
-import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects } from "@/stores";
+import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -49,6 +49,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
+  const removeTaskFromOrder = useRemoveTaskFromOrder();
   const { data: projects = [] } = useProjects(task?.areaId || null);
 
   const [title, setTitle] = useState("");
@@ -148,7 +149,15 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       deleteTask.mutate(
         { taskId: task.id, areaId: task.areaId, projectId: task.projectId },
         {
-          onSuccess: () => toast.success("Task deleted"),
+          onSuccess: () => {
+            // Clean up view state ordering
+            removeTaskFromOrder.mutate({
+              areaId: task.areaId,
+              projectId: task.projectId,
+              taskId: task.id,
+            });
+            toast.success("Task deleted");
+          },
           onError: () => toast.error("Failed to delete task"),
         }
       );

@@ -5,18 +5,21 @@ import * as viewStateLib from "@/lib/orbit/view-state";
 // Query keys
 export const viewStateKeys = {
   all: ["viewState"] as const,
-  byProject: (areaId: string, projectId: string) =>
-    [...viewStateKeys.all, areaId, projectId] as const,
+  // projectId can be null for area-level (All Tasks) view state
+  byScope: (areaId: string, projectId: string | null) =>
+    [...viewStateKeys.all, areaId, projectId ?? "_area"] as const,
 };
 
 /**
- * Hook to fetch view state for a project
+ * Hook to fetch view state for a project or area
+ * @param areaId - The area ID
+ * @param projectId - The project ID, or null for area-level (All Tasks)
  */
 export function useViewState(areaId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: viewStateKeys.byProject(areaId || "", projectId || ""),
-    queryFn: () => viewStateLib.getViewState(areaId!, projectId!),
-    enabled: !!areaId && !!projectId,
+    queryKey: viewStateKeys.byScope(areaId || "", projectId),
+    queryFn: () => viewStateLib.getViewState(areaId!, projectId),
+    enabled: !!areaId, // Only need areaId, projectId can be null
     staleTime: 0, // Always fetch fresh
   });
 }
@@ -34,23 +37,23 @@ export function useUpdateTaskOrder() {
       taskOrder,
     }: {
       areaId: string;
-      projectId: string;
+      projectId: string | null;
       taskOrder: Record<TaskStatus, string[]>;
     }) => viewStateLib.updateTaskOrder(areaId, projectId, taskOrder),
     onMutate: async ({ areaId, projectId, taskOrder }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: viewStateKeys.byProject(areaId, projectId),
+        queryKey: viewStateKeys.byScope(areaId, projectId),
       });
 
       // Snapshot previous state
       const previousState = queryClient.getQueryData<ProjectViewState>(
-        viewStateKeys.byProject(areaId, projectId)
+        viewStateKeys.byScope(areaId, projectId)
       );
 
       // Optimistically update
       queryClient.setQueryData<ProjectViewState>(
-        viewStateKeys.byProject(areaId, projectId),
+        viewStateKeys.byScope(areaId, projectId),
         (old) => ({
           ...old,
           taskOrder,
@@ -63,7 +66,7 @@ export function useUpdateTaskOrder() {
       // Rollback on error
       if (context) {
         queryClient.setQueryData(
-          viewStateKeys.byProject(context.areaId, context.projectId),
+          viewStateKeys.byScope(context.areaId, context.projectId),
           context.previousState
         );
       }
@@ -71,7 +74,7 @@ export function useUpdateTaskOrder() {
     onSettled: (_data, _error, variables) => {
       // Refetch after mutation settles
       queryClient.invalidateQueries({
-        queryKey: viewStateKeys.byProject(variables.areaId, variables.projectId),
+        queryKey: viewStateKeys.byScope(variables.areaId, variables.projectId),
       });
     },
   });
@@ -90,16 +93,16 @@ export function useRemoveTaskFromOrder() {
       taskId,
     }: {
       areaId: string;
-      projectId: string;
+      projectId: string | null;
       taskId: string;
     }) => viewStateLib.removeTaskFromOrder(areaId, projectId, taskId),
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
-        queryKey: viewStateKeys.byProject(variables.areaId, variables.projectId),
+        queryKey: viewStateKeys.byScope(variables.areaId, variables.projectId),
       });
     },
   });
 }
 
 // Re-export helpers from lib
-export { sortTasksByOrder, calculateNewOrder } from "@/lib/orbit/view-state";
+export { sortTasksByOrder } from "@/lib/orbit/view-state";

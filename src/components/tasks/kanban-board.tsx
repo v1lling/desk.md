@@ -29,7 +29,7 @@ import {
   sortTasksByOrder,
 } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
-import { isUnassigned, SPECIAL_DIRS } from "@/lib/orbit/constants";
+import { isUnassigned } from "@/lib/orbit/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 
 interface KanbanBoardProps {
@@ -62,12 +62,11 @@ export function KanbanBoard({
   );
   const { data: projects = [] } = useProjects(currentAreaId);
 
-  // Fetch view state for task ordering (only for single project view)
-  const effectiveProjectId = projectId || SPECIAL_DIRS.UNASSIGNED;
-  const { data: viewState } = useViewState(
-    projectId ? currentAreaId : null,
-    projectId ? effectiveProjectId : null
-  );
+  // Fetch view state for task ordering
+  // - Project view: uses project-level .view.json
+  // - All Tasks view: uses area-level .view.json (projectId = null)
+  const effectiveProjectId = projectId || null;
+  const { data: viewState } = useViewState(currentAreaId, effectiveProjectId);
   const updateTaskOrder = useUpdateTaskOrder();
   const moveTask = useMoveTask();
 
@@ -98,25 +97,13 @@ export function KanbanBoard({
       done: tasks.filter((t) => t.status === "done"),
     };
 
-    // Apply custom ordering if we have view state (single project view)
-    if (viewState?.taskOrder) {
-      return {
-        todo: sortTasksByOrder(grouped.todo, viewState.taskOrder.todo),
-        doing: sortTasksByOrder(grouped.doing, viewState.taskOrder.doing),
-        waiting: sortTasksByOrder(grouped.waiting, viewState.taskOrder.waiting),
-        done: sortTasksByOrder(grouped.done, viewState.taskOrder.done),
-      };
-    }
-
-    // Default: sort by created date (newest first)
-    const sortByCreated = (a: Task, b: Task) =>
-      new Date(b.created).getTime() - new Date(a.created).getTime();
-
+    // Apply custom ordering if we have view state
+    // sortTasksByOrder falls back to created date if no order defined
     return {
-      todo: [...grouped.todo].sort(sortByCreated),
-      doing: [...grouped.doing].sort(sortByCreated),
-      waiting: [...grouped.waiting].sort(sortByCreated),
-      done: [...grouped.done].sort(sortByCreated),
+      todo: sortTasksByOrder(grouped.todo, viewState?.taskOrder?.todo),
+      doing: sortTasksByOrder(grouped.doing, viewState?.taskOrder?.doing),
+      waiting: sortTasksByOrder(grouped.waiting, viewState?.taskOrder?.waiting),
+      done: sortTasksByOrder(grouped.done, viewState?.taskOrder?.done),
     };
   }, [tasks, viewState?.taskOrder]);
 
@@ -200,77 +187,73 @@ export function KanbanBoard({
 
       const statusChanged = task.status !== targetStatus;
 
-      // For single project view with ordering support
-      if (projectId && currentAreaId) {
-        // Build new order for all columns
-        const newOrder: Record<TaskStatus, string[]> = {
-          todo: groupedTasks.todo.map((t) => t.id),
-          doing: groupedTasks.doing.map((t) => t.id),
-          waiting: groupedTasks.waiting.map((t) => t.id),
-          done: groupedTasks.done.map((t) => t.id),
-        };
+      // Need areaId for any operation
+      if (!currentAreaId) return;
 
-        if (statusChanged) {
-          // Moving to different column
-          // Remove from old column
-          newOrder[task.status] = newOrder[task.status].filter(
-            (id) => id !== taskId
-          );
+      // Build new order for all columns (used for both project and All Tasks view)
+      const newOrder: Record<TaskStatus, string[]> = {
+        todo: groupedTasks.todo.map((t) => t.id),
+        doing: groupedTasks.doing.map((t) => t.id),
+        waiting: groupedTasks.waiting.map((t) => t.id),
+        done: groupedTasks.done.map((t) => t.id),
+      };
 
-          // Add to new column at the right position
-          if (
-            overId === "todo" ||
-            overId === "doing" ||
-            overId === "waiting" ||
-            overId === "done"
-          ) {
-            // Dropped on column itself - add at end
-            newOrder[targetStatus].push(taskId);
-          } else {
-            // Dropped on a task - insert at that position
-            const overIndex = newOrder[targetStatus].indexOf(overId);
-            if (overIndex >= 0) {
-              newOrder[targetStatus].splice(overIndex, 0, taskId);
-            } else {
-              newOrder[targetStatus].push(taskId);
-            }
-          }
+      if (statusChanged) {
+        // Moving to different column
+        // Remove from old column
+        newOrder[task.status] = newOrder[task.status].filter(
+          (id) => id !== taskId
+        );
 
-          // Update status in backend
-          moveTask.mutate({
-            taskId,
-            newStatus: targetStatus,
-            areaId: currentAreaId,
-            projectId,
-          });
+        // Add to new column at the right position
+        if (
+          overId === "todo" ||
+          overId === "doing" ||
+          overId === "waiting" ||
+          overId === "done"
+        ) {
+          // Dropped on column itself - add at end
+          newOrder[targetStatus].push(taskId);
         } else {
-          // Same column - just reorder
-          if (overId !== taskId && overId !== task.status) {
-            const oldIndex = newOrder[targetStatus].indexOf(taskId);
-            const newIndex = newOrder[targetStatus].indexOf(overId);
-
-            if (oldIndex >= 0 && newIndex >= 0) {
-              newOrder[targetStatus] = arrayMove(
-                newOrder[targetStatus],
-                oldIndex,
-                newIndex
-              );
-            }
+          // Dropped on a task - insert at that position
+          const overIndex = newOrder[targetStatus].indexOf(overId);
+          if (overIndex >= 0) {
+            newOrder[targetStatus].splice(overIndex, 0, taskId);
+          } else {
+            newOrder[targetStatus].push(taskId);
           }
         }
 
-        // Save the new order
-        updateTaskOrder.mutate({
+        // Update status in backend
+        moveTask.mutate({
+          taskId,
+          newStatus: targetStatus,
           areaId: currentAreaId,
-          projectId: effectiveProjectId,
-          taskOrder: newOrder,
+          projectId: projectId,
         });
       } else {
-        // All tasks view or filtered view - just handle status change
-        if (statusChanged) {
-          moveTask.mutate({ taskId, newStatus: targetStatus });
+        // Same column - just reorder
+        if (overId !== taskId) {
+          const oldIndex = newOrder[targetStatus].indexOf(taskId);
+          const newIndex = newOrder[targetStatus].indexOf(overId);
+
+          if (oldIndex >= 0 && newIndex >= 0) {
+            newOrder[targetStatus] = arrayMove(
+              newOrder[targetStatus],
+              oldIndex,
+              newIndex
+            );
+          }
         }
       }
+
+      // Save the new order (works for both project view and All Tasks)
+      // projectId = null for All Tasks -> saves to area-level .view.json
+      updateTaskOrder.mutate({
+        areaId: currentAreaId,
+        projectId: effectiveProjectId,
+        taskOrder: newOrder,
+      });
     },
     [
       tasks,
