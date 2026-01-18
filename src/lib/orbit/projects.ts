@@ -2,7 +2,7 @@
  * Projects library - File system operations for projects
  */
 import type { Project, ProjectStatus } from "@/types";
-import { parseMarkdown, serializeMarkdown, slugify, todayISO } from "./parser";
+import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -96,7 +96,7 @@ export async function getProjects(areaId: string): Promise<Project[]> {
           name: data.name || entry.name,
           status: data.status || "active",
           description: data.description,
-          created: data.created || todayISO(),
+          created: normalizeDate(data.created),
           taskCount: taskStats.total,
           tasksByStatus: taskStats.byStatus,
         });
@@ -141,7 +141,7 @@ export async function getProject(
       name: data.name || projectId,
       status: data.status || "active",
       description: data.description,
-      created: data.created || todayISO(),
+      created: normalizeDate(data.created),
       taskCount: taskStats.total,
       tasksByStatus: taskStats.byStatus,
     };

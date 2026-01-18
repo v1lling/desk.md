@@ -2,7 +2,7 @@
  * Tasks library - File system operations for tasks
  */
 import type { Task, TaskStatus, TaskPriority } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO } from "./parser";
+import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -56,8 +56,8 @@ async function readProjectTasks(
           title: data.title || entry.name,
           status: data.status || "todo",
           priority: data.priority,
-          due: data.due,
-          created: data.created || todayISO(),
+          due: data.due ? normalizeDate(data.due) : undefined,
+          created: normalizeDate(data.created),
           content: body,
         });
       } catch (e) {
@@ -250,7 +250,7 @@ export async function updateTask(
             status: updatedData.status,
             priority: updatedData.priority,
             due: updatedData.due,
-            created: data.created || todayISO(),
+            created: normalizeDate(data.created),
             content: updatedContent,
           };
         }

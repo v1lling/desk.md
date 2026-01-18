@@ -2,7 +2,7 @@
  * Notes library - File system operations for notes
  */
 import type { Note } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO } from "./parser";
+import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -58,7 +58,7 @@ async function readProjectNotes(
           areaId,
           filePath: notePath,
           title: data.title || entry.name,
-          created: data.created || todayISO(),
+          created: normalizeDate(data.created),
           content: body,
           preview: generatePreview(body),
         });
@@ -235,7 +235,7 @@ export async function updateNote(
             areaId,
             filePath,
             title: updatedData.title,
-            created: data.created || todayISO(),
+            created: normalizeDate(data.created),
             content: updatedContent,
             preview: generatePreview(updatedContent),
           };

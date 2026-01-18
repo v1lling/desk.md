@@ -2,7 +2,7 @@
  * Areas library - File system operations for areas
  */
 import type { Area } from "@/types";
-import { parseMarkdown, serializeMarkdown, todayISO } from "./parser";
+import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -54,7 +54,7 @@ export async function getAreas(): Promise<Area[]> {
           name: data.name || entry.name,
           description: data.description,
           color: data.color,
-          created: data.created || todayISO(),
+          created: normalizeDate(data.created),
         });
       } catch (e) {
         console.warn(`Failed to read area ${entry.name}:`, e);
@@ -85,7 +85,7 @@ export async function getArea(areaId: string): Promise<Area | null> {
       name: data.name || areaId,
       description: data.description,
       color: data.color,
-      created: data.created || todayISO(),
+      created: normalizeDate(data.created),
     };
   } catch {
     return null;

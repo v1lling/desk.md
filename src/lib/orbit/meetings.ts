@@ -2,7 +2,7 @@
  * Meetings library - File system operations for meeting notes
  */
 import type { Meeting } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO } from "./parser";
+import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -62,8 +62,8 @@ async function readProjectMeetings(
           areaId,
           filePath: meetingPath,
           title: data.title || entry.name,
-          date: data.date || data.created || todayISO(),
-          created: data.created || todayISO(),
+          date: normalizeDate(data.date || data.created),
+          created: normalizeDate(data.created),
           attendees: data.attendees,
           duration: data.duration,
           location: data.location,
@@ -261,7 +261,7 @@ export async function updateMeeting(
             filePath,
             title: updatedData.title,
             date: updatedData.date,
-            created: data.created || todayISO(),
+            created: normalizeDate(data.created),
             attendees: updatedData.attendees,
             duration: updatedData.duration,
             location: updatedData.location,

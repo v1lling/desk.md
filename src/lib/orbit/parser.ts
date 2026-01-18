@@ -65,3 +65,20 @@ export function filenameToId(filename: string): string {
 export function todayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
+
+/**
+ * Normalize a date value to YYYY-MM-DD string format
+ * Handles Date objects (from gray-matter YAML parsing), strings, and missing values
+ */
+export function normalizeDate(date: unknown): string {
+  if (!date) return todayISO();
+  if (date instanceof Date) return date.toISOString().split("T")[0];
+  if (typeof date === "string") {
+    // If already YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    // Try to parse and convert
+    const parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split("T")[0];
+  }
+  return todayISO();
+}
