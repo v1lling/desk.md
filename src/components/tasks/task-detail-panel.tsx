@@ -23,6 +23,8 @@ import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects } from 
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { SPECIAL_DIRS } from "@/lib/orbit/constants";
+import { priorityTextColors } from "@/lib/design-tokens";
 
 interface TaskDetailPanelProps {
   task: Task | null;
@@ -38,9 +40,9 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
 ];
 
 const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: "text-rose-600 dark:text-rose-400" },
-  { value: "medium", label: "Medium", color: "text-amber-600 dark:text-amber-400" },
-  { value: "low", label: "Low", color: "text-emerald-600 dark:text-emerald-400" },
+  { value: "high", label: "High", color: priorityTextColors.high },
+  { value: "medium", label: "Medium", color: priorityTextColors.medium },
+  { value: "low", label: "Low", color: priorityTextColors.low },
 ];
 
 export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
@@ -59,7 +61,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   // Project options for dropdown
   const projectOptions = useMemo(
     () => [
-      { value: "_unassigned", label: "No project" },
+      { value: SPECIAL_DIRS.UNASSIGNED, label: "No project" },
       ...projects.map((p) => ({ value: p.id, label: p.name })),
     ],
     [projects]

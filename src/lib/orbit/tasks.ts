@@ -15,6 +15,8 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockTasks } from "./mock-data";
+import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { findItemInAllAreas } from "./search";
 
 interface TaskFrontmatter {
   title: string;
@@ -95,11 +97,11 @@ export async function getTasks(areaId: string): Promise<Task[]> {
     }
   }
 
-  // Also read inbox tasks
-  const inboxPath = await joinPath(orbitPath, "areas", areaId, "_unassigned");
-  if (await exists(inboxPath)) {
-    const inboxTasks = await readProjectTasks(areaId, "_unassigned", inboxPath);
-    allTasks.push(...inboxTasks);
+  // Also read unassigned tasks
+  const unassignedPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED);
+  if (await exists(unassignedPath)) {
+    const unassignedTasks = await readProjectTasks(areaId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
+    allTasks.push(...unassignedTasks);
   }
 
   return allTasks;
@@ -117,10 +119,9 @@ export async function getTasksByProject(
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath =
-    projectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned")
-      : await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath = isUnassigned(projectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId);
 
   return readProjectTasks(areaId, projectId, projectPath);
 }
@@ -170,10 +171,9 @@ export async function createTask(data: {
   }
 
   const orbitPath = await getOrbitPath();
-  const tasksPath =
-    data.projectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", data.areaId, "_unassigned", "tasks")
-      : await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "tasks");
+  const tasksPath = isUnassigned(data.projectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, data.areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, data.areaId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.TASKS);
 
   // Ensure tasks directory exists
   await mkdir(tasksPath);
@@ -212,13 +212,12 @@ export async function updateTask(
     return mockTasks[index];
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const tasksPath =
-      projectId === "_unassigned"
-        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
-        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "tasks");
+    const tasksPath = isUnassigned(projectId)
+      ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+      : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
 
     // Find the task file by ID
     if (await exists(tasksPath)) {
@@ -259,47 +258,35 @@ export async function updateTask(
     return null;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const task = await findItemInAllAreas(taskId, getTasks);
+  if (!task) return null;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
+  // Read existing file and update
+  const content = await readTextFile(task.filePath);
+  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
-    const tasks = await getTasks(areaEntry.name);
-    const task = tasks.find((t) => t.id === taskId);
+  const updatedData: TaskFrontmatter = {
+    ...data,
+    ...(updates.title && { title: updates.title }),
+    ...(updates.status && { status: updates.status }),
+    ...(updates.priority !== undefined && { priority: updates.priority }),
+    ...(updates.due !== undefined && { due: updates.due }),
+  };
 
-    if (task) {
-      // Read existing file
-      const content = await readTextFile(task.filePath);
-      const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+  const updatedContent = updates.content !== undefined ? updates.content : body;
+  const fileContent = serializeMarkdown(updatedData, updatedContent);
+  await writeTextFile(task.filePath, fileContent);
 
-      const updatedData: TaskFrontmatter = {
-        ...data,
-        ...(updates.title && { title: updates.title }),
-        ...(updates.status && { status: updates.status }),
-        ...(updates.priority !== undefined && { priority: updates.priority }),
-        ...(updates.due !== undefined && { due: updates.due }),
-      };
-
-      const updatedContent = updates.content !== undefined ? updates.content : body;
-      const fileContent = serializeMarkdown(updatedData, updatedContent);
-      await writeTextFile(task.filePath, fileContent);
-
-      return {
-        ...task,
-        ...updates,
-        title: updatedData.title,
-        status: updatedData.status,
-        priority: updatedData.priority,
-        due: updatedData.due,
-        content: updatedContent,
-      };
-    }
-  }
-
-  return null;
+  return {
+    ...task,
+    ...updates,
+    title: updatedData.title,
+    status: updatedData.status,
+    priority: updatedData.priority,
+    due: updatedData.due,
+    content: updatedContent,
+  };
 }
 
 /**
@@ -317,13 +304,12 @@ export async function deleteTask(
     return true;
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const tasksPath =
-      projectId === "_unassigned"
-        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
-        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "tasks");
+    const tasksPath = isUnassigned(projectId)
+      ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+      : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
 
     if (await exists(tasksPath)) {
       const entries = await readDir(tasksPath);
@@ -338,24 +324,12 @@ export async function deleteTask(
     return false;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const task = await findItemInAllAreas(taskId, getTasks);
+  if (!task) return false;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
-
-    const tasks = await getTasks(areaEntry.name);
-    const task = tasks.find((t) => t.id === taskId);
-
-    if (task) {
-      await removeFile(task.filePath);
-      return true;
-    }
-  }
-
-  return false;
+  await removeFile(task.filePath);
+  return true;
 }
 
 /**
@@ -395,10 +369,9 @@ export async function moveTaskToProject(
   const orbitPath = await getOrbitPath();
 
   // Find the source file
-  const fromTasksPath =
-    fromProjectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
-      : await joinPath(orbitPath, "areas", areaId, "projects", fromProjectId, "tasks");
+  const fromTasksPath = isUnassigned(fromProjectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.TASKS);
 
   if (!(await exists(fromTasksPath))) return null;
 
@@ -421,10 +394,9 @@ export async function moveTaskToProject(
   const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
   // Ensure target directory exists
-  const toTasksPath =
-    toProjectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "tasks")
-      : await joinPath(orbitPath, "areas", areaId, "projects", toProjectId, "tasks");
+  const toTasksPath = isUnassigned(toProjectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.TASKS);
 
   await mkdir(toTasksPath);
 

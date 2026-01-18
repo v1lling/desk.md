@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { statusColors } from "@/lib/design-tokens";
+import { statusColors, taskStatusTextColors } from "@/lib/design-tokens";
+import { calculateTaskStats } from "@/lib/orbit/calculations";
 
 interface ProjectPageClientProps {
   projectId: string;
@@ -60,13 +61,8 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
     setSelectedMeeting(meeting);
   };
 
-  // Calculate task stats
-  const taskStats = {
-    total: tasks.length,
-    todo: tasks.filter((t) => t.status === "todo").length,
-    doing: tasks.filter((t) => t.status === "doing").length,
-    done: tasks.filter((t) => t.status === "done").length,
-  };
+  // Calculate task stats using extracted utility
+  const taskStats = calculateTaskStats(tasks);
 
   if (projectLoading) {
     return (
@@ -186,21 +182,21 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
               <h2 className="text-lg font-semibold">Task Summary</h2>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.todo)}>
                     <Circle className="h-4 w-4" />
                     <span className="text-sm">To Do</span>
                   </div>
                   <p className="text-2xl font-bold">{taskStats.todo}</p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 text-yellow-600 mb-1">
+                  <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.doing)}>
                     <Circle className="h-4 w-4 fill-current" />
                     <span className="text-sm">In Progress</span>
                   </div>
                   <p className="text-2xl font-bold">{taskStats.doing}</p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 text-green-600 mb-1">
+                  <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.done)}>
                     <CheckCircle2 className="h-4 w-4" />
                     <span className="text-sm">Done</span>
                   </div>

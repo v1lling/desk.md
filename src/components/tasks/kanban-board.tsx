@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea, useProjects } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
+import { isUnassigned } from "@/lib/orbit/constants";
+import { taskStatusColors } from "@/lib/design-tokens";
 
 interface KanbanBoardProps {
   projectId?: string;
@@ -52,7 +54,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
   // Helper to get project name by ID
   const getProjectName = useCallback(
     (taskProjectId: string) => {
-      if (taskProjectId === "_unassigned") return null; // Don't show for unassigned
+      if (isUnassigned(taskProjectId)) return null; // Don't show for unassigned
       const project = projects.find((p) => p.id === taskProjectId);
       return project?.name || taskProjectId;
     },
@@ -156,7 +158,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
         {showDone ? (
           <div className="flex flex-col h-full min-w-[300px] w-[300px]">
             <div className="flex items-center gap-2.5 mb-4 px-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <div className={`w-2 h-2 rounded-full ${taskStatusColors.done}`} />
               <h3 className="font-semibold text-[13px] text-foreground/80">Done</h3>
               <span className="text-[11px] text-muted-foreground tabular-nums font-medium">
                 {groupedTasks.done.length}

@@ -15,6 +15,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockProjects } from "./mock-data";
+import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 
 interface ProjectFrontmatter {
   name: string;
@@ -80,7 +81,7 @@ export async function getProjects(areaId: string): Promise<Project[]> {
   const projects: Project[] = [];
 
   for (const entry of entries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_unassigned") {
+    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
       try {
         const projectPath = await joinPath(projectsPath, entry.name);
         const projectMdPath = await joinPath(projectPath, "project.md");

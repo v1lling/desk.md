@@ -82,3 +82,11 @@ export function normalizeDate(date: unknown): string {
   }
   return todayISO();
 }
+
+/**
+ * Generate preview text from markdown content
+ * Used for notes and meetings to show a snippet in lists
+ */
+export function generatePreview(content: string, maxLength: number = 100): string {
+  return content.slice(0, maxLength).replace(/[#\n]/g, " ").trim() + "...";
+}

@@ -2,7 +2,7 @@
  * Notes library - File system operations for notes
  */
 import type { Note } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
+import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -15,17 +15,12 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockNotes } from "./mock-data";
+import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { findItemInAllAreas } from "./search";
 
 interface NoteFrontmatter {
   title: string;
   created: string;
-}
-
-/**
- * Generate preview text from content
- */
-function generatePreview(content: string): string {
-  return content.slice(0, 100).replace(/[#\n]/g, " ").trim() + "...";
 }
 
 /**
@@ -93,7 +88,7 @@ export async function getNotes(areaId: string): Promise<Note[]> {
   const allNotes: Note[] = [];
 
   for (const entry of projectEntries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_unassigned") {
+    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
       const projectPath = await joinPath(projectsPath, entry.name);
       const projectNotes = await readProjectNotes(areaId, entry.name, projectPath);
       allNotes.push(...projectNotes);
@@ -101,9 +96,9 @@ export async function getNotes(areaId: string): Promise<Note[]> {
   }
 
   // Also read unassigned notes
-  const unassignedPath = await joinPath(orbitPath, "areas", areaId, "_unassigned");
+  const unassignedPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED);
   if (await exists(unassignedPath)) {
-    const unassignedNotes = await readProjectNotes(areaId, "_unassigned", unassignedPath);
+    const unassignedNotes = await readProjectNotes(areaId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allNotes.push(...unassignedNotes);
   }
 
@@ -125,10 +120,9 @@ export async function getNotesByProject(
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath =
-    projectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned")
-      : await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath = isUnassigned(projectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId);
 
   return readProjectNotes(areaId, projectId, projectPath);
 }
@@ -175,10 +169,9 @@ export async function createNote(data: {
   }
 
   const orbitPath = await getOrbitPath();
-  const notesPath =
-    data.projectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", data.areaId, "_unassigned", "notes")
-      : await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "notes");
+  const notesPath = isUnassigned(data.projectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, data.areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.NOTES)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, data.areaId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.NOTES);
 
   // Ensure notes directory exists
   await mkdir(notesPath);
@@ -220,13 +213,12 @@ export async function updateNote(
     return mockNotes[index];
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const notesPath =
-      projectId === "_unassigned"
-        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
-        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
+    const notesPath = isUnassigned(projectId)
+      ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.NOTES)
+      : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.NOTES);
 
     if (await exists(notesPath)) {
       const entries = await readDir(notesPath);
@@ -261,41 +253,29 @@ export async function updateNote(
     return null;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const note = await findItemInAllAreas(noteId, getNotes);
+  if (!note) return null;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
+  // Read existing file and update
+  const content = await readTextFile(note.filePath);
+  const { data } = parseMarkdown<NoteFrontmatter>(content);
 
-    const notes = await getNotes(areaEntry.name);
-    const note = notes.find((n) => n.id === noteId);
+  const updatedData: NoteFrontmatter = {
+    ...data,
+    ...(updates.title && { title: updates.title }),
+  };
 
-    if (note) {
-      // Read existing file
-      const content = await readTextFile(note.filePath);
-      const { data } = parseMarkdown<NoteFrontmatter>(content);
+  const updatedContent = updates.content !== undefined ? updates.content : note.content;
+  const fileContent = serializeMarkdown(updatedData, updatedContent);
+  await writeTextFile(note.filePath, fileContent);
 
-      const updatedData: NoteFrontmatter = {
-        ...data,
-        ...(updates.title && { title: updates.title }),
-      };
-
-      const updatedContent = updates.content !== undefined ? updates.content : note.content;
-      const fileContent = serializeMarkdown(updatedData, updatedContent);
-      await writeTextFile(note.filePath, fileContent);
-
-      return {
-        ...note,
-        title: updatedData.title,
-        content: updatedContent,
-        preview: generatePreview(updatedContent),
-      };
-    }
-  }
-
-  return null;
+  return {
+    ...note,
+    title: updatedData.title,
+    content: updatedContent,
+    preview: generatePreview(updatedContent),
+  };
 }
 
 /**
@@ -313,13 +293,12 @@ export async function deleteNote(
     return true;
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const notesPath =
-      projectId === "_unassigned"
-        ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
-        : await joinPath(orbitPath, "areas", areaId, "projects", projectId, "notes");
+    const notesPath = isUnassigned(projectId)
+      ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.NOTES)
+      : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.NOTES);
 
     if (await exists(notesPath)) {
       const entries = await readDir(notesPath);
@@ -334,24 +313,12 @@ export async function deleteNote(
     return false;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const note = await findItemInAllAreas(noteId, getNotes);
+  if (!note) return false;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
-
-    const notes = await getNotes(areaEntry.name);
-    const note = notes.find((n) => n.id === noteId);
-
-    if (note) {
-      await removeFile(note.filePath);
-      return true;
-    }
-  }
-
-  return false;
+  await removeFile(note.filePath);
+  return true;
 }
 
 /**
@@ -379,10 +346,9 @@ export async function moveNoteToProject(
   const orbitPath = await getOrbitPath();
 
   // Find the source file
-  const fromNotesPath =
-    fromProjectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
-      : await joinPath(orbitPath, "areas", areaId, "projects", fromProjectId, "notes");
+  const fromNotesPath = isUnassigned(fromProjectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.NOTES)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.NOTES);
 
   if (!(await exists(fromNotesPath))) return null;
 
@@ -405,10 +371,9 @@ export async function moveNoteToProject(
   const { data, content: body } = parseMarkdown<NoteFrontmatter>(content);
 
   // Ensure target directory exists
-  const toNotesPath =
-    toProjectId === "_unassigned"
-      ? await joinPath(orbitPath, "areas", areaId, "_unassigned", "notes")
-      : await joinPath(orbitPath, "areas", areaId, "projects", toProjectId, "notes");
+  const toNotesPath = isUnassigned(toProjectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.NOTES)
+    : await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.NOTES);
 
   await mkdir(toNotesPath);
 

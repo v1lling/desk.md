@@ -2,7 +2,7 @@
  * Meetings library - File system operations for meeting notes
  */
 import type { Meeting } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
+import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
   getOrbitPath,
@@ -15,19 +15,14 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockMeetings } from "./mock-data";
+import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
+import { findItemInAllAreas } from "./search";
 
 interface MeetingFrontmatter {
   title: string;
   date: string;
   created: string;
   attendees?: string[];
-}
-
-/**
- * Generate preview text from content
- */
-function generatePreview(content: string): string {
-  return content.slice(0, 100).replace(/[#\n]/g, " ").trim() + "...";
 }
 
 /**
@@ -97,7 +92,7 @@ export async function getMeetings(areaId: string): Promise<Meeting[]> {
   const allMeetings: Meeting[] = [];
 
   for (const entry of projectEntries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== "_inbox") {
+    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
       const projectPath = await joinPath(projectsPath, entry.name);
       const projectMeetings = await readProjectMeetings(areaId, entry.name, projectPath);
       allMeetings.push(...projectMeetings);
@@ -218,10 +213,10 @@ export async function updateMeeting(
     return mockMeetings[index];
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId, "meetings");
+    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -260,45 +255,33 @@ export async function updateMeeting(
     return null;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const meeting = await findItemInAllAreas(meetingId, getMeetings);
+  if (!meeting) return null;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
+  // Read existing file and update
+  const content = await readTextFile(meeting.filePath);
+  const { data } = parseMarkdown<MeetingFrontmatter>(content);
 
-    const meetings = await getMeetings(areaEntry.name);
-    const meeting = meetings.find((m) => m.id === meetingId);
+  const updatedData: MeetingFrontmatter = {
+    ...data,
+    ...(updates.title && { title: updates.title }),
+    ...(updates.date && { date: updates.date }),
+    ...(updates.attendees !== undefined && { attendees: updates.attendees }),
+  };
 
-    if (meeting) {
-      // Read existing file
-      const content = await readTextFile(meeting.filePath);
-      const { data } = parseMarkdown<MeetingFrontmatter>(content);
+  const updatedContent = updates.content !== undefined ? updates.content : meeting.content;
+  const fileContent = serializeMarkdown(updatedData, updatedContent);
+  await writeTextFile(meeting.filePath, fileContent);
 
-      const updatedData: MeetingFrontmatter = {
-        ...data,
-        ...(updates.title && { title: updates.title }),
-        ...(updates.date && { date: updates.date }),
-        ...(updates.attendees !== undefined && { attendees: updates.attendees }),
-      };
-
-      const updatedContent = updates.content !== undefined ? updates.content : meeting.content;
-      const fileContent = serializeMarkdown(updatedData, updatedContent);
-      await writeTextFile(meeting.filePath, fileContent);
-
-      return {
-        ...meeting,
-        title: updatedData.title,
-        date: updatedData.date,
-        attendees: updatedData.attendees,
-        content: updatedContent,
-        preview: generatePreview(updatedContent),
-      };
-    }
-  }
-
-  return null;
+  return {
+    ...meeting,
+    title: updatedData.title,
+    date: updatedData.date,
+    attendees: updatedData.attendees,
+    content: updatedContent,
+    preview: generatePreview(updatedContent),
+  };
 }
 
 /**
@@ -316,10 +299,10 @@ export async function deleteMeeting(
     return true;
   }
 
-  // If we have areaId and projectId, we can directly locate the file
+  // If we have areaId and projectId, we can directly locate the file (fast path)
   if (areaId && projectId) {
     const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId, "meetings");
+    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -334,22 +317,10 @@ export async function deleteMeeting(
     return false;
   }
 
-  // Fallback: search all areas (slow path)
-  const orbitPath = await getOrbitPath();
-  const areasPath = await joinPath(orbitPath, "areas");
-  const areaEntries = await readDir(areasPath);
+  // Fallback: search all areas (slow path) - uses helper to find item
+  const meeting = await findItemInAllAreas(meetingId, getMeetings);
+  if (!meeting) return false;
 
-  for (const areaEntry of areaEntries) {
-    if (!areaEntry.isDirectory || areaEntry.name.startsWith(".")) continue;
-
-    const meetings = await getMeetings(areaEntry.name);
-    const meeting = meetings.find((m) => m.id === meetingId);
-
-    if (meeting) {
-      await removeFile(meeting.filePath);
-      return true;
-    }
-  }
-
-  return false;
+  await removeFile(meeting.filePath);
+  return true;
 }

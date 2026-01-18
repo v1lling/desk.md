@@ -50,3 +50,40 @@ export const areaColorOptions: readonly { value: string; label: string }[] = [
   { value: "#ec4899", label: "Pink" },
   { value: "#64748b", label: "Slate" },
 ];
+
+// =============================================================================
+// TASK STATUS COLORS
+// Used for kanban column headers and status indicators
+// =============================================================================
+
+export const taskStatusColors = {
+  todo: "bg-muted-foreground",
+  doing: "bg-blue-500",
+  waiting: "bg-amber-500",
+  done: "bg-emerald-500",
+} as const;
+
+export type TaskStatus = keyof typeof taskStatusColors;
+
+// =============================================================================
+// TASK STATUS TEXT COLORS
+// Used for status icons and text in the overview
+// =============================================================================
+
+export const taskStatusTextColors = {
+  todo: "text-muted-foreground",
+  doing: "text-blue-600 dark:text-blue-400",
+  waiting: "text-amber-600 dark:text-amber-400",
+  done: "text-emerald-600 dark:text-emerald-400",
+} as const;
+
+// =============================================================================
+// PRIORITY TEXT COLORS
+// Used for priority badges in dropdowns (text only, no background)
+// =============================================================================
+
+export const priorityTextColors = {
+  high: "text-rose-600 dark:text-rose-400",
+  medium: "text-amber-600 dark:text-amber-400",
+  low: "text-emerald-600 dark:text-emerald-400",
+} as const;

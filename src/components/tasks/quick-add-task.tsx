@@ -24,6 +24,8 @@ import type { TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { SPECIAL_DIRS } from "@/lib/orbit/constants";
+import { priorityTextColors } from "@/lib/design-tokens";
 
 interface QuickAddTaskProps {
   open: boolean;
@@ -32,9 +34,9 @@ interface QuickAddTaskProps {
 }
 
 const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: "text-rose-600 dark:text-rose-400" },
-  { value: "medium", label: "Medium", color: "text-amber-600 dark:text-amber-400" },
-  { value: "low", label: "Low", color: "text-emerald-600 dark:text-emerald-400" },
+  { value: "high", label: "High", color: priorityTextColors.high },
+  { value: "medium", label: "Medium", color: priorityTextColors.medium },
+  { value: "low", label: "Low", color: priorityTextColors.low },
 ];
 
 export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskProps) {
@@ -63,7 +65,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
     try {
       await createTask.mutateAsync({
         areaId: currentArea.id,
-        projectId: projectId || "_unassigned",
+        projectId: projectId || SPECIAL_DIRS.UNASSIGNED,
         title: title.trim(),
         priority: priority === "none" ? undefined : priority,
         due: due || undefined,
