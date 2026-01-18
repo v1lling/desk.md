@@ -52,6 +52,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
   // Helper to get project name by ID
   const getProjectName = useCallback(
     (taskProjectId: string) => {
+      if (taskProjectId === "_unassigned") return null; // Don't show for unassigned
       const project = projects.find((p) => p.id === taskProjectId);
       return project?.name || taskProjectId;
     },

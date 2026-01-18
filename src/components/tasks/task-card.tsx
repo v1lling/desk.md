@@ -13,7 +13,7 @@ interface TaskCardProps {
   task: Task;
   onClick?: () => void;
   showProject?: boolean;
-  projectName?: string;
+  projectName?: string | null;
 }
 
 export function TaskCard({ task, onClick, showProject, projectName }: TaskCardProps) {

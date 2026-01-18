@@ -42,13 +42,17 @@ export default function NotesPage() {
   }, [filteredNotes]);
 
   const getProjectName = (projectId: string) => {
+    if (projectId === "_unassigned") return "No project";
     const project = projects.find((p) => p.id === projectId);
     return project?.name || projectId;
   };
 
-  // Prepare filter options
+  // Prepare filter options - include "No project" for unassigned
   const projectOptions = useMemo(
-    () => projects.map((p) => ({ value: p.id, label: p.name })),
+    () => [
+      { value: "_unassigned", label: "No project" },
+      ...projects.map((p) => ({ value: p.id, label: p.name })),
+    ],
     [projects]
   );
 
@@ -102,12 +106,18 @@ export default function NotesPage() {
               <div key={projectId}>
                 <div className="flex items-center gap-2 mb-4">
                   <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                  <Link
-                    href={`/projects/view?id=${projectId}`}
-                    className="font-medium hover:underline"
-                  >
-                    {getProjectName(projectId)}
-                  </Link>
+                  {projectId === "_unassigned" ? (
+                    <span className="font-medium text-muted-foreground">
+                      {getProjectName(projectId)}
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/projects/view?id=${projectId}`}
+                      className="font-medium hover:underline"
+                    >
+                      {getProjectName(projectId)}
+                    </Link>
+                  )}
                   <Badge variant="outline" className="ml-2">
                     {projectNotes.length}
                   </Badge>

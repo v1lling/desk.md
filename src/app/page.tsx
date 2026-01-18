@@ -31,9 +31,12 @@ export default function Home() {
     });
   }, [tasks, filterProject, filterPriority]);
 
-  // Prepare filter options
+  // Prepare filter options - include "No project" for unassigned
   const projectOptions = useMemo(
-    () => projects.map((p) => ({ value: p.id, label: p.name })),
+    () => [
+      { value: "_unassigned", label: "No project" },
+      ...projects.map((p) => ({ value: p.id, label: p.name })),
+    ],
     [projects]
   );
 

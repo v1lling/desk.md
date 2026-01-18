@@ -14,7 +14,7 @@ interface KanbanColumnProps {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   showProject?: boolean;
-  getProjectName?: (projectId: string) => string;
+  getProjectName?: (projectId: string) => string | null;
   /** Hide the column header (used when parent provides custom header) */
   hideHeader?: boolean;
 }
