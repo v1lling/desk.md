@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, Calendar, Flag } from "lucide-react";
 import { useUpdateTask, useDeleteTask } from "@/stores";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
@@ -34,6 +33,7 @@ interface TaskDetailPanelProps {
 const statusOptions: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "To Do" },
   { value: "doing", label: "In Progress" },
+  { value: "waiting", label: "Waiting" },
   { value: "done", label: "Done" },
 ];
 
@@ -107,7 +107,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-[400px] sm:w-[500px] flex flex-col px-0">
+      <SheetContent className="w-full sm:max-w-2xl flex flex-col px-0">
         <SheetHeader className="pb-4 border-b border-border/60">
           <SheetTitle>Edit Task</SheetTitle>
         </SheetHeader>
@@ -183,13 +183,12 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
           {/* Content */}
           <div className="space-y-2">
-            <Label htmlFor="content">Notes</Label>
-            <Textarea
-              id="content"
+            <Label>Notes</Label>
+            <MarkdownEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               placeholder="Add notes, details, or checklist items..."
-              className="min-h-[180px] resize-none"
+              minHeight="200px"
             />
           </div>
 

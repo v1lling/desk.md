@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Eye, Edit2 } from "lucide-react";
+/**
+ * @deprecated This file re-exports from tiptap-editor for backwards compatibility.
+ * Import directly from "@/components/ui/tiptap-editor" for new code.
+ */
+
+export { TiptapEditor as MarkdownEditor } from "./tiptap-editor";
+export type { } from "./tiptap-editor";
+
+// Keep the MarkdownPreview for read-only displays if needed
 import { cn } from "@/lib/utils";
 
-interface MarkdownEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  defaultTab?: "edit" | "preview";
-  minHeight?: string;
-}
-
 /**
- * Render markdown text to React elements
+ * Render markdown text to React elements (for read-only preview)
  * Supports: headers, lists, checkboxes, numbered lists, bold text
  */
 export function renderMarkdown(text: string) {
@@ -131,52 +127,5 @@ export function MarkdownPreview({
     >
       {renderMarkdown(content)}
     </div>
-  );
-}
-
-/**
- * Full markdown editor with Edit/Preview tabs
- */
-export function MarkdownEditor({
-  value,
-  onChange,
-  placeholder = "Write in markdown...",
-  className,
-  defaultTab = "edit",
-  minHeight = "300px",
-}: MarkdownEditorProps) {
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">(defaultTab);
-
-  return (
-    <Tabs
-      value={activeTab}
-      onValueChange={(v) => setActiveTab(v as "edit" | "preview")}
-      className={cn("flex flex-col", className)}
-    >
-      <TabsList className="w-fit">
-        <TabsTrigger value="edit" className="gap-2">
-          <Edit2 className="h-3 w-3" />
-          Edit
-        </TabsTrigger>
-        <TabsTrigger value="preview" className="gap-2">
-          <Eye className="h-3 w-3" />
-          Preview
-        </TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="edit" className="flex-1 mt-4">
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-full resize-none font-mono text-sm"
-          style={{ minHeight }}
-          placeholder={placeholder}
-        />
-      </TabsContent>
-
-      <TabsContent value="preview" className="flex-1 mt-4 overflow-auto">
-        <MarkdownPreview content={value} minHeight={minHeight} />
-      </TabsContent>
-    </Tabs>
   );
 }
