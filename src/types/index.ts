@@ -88,3 +88,9 @@ export interface ApiResponse<T> {
     message: string;
   };
 }
+
+// View state - UI preferences stored in .view.json per project
+export interface ProjectViewState {
+  /** Task ordering by status column */
+  taskOrder?: Record<TaskStatus, string[]>;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,15 +11,25 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { useTasks, useProjectTasks, useMoveTask, groupTasksByStatus, useCurrentArea, useProjects } from "@/stores";
+import {
+  useTasks,
+  useProjectTasks,
+  useMoveTask,
+  useCurrentArea,
+  useProjects,
+  useViewState,
+  useUpdateTaskOrder,
+  sortTasksByOrder,
+} from "@/stores";
 import type { Task, TaskStatus } from "@/types";
-import { isUnassigned } from "@/lib/orbit/constants";
+import { isUnassigned, SPECIAL_DIRS } from "@/lib/orbit/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 
 interface KanbanBoardProps {
@@ -33,33 +43,82 @@ interface KanbanBoardProps {
   showDoneByDefault?: boolean;
 }
 
-export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: externalTasks, showDoneByDefault = false }: KanbanBoardProps) {
+export function KanbanBoard({
+  projectId,
+  onTaskClick,
+  showProject,
+  tasks: externalTasks,
+  showDoneByDefault = false,
+}: KanbanBoardProps) {
   const currentArea = useCurrentArea();
   const currentAreaId = currentArea?.id || null;
   const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
   const allTasksQuery = useTasks(projectId ? null : currentAreaId);
-  const projectTasksQuery = useProjectTasks(projectId ? currentAreaId : null, projectId || null);
+  const projectTasksQuery = useProjectTasks(
+    projectId ? currentAreaId : null,
+    projectId || null
+  );
   const { data: projects = [] } = useProjects(currentAreaId);
+
+  // Fetch view state for task ordering (only for single project view)
+  const effectiveProjectId = projectId || SPECIAL_DIRS.UNASSIGNED;
+  const { data: viewState } = useViewState(
+    projectId ? currentAreaId : null,
+    projectId ? effectiveProjectId : null
+  );
+  const updateTaskOrder = useUpdateTaskOrder();
+  const moveTask = useMoveTask();
 
   // Use external tasks if provided (for filtering), otherwise use query results
   const queryResult = projectId ? projectTasksQuery : allTasksQuery;
   const { data: fetchedTasks = [], isLoading } = queryResult;
   const tasks = externalTasks ?? fetchedTasks;
 
-  const moveTask = useMoveTask();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
 
   // Helper to get project name by ID
   const getProjectName = useCallback(
     (taskProjectId: string) => {
-      if (isUnassigned(taskProjectId)) return null; // Don't show for unassigned
+      if (isUnassigned(taskProjectId)) return null;
       const project = projects.find((p) => p.id === taskProjectId);
       return project?.name || taskProjectId;
     },
     [projects]
   );
+
+  // Group and sort tasks by status
+  const groupedTasks = useMemo(() => {
+    const grouped: Record<TaskStatus, Task[]> = {
+      todo: tasks.filter((t) => t.status === "todo"),
+      doing: tasks.filter((t) => t.status === "doing"),
+      waiting: tasks.filter((t) => t.status === "waiting"),
+      done: tasks.filter((t) => t.status === "done"),
+    };
+
+    // Apply custom ordering if we have view state (single project view)
+    if (viewState?.taskOrder) {
+      return {
+        todo: sortTasksByOrder(grouped.todo, viewState.taskOrder.todo),
+        doing: sortTasksByOrder(grouped.doing, viewState.taskOrder.doing),
+        waiting: sortTasksByOrder(grouped.waiting, viewState.taskOrder.waiting),
+        done: sortTasksByOrder(grouped.done, viewState.taskOrder.done),
+      };
+    }
+
+    // Default: sort by created date (newest first)
+    const sortByCreated = (a: Task, b: Task) =>
+      new Date(b.created).getTime() - new Date(a.created).getTime();
+
+    return {
+      todo: [...grouped.todo].sort(sortByCreated),
+      doing: [...grouped.doing].sort(sortByCreated),
+      waiting: [...grouped.waiting].sort(sortByCreated),
+      done: [...grouped.done].sort(sortByCreated),
+    };
+  }, [tasks, viewState?.taskOrder]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -77,6 +136,33 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
       const task = tasks.find((t) => t.id === event.active.id);
       if (task) {
         setActiveTask(task);
+        setActiveColumn(task.status);
+      }
+    },
+    [tasks]
+  );
+
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { over } = event;
+      if (!over) return;
+
+      const overId = over.id as string;
+
+      // Determine which column we're over
+      if (
+        overId === "todo" ||
+        overId === "doing" ||
+        overId === "waiting" ||
+        overId === "done"
+      ) {
+        setActiveColumn(overId);
+      } else {
+        // Over a task - find its status
+        const overTask = tasks.find((t) => t.id === overId);
+        if (overTask) {
+          setActiveColumn(overTask.status);
+        }
       }
     },
     [tasks]
@@ -86,6 +172,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
     (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveTask(null);
+      setActiveColumn(null);
 
       if (!over) return;
 
@@ -96,32 +183,112 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
 
-      // Determine new status - could be dropping on a column or another task
-      let newStatus: TaskStatus;
-      if (overId === "todo" || overId === "doing" || overId === "waiting" || overId === "done") {
-        // Dropped on a column
-        newStatus = overId;
+      // Determine target status
+      let targetStatus: TaskStatus;
+      if (
+        overId === "todo" ||
+        overId === "doing" ||
+        overId === "waiting" ||
+        overId === "done"
+      ) {
+        targetStatus = overId;
       } else {
-        // Dropped on another task - find that task's status
         const overTask = tasks.find((t) => t.id === overId);
         if (!overTask) return;
-        newStatus = overTask.status;
+        targetStatus = overTask.status;
       }
 
-      // Only update if status changed
-      if (task.status !== newStatus) {
-        moveTask.mutate({ taskId, newStatus });
+      const statusChanged = task.status !== targetStatus;
+
+      // For single project view with ordering support
+      if (projectId && currentAreaId) {
+        // Build new order for all columns
+        const newOrder: Record<TaskStatus, string[]> = {
+          todo: groupedTasks.todo.map((t) => t.id),
+          doing: groupedTasks.doing.map((t) => t.id),
+          waiting: groupedTasks.waiting.map((t) => t.id),
+          done: groupedTasks.done.map((t) => t.id),
+        };
+
+        if (statusChanged) {
+          // Moving to different column
+          // Remove from old column
+          newOrder[task.status] = newOrder[task.status].filter(
+            (id) => id !== taskId
+          );
+
+          // Add to new column at the right position
+          if (
+            overId === "todo" ||
+            overId === "doing" ||
+            overId === "waiting" ||
+            overId === "done"
+          ) {
+            // Dropped on column itself - add at end
+            newOrder[targetStatus].push(taskId);
+          } else {
+            // Dropped on a task - insert at that position
+            const overIndex = newOrder[targetStatus].indexOf(overId);
+            if (overIndex >= 0) {
+              newOrder[targetStatus].splice(overIndex, 0, taskId);
+            } else {
+              newOrder[targetStatus].push(taskId);
+            }
+          }
+
+          // Update status in backend
+          moveTask.mutate({
+            taskId,
+            newStatus: targetStatus,
+            areaId: currentAreaId,
+            projectId,
+          });
+        } else {
+          // Same column - just reorder
+          if (overId !== taskId && overId !== task.status) {
+            const oldIndex = newOrder[targetStatus].indexOf(taskId);
+            const newIndex = newOrder[targetStatus].indexOf(overId);
+
+            if (oldIndex >= 0 && newIndex >= 0) {
+              newOrder[targetStatus] = arrayMove(
+                newOrder[targetStatus],
+                oldIndex,
+                newIndex
+              );
+            }
+          }
+        }
+
+        // Save the new order
+        updateTaskOrder.mutate({
+          areaId: currentAreaId,
+          projectId: effectiveProjectId,
+          taskOrder: newOrder,
+        });
+      } else {
+        // All tasks view or filtered view - just handle status change
+        if (statusChanged) {
+          moveTask.mutate({ taskId, newStatus: targetStatus });
+        }
       }
     },
-    [tasks, moveTask]
+    [
+      tasks,
+      groupedTasks,
+      moveTask,
+      updateTaskOrder,
+      projectId,
+      currentAreaId,
+      effectiveProjectId,
+    ]
   );
-
-  const groupedTasks = groupTasksByStatus(tasks);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Loading tasks...</div>
+        <div className="animate-pulse text-muted-foreground">
+          Loading tasks...
+        </div>
       </div>
     );
   }
@@ -131,6 +298,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-4 overflow-x-auto pb-4 h-full">
@@ -140,6 +308,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           onTaskClick={onTaskClick}
           showProject={showProject}
           getProjectName={getProjectName}
+          isDropTarget={activeColumn === "todo"}
         />
         <KanbanColumn
           status="doing"
@@ -147,6 +316,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           onTaskClick={onTaskClick}
           showProject={showProject}
           getProjectName={getProjectName}
+          isDropTarget={activeColumn === "doing"}
         />
         <KanbanColumn
           status="waiting"
@@ -154,12 +324,17 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           onTaskClick={onTaskClick}
           showProject={showProject}
           getProjectName={getProjectName}
+          isDropTarget={activeColumn === "waiting"}
         />
         {showDone ? (
           <div className="flex flex-col h-full min-w-[300px] w-[300px]">
             <div className="flex items-center gap-2.5 mb-4 px-1">
-              <div className={`w-2 h-2 rounded-full ${taskStatusColors.done}`} />
-              <h3 className="font-semibold text-[13px] text-foreground/80">Done</h3>
+              <div
+                className={`w-2 h-2 rounded-full ${taskStatusColors.done}`}
+              />
+              <h3 className="font-semibold text-[13px] text-foreground/80">
+                Done
+              </h3>
               <span className="text-[11px] text-muted-foreground tabular-nums font-medium">
                 {groupedTasks.done.length}
               </span>
@@ -180,6 +355,7 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
               showProject={showProject}
               getProjectName={getProjectName}
               hideHeader
+              isDropTarget={activeColumn === "done"}
             />
           </div>
         ) : (
@@ -190,7 +366,9 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           >
             <Eye className="h-3 w-3" />
             <span>Done</span>
-            <span className="tabular-nums opacity-70">{groupedTasks.done.length}</span>
+            <span className="tabular-nums opacity-70">
+              {groupedTasks.done.length}
+            </span>
           </button>
         )}
       </div>
@@ -199,7 +377,9 @@ export function KanbanBoard({ projectId, onTaskClick, showProject, tasks: extern
           <TaskCard
             task={activeTask}
             showProject={showProject}
-            projectName={showProject ? getProjectName(activeTask.projectId) : undefined}
+            projectName={
+              showProject ? getProjectName(activeTask.projectId) : undefined
+            }
           />
         ) : null}
       </DragOverlay>

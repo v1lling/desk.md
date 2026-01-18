@@ -17,6 +17,8 @@ interface KanbanColumnProps {
   getProjectName?: (projectId: string) => string | null;
   /** Hide the column header (used when parent provides custom header) */
   hideHeader?: boolean;
+  /** Whether this column is currently a drop target (for visual feedback) */
+  isDropTarget?: boolean;
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
@@ -33,12 +35,14 @@ export function KanbanColumn({
   showProject,
   getProjectName,
   hideHeader,
+  isDropTarget,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
 
   const config = statusConfig[status];
+  const showHighlight = isOver || isDropTarget;
 
   return (
     <div className={cn("flex flex-col h-full", !hideHeader && "min-w-[300px] w-[300px]")}>
@@ -58,7 +62,7 @@ export function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           "flex-1 rounded-xl p-2 transition-all duration-200 min-h-[200px]",
-          isOver
+          showHighlight
             ? "bg-accent/70 ring-2 ring-ring/20"
             : "bg-muted/20"
         )}
