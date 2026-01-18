@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,103 +90,102 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
 
   if (!meeting) return null;
 
-  return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col px-0">
-        <SheetHeader className="pb-4 border-b border-border/60">
-          <SheetTitle>Edit Meeting</SheetTitle>
-        </SheetHeader>
+  const formContent = (
+    <div className="space-y-5">
+      {/* Title */}
+      <div className="space-y-2">
+        <Label htmlFor="meeting-title">Title</Label>
+        <Input
+          id="meeting-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Meeting title"
+        />
+      </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-6 space-y-5">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="meeting-title">Title</Label>
+      {/* Date & Attendees row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="meeting-date">Date</Label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              id="meeting-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Meeting title"
+              id="meeting-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="pl-10"
             />
-          </div>
-
-          {/* Date & Attendees row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="meeting-date">Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="meeting-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="meeting-attendees">Attendees</Label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="meeting-attendees"
-                  value={attendees}
-                  onChange={(e) => setAttendees(e.target.value)}
-                  placeholder="John, Sarah..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <MarkdownEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Write your meeting notes..."
-              minHeight="200px"
-            />
-          </div>
-
-          {/* File path (read-only info) */}
-          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
-            <p className="truncate font-mono" title={meeting.filePath}>
-              {meeting.filePath}
-            </p>
-            <p className="mt-1.5">Created: {meeting.created}</p>
           </div>
         </div>
 
-        {/* Actions - fixed at bottom */}
-        <div className="flex gap-2 pt-4 px-6 pb-6 border-t border-border/60">
-          <Button
-            onClick={handleSave}
-            disabled={updateMeeting.isPending}
-            className="flex-1"
-          >
-            {updateMeeting.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Save Changes
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleDelete}
-            disabled={deleteMeeting.isPending}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            {deleteMeeting.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="meeting-attendees">Attendees</Label>
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="meeting-attendees"
+              value={attendees}
+              onChange={(e) => setAttendees(e.target.value)}
+              placeholder="John, Sarah..."
+              className="pl-10"
+            />
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <Label>Notes</Label>
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Write your meeting notes..."
+          minHeight="200px"
+        />
+      </div>
+
+      {/* File path (read-only info) */}
+      <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
+        <p className="truncate font-mono" title={meeting.filePath}>
+          {meeting.filePath}
+        </p>
+        <p className="mt-1.5">Created: {meeting.created}</p>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex gap-2">
+      <Button
+        onClick={handleSave}
+        disabled={updateMeeting.isPending}
+        className="flex-1"
+      >
+        {updateMeeting.isPending && (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        )}
+        Save Changes
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={handleDelete}
+        disabled={deleteMeeting.isPending}
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      >
+        {deleteMeeting.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Trash2 className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  );
+
+  return (
+    <EditorShell open={open} onClose={handleClose} title="Edit Meeting" footer={footer}>
+      {formContent}
+    </EditorShell>
   );
 }

@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
@@ -167,138 +162,137 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
   if (!task) return null;
 
-  return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col px-0">
-        <SheetHeader className="pb-4 border-b border-border/60">
-          <SheetTitle>Edit Task</SheetTitle>
-        </SheetHeader>
+  const formContent = (
+    <div className="space-y-5">
+      {/* Title */}
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Task title"
+        />
+      </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-6 space-y-5">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Task title"
-            />
-          </div>
-
-          {/* Status & Priority row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select
-                value={priority}
-                onValueChange={(v) => setPriority(v as TaskPriority | "none")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {priorityOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className={cn("flex items-center gap-2", opt.color)}>
-                        <Flag className="h-3 w-3" />
-                        {opt.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Project & Due Date row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Project</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="No project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className="flex items-center gap-2">
-                        <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                        {opt.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="due">Due Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="due"
-                  type="date"
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <MarkdownEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Add notes, details, or checklist items..."
-              minHeight="200px"
-            />
-          </div>
-
-          {/* File path (read-only info) */}
-          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
-            <p className="truncate font-mono" title={task.filePath}>
-              {task.filePath}
-            </p>
-            <p className="mt-1.5">Created: {task.created}</p>
-          </div>
+      {/* Status & Priority row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Actions - fixed at bottom */}
-        <div className="flex gap-2 pt-4 px-6 pb-6 border-t border-border/60">
-          <Button onClick={handleSave} className="flex-1">
-            Save Changes
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleDelete}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        <div className="space-y-2">
+          <Label>Priority</Label>
+          <Select
+            value={priority}
+            onValueChange={(v) => setPriority(v as TaskPriority | "none")}
           >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+            <SelectTrigger>
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {priorityOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <span className={cn("flex items-center gap-2", opt.color)}>
+                    <Flag className="h-3 w-3" />
+                    {opt.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      {/* Project & Due Date row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Project</Label>
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger>
+              <SelectValue placeholder="No project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projectOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <span className="flex items-center gap-2">
+                    <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                    {opt.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="due">Due Date</Label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="due"
+              type="date"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="space-y-2">
+        <Label>Notes</Label>
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Add notes, details, or checklist items..."
+          minHeight="200px"
+        />
+      </div>
+
+      {/* File path (read-only info) */}
+      <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
+        <p className="truncate font-mono" title={task.filePath}>
+          {task.filePath}
+        </p>
+        <p className="mt-1.5">Created: {task.created}</p>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex gap-2">
+      <Button onClick={handleSave} className="flex-1">
+        Save Changes
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={handleDelete}
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  return (
+    <EditorShell open={open} onClose={onClose} title="Edit Task" footer={footer}>
+      {formContent}
+    </EditorShell>
   );
 }

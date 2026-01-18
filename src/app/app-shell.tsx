@@ -40,7 +40,7 @@ export function AppShell({ children }: AppShellProps) {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto relative">{children}</main>
     </div>
   );
 }

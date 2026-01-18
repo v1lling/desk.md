@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,80 +97,79 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
 
   if (!note) return null;
 
+  const formContent = (
+    <div className="space-y-5">
+      {/* Title */}
+      <div className="space-y-2">
+        <Label htmlFor="note-title">Title</Label>
+        <Input
+          id="note-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Note title"
+        />
+      </div>
+
+      {/* Project */}
+      <div className="space-y-2">
+        <Label>Project</Label>
+        <Select value={projectId} onValueChange={setProjectId}>
+          <SelectTrigger>
+            <SelectValue placeholder="No project" />
+          </SelectTrigger>
+          <SelectContent>
+            {projectOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="flex items-center gap-2">
+                  <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                  {opt.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Content */}
+      <div className="space-y-2">
+        <Label>Content</Label>
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Write your note in markdown..."
+          minHeight="300px"
+        />
+      </div>
+
+      {/* File path (read-only info) */}
+      <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
+        <p className="truncate font-mono" title={note.filePath}>
+          {note.filePath}
+        </p>
+        <p className="mt-1.5">Created: {note.created}</p>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex gap-2">
+      <Button onClick={handleSave} className="flex-1">
+        Save Changes
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={handleDelete}
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl flex flex-col px-0">
-        <SheetHeader className="pb-4 border-b border-border/60">
-          <SheetTitle>Edit Note</SheetTitle>
-        </SheetHeader>
-
-        <div className="flex-1 overflow-y-auto py-6 px-6 space-y-5">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="note-title">Title</Label>
-            <Input
-              id="note-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Note title"
-            />
-          </div>
-
-          {/* Project */}
-          <div className="space-y-2">
-            <Label>Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="No project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projectOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <span className="flex items-center gap-2">
-                      <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                      {opt.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-2">
-            <Label>Content</Label>
-            <MarkdownEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Write your note in markdown..."
-              minHeight="300px"
-            />
-          </div>
-
-          {/* File path (read-only info) */}
-          <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
-            <p className="truncate font-mono" title={note.filePath}>
-              {note.filePath}
-            </p>
-            <p className="mt-1.5">Created: {note.created}</p>
-          </div>
-        </div>
-
-        {/* Actions - fixed at bottom */}
-        <div className="flex gap-2 pt-4 px-6 pb-6 border-t border-border/60">
-          <Button onClick={handleSave} className="flex-1">
-            Save Changes
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleDelete}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+    <EditorShell open={open} onClose={onClose} title="Edit Note" footer={footer}>
+      {formContent}
+    </EditorShell>
   );
 }
