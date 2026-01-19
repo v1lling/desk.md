@@ -68,37 +68,39 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
 
       {/* Footer */}
       <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50">
-        <Link
-          href="/settings"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-            pathname === "/settings"
-              ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-          )}
-        >
-          <Settings className={cn(
-            "h-[18px] w-[18px] shrink-0 transition-colors",
-            pathname === "/settings" ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/60"
-          )} />
-          {!collapsed && <span>Settings</span>}
-        </Link>
-
-        {onToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggle}
-            className="w-full mt-2 justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+        <div className="flex items-center gap-1">
+          <Link
+            href="/settings"
+            className={cn(
+              "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+              pathname === "/settings"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            )}
           >
-            <ChevronLeft
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                collapsed && "rotate-180"
-              )}
-            />
-          </Button>
-        )}
+            <Settings className={cn(
+              "h-[18px] w-[18px] shrink-0 transition-colors",
+              pathname === "/settings" ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/60"
+            )} />
+            {!collapsed && <span>Settings</span>}
+          </Link>
+
+          {onToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="h-9 w-9 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+            >
+              <ChevronLeft
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  collapsed && "rotate-180"
+                )}
+              />
+            </Button>
+          )}
+        </div>
       </div>
     </aside>
   );
