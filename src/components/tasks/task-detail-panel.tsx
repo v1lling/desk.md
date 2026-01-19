@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { Trash2 } from "lucide-react";
 import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
+import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -34,6 +36,9 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const [projectId, setProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Track original projectId to detect moves (moves need special handling)
+  const [originalProjectId, setOriginalProjectId] = useState("");
+
   // Sync state when task changes
   useEffect(() => {
     if (task) {
@@ -43,69 +48,73 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       setDue(task.due || "");
       setContent(task.content);
       setProjectId(task.projectId);
+      setOriginalProjectId(task.projectId);
     }
   }, [task]);
 
+  // Auto-save data (excluding project changes which need file move)
+  const autoSaveData = useMemo(
+    () => ({
+      title,
+      status,
+      priority: priority === "none" ? undefined : priority,
+      due: due || undefined,
+      content,
+    }),
+    [title, status, priority, due, content]
+  );
+
+  // Auto-save handler
+  const handleAutoSave = useCallback(
+    async (data: typeof autoSaveData) => {
+      if (!task) return;
+
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        areaId: task.areaId,
+        projectId: task.projectId,
+        updates: {
+          title: data.title.trim() || task.title,
+          status: data.status,
+          priority: data.priority,
+          due: data.due,
+          content: data.content,
+        },
+      });
+    },
+    [task, updateTask]
+  );
+
+  // Auto-save hook - only enabled when editor is open
+  const { status: saveStatus, save: triggerSave, isDirty } = useAutoSave({
+    data: autoSaveData,
+    onSave: handleAutoSave,
+    enabled: open && !!task,
+  });
+
+  // Manual save (for project changes or explicit save)
   const handleSave = async () => {
     if (!task) return;
 
-    // If project changed, move the file first
-    if (projectId !== task.projectId) {
-      moveTaskToProject.mutate(
-        {
+    try {
+      // If project changed, move the file first
+      if (projectId !== originalProjectId) {
+        await moveTaskToProject.mutateAsync({
           taskId: task.id,
           areaId: task.areaId,
-          fromProjectId: task.projectId,
+          fromProjectId: originalProjectId,
           toProjectId: projectId,
-        },
-        {
-          onSuccess: (movedTask) => {
-            // Now update other fields if needed
-            if (movedTask) {
-              updateTask.mutate(
-                {
-                  taskId: task.id,
-                  areaId: task.areaId,
-                  projectId: projectId,
-                  updates: {
-                    title,
-                    status,
-                    priority: priority === "none" ? undefined : priority,
-                    due: due || undefined,
-                    content,
-                  },
-                },
-                {
-                  onSuccess: () => toast.success("Task updated"),
-                  onError: () => toast.error("Failed to update task"),
-                }
-              );
-            }
-          },
-          onError: () => toast.error("Failed to move task"),
-        }
-      );
-    } else {
-      updateTask.mutate(
-        {
-          taskId: task.id,
-          areaId: task.areaId,
-          projectId: task.projectId,
-          updates: {
-            title,
-            status,
-            priority: priority === "none" ? undefined : priority,
-            due: due || undefined,
-            content,
-          },
-        },
-        {
-          onSuccess: () => toast.success("Task updated"),
-          onError: () => toast.error("Failed to update task"),
-        }
-      );
+        });
+        setOriginalProjectId(projectId);
+      }
+
+      // Save content changes
+      await triggerSave();
+      toast.success("Task saved");
+      onClose();
+    } catch {
+      toast.error("Failed to save task");
     }
-    onClose();
   };
 
   const handleDeleteClick = () => {
@@ -133,7 +142,18 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     onClose();
   };
 
+  // Handle close - save pending changes if dirty
+  const handleClose = async () => {
+    if (isDirty) {
+      await triggerSave();
+    }
+    onClose();
+  };
+
   if (!task) return null;
+
+  // Check if project was changed (requires explicit save)
+  const projectChanged = projectId !== originalProjectId;
 
   const formContent = (
     <div className="space-y-4">
@@ -181,18 +201,27 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   );
 
   const footer = (
-    <div className="flex gap-2 justify-end">
-      <Button onClick={handleSave} className="min-w-[140px]">
-        Save Changes
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleDeleteClick}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+    <div className="flex items-center justify-between">
+      <SaveStatusIndicator status={saveStatus} />
+      <div className="flex gap-2">
+        {projectChanged ? (
+          <Button onClick={handleSave} className="min-w-[140px]">
+            Move & Save
+          </Button>
+        ) : (
+          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+            Close
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleDeleteClick}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -236,16 +265,25 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     </div>
   );
 
-  // Fullscreen-specific footer with hint
+  // Fullscreen-specific footer with hint and save status
   const fullscreenFooter = (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">
-        Press Cmd+Shift+F to exit fullscreen
-      </span>
+      <div className="flex items-center gap-4">
+        <span className="text-xs text-muted-foreground">
+          Cmd+Shift+F to exit
+        </span>
+        <SaveStatusIndicator status={saveStatus} />
+      </div>
       <div className="flex gap-2">
-        <Button onClick={handleSave} className="min-w-[140px]">
-          Save Changes
-        </Button>
+        {projectChanged ? (
+          <Button onClick={handleSave} className="min-w-[140px]">
+            Move & Save
+          </Button>
+        ) : (
+          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+            Close
+          </Button>
+        )}
         <Button
           variant="outline"
           size="icon"
@@ -262,7 +300,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     <>
       <EditorShell
         open={open}
-        onClose={onClose}
+        onClose={handleClose}
         title="Edit Task"
         footer={footer}
         fullscreenChildren={fullscreenContent}

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { Trash2 } from "lucide-react";
 import { useUpdateNote, useDeleteNote, useMoveNoteToProject, useProjects } from "@/stores";
+import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Note } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -30,37 +32,68 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   const [projectId, setProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Track original projectId to detect moves (moves need special handling)
+  const [originalProjectId, setOriginalProjectId] = useState("");
+
+  // Sync state when note changes
   useEffect(() => {
     if (note) {
       setTitle(note.title);
       setContent(note.content);
       setProjectId(note.projectId);
+      setOriginalProjectId(note.projectId);
     }
   }, [note]);
 
+  // Auto-save data (excluding project changes which need file move)
+  const autoSaveData = useMemo(
+    () => ({ title, content }),
+    [title, content]
+  );
+
+  // Auto-save handler
+  const handleAutoSave = useCallback(
+    async (data: { title: string; content: string }) => {
+      if (!note) return;
+
+      await updateNote.mutateAsync({
+        noteId: note.id,
+        areaId: note.areaId,
+        projectId: note.projectId,
+        updates: {
+          title: data.title.trim() || note.title,
+          content: data.content,
+        },
+      });
+    },
+    [note, updateNote]
+  );
+
+  // Auto-save hook - only enabled when editor is open
+  const { status: saveStatus, save: triggerSave, isDirty } = useAutoSave({
+    data: autoSaveData,
+    onSave: handleAutoSave,
+    enabled: open && !!note,
+  });
+
+  // Manual save (for project changes or explicit save)
   const handleSave = async () => {
     if (!note) return;
 
     try {
       // If project changed, move the file first
-      if (projectId !== note.projectId) {
+      if (projectId !== originalProjectId) {
         await moveNoteToProject.mutateAsync({
           noteId: note.id,
           areaId: note.areaId,
-          fromProjectId: note.projectId,
+          fromProjectId: originalProjectId,
           toProjectId: projectId,
         });
+        setOriginalProjectId(projectId);
       }
 
-      await updateNote.mutateAsync({
-        noteId: note.id,
-        areaId: note.areaId,
-        projectId: projectId,
-        updates: {
-          title: title.trim() || note.title,
-          content,
-        },
-      });
+      // Save content changes
+      await triggerSave();
       toast.success("Note saved");
       onClose();
     } catch {
@@ -84,7 +117,18 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     }
   };
 
+  // Handle close - save pending changes if dirty
+  const handleClose = async () => {
+    if (isDirty) {
+      await triggerSave();
+    }
+    onClose();
+  };
+
   if (!note) return null;
+
+  // Check if project was changed (requires explicit save)
+  const projectChanged = projectId !== originalProjectId;
 
   const formContent = (
     <div className="space-y-4">
@@ -125,18 +169,27 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   );
 
   const footer = (
-    <div className="flex gap-2 justify-end">
-      <Button onClick={handleSave} className="min-w-[140px]">
-        Save Changes
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleDeleteClick}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+    <div className="flex items-center justify-between">
+      <SaveStatusIndicator status={saveStatus} />
+      <div className="flex gap-2">
+        {projectChanged ? (
+          <Button onClick={handleSave} className="min-w-[140px]">
+            Move & Save
+          </Button>
+        ) : (
+          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+            Close
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleDeleteClick}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -173,16 +226,25 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     </div>
   );
 
-  // Fullscreen-specific footer with hint
+  // Fullscreen-specific footer with hint and save status
   const fullscreenFooter = (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">
-        Press Cmd+Shift+F to exit fullscreen
-      </span>
+      <div className="flex items-center gap-4">
+        <span className="text-xs text-muted-foreground">
+          Cmd+Shift+F to exit
+        </span>
+        <SaveStatusIndicator status={saveStatus} />
+      </div>
       <div className="flex gap-2">
-        <Button onClick={handleSave} className="min-w-[140px]">
-          Save Changes
-        </Button>
+        {projectChanged ? (
+          <Button onClick={handleSave} className="min-w-[140px]">
+            Move & Save
+          </Button>
+        ) : (
+          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+            Close
+          </Button>
+        )}
         <Button
           variant="outline"
           size="icon"
@@ -199,7 +261,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     <>
       <EditorShell
         open={open}
-        onClose={onClose}
+        onClose={handleClose}
         title="Edit Note"
         footer={footer}
         fullscreenChildren={fullscreenContent}

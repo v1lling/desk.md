@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { useUpdateMeeting, useDeleteMeeting } from "@/stores";
+import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Meeting } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -29,6 +31,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   const [content, setContent] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Sync state when meeting changes
   useEffect(() => {
     if (meeting) {
       setTitle(meeting.title);
@@ -38,11 +41,18 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     }
   }, [meeting]);
 
-  const handleSave = async () => {
-    if (!meeting) return;
+  // Auto-save data
+  const autoSaveData = useMemo(
+    () => ({ title, date, attendees, content }),
+    [title, date, attendees, content]
+  );
 
-    try {
-      const attendeesList = attendees
+  // Auto-save handler
+  const handleAutoSave = useCallback(
+    async (data: typeof autoSaveData) => {
+      if (!meeting) return;
+
+      const attendeesList = data.attendees
         .split(",")
         .map((a) => a.trim())
         .filter(Boolean);
@@ -52,18 +62,22 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
         areaId: meeting.areaId,
         projectId: meeting.projectId,
         updates: {
-          title: title.trim() || meeting.title,
-          date: date || meeting.date,
+          title: data.title.trim() || meeting.title,
+          date: data.date || meeting.date,
           attendees: attendeesList.length > 0 ? attendeesList : undefined,
-          content,
+          content: data.content,
         },
       });
-      toast.success("Meeting saved");
-      onClose();
-    } catch {
-      toast.error("Failed to save meeting");
-    }
-  };
+    },
+    [meeting, updateMeeting]
+  );
+
+  // Auto-save hook - only enabled when editor is open
+  const { status: saveStatus, save: triggerSave, isDirty } = useAutoSave({
+    data: autoSaveData,
+    onSave: handleAutoSave,
+    enabled: open && !!meeting,
+  });
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -85,11 +99,11 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     }
   };
 
-  const handleClose = () => {
-    setTitle("");
-    setDate("");
-    setAttendees("");
-    setContent("");
+  // Handle close - save pending changes if dirty
+  const handleClose = async () => {
+    if (isDirty) {
+      await triggerSave();
+    }
     onClose();
   };
 
@@ -136,30 +150,22 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   );
 
   const footer = (
-    <div className="flex gap-2 justify-end">
-      <Button
-        onClick={handleSave}
-        disabled={updateMeeting.isPending}
-        className="min-w-[140px]"
-      >
-        {updateMeeting.isPending && (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        )}
-        Save Changes
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleDeleteClick}
-        disabled={deleteMeeting.isPending}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        {deleteMeeting.isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
+    <div className="flex items-center justify-between">
+      <SaveStatusIndicator status={saveStatus} />
+      <div className="flex gap-2">
+        <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+          Close
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleDeleteClick}
+          disabled={deleteMeeting.isPending}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
           <Trash2 className="h-4 w-4" />
-        )}
-      </Button>
+        </Button>
+      </div>
     </div>
   );
 
@@ -198,22 +204,18 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     </div>
   );
 
-  // Fullscreen-specific footer with hint
+  // Fullscreen-specific footer with hint and save status
   const fullscreenFooter = (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">
-        Press Cmd+Shift+F to exit fullscreen
-      </span>
+      <div className="flex items-center gap-4">
+        <span className="text-xs text-muted-foreground">
+          Cmd+Shift+F to exit
+        </span>
+        <SaveStatusIndicator status={saveStatus} />
+      </div>
       <div className="flex gap-2">
-        <Button
-          onClick={handleSave}
-          disabled={updateMeeting.isPending}
-          className="min-w-[140px]"
-        >
-          {updateMeeting.isPending && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          Save Changes
+        <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
+          Close
         </Button>
         <Button
           variant="outline"
@@ -222,11 +224,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
           disabled={deleteMeeting.isPending}
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
         >
-          {deleteMeeting.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4" />
-          )}
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>
