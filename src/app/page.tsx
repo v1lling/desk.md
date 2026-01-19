@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
@@ -12,11 +13,26 @@ export default function Home() {
   const currentAreaId = currentArea?.id || null;
   const { data: tasks = [] } = useTasks(currentAreaId);
   const { data: projects = [] } = useProjects(currentAreaId);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
   const [filterProject, setFilterProject] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+
+  // Handle ?open= query param from search navigation
+  useEffect(() => {
+    const openTaskId = searchParams.get("open");
+    if (openTaskId && tasks.length > 0) {
+      const taskToOpen = tasks.find((t) => t.id === openTaskId);
+      if (taskToOpen) {
+        setSelectedTask(taskToOpen);
+        // Clear the URL param after opening
+        router.replace("/", { scroll: false });
+      }
+    }
+  }, [searchParams, tasks, router]);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);

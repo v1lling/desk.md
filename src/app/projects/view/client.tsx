@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +28,13 @@ import { calculateTaskStats } from "@/lib/orbit/calculations";
 
 interface ProjectPageClientProps {
   projectId: string;
+  openMeetingId?: string | null;
 }
 
-export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
+export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClientProps) {
   const currentArea = useCurrentArea();
   const currentAreaId = currentArea?.id || null;
+  const router = useRouter();
 
   const { data: project, isLoading: projectLoading } = useProject(
     currentAreaId,
@@ -48,6 +51,19 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewNote, setShowNewNote] = useState(false);
   const [showNewMeeting, setShowNewMeeting] = useState(false);
+
+  // Handle ?meeting= query param from search navigation
+  useEffect(() => {
+    if (openMeetingId && meetings.length > 0) {
+      const meetingToOpen = meetings.find((m) => m.id === openMeetingId);
+      if (meetingToOpen) {
+        setSelectedMeeting(meetingToOpen);
+        setActiveTab("meetings");
+        // Clear the URL param after opening
+        router.replace(`/projects/view?id=${projectId}`, { scroll: false });
+      }
+    }
+  }, [openMeetingId, meetings, router, projectId]);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);

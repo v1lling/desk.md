@@ -95,18 +95,16 @@ export function GlobalSearch() {
 
       const { item } = result;
 
-      // Navigate based on item type
+      // Navigate based on item type, with ?open= param to auto-open editor
       switch (item.type) {
         case "task":
-          // Navigate to tasks page - the task will be shown in the kanban
-          router.push("/");
+          router.push(`/?open=${item.id}`);
           break;
         case "note":
-          router.push("/notes");
+          router.push(`/notes?open=${item.id}`);
           break;
         case "meeting":
-          // Meetings are shown on project page
-          router.push(`/projects/view?id=${item.projectId}`);
+          router.push(`/projects/view?id=${item.projectId}&meeting=${item.id}`);
           break;
         case "project":
           router.push(`/projects/view?id=${item.projectId}`);
@@ -117,7 +115,7 @@ export function GlobalSearch() {
   );
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
       <CommandInput
         placeholder="Search tasks, notes, projects..."
         value={query}

@@ -5,10 +5,11 @@ import { Suspense } from "react";
 import { ProjectPageClient } from "./client";
 
 // Use query parameters for dynamic project IDs with static export
-// URL: /projects/view?id=project-id
+// URL: /projects/view?id=project-id&meeting=meeting-id
 function ProjectViewContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("id");
+  const meetingId = searchParams.get("meeting");
 
   if (!projectId) {
     return (
@@ -18,7 +19,7 @@ function ProjectViewContent() {
     );
   }
 
-  return <ProjectPageClient projectId={projectId} />;
+  return <ProjectPageClient projectId={projectId} openMeetingId={meetingId} />;
 }
 
 export default function ProjectViewPage() {

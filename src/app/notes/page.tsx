@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
@@ -15,10 +16,25 @@ export default function NotesPage() {
   const currentAreaId = currentArea?.id || null;
   const { data: notes = [], isLoading } = useNotes(currentAreaId);
   const { data: projects = [] } = useProjects(currentAreaId);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [showNewNote, setShowNewNote] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [filterProject, setFilterProject] = useState<string>("all");
+
+  // Handle ?open= query param from search navigation
+  useEffect(() => {
+    const openNoteId = searchParams.get("open");
+    if (openNoteId && notes.length > 0) {
+      const noteToOpen = notes.find((n) => n.id === openNoteId);
+      if (noteToOpen) {
+        setSelectedNote(noteToOpen);
+        // Clear the URL param after opening
+        router.replace("/notes", { scroll: false });
+      }
+    }
+  }, [searchParams, notes, router]);
 
   const handleNoteClick = (note: Note) => {
     setSelectedNote(note);
