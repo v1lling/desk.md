@@ -284,7 +284,8 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-flow-col auto-cols-[300px] gap-4 pb-4 items-stretch">
+      <div className="overflow-x-auto pb-4">
+        <div className="grid grid-flow-col auto-cols-[300px] gap-4 items-stretch">
         <KanbanColumn
           status="todo"
           tasks={groupedTasks.todo}
@@ -354,6 +355,7 @@ export function KanbanBoard({
             </span>
           </button>
         )}
+        </div>
       </div>
       <DragOverlay>
         {activeTask ? (
