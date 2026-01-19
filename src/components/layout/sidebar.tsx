@@ -30,17 +30,17 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200",
+        "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-200",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Area Switcher */}
-      <div className="p-3">
+      <div className="shrink-0 p-3">
         <AreaSwitcher collapsed={collapsed} />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         <div className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -67,7 +67,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 pb-3 pt-2 border-t border-sidebar-border/50">
+      <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50">
         <Link
           href="/settings"
           className={cn(
