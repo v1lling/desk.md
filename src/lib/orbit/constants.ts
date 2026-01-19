@@ -24,11 +24,16 @@ export const SPECIAL_DIRS = {
 
 export const PATH_SEGMENTS = {
   WORKSPACES: "workspaces",
+  PERSONAL: "personal",
   PROJECTS: "projects",
   TASKS: "tasks",
   NOTES: "notes",
   MEETINGS: "meetings",
+  INBOX: "inbox",
 } as const;
+
+/** Special "workspace ID" used for personal space items */
+export const PERSONAL_SPACE_ID = "__personal__" as const;
 
 // =============================================================================
 // FILE NAMES

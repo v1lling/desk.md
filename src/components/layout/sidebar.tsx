@@ -8,6 +8,10 @@ import {
   FileText,
   Settings,
   ChevronLeft,
+  Inbox,
+  CheckSquare,
+  StickyNote,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,11 +23,18 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-const navItems = [
+// Workspace-scoped navigation items
+const workspaceNavItems = [
   { href: "/", label: "All Tasks", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/notes", label: "Notes", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
+] as const;
+
+// Personal space navigation items
+const personalNavItems = [
+  { href: "/personal/inbox", label: "Inbox", icon: Inbox },
+  { href: "/personal/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/personal/notes", label: "Notes", icon: StickyNote },
 ] as const;
 
 // Extracted nav link component to avoid style duplication
@@ -67,9 +78,8 @@ function NavLink({
 export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
 
-  // Separate settings from main nav items
-  const mainNavItems = navItems.slice(0, -1);
-  const settingsItem = navItems[navItems.length - 1];
+  // Check if we're in personal space
+  const isPersonalRoute = pathname.startsWith("/personal");
 
   return (
     <aside
@@ -97,27 +107,57 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
 
       {/* Main Navigation */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-        <div className="space-y-1">
-          {mainNavItems.map((item) => (
-            <NavLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              isActive={pathname === item.href}
-              collapsed={collapsed}
-            />
-          ))}
+        {/* Personal Section */}
+        <div className="mb-4">
+          {!collapsed && (
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+              <User className="size-3" />
+              <span>Personal</span>
+            </div>
+          )}
+          <div className="space-y-1">
+            {personalNavItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                isActive={pathname === item.href}
+                collapsed={collapsed}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Workspace Section */}
+        <div>
+          {!collapsed && (
+            <div className="px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+              Workspace
+            </div>
+          )}
+          <div className="space-y-1">
+            {workspaceNavItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                isActive={pathname === item.href}
+                collapsed={collapsed}
+              />
+            ))}
+          </div>
         </div>
       </nav>
 
       {/* Footer */}
       <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50 space-y-1">
         <NavLink
-          href={settingsItem.href}
-          label={settingsItem.label}
-          icon={settingsItem.icon}
-          isActive={pathname === settingsItem.href}
+          href="/settings"
+          label="Settings"
+          icon={Settings}
+          isActive={pathname === "/settings"}
           collapsed={collapsed}
         />
 

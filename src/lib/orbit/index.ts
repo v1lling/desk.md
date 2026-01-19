@@ -6,6 +6,7 @@ export * from "./projects";
 export * from "./tasks";
 export * from "./notes";
 export * from "./meetings";
+export * from "./personal";
 export * from "./parser";
 export * from "./tauri-fs";
 export * from "./constants";

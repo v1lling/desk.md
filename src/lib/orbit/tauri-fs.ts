@@ -187,6 +187,14 @@ export async function initOrbitDirectory(): Promise<void> {
   const workspacesPath = await joinPath(orbitPath, "workspaces");
   await mkdir(workspacesPath);
 
+  // Create personal directory structure
+  const personalPath = await joinPath(orbitPath, "personal");
+  await mkdir(personalPath);
+  await mkdir(await joinPath(personalPath, "inbox"));
+  await mkdir(await joinPath(personalPath, "inbox", "tasks"));
+  await mkdir(await joinPath(personalPath, "tasks"));
+  await mkdir(await joinPath(personalPath, "notes"));
+
   // Create config if it doesn't exist
   const configPath = await joinPath(orbitPath, "config.json");
   if (!(await exists(configPath))) {

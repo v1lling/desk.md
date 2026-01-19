@@ -27,6 +27,10 @@ Workspace (Client/Context)
 
 ```
 ~/Orbit/
+├── personal/                       # Personal space (not workspace-scoped)
+│   ├── inbox/tasks/*.md            # Quick capture items
+│   ├── tasks/*.md                  # Personal tasks
+│   └── notes/*.md                  # Personal notes
 ├── workspaces/
 │   └── {workspace}/
 │       ├── workspace.md
@@ -70,6 +74,7 @@ Working features:
 - Meetings: List view with editor
 - Unassigned items: Tasks/notes can exist without a project
 - Project reassignment: Move tasks/notes between projects
+- **Personal Space**: Inbox, tasks, and notes not tied to any workspace
 - Settings: Theme toggle, data path configuration
 - File system: All data in portable markdown
 - **File watcher**: Auto-refresh UI when files change externally
@@ -86,7 +91,8 @@ Working features:
 ## Architecture
 
 Key modules in `src/lib/orbit/`:
-- `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS)
+- `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID)
+- `personal.ts` - Personal space CRUD (inbox, tasks, notes)
 - `search.ts` - Cross-workspace search helpers
 - `search-index.ts` - In-memory Fuse.js search index
 - `watcher.ts` - File system watcher service (Tauri)
