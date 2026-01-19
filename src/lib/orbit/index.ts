@@ -12,3 +12,4 @@ export * from "./constants";
 export * from "./calculations";
 export * from "./search";
 export * from "./view-state";
+export * from "./watcher";

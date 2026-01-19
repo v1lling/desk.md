@@ -65,6 +65,20 @@
         { "path": "$HOME/Orbit/*" },
         { "path": "$HOME/Orbit/**/*" }
       ]
+    },
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [
+        { "path": "$HOME/Orbit" },
+        { "path": "$HOME/Orbit/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-unwatch",
+      "allow": [
+        { "path": "$HOME/Orbit" },
+        { "path": "$HOME/Orbit/**/*" }
+      ]
     }
   ]
 }
