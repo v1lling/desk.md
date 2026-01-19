@@ -1,123 +1,173 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
-import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
-import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useTasks, useProjects, useCurrentWorkspace } from "@/stores";
-import type { Task } from "@/types";
+import {
+  useActiveTasks,
+  useWorkspaceSummaries,
+  useSettingsStore,
+} from "@/stores";
+import { useRouter } from "next/navigation";
+import { Circle, CheckCircle2, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { ActiveTask, WorkspaceSummary } from "@/lib/orbit/dashboard";
 
-export default function Home() {
-  const currentWorkspace = useCurrentWorkspace();
-  const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: tasks = [] } = useTasks(currentWorkspaceId);
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
-  const searchParams = useSearchParams();
+// Default color for workspaces without a color
+const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
+
+function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
   const router = useRouter();
 
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [showNewTask, setShowNewTask] = useState(false);
-  const [filterProject, setFilterProject] = useState<string>("all");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-
-  // Handle ?open= query param from search navigation
-  useEffect(() => {
-    const openTaskId = searchParams.get("open");
-    if (openTaskId && tasks.length > 0) {
-      const taskToOpen = tasks.find((t) => t.id === openTaskId);
-      if (taskToOpen) {
-        setSelectedTask(taskToOpen);
-        // Clear the URL param after opening
-        router.replace("/", { scroll: false });
-      }
+  const handleTaskClick = (task: ActiveTask) => {
+    if (task.workspaceId === "__personal__") {
+      router.push("/personal/tasks");
+    } else {
+      router.push(`/tasks?open=${task.id}`);
     }
-  }, [searchParams, tasks, router]);
-
-  const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
   };
 
-  // Filter tasks based on selected filters
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (filterProject !== "all" && task.projectId !== filterProject) return false;
-      if (filterPriority !== "all" && task.priority !== filterPriority) return false;
-      return true;
-    });
-  }, [tasks, filterProject, filterPriority]);
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Loader2 className="size-4 text-orange-500" />
+        <h2 className="font-medium">Focus</h2>
+        <span className="text-xs text-muted-foreground">
+          {tasks.length} in progress
+        </span>
+      </div>
 
-  // Prepare filter options - include "No project" for unassigned
-  const projectOptions = useMemo(
-    () => [
-      { value: "_unassigned", label: "No project" },
-      ...projects.map((p) => ({ value: p.id, label: p.name })),
-    ],
-    [projects]
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground">
+          <Loader2 className="size-4 animate-spin mr-2" />
+          Loading...
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="py-8 text-center text-muted-foreground text-sm">
+          No tasks in progress
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {tasks.map((task) => (
+            <button
+              key={`${task.workspaceId}-${task.id}`}
+              onClick={() => handleTaskClick(task)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent/50 transition-colors text-left"
+            >
+              <Circle
+                className="size-2 shrink-0"
+                style={{ color: task.workspaceColor || DEFAULT_WORKSPACE_COLOR }}
+                fill={task.workspaceColor || DEFAULT_WORKSPACE_COLOR}
+              />
+              <span className="flex-1 truncate">{task.title}</span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {task.workspaceName}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkspacesWidget({
+  summaries,
+  isLoading,
+}: {
+  summaries: WorkspaceSummary[];
+  isLoading: boolean;
+}) {
+  const router = useRouter();
+  const setCurrentWorkspaceId = useSettingsStore(
+    (state) => state.setCurrentWorkspaceId
   );
 
-  const priorityOptions = [
-    { value: "high", label: "High" },
-    { value: "medium", label: "Medium" },
-    { value: "low", label: "Low" },
-  ];
+  const handleWorkspaceClick = (summary: WorkspaceSummary) => {
+    if (summary.workspaceId === "__personal__") {
+      router.push("/personal/tasks");
+    } else {
+      setCurrentWorkspaceId(summary.workspaceId);
+      router.push("/tasks");
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <CheckCircle2 className="size-4 text-blue-500" />
+        <h2 className="font-medium">Workspaces</h2>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground">
+          <Loader2 className="size-4 animate-spin mr-2" />
+          Loading...
+        </div>
+      ) : summaries.length === 0 ? (
+        <div className="py-8 text-center text-muted-foreground text-sm">
+          No workspaces yet
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {summaries.map((summary) => (
+            <button
+              key={summary.workspaceId}
+              onClick={() => handleWorkspaceClick(summary)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent/50 transition-colors"
+            >
+              <Circle
+                className="size-3 shrink-0"
+                style={{ color: summary.color || DEFAULT_WORKSPACE_COLOR }}
+                fill={summary.color || DEFAULT_WORKSPACE_COLOR}
+              />
+              <span className="flex-1 text-left truncate">{summary.name}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {summary.completedTasks}/{summary.totalTasks}
+              </span>
+              <ProgressBar percent={summary.completionPercent} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgressBar({ percent }: { percent: number }) {
+  return (
+    <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+      <div
+        className={cn(
+          "h-full rounded-full transition-all",
+          percent === 100
+            ? "bg-green-500"
+            : percent >= 50
+              ? "bg-blue-500"
+              : "bg-orange-500"
+        )}
+        style={{ width: `${percent}%` }}
+      />
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const { data: activeTasks = [], isLoading: tasksLoading } = useActiveTasks();
+  const { data: workspaceSummaries = [], isLoading: summariesLoading } =
+    useWorkspaceSummaries();
 
   return (
     <div className="flex flex-col h-full">
-      <Header
-        title="All Tasks"
-        action={{
-          label: "New Task",
-          onClick: () => setShowNewTask(true),
-        }}
-      />
+      <Header title="Dashboard" />
 
-      {/* Filter Bar */}
-      <EntityFilterBar
-        filters={[
-          {
-            id: "project",
-            label: "Project",
-            value: filterProject,
-            onChange: setFilterProject,
-            options: projectOptions,
-            allLabel: "All projects",
-            width: "w-[200px]",
-          },
-          {
-            id: "priority",
-            label: "Priority",
-            value: filterPriority,
-            onChange: setFilterPriority,
-            options: priorityOptions,
-            allLabel: "All priorities",
-            width: "w-[150px]",
-          },
-        ]}
-        count={filteredTasks.length}
-        countLabel="tasks"
-      />
-
-      <div className="flex-1 p-6 min-h-0 overflow-auto">
-        <KanbanBoard
-          onTaskClick={handleTaskClick}
-          showProject
-          tasks={filteredTasks}
-        />
-      </div>
-
-      {/* Task Detail Panel */}
-      <TaskDetailPanel
-        task={selectedTask}
-        open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-      />
-
-      {/* Quick Add Task Modal */}
-      <QuickAddTask
-        open={showNewTask}
-        onClose={() => setShowNewTask(false)}
-      />
+      <main className="flex-1 overflow-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+          <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
+          <WorkspacesWidget
+            summaries={workspaceSummaries}
+            isLoading={summariesLoading}
+          />
+        </div>
+      </main>
     </div>
   );
 }

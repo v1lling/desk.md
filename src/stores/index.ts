@@ -75,3 +75,9 @@ export {
   personalKeys,
   PERSONAL_SPACE_ID,
 } from "./personal";
+export {
+  useActiveTasks,
+  useWorkspaceSummaries,
+  usePersonalSummary,
+  dashboardKeys,
+} from "./dashboard";

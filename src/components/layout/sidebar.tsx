@@ -1,21 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { WorkspaceSwitcher } from "./workspace-switcher";
 import {
-  LayoutDashboard,
   FolderKanban,
   FileText,
   Settings,
   ChevronLeft,
+  ChevronDown,
+  ChevronRight,
   Inbox,
   CheckSquare,
   StickyNote,
   User,
+  Circle,
+  Plus,
+  Calendar,
+  Home,
+  ListTodo,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
+import { useSettingsStore } from "@/stores/settings";
+import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
 import type { LucideIcon } from "lucide-react";
 
 interface SidebarProps {
@@ -25,9 +34,10 @@ interface SidebarProps {
 
 // Workspace-scoped navigation items
 const workspaceNavItems = [
-  { href: "/", label: "All Tasks", icon: LayoutDashboard },
+  { href: "/tasks", label: "All Tasks", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/notes", label: "Notes", icon: FileText },
+  { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
 
 // Personal space navigation items
@@ -37,26 +47,32 @@ const personalNavItems = [
   { href: "/personal/notes", label: "Notes", icon: StickyNote },
 ] as const;
 
-// Extracted nav link component to avoid style duplication
+// Default color when workspace has no color set
+const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
+
+// Nav link component
 function NavLink({
   href,
   label,
   icon: Icon,
   isActive,
   collapsed,
+  indent = false,
 }: {
   href: string;
   label: string;
   icon: LucideIcon;
   isActive: boolean;
   collapsed: boolean;
+  indent?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
         collapsed && "justify-center px-0",
+        indent && !collapsed && "pl-6",
         isActive
           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
           : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
@@ -64,7 +80,7 @@ function NavLink({
     >
       <Icon
         className={cn(
-          "size-[18px] shrink-0",
+          "size-4 shrink-0",
           isActive
             ? "text-sidebar-accent-foreground"
             : "text-sidebar-foreground/60"
@@ -75,104 +91,297 @@ function NavLink({
   );
 }
 
-export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
-  const pathname = usePathname();
-
-  // Check if we're in personal space
-  const isPersonalRoute = pathname.startsWith("/personal");
+// Section header with collapse toggle
+function SectionHeader({
+  label,
+  icon: Icon,
+  isExpanded,
+  onToggle,
+  collapsed,
+}: {
+  label: string;
+  icon: LucideIcon;
+  isExpanded: boolean;
+  onToggle: () => void;
+  collapsed: boolean;
+}) {
+  if (collapsed) return null;
 
   return (
-    <aside
-      className={cn(
-        "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-200",
-        collapsed ? "w-16" : "w-64"
-      )}
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider hover:text-sidebar-foreground/70 transition-colors"
     >
-      {/* Header: Workspace Switcher + Collapse Toggle */}
-      <div className="shrink-0 p-3 flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <WorkspaceSwitcher collapsed={collapsed} />
-        </div>
-        {onToggle && !collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="size-8 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
+      <Icon className="size-3" />
+      <span className="flex-1 text-left">{label}</span>
+      {isExpanded ? (
+        <ChevronDown className="size-3" />
+      ) : (
+        <ChevronRight className="size-3" />
+      )}
+    </button>
+  );
+}
+
+// Workspace item in the list
+function WorkspaceItem({
+  workspace,
+  isSelected,
+  isExpanded,
+  onSelect,
+  onToggle,
+  collapsed,
+  pathname,
+}: {
+  workspace: { id: string; name: string; color?: string };
+  isSelected: boolean;
+  isExpanded: boolean;
+  onSelect: () => void;
+  onToggle: () => void;
+  collapsed: boolean;
+  pathname: string;
+}) {
+  const fillColor = workspace.color || DEFAULT_WORKSPACE_COLOR;
+
+  // Check if any workspace route is active (not dashboard, personal, or settings)
+  const isWorkspaceRouteActive =
+    isSelected &&
+    pathname !== "/" &&
+    !pathname.startsWith("/personal") &&
+    !pathname.startsWith("/settings");
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={onSelect}
+        className={cn(
+          "w-full flex items-center justify-center py-2 rounded-lg transition-colors",
+          isSelected
+            ? "bg-sidebar-accent/50"
+            : "hover:bg-sidebar-accent/30"
         )}
-      </div>
-
-      {/* Main Navigation */}
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-        {/* Personal Section */}
-        <div className="mb-4">
-          {!collapsed && (
-            <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-              <User className="size-3" />
-              <span>Personal</span>
-            </div>
-          )}
-          <div className="space-y-1">
-            {personalNavItems.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                label={item.label}
-                icon={item.icon}
-                isActive={pathname === item.href}
-                collapsed={collapsed}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Workspace Section */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-              Workspace
-            </div>
-          )}
-          <div className="space-y-1">
-            {workspaceNavItems.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                label={item.label}
-                icon={item.icon}
-                isActive={pathname === item.href}
-                collapsed={collapsed}
-              />
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* Footer */}
-      <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50 space-y-1">
-        <NavLink
-          href="/settings"
-          label="Settings"
-          icon={Settings}
-          isActive={pathname === "/settings"}
-          collapsed={collapsed}
+        title={workspace.name}
+      >
+        <Circle
+          className="size-4"
+          style={{ color: fillColor }}
+          fill={fillColor}
         />
+      </button>
+    );
+  }
 
-        {/* Expand button - only shown when collapsed */}
-        {collapsed && onToggle && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="w-full h-9 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
-          >
-            <ChevronLeft className="size-4 rotate-180" />
-          </Button>
+  return (
+    <div>
+      <button
+        onClick={() => {
+          onSelect();
+          if (!isExpanded) onToggle();
+        }}
+        className={cn(
+          "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+          isSelected
+            ? "bg-sidebar-accent/50 text-sidebar-foreground"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
         )}
-      </div>
-    </aside>
+      >
+        <Circle
+          className="size-3 shrink-0"
+          style={{ color: fillColor }}
+          fill={fillColor}
+        />
+        <span className="flex-1 text-left truncate">{workspace.name}</span>
+        {isSelected && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            className="p-0.5 hover:bg-sidebar-accent rounded"
+          >
+            {isExpanded ? (
+              <ChevronDown className="size-3 text-sidebar-foreground/50" />
+            ) : (
+              <ChevronRight className="size-3 text-sidebar-foreground/50" />
+            )}
+          </button>
+        )}
+      </button>
+
+      {/* Workspace sub-nav */}
+      {isSelected && isExpanded && (
+        <div className="mt-1 space-y-0.5">
+          {workspaceNavItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              isActive={pathname === item.href}
+              collapsed={collapsed}
+              indent
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+  const { data: workspaces = [] } = useWorkspaces();
+  const currentWorkspace = useCurrentWorkspace();
+  const setCurrentWorkspaceId = useSettingsStore(
+    (state) => state.setCurrentWorkspaceId
+  );
+
+  const [personalExpanded, setPersonalExpanded] = useState(true);
+  const [workspaceExpanded, setWorkspaceExpanded] = useState(true);
+  const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
+
+  return (
+    <>
+      <aside
+        className={cn(
+          "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-200",
+          collapsed ? "w-16" : "w-64"
+        )}
+      >
+        {/* Header: Brand + Collapse Toggle */}
+        <div className="shrink-0 p-3 flex items-center gap-2 border-b border-sidebar-border/50">
+          {!collapsed && (
+            <span className="flex-1 font-semibold text-sidebar-foreground">
+              Orbit
+            </span>
+          )}
+          {collapsed && (
+            <span className="flex-1 font-bold text-sidebar-foreground text-center">
+              O
+            </span>
+          )}
+          {onToggle && !collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="size-8 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
+          {/* Dashboard - top level */}
+          <div>
+            <NavLink
+              href="/"
+              label="Dashboard"
+              icon={Home}
+              isActive={pathname === "/"}
+              collapsed={collapsed}
+            />
+          </div>
+
+          {/* Personal Section */}
+          <div>
+            <SectionHeader
+              label="Personal"
+              icon={User}
+              isExpanded={personalExpanded}
+              onToggle={() => setPersonalExpanded(!personalExpanded)}
+              collapsed={collapsed}
+            />
+            {(personalExpanded || collapsed) && (
+              <div className="mt-1 space-y-0.5">
+                {personalNavItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={pathname === item.href}
+                    collapsed={collapsed}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Workspaces Section */}
+          <div>
+            {!collapsed && (
+              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+                <span>Workspaces</span>
+              </div>
+            )}
+            <div className="mt-1 space-y-0.5">
+              {workspaces.map((workspace) => (
+                <WorkspaceItem
+                  key={workspace.id}
+                  workspace={workspace}
+                  isSelected={currentWorkspace?.id === workspace.id}
+                  isExpanded={workspaceExpanded}
+                  onSelect={() => setCurrentWorkspaceId(workspace.id)}
+                  onToggle={() => setWorkspaceExpanded(!workspaceExpanded)}
+                  collapsed={collapsed}
+                  pathname={pathname}
+                />
+              ))}
+
+              {/* New Workspace button */}
+              {!collapsed && (
+                <button
+                  onClick={() => setShowNewWorkspaceModal(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                >
+                  <Plus className="size-3" />
+                  <span>New Workspace</span>
+                </button>
+              )}
+              {collapsed && (
+                <button
+                  onClick={() => setShowNewWorkspaceModal(true)}
+                  className="w-full flex items-center justify-center py-2 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  title="New Workspace"
+                >
+                  <Plus className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        {/* Footer */}
+        <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50 space-y-1">
+          <NavLink
+            href="/settings"
+            label="Settings"
+            icon={Settings}
+            isActive={pathname === "/settings"}
+            collapsed={collapsed}
+          />
+
+          {/* Expand button - only shown when collapsed */}
+          {collapsed && onToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="w-full h-9 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+            >
+              <ChevronLeft className="size-4 rotate-180" />
+            </Button>
+          )}
+        </div>
+      </aside>
+
+      <NewWorkspaceModal
+        open={showNewWorkspaceModal}
+        onClose={() => setShowNewWorkspaceModal(false)}
+      />
+    </>
   );
 }
