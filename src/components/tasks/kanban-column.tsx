@@ -57,39 +57,37 @@ export function KanbanColumn({
         </div>
       )}
 
-      {/* Scrollable drop zone */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-        <div
-          ref={setNodeRef}
-          className={cn(
-            "rounded-xl p-2 transition-all duration-200 min-h-full",
-            showHighlight
-              ? "bg-accent/70 ring-2 ring-ring/20"
-              : "bg-muted/20"
-          )}
+      {/* Drop zone - flex-1 stretches to match siblings */}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "rounded-xl p-2 transition-all duration-200 flex-1",
+          showHighlight
+            ? "bg-accent/70 ring-2 ring-ring/20"
+            : "bg-muted/20"
+        )}
+      >
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
         >
-          <SortableContext
-            items={tasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="space-y-2.5">
-              {tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onClick={() => onTaskClick?.(task)}
-                  showProject={showProject}
-                  projectName={getProjectName?.(task.projectId)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-          {tasks.length === 0 && (
-            <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
-              No tasks
-            </div>
-          )}
-        </div>
+          <div className="space-y-2.5">
+            {tasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onClick={() => onTaskClick?.(task)}
+                showProject={showProject}
+                projectName={getProjectName?.(task.projectId)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+        {tasks.length === 0 && (
+          <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
+            No tasks
+          </div>
+        )}
       </div>
     </div>
   );
