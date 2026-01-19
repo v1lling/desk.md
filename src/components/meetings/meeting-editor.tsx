@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { useUpdateMeeting, useDeleteMeeting } from "@/stores";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Meeting } from "@/types";
@@ -149,25 +148,21 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     </div>
   );
 
-  const footer = (
-    <div className="flex items-center justify-between">
-      <SaveStatusIndicator status={saveStatus} />
-      <div className="flex gap-2">
-        <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
-          Close
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleDeleteClick}
-          disabled={deleteMeeting.isPending}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+  // Delete button for header
+  const deleteButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleDeleteClick}
+      disabled={deleteMeeting.isPending}
+      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
   );
+
+  // Meetings don't have project moves, so no footer needed in panel mode
+  // Save status is shown in header
 
   // Fullscreen-specific content: maximized editor with compact metadata
   const fullscreenContent = (
@@ -204,30 +199,11 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     </div>
   );
 
-  // Fullscreen-specific footer with hint and save status
+  // Fullscreen footer - just keyboard hint
   const fullscreenFooter = (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <span className="text-xs text-muted-foreground">
-          Cmd+Shift+F to exit
-        </span>
-        <SaveStatusIndicator status={saveStatus} />
-      </div>
-      <div className="flex gap-2">
-        <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
-          Close
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleDeleteClick}
-          disabled={deleteMeeting.isPending}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+    <span className="text-xs text-muted-foreground">
+      Cmd+Shift+F to exit
+    </span>
   );
 
   return (
@@ -236,9 +212,10 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
         open={open}
         onClose={handleClose}
         title="Edit Meeting"
-        footer={footer}
         fullscreenChildren={fullscreenContent}
         fullscreenFooter={fullscreenFooter}
+        headerActions={deleteButton}
+        saveStatus={saveStatus}
       >
         {formContent}
       </EditorShell>

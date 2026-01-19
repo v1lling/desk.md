@@ -3,7 +3,7 @@
  *
  * Provides debounced auto-save functionality for editors.
  * - Debounces changes (configurable delay, default 1.5s)
- * - Tracks save status: idle | saving | saved | error
+ * - Tracks save status: idle | saving | error (error-only UI)
  * - Handles Tauri-specific considerations
  * - Prevents saves during initial load
  */
@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { isTauri } from "@/lib/orbit/tauri-fs";
 
-export type SaveStatus = "idle" | "saving" | "saved" | "error";
+export type SaveStatus = "idle" | "saving" | "error";
 
 interface UseAutoSaveOptions<T> {
   /** The data to auto-save */
@@ -54,9 +54,21 @@ export function useAutoSave<T>({
   const isInitialMount = useRef(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedDataRef = useRef<string>("");
+  // Ref to track enabled state for use in callbacks
+  const enabledRef = useRef(isEnabled);
 
   // Serialize data for comparison
   const serializedData = JSON.stringify(data);
+
+  // Keep enabledRef in sync
+  useEffect(() => {
+    enabledRef.current = isEnabled;
+    // When disabled, clear any pending timeout immediately
+    if (!isEnabled && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, [isEnabled]);
 
   // Update status and notify
   const updateStatus = useCallback(
@@ -69,6 +81,11 @@ export function useAutoSave<T>({
 
   // Perform the actual save
   const performSave = useCallback(async () => {
+    // Check if still enabled (editor might have closed)
+    if (!enabledRef.current) {
+      return;
+    }
+
     if (serializedData === lastSavedDataRef.current) {
       // No changes since last save
       return;
@@ -80,12 +97,8 @@ export function useAutoSave<T>({
       await onSave(data);
       lastSavedDataRef.current = serializedData;
       setIsDirty(false);
-      updateStatus("saved");
-
-      // Reset to idle after showing "saved" briefly
-      setTimeout(() => {
-        updateStatus("idle");
-      }, 2000);
+      // Go straight to idle - we trust auto-save silently
+      updateStatus("idle");
     } catch (error) {
       console.error("[auto-save] Save failed:", error);
       updateStatus("error");
@@ -140,22 +153,13 @@ export function useAutoSave<T>({
       performSave();
     }, delay);
 
-    // Cleanup
+    // Cleanup on dependency change or unmount
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
   }, [serializedData, isEnabled, delay, performSave]);
-
-  // Reset on unmount or when editor closes
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   return {
     status,

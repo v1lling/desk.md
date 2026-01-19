@@ -5,17 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { SaveStatusIndicator } from "@/components/ui/save-status";
+import type { SaveStatus } from "@/hooks/use-auto-save";
 
 interface EditorShellProps {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  footer: React.ReactNode;
+  /** Footer content - only rendered if provided and non-null */
+  footer?: React.ReactNode;
   /** Optional content to render in fullscreen mode instead of children */
   fullscreenChildren?: React.ReactNode;
   /** Optional footer to render in fullscreen mode instead of footer */
   fullscreenFooter?: React.ReactNode;
+  /** Actions to render in the header (e.g., delete button) */
+  headerActions?: React.ReactNode;
+  /** Save status - shown as minimal icon in header */
+  saveStatus?: SaveStatus;
   /** Callback when expanded state changes */
   onExpandedChange?: (expanded: boolean) => void;
 }
@@ -39,6 +46,8 @@ export function EditorShell({
   footer,
   fullscreenChildren,
   fullscreenFooter,
+  headerActions,
+  saveStatus,
   onExpandedChange,
 }: EditorShellProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -170,8 +179,12 @@ export function EditorShell({
             isExpanded ? "px-4 py-3" : "px-6 pb-4 pt-6"
           )}
         >
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {saveStatus && <SaveStatusIndicator status={saveStatus} compact />}
+          </div>
           <div className="flex items-center gap-1">
+            {headerActions}
             {toggleButton}
             <Button
               variant="ghost"
@@ -196,17 +209,19 @@ export function EditorShell({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-border/60 shrink-0">
-          <div
-            className={cn(
-              "transition-all duration-300",
-              isExpanded ? "max-w-6xl mx-auto px-4 py-3" : "px-6 pt-4 pb-6"
-            )}
-          >
-            {footerToRender}
+        {/* Footer - only rendered if content exists */}
+        {footerToRender && (
+          <div className="border-t border-border/60 shrink-0">
+            <div
+              className={cn(
+                "transition-all duration-300",
+                isExpanded ? "max-w-6xl mx-auto px-4 py-3" : "px-6 pt-4 pb-6"
+              )}
+            >
+              {footerToRender}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>,
     mainElement

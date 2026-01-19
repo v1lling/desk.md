@@ -60,7 +60,7 @@ npm run dev        # Browser with mock data
 npm run tauri dev  # Desktop with file system
 ```
 
-## Current State: v0.2
+## Current State: v0.3
 
 Working features:
 - Areas with color coding
@@ -72,10 +72,13 @@ Working features:
 - Project reassignment: Move tasks/notes between projects
 - Settings: Theme toggle, data path configuration
 - File system: All data in portable markdown
+- **File watcher**: Auto-refresh UI when files change externally
+- **Search index**: In-memory Fuse.js index for fast search
+- **Global search (Cmd+K)**: Find tasks, notes, meetings instantly
+- **Auto-save**: Obsidian-like silent persistence (error-only indicator)
 
 ## What's Next
 
-- Global search / Cmd+K
 - Keyboard shortcuts
 - AI context integration
 - Email integration
@@ -85,9 +88,16 @@ Working features:
 Key modules in `src/lib/orbit/`:
 - `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS)
 - `search.ts` - Cross-area search helpers
+- `search-index.ts` - In-memory Fuse.js search index
+- `watcher.ts` - File system watcher service (Tauri)
 - `calculations.ts` - Business logic (task stats)
 - `parser.ts` - Markdown/frontmatter parsing
 - `tauri-fs.ts` - File system abstraction (Tauri/mock)
+
+Key hooks in `src/hooks/`:
+- `use-auto-save.ts` - Debounced auto-save with error-only status
+- `use-file-watcher.ts` - React hook for file watcher integration
+- `use-search-index.ts` - React hook for search index management
 
 Design tokens in `src/lib/design-tokens.ts` for consistent styling.
 

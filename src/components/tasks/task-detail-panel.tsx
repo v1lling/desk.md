@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { Trash2 } from "lucide-react";
 import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -200,30 +199,26 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     </div>
   );
 
-  const footer = (
-    <div className="flex items-center justify-between">
-      <SaveStatusIndicator status={saveStatus} />
-      <div className="flex gap-2">
-        {projectChanged ? (
-          <Button onClick={handleSave} className="min-w-[140px]">
-            Move & Save
-          </Button>
-        ) : (
-          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
-            Close
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleDeleteClick}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+  // Delete button for header
+  const deleteButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleDeleteClick}
+      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
   );
+
+  // Footer only shown when project changed (needs "Move & Save" button)
+  const footer = projectChanged ? (
+    <div className="flex justify-end">
+      <Button onClick={handleSave} className="min-w-[140px]">
+        Move & Save
+      </Button>
+    </div>
+  ) : null;
 
   // Fullscreen-specific content: maximized editor with compact metadata toolbar
   const fullscreenContent = (
@@ -265,34 +260,17 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     </div>
   );
 
-  // Fullscreen-specific footer with hint and save status
+  // Fullscreen footer - keyboard hint, and "Move & Save" if needed
   const fullscreenFooter = (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <span className="text-xs text-muted-foreground">
-          Cmd+Shift+F to exit
-        </span>
-        <SaveStatusIndicator status={saveStatus} />
-      </div>
-      <div className="flex gap-2">
-        {projectChanged ? (
-          <Button onClick={handleSave} className="min-w-[140px]">
-            Move & Save
-          </Button>
-        ) : (
-          <Button onClick={handleClose} variant="outline" className="min-w-[140px]">
-            Close
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleDeleteClick}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
+      <span className="text-xs text-muted-foreground">
+        Cmd+Shift+F to exit
+      </span>
+      {projectChanged && (
+        <Button onClick={handleSave} className="min-w-[140px]">
+          Move & Save
         </Button>
-      </div>
+      )}
     </div>
   );
 
@@ -305,6 +283,8 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
         footer={footer}
         fullscreenChildren={fullscreenContent}
         fullscreenFooter={fullscreenFooter}
+        headerActions={deleteButton}
+        saveStatus={saveStatus}
       >
         {formContent}
       </EditorShell>
