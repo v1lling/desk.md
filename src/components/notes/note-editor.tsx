@@ -1,22 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
-import { Trash2, FolderKanban } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Trash2 } from "lucide-react";
 import { useUpdateNote, useDeleteNote, useMoveNoteToProject, useProjects } from "@/stores";
 import type { Note } from "@/types";
 import { toast } from "sonner";
+import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 
 interface NoteEditorProps {
   note: Note | null;
@@ -33,15 +28,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState("");
-
-  // Project options for dropdown
-  const projectOptions = useMemo(
-    () => [
-      { value: "_unassigned", label: "No project" },
-      ...projects.map((p) => ({ value: p.id, label: p.name })),
-    ],
-    [projects]
-  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (note) {
@@ -81,54 +68,40 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!note) return;
 
-    if (confirm("Are you sure you want to delete this note?")) {
-      try {
-        await deleteNote.mutateAsync({ noteId: note.id, areaId: note.areaId, projectId: note.projectId });
-        toast.success("Note deleted");
-        onClose();
-      } catch {
-        toast.error("Failed to delete note");
-      }
+    try {
+      await deleteNote.mutateAsync({ noteId: note.id, areaId: note.areaId, projectId: note.projectId });
+      toast.success("Note deleted");
+      onClose();
+    } catch {
+      toast.error("Failed to delete note");
     }
   };
 
   if (!note) return null;
 
   const formContent = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="note-title">Title</Label>
-        <Input
-          id="note-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Note title"
-        />
-      </div>
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Note title"
+        className="text-base font-medium"
+      />
 
-      {/* Project */}
-      <div className="space-y-2">
-        <Label>Project</Label>
-        <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger>
-            <SelectValue placeholder="No project" />
-          </SelectTrigger>
-          <SelectContent>
-            {projectOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <span className="flex items-center gap-2">
-                  <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                  {opt.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Metadata toolbar - same component as fullscreen for consistency */}
+      <MetadataToolbar
+        projectId={projectId}
+        onProjectChange={setProjectId}
+        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+      />
 
       {/* Content */}
       <div className="space-y-2">
@@ -152,14 +125,14 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   );
 
   const footer = (
-    <div className="flex gap-2">
-      <Button onClick={handleSave} className="flex-1">
+    <div className="flex gap-2 justify-end">
+      <Button onClick={handleSave} className="min-w-[140px]">
         Save Changes
       </Button>
       <Button
         variant="outline"
         size="icon"
-        onClick={handleDelete}
+        onClick={handleDeleteClick}
         className="text-destructive hover:text-destructive hover:bg-destructive/10"
       >
         <Trash2 className="h-4 w-4" />
@@ -167,9 +140,83 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     </div>
   );
 
+  // Fullscreen-specific content: maximized editor with compact project selector
+  const fullscreenContent = (
+    <div className="flex flex-col h-full space-y-3">
+      {/* Large title input - borderless for focus mode */}
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Note title"
+        className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent"
+      />
+
+      {/* Compact metadata toolbar - just project for notes */}
+      <MetadataToolbar
+        projectId={projectId}
+        onProjectChange={setProjectId}
+        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+      />
+
+      {/* Maximized editor - fills remaining space */}
+      <div className="flex-1 min-h-0">
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Write your note in markdown..."
+          minHeight="100%"
+          className="h-full [&>div]:h-full [&>div>div]:h-full"
+        />
+      </div>
+
+      {/* NO file path info in fullscreen */}
+    </div>
+  );
+
+  // Fullscreen-specific footer with hint
+  const fullscreenFooter = (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">
+        Press Cmd+Shift+F to exit fullscreen
+      </span>
+      <div className="flex gap-2">
+        <Button onClick={handleSave} className="min-w-[140px]">
+          Save Changes
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleDeleteClick}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <EditorShell open={open} onClose={onClose} title="Edit Note" footer={footer}>
-      {formContent}
-    </EditorShell>
+    <>
+      <EditorShell
+        open={open}
+        onClose={onClose}
+        title="Edit Note"
+        footer={footer}
+        fullscreenChildren={fullscreenContent}
+        fullscreenFooter={fullscreenFooter}
+      >
+        {formContent}
+      </EditorShell>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
+    </>
   );
 }

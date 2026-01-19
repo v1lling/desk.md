@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
-import { Loader2, Trash2, Calendar, Users } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUpdateMeeting, useDeleteMeeting } from "@/stores";
 import type { Meeting } from "@/types";
 import { toast } from "sonner";
+import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 
 interface MeetingEditorProps {
   meeting: Meeting | null;
@@ -25,6 +27,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   const [date, setDate] = useState("");
   const [attendees, setAttendees] = useState("");
   const [content, setContent] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (meeting) {
@@ -62,21 +65,23 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!meeting) return;
 
-    if (confirm("Are you sure you want to delete this meeting?")) {
-      try {
-        await deleteMeeting.mutateAsync({
-          meetingId: meeting.id,
-          areaId: meeting.areaId,
-          projectId: meeting.projectId,
-        });
-        toast.success("Meeting deleted");
-        onClose();
-      } catch {
-        toast.error("Failed to delete meeting");
-      }
+    try {
+      await deleteMeeting.mutateAsync({
+        meetingId: meeting.id,
+        areaId: meeting.areaId,
+        projectId: meeting.projectId,
+      });
+      toast.success("Meeting deleted");
+      onClose();
+    } catch {
+      toast.error("Failed to delete meeting");
     }
   };
 
@@ -91,48 +96,23 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   if (!meeting) return null;
 
   const formContent = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="meeting-title">Title</Label>
-        <Input
-          id="meeting-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Meeting title"
-        />
-      </div>
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Meeting title"
+        className="text-base font-medium"
+      />
 
-      {/* Date & Attendees row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="meeting-date">Date</Label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="meeting-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="meeting-attendees">Attendees</Label>
-          <div className="relative">
-            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="meeting-attendees"
-              value={attendees}
-              onChange={(e) => setAttendees(e.target.value)}
-              placeholder="John, Sarah..."
-              className="pl-10"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Metadata toolbar - same component as fullscreen for consistency */}
+      <MetadataToolbar
+        date={date}
+        onDateChange={setDate}
+        dateLabel="Date"
+        attendees={attendees}
+        onAttendeesChange={setAttendees}
+      />
 
       {/* Notes */}
       <div className="space-y-2">
@@ -156,11 +136,11 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   );
 
   const footer = (
-    <div className="flex gap-2">
+    <div className="flex gap-2 justify-end">
       <Button
         onClick={handleSave}
         disabled={updateMeeting.isPending}
-        className="flex-1"
+        className="min-w-[140px]"
       >
         {updateMeeting.isPending && (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -170,7 +150,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
       <Button
         variant="outline"
         size="icon"
-        onClick={handleDelete}
+        onClick={handleDeleteClick}
         disabled={deleteMeeting.isPending}
         className="text-destructive hover:text-destructive hover:bg-destructive/10"
       >
@@ -183,9 +163,97 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     </div>
   );
 
+  // Fullscreen-specific content: maximized editor with compact metadata
+  const fullscreenContent = (
+    <div className="flex flex-col h-full space-y-3">
+      {/* Large title input - borderless for focus mode */}
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Meeting title"
+        className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent"
+      />
+
+      {/* Compact metadata toolbar - date and attendees for meetings */}
+      <MetadataToolbar
+        date={date}
+        onDateChange={setDate}
+        dateLabel="Date"
+        attendees={attendees}
+        onAttendeesChange={setAttendees}
+      />
+
+      {/* Maximized editor - fills remaining space */}
+      <div className="flex-1 min-h-0">
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Write your meeting notes..."
+          minHeight="100%"
+          className="h-full [&>div]:h-full [&>div>div]:h-full"
+        />
+      </div>
+
+      {/* NO file path info in fullscreen */}
+    </div>
+  );
+
+  // Fullscreen-specific footer with hint
+  const fullscreenFooter = (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">
+        Press Cmd+Shift+F to exit fullscreen
+      </span>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleSave}
+          disabled={updateMeeting.isPending}
+          className="min-w-[140px]"
+        >
+          {updateMeeting.isPending && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
+          Save Changes
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleDeleteClick}
+          disabled={deleteMeeting.isPending}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          {deleteMeeting.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <EditorShell open={open} onClose={handleClose} title="Edit Meeting" footer={footer}>
-      {formContent}
-    </EditorShell>
+    <>
+      <EditorShell
+        open={open}
+        onClose={handleClose}
+        title="Edit Meeting"
+        footer={footer}
+        fullscreenChildren={fullscreenContent}
+        fullscreenFooter={fullscreenFooter}
+      >
+        {formContent}
+      </EditorShell>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Meeting"
+        description="Are you sure you want to delete this meeting? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
+    </>
   );
 }

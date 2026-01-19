@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Separator } from "@/components/ui/separator";
 import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircle2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export default function SettingsPage() {
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [isCheckingPath, setIsCheckingPath] = useState(false);
   const [foundAreas, setFoundAreas] = useState<Area[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleCheckDataPath = async () => {
     if (!pendingPath.trim()) return;
@@ -123,17 +125,19 @@ export default function SettingsPage() {
     toast.success(`Theme set to ${newTheme}`);
   };
 
-  const handleResetSettings = () => {
-    if (confirm("Are you sure you want to reset all settings to defaults? This will show the setup wizard again.")) {
-      reset();
-      // Invalidate all queries
-      queryClient.invalidateQueries();
-      // Apply system theme
-      const root = document.documentElement;
-      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", systemDark);
-      toast.success("Settings reset to defaults");
-    }
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
+    reset();
+    // Invalidate all queries
+    queryClient.invalidateQueries();
+    // Apply system theme
+    const root = document.documentElement;
+    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("dark", systemDark);
+    toast.success("Settings reset to defaults");
   };
 
   return (
@@ -295,7 +299,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="destructive" onClick={handleResetSettings}>
+              <Button variant="destructive" onClick={handleResetClick}>
                 Reset All Settings
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
@@ -378,6 +382,17 @@ export default function SettingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Settings Confirmation Dialog */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reset All Settings"
+        description="Are you sure you want to reset all settings to defaults? This will show the setup wizard again. Your data files will not be deleted."
+        confirmLabel="Reset"
+        variant="destructive"
+        onConfirm={handleResetConfirm}
+      />
     </div>
   );
 }
