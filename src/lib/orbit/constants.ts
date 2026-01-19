@@ -23,7 +23,7 @@ export const SPECIAL_DIRS = {
 // =============================================================================
 
 export const PATH_SEGMENTS = {
-  AREAS: "areas",
+  WORKSPACES: "workspaces",
   PROJECTS: "projects",
   TASKS: "tasks",
   NOTES: "notes",
@@ -36,7 +36,7 @@ export const PATH_SEGMENTS = {
 // =============================================================================
 
 export const FILE_NAMES = {
-  AREA_MD: "area.md",
+  WORKSPACE_MD: "workspace.md",
   PROJECT_MD: "project.md",
   VIEW_STATE: ".view.json",
 } as const;

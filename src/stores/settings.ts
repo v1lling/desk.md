@@ -5,7 +5,7 @@ import type { OrbitConfig } from "@/types";
 interface SettingsState extends OrbitConfig {
   // Actions
   setDataPath: (path: string) => void;
-  setCurrentAreaId: (id: string | null) => void;
+  setCurrentWorkspaceId: (id: string | null) => void;
   setTheme: (theme: OrbitConfig["theme"]) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setSetupCompleted: (completed: boolean) => void;
@@ -14,7 +14,7 @@ interface SettingsState extends OrbitConfig {
 
 const defaultSettings: OrbitConfig = {
   dataPath: "",
-  currentAreaId: null,
+  currentWorkspaceId: null,
   theme: "system",
   sidebarCollapsed: false,
   setupCompleted: false,
@@ -37,7 +37,7 @@ export const useSettingsStore = create<SettingsState>()(
       dataPath: getDefaultDataPath(),
 
       setDataPath: (path) => set({ dataPath: path }),
-      setCurrentAreaId: (id) => set({ currentAreaId: id }),
+      setCurrentWorkspaceId: (id) => set({ currentWorkspaceId: id }),
       setTheme: (theme) => set({ theme }),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       setSetupCompleted: (completed) => set({ setupCompleted: completed }),
@@ -48,7 +48,7 @@ export const useSettingsStore = create<SettingsState>()(
       // Only persist these fields
       partialize: (state) => ({
         dataPath: state.dataPath,
-        currentAreaId: state.currentAreaId,
+        currentWorkspaceId: state.currentWorkspaceId,
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
         setupCompleted: state.setupCompleted,

@@ -5,43 +5,43 @@ import * as meetingLib from "@/lib/orbit/meetings";
 // Query keys
 export const meetingKeys = {
   all: ["meetings"] as const,
-  byArea: (areaId: string) => [...meetingKeys.all, "area", areaId] as const,
-  byProject: (areaId: string, projectId: string) =>
-    [...meetingKeys.byArea(areaId), "project", projectId] as const,
-  detail: (areaId: string, meetingId: string) =>
-    [...meetingKeys.byArea(areaId), "detail", meetingId] as const,
+  byWorkspace: (workspaceId: string) => [...meetingKeys.all, "workspace", workspaceId] as const,
+  byProject: (workspaceId: string, projectId: string) =>
+    [...meetingKeys.byWorkspace(workspaceId), "project", projectId] as const,
+  detail: (workspaceId: string, meetingId: string) =>
+    [...meetingKeys.byWorkspace(workspaceId), "detail", meetingId] as const,
 };
 
 /**
- * Hook to fetch all meetings for an area
+ * Hook to fetch all meetings for a workspace
  */
-export function useMeetings(areaId: string | null) {
+export function useMeetings(workspaceId: string | null) {
   return useQuery({
-    queryKey: meetingKeys.byArea(areaId || ""),
-    queryFn: () => meetingLib.getMeetings(areaId!),
-    enabled: !!areaId,
+    queryKey: meetingKeys.byWorkspace(workspaceId || ""),
+    queryFn: () => meetingLib.getMeetings(workspaceId!),
+    enabled: !!workspaceId,
   });
 }
 
 /**
  * Hook to fetch meetings for a specific project
  */
-export function useProjectMeetings(areaId: string | null, projectId: string | null) {
+export function useProjectMeetings(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: meetingKeys.byProject(areaId || "", projectId || ""),
-    queryFn: () => meetingLib.getMeetingsByProject(areaId!, projectId!),
-    enabled: !!areaId && !!projectId,
+    queryKey: meetingKeys.byProject(workspaceId || "", projectId || ""),
+    queryFn: () => meetingLib.getMeetingsByProject(workspaceId!, projectId!),
+    enabled: !!workspaceId && !!projectId,
   });
 }
 
 /**
  * Hook to fetch a single meeting
  */
-export function useMeeting(areaId: string | null, meetingId: string | null) {
+export function useMeeting(workspaceId: string | null, meetingId: string | null) {
   return useQuery({
-    queryKey: meetingKeys.detail(areaId || "", meetingId || ""),
-    queryFn: () => meetingLib.getMeeting(areaId!, meetingId!),
-    enabled: !!areaId && !!meetingId,
+    queryKey: meetingKeys.detail(workspaceId || "", meetingId || ""),
+    queryFn: () => meetingLib.getMeeting(workspaceId!, meetingId!),
+    enabled: !!workspaceId && !!meetingId,
   });
 }
 
@@ -53,7 +53,7 @@ export function useCreateMeeting() {
 
   return useMutation({
     mutationFn: (data: {
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       title: string;
       date?: string;
@@ -62,7 +62,7 @@ export function useCreateMeeting() {
     }) => meetingLib.createMeeting(data),
     onSuccess: (newMeeting) => {
       queryClient.invalidateQueries({
-        queryKey: meetingKeys.byArea(newMeeting.areaId),
+        queryKey: meetingKeys.byWorkspace(newMeeting.workspaceId),
       });
     },
   });
@@ -77,23 +77,23 @@ export function useUpdateMeeting() {
   return useMutation({
     mutationFn: ({
       meetingId,
-      areaId,
+      workspaceId,
       projectId,
       updates,
     }: {
       meetingId: string;
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>;
-    }) => meetingLib.updateMeeting(meetingId, updates, areaId, projectId),
+    }) => meetingLib.updateMeeting(meetingId, updates, workspaceId, projectId),
     onSuccess: (updatedMeeting, variables) => {
       if (updatedMeeting) {
         queryClient.invalidateQueries({
-          queryKey: meetingKeys.byArea(updatedMeeting.areaId),
+          queryKey: meetingKeys.byWorkspace(updatedMeeting.workspaceId),
         });
       } else {
         queryClient.invalidateQueries({
-          queryKey: meetingKeys.byArea(variables.areaId),
+          queryKey: meetingKeys.byWorkspace(variables.workspaceId),
         });
       }
     },
@@ -107,12 +107,12 @@ export function useDeleteMeeting() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ meetingId, areaId, projectId }: { meetingId: string; areaId: string; projectId: string }) =>
-      meetingLib.deleteMeeting(meetingId, areaId, projectId).then((success) => ({ success, areaId })),
+    mutationFn: ({ meetingId, workspaceId, projectId }: { meetingId: string; workspaceId: string; projectId: string }) =>
+      meetingLib.deleteMeeting(meetingId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({
-          queryKey: meetingKeys.byArea(result.areaId),
+          queryKey: meetingKeys.byWorkspace(result.workspaceId),
         });
       }
     },

@@ -12,24 +12,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { useCreateArea } from "@/stores/areas";
+import { useCreateWorkspace } from "@/stores/workspaces";
 import { useSettingsStore } from "@/stores/settings";
 import { slugify } from "@/lib/orbit/parser";
 import { toast } from "sonner";
-import { areaColorOptions } from "@/lib/design-tokens";
+import { workspaceColorOptions } from "@/lib/design-tokens";
 
-interface NewAreaModalProps {
+interface NewWorkspaceModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
-  const createArea = useCreateArea();
-  const setCurrentAreaId = useSettingsStore((state) => state.setCurrentAreaId);
+export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
+  const createWorkspace = useCreateWorkspace();
+  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState(areaColorOptions[0].value);
+  const [color, setColor] = useState(workspaceColorOptions[0].value);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,33 +39,33 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
     const id = slugify(name.trim());
 
     try {
-      const newArea = await createArea.mutateAsync({
+      const newWorkspace = await createWorkspace.mutateAsync({
         id,
         name: name.trim(),
         description: description.trim() || undefined,
         color,
       });
 
-      toast.success("Area created");
+      toast.success("Workspace created");
 
-      // Switch to the new area
-      setCurrentAreaId(newArea.id);
+      // Switch to the new workspace
+      setCurrentWorkspaceId(newWorkspace.id);
 
       // Reset form
       setName("");
       setDescription("");
-      setColor(areaColorOptions[0].value);
+      setColor(workspaceColorOptions[0].value);
       onClose();
     } catch (error) {
-      console.error("Failed to create area:", error);
-      toast.error("Failed to create area");
+      console.error("Failed to create workspace:", error);
+      toast.error("Failed to create workspace");
     }
   };
 
   const handleClose = () => {
     setName("");
     setDescription("");
-    setColor(areaColorOptions[0].value);
+    setColor(workspaceColorOptions[0].value);
     onClose();
   };
 
@@ -73,35 +73,35 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Area</DialogTitle>
+          <DialogTitle>New Workspace</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="area-name">Area Name</Label>
+            <Label htmlFor="workspace-name">Workspace Name</Label>
             <Input
-              id="area-name"
+              id="workspace-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Client Name or Workspace"
+              placeholder="e.g., Client Name or Project"
               autoFocus
             />
             {name && (
               <p className="text-xs text-muted-foreground">
-                Folder: ~/Orbit/areas/{slugify(name.trim()) || "..."}
+                Folder: ~/Orbit/workspaces/{slugify(name.trim()) || "..."}
               </p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="area-description">Description (optional)</Label>
+            <Label htmlFor="workspace-description">Description (optional)</Label>
             <Textarea
-              id="area-description"
+              id="workspace-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this area..."
+              placeholder="Brief description of this workspace..."
               className="min-h-[80px] resize-none"
             />
           </div>
@@ -110,7 +110,7 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
           <div className="space-y-2">
             <Label>Color</Label>
             <div className="flex gap-2 flex-wrap">
-              {areaColorOptions.map((opt) => (
+              {workspaceColorOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
@@ -132,11 +132,11 @@ export function NewAreaModal({ open, onClose }: NewAreaModalProps) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || createArea.isPending}>
-              {createArea.isPending && (
+            <Button type="submit" disabled={!name.trim() || createWorkspace.isPending}>
+              {createWorkspace.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Area
+              Create Workspace
             </Button>
           </div>
         </form>

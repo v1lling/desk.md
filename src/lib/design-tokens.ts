@@ -37,11 +37,11 @@ export const statusColors = {
 export type ProjectStatus = keyof typeof statusColors;
 
 // =============================================================================
-// AREA COLORS
-// Default color palette for areas - refined selection
+// WORKSPACE COLORS
+// Default color palette for workspaces - refined selection
 // =============================================================================
 
-export const areaColorOptions: readonly { value: string; label: string }[] = [
+export const workspaceColorOptions: readonly { value: string; label: string }[] = [
   { value: "#3b82f6", label: "Blue" },
   { value: "#10b981", label: "Emerald" },
   { value: "#f59e0b", label: "Amber" },

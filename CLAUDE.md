@@ -4,10 +4,10 @@
 
 ## Core Concept
 
-**Everything lives under projects, projects live under areas.**
+**Everything lives under projects, projects live under workspaces.**
 
 ```
-Area (Client/Workspace)
+Workspace (Client/Context)
   └── Project
         ├── Tasks
         ├── Notes
@@ -27,10 +27,10 @@ Area (Client/Workspace)
 
 ```
 ~/Orbit/
-├── areas/
-│   └── {area}/
-│       ├── area.md
-│       ├── .view.json              # Area-level UI state (All Tasks ordering)
+├── workspaces/
+│   └── {workspace}/
+│       ├── workspace.md
+│       ├── .view.json              # Workspace-level UI state (All Tasks ordering)
 │       └── projects/
 │           ├── _unassigned/        # Tasks/notes not in a project
 │           │   ├── tasks/*.md
@@ -63,7 +63,7 @@ npm run tauri dev  # Desktop with file system
 ## Current State: v0.3
 
 Working features:
-- Areas with color coding
+- Workspaces with color coding
 - Projects with status tracking
 - Tasks: Kanban board (4 columns), drag-drop, detail panel, quick add
 - Notes: WYSIWYG markdown editor (Tiptap)
@@ -87,7 +87,7 @@ Working features:
 
 Key modules in `src/lib/orbit/`:
 - `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS)
-- `search.ts` - Cross-area search helpers
+- `search.ts` - Cross-workspace search helpers
 - `search-index.ts` - In-memory Fuse.js search index
 - `watcher.ts` - File system watcher service (Tauri)
 - `calculations.ts` - Business logic (task stats)
@@ -108,7 +108,7 @@ Design tokens in `src/lib/design-tokens.ts` for consistent styling.
 | Type | Format | Location | Purpose |
 |------|--------|----------|---------|
 | Content data | Markdown + YAML frontmatter | `*.md` files | Tasks, notes, projects - the actual work |
-| Global config | JSON | `~/Orbit/config.json` | App-wide settings (theme, current area) |
+| Global config | JSON | `~/Orbit/config.json` | App-wide settings (theme, current workspace) |
 | View state | JSON | `.view.json` per project | UI preferences (task order, collapsed state) |
 
 **Key principle:** Content data belongs in markdown (portable, grep-able). UI/display preferences belong in `.view.json` files (not part of the content, can be regenerated).
@@ -131,3 +131,4 @@ If `.view.json` is missing or corrupted, the app falls back to default ordering 
 - Mock data in `lib/orbit/*.ts` - only used when `isTauri() === false`
 - Tiptap editor stores markdown internally, converts to/from HTML for editing
 - `_unassigned` is a special directory for items not belonging to a project
+- **Single user**: This app has no other users besides the developer. No need for migration code or backward compatibility.

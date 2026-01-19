@@ -1,7 +1,7 @@
 /**
  * Orbit file system library
  */
-export * from "./areas";
+export * from "./workspaces";
 export * from "./projects";
 export * from "./tasks";
 export * from "./notes";

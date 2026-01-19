@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { useCreateNote, useProjects, useCurrentArea } from "@/stores";
+import { useCreateNote, useProjects, useCurrentWorkspace } from "@/stores";
 import { toast } from "sonner";
 
 interface NewNoteModalProps {
@@ -33,9 +33,9 @@ export function NewNoteModal({
   onClose,
   defaultProjectId,
 }: NewNoteModalProps) {
-  const currentArea = useCurrentArea();
+  const currentWorkspace = useCurrentWorkspace();
   const createNote = useCreateNote();
-  const { data: projects = [] } = useProjects(currentArea?.id || null);
+  const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -50,11 +50,11 @@ export function NewNoteModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !currentArea) return;
+    if (!title.trim() || !currentWorkspace) return;
 
     try {
       await createNote.mutateAsync({
-        areaId: currentArea.id,
+        workspaceId: currentWorkspace.id,
         projectId: projectId || "_unassigned",
         title: title.trim(),
         content: content || undefined,

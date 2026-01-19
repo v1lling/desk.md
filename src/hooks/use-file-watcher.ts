@@ -12,7 +12,7 @@ import {
   stopWatching,
   onFileChange,
   getItemTypeFromPath,
-  getAreaIdFromPath,
+  getWorkspaceIdFromPath,
   type WatchEvent,
 } from "@/lib/orbit/watcher";
 import {
@@ -20,7 +20,7 @@ import {
   noteKeys,
   meetingKeys,
   projectKeys,
-  areaKeys,
+  workspaceKeys,
   viewStateKeys,
 } from "@/stores";
 
@@ -61,24 +61,24 @@ function handleFileChange(
   event: WatchEvent,
   queryClient: ReturnType<typeof useQueryClient>
 ) {
-  const affectedAreas = new Set<string>();
+  const affectedWorkspaces = new Set<string>();
   const affectedTypes = new Set<string>();
 
   // Analyze all changed paths
   for (const path of event.paths) {
     const itemType = getItemTypeFromPath(path);
-    const areaId = getAreaIdFromPath(path);
+    const workspaceId = getWorkspaceIdFromPath(path);
 
     affectedTypes.add(itemType);
-    if (areaId) {
-      affectedAreas.add(areaId);
+    if (workspaceId) {
+      affectedWorkspaces.add(workspaceId);
     }
   }
 
   console.log(
     `[watcher] File change: ${event.kind}`,
     `types: [${Array.from(affectedTypes).join(", ")}]`,
-    `areas: [${Array.from(affectedAreas).join(", ")}]`
+    `areas: [${Array.from(affectedWorkspaces).join(", ")}]`
   );
 
   // Invalidate caches based on what changed
@@ -86,9 +86,9 @@ function handleFileChange(
     switch (itemType) {
       case "task":
         // Invalidate tasks for affected areas
-        for (const areaId of affectedAreas) {
+        for (const workspaceId of affectedWorkspaces) {
           queryClient.invalidateQueries({
-            queryKey: taskKeys.byArea(areaId),
+            queryKey: taskKeys.byWorkspace(workspaceId),
           });
         }
         // Also invalidate view state (task ordering)
@@ -98,33 +98,33 @@ function handleFileChange(
         break;
 
       case "note":
-        for (const areaId of affectedAreas) {
+        for (const workspaceId of affectedWorkspaces) {
           queryClient.invalidateQueries({
-            queryKey: noteKeys.byArea(areaId),
+            queryKey: noteKeys.byWorkspace(workspaceId),
           });
         }
         break;
 
       case "meeting":
-        for (const areaId of affectedAreas) {
+        for (const workspaceId of affectedWorkspaces) {
           queryClient.invalidateQueries({
-            queryKey: meetingKeys.byArea(areaId),
+            queryKey: meetingKeys.byWorkspace(workspaceId),
           });
         }
         break;
 
       case "project":
-        for (const areaId of affectedAreas) {
+        for (const workspaceId of affectedWorkspaces) {
           queryClient.invalidateQueries({
-            queryKey: projectKeys.byArea(areaId),
+            queryKey: projectKeys.byWorkspace(workspaceId),
           });
         }
         break;
 
-      case "area":
-        // Area metadata changed - invalidate all area queries
+      case "workspace":
+        // Workspace metadata changed - invalidate all workspace queries
         queryClient.invalidateQueries({
-          queryKey: areaKeys.all,
+          queryKey: workspaceKeys.all,
         });
         break;
 
@@ -143,19 +143,19 @@ function handleFileChange(
 
       case "unknown":
         // Unknown file type - invalidate everything for safety
-        if (affectedAreas.size > 0) {
-          for (const areaId of affectedAreas) {
+        if (affectedWorkspaces.size > 0) {
+          for (const workspaceId of affectedWorkspaces) {
             queryClient.invalidateQueries({
-              queryKey: taskKeys.byArea(areaId),
+              queryKey: taskKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: noteKeys.byArea(areaId),
+              queryKey: noteKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: meetingKeys.byArea(areaId),
+              queryKey: meetingKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: projectKeys.byArea(areaId),
+              queryKey: projectKeys.byWorkspace(workspaceId),
             });
           }
         }

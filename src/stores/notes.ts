@@ -5,43 +5,43 @@ import * as noteLib from "@/lib/orbit/notes";
 // Query keys
 export const noteKeys = {
   all: ["notes"] as const,
-  byArea: (areaId: string) => [...noteKeys.all, "area", areaId] as const,
-  byProject: (areaId: string, projectId: string) =>
-    [...noteKeys.byArea(areaId), "project", projectId] as const,
-  detail: (areaId: string, noteId: string) =>
-    [...noteKeys.byArea(areaId), "detail", noteId] as const,
+  byWorkspace: (workspaceId: string) => [...noteKeys.all, "workspace", workspaceId] as const,
+  byProject: (workspaceId: string, projectId: string) =>
+    [...noteKeys.byWorkspace(workspaceId), "project", projectId] as const,
+  detail: (workspaceId: string, noteId: string) =>
+    [...noteKeys.byWorkspace(workspaceId), "detail", noteId] as const,
 };
 
 /**
- * Hook to fetch all notes for an area
+ * Hook to fetch all notes for a workspace
  */
-export function useNotes(areaId: string | null) {
+export function useNotes(workspaceId: string | null) {
   return useQuery({
-    queryKey: noteKeys.byArea(areaId || ""),
-    queryFn: () => noteLib.getNotes(areaId!),
-    enabled: !!areaId,
+    queryKey: noteKeys.byWorkspace(workspaceId || ""),
+    queryFn: () => noteLib.getNotes(workspaceId!),
+    enabled: !!workspaceId,
   });
 }
 
 /**
  * Hook to fetch notes for a specific project
  */
-export function useProjectNotes(areaId: string | null, projectId: string | null) {
+export function useProjectNotes(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: noteKeys.byProject(areaId || "", projectId || ""),
-    queryFn: () => noteLib.getNotesByProject(areaId!, projectId!),
-    enabled: !!areaId && !!projectId,
+    queryKey: noteKeys.byProject(workspaceId || "", projectId || ""),
+    queryFn: () => noteLib.getNotesByProject(workspaceId!, projectId!),
+    enabled: !!workspaceId && !!projectId,
   });
 }
 
 /**
  * Hook to fetch a single note
  */
-export function useNote(areaId: string | null, noteId: string | null) {
+export function useNote(workspaceId: string | null, noteId: string | null) {
   return useQuery({
-    queryKey: noteKeys.detail(areaId || "", noteId || ""),
-    queryFn: () => noteLib.getNote(areaId!, noteId!),
-    enabled: !!areaId && !!noteId,
+    queryKey: noteKeys.detail(workspaceId || "", noteId || ""),
+    queryFn: () => noteLib.getNote(workspaceId!, noteId!),
+    enabled: !!workspaceId && !!noteId,
   });
 }
 
@@ -53,14 +53,14 @@ export function useCreateNote() {
 
   return useMutation({
     mutationFn: (data: {
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       title: string;
       content?: string;
     }) => noteLib.createNote(data),
     onSuccess: (newNote) => {
       queryClient.invalidateQueries({
-        queryKey: noteKeys.byArea(newNote.areaId),
+        queryKey: noteKeys.byWorkspace(newNote.workspaceId),
       });
     },
   });
@@ -75,23 +75,23 @@ export function useUpdateNote() {
   return useMutation({
     mutationFn: ({
       noteId,
-      areaId,
+      workspaceId,
       projectId,
       updates,
     }: {
       noteId: string;
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       updates: Partial<Pick<Note, "title" | "content">>;
-    }) => noteLib.updateNote(noteId, updates, areaId, projectId),
+    }) => noteLib.updateNote(noteId, updates, workspaceId, projectId),
     onSuccess: (updatedNote, variables) => {
       if (updatedNote) {
         queryClient.invalidateQueries({
-          queryKey: noteKeys.byArea(updatedNote.areaId),
+          queryKey: noteKeys.byWorkspace(updatedNote.workspaceId),
         });
       } else {
         queryClient.invalidateQueries({
-          queryKey: noteKeys.byArea(variables.areaId),
+          queryKey: noteKeys.byWorkspace(variables.workspaceId),
         });
       }
     },
@@ -105,12 +105,12 @@ export function useDeleteNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ noteId, areaId, projectId }: { noteId: string; areaId: string; projectId: string }) =>
-      noteLib.deleteNote(noteId, areaId, projectId).then((success) => ({ success, areaId })),
+    mutationFn: ({ noteId, workspaceId, projectId }: { noteId: string; workspaceId: string; projectId: string }) =>
+      noteLib.deleteNote(noteId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({
-          queryKey: noteKeys.byArea(result.areaId),
+          queryKey: noteKeys.byWorkspace(result.workspaceId),
         });
       }
     },
@@ -126,19 +126,19 @@ export function useMoveNoteToProject() {
   return useMutation({
     mutationFn: ({
       noteId,
-      areaId,
+      workspaceId,
       fromProjectId,
       toProjectId,
     }: {
       noteId: string;
-      areaId: string;
+      workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => noteLib.moveNoteToProject(noteId, areaId, fromProjectId, toProjectId),
+    }) => noteLib.moveNoteToProject(noteId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
-      // Invalidate area notes to refresh the lists
+      // Invalidate workspace notes to refresh the lists
       queryClient.invalidateQueries({
-        queryKey: noteKeys.byArea(variables.areaId),
+        queryKey: noteKeys.byWorkspace(variables.workspaceId),
       });
     },
   });

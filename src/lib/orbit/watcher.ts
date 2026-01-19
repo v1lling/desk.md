@@ -192,31 +192,31 @@ export function isWatcherActive(): boolean {
 
 /**
  * Utility: Extract item type from path
- * e.g., "/Users/x/Orbit/areas/foo/projects/bar/tasks/baz.md" → "task"
+ * e.g., "/Users/x/Orbit/workspaces/foo/projects/bar/tasks/baz.md" → "task"
  */
-export function getItemTypeFromPath(path: string): "task" | "note" | "meeting" | "project" | "area" | "config" | "view" | "unknown" {
+export function getItemTypeFromPath(path: string): "task" | "note" | "meeting" | "project" | "workspace" | "config" | "view" | "unknown" {
   if (path.endsWith(".view.json")) return "view";
   if (path.endsWith("config.json")) return "config";
   if (path.includes("/tasks/")) return "task";
   if (path.includes("/notes/")) return "note";
   if (path.includes("/meetings/")) return "meeting";
   if (path.includes("/projects/") && path.endsWith("project.md")) return "project";
-  if (path.includes("/areas/") && path.endsWith("area.md")) return "area";
+  if (path.includes("/workspaces/") && path.endsWith("workspace.md")) return "workspace";
   return "unknown";
 }
 
 /**
- * Utility: Extract area ID from path
- * e.g., "/Users/x/Orbit/areas/my-area/..." → "my-area"
+ * Utility: Extract workspace ID from path
+ * e.g., "/Users/x/Orbit/workspaces/my-workspace/..." → "my-workspace"
  */
-export function getAreaIdFromPath(path: string): string | null {
-  const match = path.match(/\/areas\/([^/]+)/);
+export function getWorkspaceIdFromPath(path: string): string | null {
+  const match = path.match(/\/workspaces\/([^/]+)/);
   return match ? match[1] : null;
 }
 
 /**
  * Utility: Extract project ID from path
- * e.g., "/Users/x/Orbit/areas/foo/projects/my-project/..." → "my-project"
+ * e.g., "/Users/x/Orbit/workspaces/foo/projects/my-project/..." → "my-project"
  */
 export function getProjectIdFromPath(path: string): string | null {
   const match = path.match(/\/projects\/([^/]+)/);

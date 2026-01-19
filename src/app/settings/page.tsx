@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useSettingsStore } from "@/stores/settings";
-import { useAreas } from "@/stores/areas";
+import { useWorkspaces } from "@/stores/workspaces";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -28,8 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircle2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAreas, isTauri } from "@/lib/orbit";
-import type { Area } from "@/types";
+import { getWorkspaces, isTauri } from "@/lib/orbit";
+import type { Workspace } from "@/types";
 
 export default function SettingsPage() {
   const {
@@ -39,19 +39,19 @@ export default function SettingsPage() {
     setDataPath,
     setTheme,
     setSidebarCollapsed,
-    setCurrentAreaId,
+    setCurrentWorkspaceId,
     setSetupCompleted,
     reset,
   } = useSettingsStore();
 
   const queryClient = useQueryClient();
-  const { data: areas = [] } = useAreas();
+  const { data: workspaces = [] } = useWorkspaces();
 
   // State for data path change dialog
   const [pendingPath, setPendingPath] = useState("");
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [isCheckingPath, setIsCheckingPath] = useState(false);
-  const [foundAreas, setFoundAreas] = useState<Area[]>([]);
+  const [foundWorkspaces, setFoundWorkspaces] = useState<Workspace[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleCheckDataPath = async () => {
@@ -60,13 +60,13 @@ export default function SettingsPage() {
     setIsCheckingPath(true);
 
     try {
-      // Temporarily set the path so getAreas knows where to look
+      // Temporarily set the path so getWorkspaces knows where to look
       const oldPath = dataPath;
       setDataPath(pendingPath);
 
       if (isTauri()) {
-        const existingAreas = await getAreas();
-        setFoundAreas(existingAreas);
+        const existingWorkspaces = await getWorkspaces();
+        setFoundWorkspaces(existingWorkspaces);
         setPathDialogOpen(true);
       } else {
         // In browser mode, just update the path
@@ -80,7 +80,7 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Error checking path:", error);
-      setFoundAreas([]);
+      setFoundWorkspaces([]);
       setPathDialogOpen(true);
     } finally {
       setIsCheckingPath(false);
@@ -91,14 +91,14 @@ export default function SettingsPage() {
     setDataPath(pendingPath);
     queryClient.invalidateQueries();
 
-    if (useExisting && foundAreas.length > 0) {
-      // Use first existing area
-      setCurrentAreaId(foundAreas[0].id);
+    if (useExisting && foundWorkspaces.length > 0) {
+      // Use first existing workspace
+      setCurrentWorkspaceId(foundWorkspaces[0].id);
       toast.success(`Switched to ${pendingPath} with existing data`);
-    } else if (foundAreas.length === 0) {
-      // No areas found - trigger setup wizard for this path
+    } else if (foundWorkspaces.length === 0) {
+      // No workspaces found - trigger setup wizard for this path
       setSetupCompleted(false);
-      toast.success("Data path updated. Create your first area.");
+      toast.success("Data path updated. Create your first workspace.");
     } else {
       // User wants to create new despite existing
       setSetupCompleted(false);
@@ -107,7 +107,7 @@ export default function SettingsPage() {
 
     setPathDialogOpen(false);
     setPendingPath("");
-    setFoundAreas([]);
+    setFoundWorkspaces([]);
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
@@ -244,39 +244,39 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  All your areas, projects, tasks, and notes are stored as markdown files in this folder.
+                  All your workspaces, projects, tasks, and notes are stored as markdown files in this folder.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Areas Overview */}
+          {/* Workspaces Overview */}
           <Card>
             <CardHeader>
-              <CardTitle>Areas</CardTitle>
+              <CardTitle>Workspaces</CardTitle>
               <CardDescription>
-                Your configured work areas
+                Your configured workspaces
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {areas.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No areas configured yet.</p>
+              {workspaces.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No workspaces configured yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {areas.map((area) => (
+                  {workspaces.map((workspace) => (
                     <div
-                      key={area.id}
+                      key={workspace.id}
                       className="flex items-center gap-3 p-2 rounded-md border"
                     >
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: area.color || "#6366f1" }}
+                        style={{ backgroundColor: workspace.color || "#6366f1" }}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{area.name}</p>
-                        {area.description && (
+                        <p className="font-medium truncate">{workspace.name}</p>
+                        {workspace.description && (
                           <p className="text-xs text-muted-foreground truncate">
-                            {area.description}
+                            {workspace.description}
                           </p>
                         )}
                       </div>
@@ -314,14 +314,14 @@ export default function SettingsPage() {
       <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            {foundAreas.length > 0 ? (
+            {foundWorkspaces.length > 0 ? (
               <>
                 <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 </div>
                 <DialogTitle>Existing Data Found</DialogTitle>
                 <DialogDescription>
-                  Found {foundAreas.length} area{foundAreas.length > 1 ? "s" : ""} at this location.
+                  Found {foundWorkspaces.length} workspace{foundWorkspaces.length > 1 ? "s" : ""} at this location.
                 </DialogDescription>
               </>
             ) : (
@@ -331,27 +331,27 @@ export default function SettingsPage() {
                 </div>
                 <DialogTitle>Empty Location</DialogTitle>
                 <DialogDescription>
-                  No Orbit data found at this path. You&apos;ll need to create your first area.
+                  No Orbit data found at this path. You&apos;ll need to create your first workspace.
                 </DialogDescription>
               </>
             )}
           </DialogHeader>
 
-          {foundAreas.length > 0 && (
+          {foundWorkspaces.length > 0 && (
             <div className="space-y-2 py-2">
-              {foundAreas.map((area) => (
+              {foundWorkspaces.map((workspace) => (
                 <div
-                  key={area.id}
+                  key={workspace.id}
                   className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
                 >
                   <div
                     className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: area.color || "#3b82f6" }}
+                    style={{ backgroundColor: workspace.color || "#3b82f6" }}
                   />
                   <div>
-                    <p className="font-medium text-sm">{area.name}</p>
-                    {area.description && (
-                      <p className="text-xs text-muted-foreground">{area.description}</p>
+                    <p className="font-medium text-sm">{workspace.name}</p>
+                    {workspace.description && (
+                      <p className="text-xs text-muted-foreground">{workspace.description}</p>
                     )}
                   </div>
                 </div>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
           )}
 
           <div className="flex flex-col gap-2 pt-2">
-            {foundAreas.length > 0 ? (
+            {foundWorkspaces.length > 0 ? (
               <>
                 <Button onClick={() => handleConfirmPathChange(true)}>
                   Use Existing Data

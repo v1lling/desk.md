@@ -183,15 +183,15 @@ export async function initOrbitDirectory(): Promise<void> {
   // Create base directory
   await mkdir(orbitPath);
 
-  // Create areas directory
-  const areasPath = await joinPath(orbitPath, "areas");
-  await mkdir(areasPath);
+  // Create workspaces directory
+  const workspacesPath = await joinPath(orbitPath, "workspaces");
+  await mkdir(workspacesPath);
 
   // Create config if it doesn't exist
   const configPath = await joinPath(orbitPath, "config.json");
   if (!(await exists(configPath))) {
     const defaultConfig = {
-      currentAreaId: null,
+      currentWorkspaceId: null,
       theme: "system",
       sidebarCollapsed: false,
       setupCompleted: false,
@@ -212,7 +212,7 @@ export async function readConfig(): Promise<Record<string, unknown>> {
     return JSON.parse(content);
   } catch {
     return {
-      currentAreaId: null,
+      currentWorkspaceId: null,
       theme: "system",
       sidebarCollapsed: false,
       setupCompleted: false,

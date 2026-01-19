@@ -5,21 +5,21 @@ import * as viewStateLib from "@/lib/orbit/view-state";
 // Query keys
 export const viewStateKeys = {
   all: ["viewState"] as const,
-  // projectId can be null for area-level (All Tasks) view state
-  byScope: (areaId: string, projectId: string | null) =>
-    [...viewStateKeys.all, areaId, projectId ?? "_area"] as const,
+  // projectId can be null for workspace-level (All Tasks) view state
+  byScope: (workspaceId: string, projectId: string | null) =>
+    [...viewStateKeys.all, workspaceId, projectId ?? "_workspace"] as const,
 };
 
 /**
- * Hook to fetch view state for a project or area
- * @param areaId - The area ID
- * @param projectId - The project ID, or null for area-level (All Tasks)
+ * Hook to fetch view state for a project or workspace
+ * @param workspaceId - The workspace ID
+ * @param projectId - The project ID, or null for workspace-level (All Tasks)
  */
-export function useViewState(areaId: string | null, projectId: string | null) {
+export function useViewState(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: viewStateKeys.byScope(areaId || "", projectId),
-    queryFn: () => viewStateLib.getViewState(areaId!, projectId),
-    enabled: !!areaId, // Only need areaId, projectId can be null
+    queryKey: viewStateKeys.byScope(workspaceId || "", projectId),
+    queryFn: () => viewStateLib.getViewState(workspaceId!, projectId),
+    enabled: !!workspaceId, // Only need workspaceId, projectId can be null
     staleTime: 0, // Always fetch fresh
   });
 }
@@ -32,41 +32,41 @@ export function useUpdateTaskOrder() {
 
   return useMutation({
     mutationFn: ({
-      areaId,
+      workspaceId,
       projectId,
       taskOrder,
     }: {
-      areaId: string;
+      workspaceId: string;
       projectId: string | null;
       taskOrder: Record<TaskStatus, string[]>;
-    }) => viewStateLib.updateTaskOrder(areaId, projectId, taskOrder),
-    onMutate: async ({ areaId, projectId, taskOrder }) => {
+    }) => viewStateLib.updateTaskOrder(workspaceId, projectId, taskOrder),
+    onMutate: async ({ workspaceId, projectId, taskOrder }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: viewStateKeys.byScope(areaId, projectId),
+        queryKey: viewStateKeys.byScope(workspaceId, projectId),
       });
 
       // Snapshot previous state
       const previousState = queryClient.getQueryData<ProjectViewState>(
-        viewStateKeys.byScope(areaId, projectId)
+        viewStateKeys.byScope(workspaceId, projectId)
       );
 
       // Optimistically update
       queryClient.setQueryData<ProjectViewState>(
-        viewStateKeys.byScope(areaId, projectId),
+        viewStateKeys.byScope(workspaceId, projectId),
         (old) => ({
           ...old,
           taskOrder,
         })
       );
 
-      return { previousState, areaId, projectId };
+      return { previousState, workspaceId, projectId };
     },
     onError: (_err, _variables, context) => {
       // Rollback on error
       if (context) {
         queryClient.setQueryData(
-          viewStateKeys.byScope(context.areaId, context.projectId),
+          viewStateKeys.byScope(context.workspaceId, context.projectId),
           context.previousState
         );
       }
@@ -74,7 +74,7 @@ export function useUpdateTaskOrder() {
     onSettled: (_data, _error, variables) => {
       // Refetch after mutation settles
       queryClient.invalidateQueries({
-        queryKey: viewStateKeys.byScope(variables.areaId, variables.projectId),
+        queryKey: viewStateKeys.byScope(variables.workspaceId, variables.projectId),
       });
     },
   });
@@ -88,17 +88,17 @@ export function useRemoveTaskFromOrder() {
 
   return useMutation({
     mutationFn: ({
-      areaId,
+      workspaceId,
       projectId,
       taskId,
     }: {
-      areaId: string;
+      workspaceId: string;
       projectId: string | null;
       taskId: string;
-    }) => viewStateLib.removeTaskFromOrder(areaId, projectId, taskId),
+    }) => viewStateLib.removeTaskFromOrder(workspaceId, projectId, taskId),
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
-        queryKey: viewStateKeys.byScope(variables.areaId, variables.projectId),
+        queryKey: viewStateKeys.byScope(variables.workspaceId, variables.projectId),
       });
     },
   });

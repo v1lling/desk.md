@@ -63,15 +63,15 @@ async function countProjectTasks(projectPath: string): Promise<{
 }
 
 /**
- * Get all projects for an area
+ * Get all projects for a workspace
  */
-export async function getProjects(areaId: string): Promise<Project[]> {
+export async function getProjects(workspaceId: string): Promise<Project[]> {
   if (!isTauri()) {
-    return mockProjects.filter((project) => project.areaId === areaId);
+    return mockProjects.filter((project) => project.workspaceId === workspaceId);
   }
 
   const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, "areas", areaId, "projects");
+  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -93,7 +93,7 @@ export async function getProjects(areaId: string): Promise<Project[]> {
 
         projects.push({
           id: entry.name,
-          areaId,
+          workspaceId,
           name: data.name || entry.name,
           status: data.status || "active",
           description: data.description,
@@ -114,19 +114,19 @@ export async function getProjects(areaId: string): Promise<Project[]> {
  * Get a single project by ID
  */
 export async function getProject(
-  areaId: string,
+  workspaceId: string,
   projectId: string
 ): Promise<Project | null> {
   if (!isTauri()) {
     return (
       mockProjects.find(
-        (project) => project.areaId === areaId && project.id === projectId
+        (project) => project.workspaceId === workspaceId && project.id === projectId
       ) || null
     );
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
   const projectMdPath = await joinPath(projectPath, "project.md");
 
   try {
@@ -138,7 +138,7 @@ export async function getProject(
 
     return {
       id: projectId,
-      areaId,
+      workspaceId,
       name: data.name || projectId,
       status: data.status || "active",
       description: data.description,
@@ -155,7 +155,7 @@ export async function getProject(
  * Create a new project
  */
 export async function createProject(data: {
-  areaId: string;
+  workspaceId: string;
   name: string;
   description?: string;
   status?: ProjectStatus;
@@ -164,7 +164,7 @@ export async function createProject(data: {
 
   const project: Project = {
     id,
-    areaId: data.areaId,
+    workspaceId: data.workspaceId,
     name: data.name,
     status: data.status || "active",
     description: data.description,
@@ -179,7 +179,7 @@ export async function createProject(data: {
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "areas", data.areaId, "projects", id);
+  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, id);
 
   // Create project directory structure
   await mkdir(projectPath);
@@ -212,7 +212,7 @@ ${project.description || ""}
 export async function updateProject(
   projectId: string,
   updates: Partial<Pick<Project, "name" | "status" | "description">>,
-  areaId?: string
+  workspaceId?: string
 ): Promise<Project | null> {
   if (!isTauri()) {
     const index = mockProjects.findIndex((p) => p.id === projectId);
@@ -221,18 +221,18 @@ export async function updateProject(
     return mockProjects[index];
   }
 
-  // Need areaId for file path
-  if (!areaId) {
-    console.warn("updateProject requires areaId in Tauri mode");
+  // Need workspaceId for file path
+  if (!workspaceId) {
+    console.warn("updateProject requires workspaceId in Tauri mode");
     return null;
   }
 
   const orbitPath = await getOrbitPath();
   const projectMdPath = await joinPath(
     orbitPath,
-    "areas",
-    areaId,
-    "projects",
+    PATH_SEGMENTS.WORKSPACES,
+    workspaceId,
+    PATH_SEGMENTS.PROJECTS,
     projectId,
     "project.md"
   );
@@ -253,7 +253,7 @@ export async function updateProject(
 
     return {
       id: projectId,
-      areaId,
+      workspaceId,
       name: updatedData.name,
       status: updatedData.status,
       description: updatedData.description,
@@ -269,7 +269,7 @@ export async function updateProject(
 /**
  * Delete a project (removes entire directory)
  */
-export async function deleteProject(projectId: string, areaId?: string): Promise<boolean> {
+export async function deleteProject(projectId: string, workspaceId?: string): Promise<boolean> {
   if (!isTauri()) {
     const index = mockProjects.findIndex((p) => p.id === projectId);
     if (index === -1) return false;
@@ -277,13 +277,13 @@ export async function deleteProject(projectId: string, areaId?: string): Promise
     return true;
   }
 
-  if (!areaId) {
-    console.warn("deleteProject requires areaId in Tauri mode");
+  if (!workspaceId) {
+    console.warn("deleteProject requires workspaceId in Tauri mode");
     return false;
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   try {
     await removeDir(projectPath);
@@ -294,16 +294,16 @@ export async function deleteProject(projectId: string, areaId?: string): Promise
 }
 
 /**
- * Get project counts by status for an area
+ * Get project counts by status for a workspace
  */
-export async function getProjectStats(areaId: string): Promise<{
+export async function getProjectStats(workspaceId: string): Promise<{
   total: number;
   active: number;
   paused: number;
   completed: number;
   archived: number;
 }> {
-  const projects = await getProjects(areaId);
+  const projects = await getProjects(workspaceId);
   return {
     total: projects.length,
     active: projects.filter((p) => p.status === "active").length,

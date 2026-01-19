@@ -16,7 +16,7 @@ import {
 } from "./tauri-fs";
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
-import { findItemInAllAreas } from "./search";
+import { findItemInAllWorkspaces } from "./search";
 
 interface MeetingFrontmatter {
   title: string;
@@ -29,7 +29,7 @@ interface MeetingFrontmatter {
  * Read all meetings from a project's meetings directory
  */
 async function readProjectMeetings(
-  areaId: string,
+  workspaceId: string,
   projectId: string,
   projectPath: string
 ): Promise<Meeting[]> {
@@ -52,7 +52,7 @@ async function readProjectMeetings(
         meetings.push({
           id: filenameToId(entry.name),
           projectId,
-          areaId,
+          workspaceId,
           filePath: meetingPath,
           title: data.title || entry.name,
           date: normalizeDate(data.date || data.created),
@@ -74,15 +74,15 @@ async function readProjectMeetings(
 }
 
 /**
- * Get all meetings for an area (across all projects)
+ * Get all meetings for a workspace (across all projects)
  */
-export async function getMeetings(areaId: string): Promise<Meeting[]> {
+export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   if (!isTauri()) {
-    return mockMeetings.filter((meeting) => meeting.areaId === areaId);
+    return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId);
   }
 
   const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, "areas", areaId, "projects");
+  const projectsPath = await joinPath(orbitPath, "workspaces", workspaceId, "projects");
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -94,7 +94,7 @@ export async function getMeetings(areaId: string): Promise<Meeting[]> {
   for (const entry of projectEntries) {
     if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
       const projectPath = await joinPath(projectsPath, entry.name);
-      const projectMeetings = await readProjectMeetings(areaId, entry.name, projectPath);
+      const projectMeetings = await readProjectMeetings(workspaceId, entry.name, projectPath);
       allMeetings.push(...projectMeetings);
     }
   }
@@ -109,27 +109,27 @@ export async function getMeetings(areaId: string): Promise<Meeting[]> {
  * Get meetings for a specific project
  */
 export async function getMeetingsByProject(
-  areaId: string,
+  workspaceId: string,
   projectId: string
 ): Promise<Meeting[]> {
   if (!isTauri()) {
-    return mockMeetings.filter((meeting) => meeting.areaId === areaId && meeting.projectId === projectId);
+    return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId && meeting.projectId === projectId);
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "areas", areaId, "projects", projectId);
+  const projectPath = await joinPath(orbitPath, "workspaces", workspaceId, "projects", projectId);
 
-  return readProjectMeetings(areaId, projectId, projectPath);
+  return readProjectMeetings(workspaceId, projectId, projectPath);
 }
 
 /**
  * Get a single meeting by ID
  */
 export async function getMeeting(
-  areaId: string,
+  workspaceId: string,
   meetingId: string
 ): Promise<Meeting | null> {
-  const meetings = await getMeetings(areaId);
+  const meetings = await getMeetings(workspaceId);
   return meetings.find((meeting) => meeting.id === meetingId) || null;
 }
 
@@ -137,7 +137,7 @@ export async function getMeeting(
  * Create a new meeting
  */
 export async function createMeeting(data: {
-  areaId: string;
+  workspaceId: string;
   projectId: string;
   title: string;
   date?: string;
@@ -152,7 +152,7 @@ export async function createMeeting(data: {
   const meeting: Meeting = {
     id,
     projectId: data.projectId,
-    areaId: data.areaId,
+    workspaceId: data.workspaceId,
     filePath: "",
     title: data.title,
     date: meetingDate,
@@ -163,13 +163,13 @@ export async function createMeeting(data: {
   };
 
   if (!isTauri()) {
-    meeting.filePath = `~/Orbit/areas/${data.areaId}/projects/${data.projectId}/meetings/${filename}`;
+    meeting.filePath = `~/Orbit/workspaces/${data.workspaceId}/projects/${data.projectId}/meetings/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
   }
 
   const orbitPath = await getOrbitPath();
-  const meetingsPath = await joinPath(orbitPath, "areas", data.areaId, "projects", data.projectId, "meetings");
+  const meetingsPath = await joinPath(orbitPath, "workspaces", data.workspaceId, "projects", data.projectId, "meetings");
 
   // Ensure meetings directory exists
   await mkdir(meetingsPath);
@@ -197,7 +197,7 @@ export async function createMeeting(data: {
 export async function updateMeeting(
   meetingId: string,
   updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>,
-  areaId?: string,
+  workspaceId?: string,
   projectId?: string
 ): Promise<Meeting | null> {
   if (!isTauri()) {
@@ -213,10 +213,10 @@ export async function updateMeeting(
     return mockMeetings[index];
   }
 
-  // If we have areaId and projectId, we can directly locate the file (fast path)
-  if (areaId && projectId) {
+  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  if (workspaceId && projectId) {
     const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -240,7 +240,7 @@ export async function updateMeeting(
           return {
             id: meetingId,
             projectId,
-            areaId,
+            workspaceId,
             filePath,
             title: updatedData.title,
             date: updatedData.date,
@@ -255,8 +255,8 @@ export async function updateMeeting(
     return null;
   }
 
-  // Fallback: search all areas (slow path) - uses helper to find item
-  const meeting = await findItemInAllAreas(meetingId, getMeetings);
+  // Fallback: search all workspaces (slow path) - uses helper to find item
+  const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
   if (!meeting) return null;
 
   // Read existing file and update
@@ -289,7 +289,7 @@ export async function updateMeeting(
  */
 export async function deleteMeeting(
   meetingId: string,
-  areaId?: string,
+  workspaceId?: string,
   projectId?: string
 ): Promise<boolean> {
   if (!isTauri()) {
@@ -299,10 +299,10 @@ export async function deleteMeeting(
     return true;
   }
 
-  // If we have areaId and projectId, we can directly locate the file (fast path)
-  if (areaId && projectId) {
+  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  if (workspaceId && projectId) {
     const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.AREAS, areaId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -317,8 +317,8 @@ export async function deleteMeeting(
     return false;
   }
 
-  // Fallback: search all areas (slow path) - uses helper to find item
-  const meeting = await findItemInAllAreas(meetingId, getMeetings);
+  // Fallback: search all workspaces (slow path) - uses helper to find item
+  const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
   if (!meeting) return false;
 
   await removeFile(meeting.filePath);

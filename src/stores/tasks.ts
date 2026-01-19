@@ -5,43 +5,43 @@ import * as taskLib from "@/lib/orbit/tasks";
 // Query keys
 export const taskKeys = {
   all: ["tasks"] as const,
-  byArea: (areaId: string) => [...taskKeys.all, "area", areaId] as const,
-  byProject: (areaId: string, projectId: string) =>
-    [...taskKeys.byArea(areaId), "project", projectId] as const,
-  detail: (areaId: string, taskId: string) =>
-    [...taskKeys.byArea(areaId), "detail", taskId] as const,
+  byWorkspace: (workspaceId: string) => [...taskKeys.all, "workspace", workspaceId] as const,
+  byProject: (workspaceId: string, projectId: string) =>
+    [...taskKeys.byWorkspace(workspaceId), "project", projectId] as const,
+  detail: (workspaceId: string, taskId: string) =>
+    [...taskKeys.byWorkspace(workspaceId), "detail", taskId] as const,
 };
 
 /**
- * Hook to fetch all tasks for an area
+ * Hook to fetch all tasks for a workspace
  */
-export function useTasks(areaId: string | null) {
+export function useTasks(workspaceId: string | null) {
   return useQuery({
-    queryKey: taskKeys.byArea(areaId || ""),
-    queryFn: () => taskLib.getTasks(areaId!),
-    enabled: !!areaId,
+    queryKey: taskKeys.byWorkspace(workspaceId || ""),
+    queryFn: () => taskLib.getTasks(workspaceId!),
+    enabled: !!workspaceId,
   });
 }
 
 /**
  * Hook to fetch tasks for a specific project
  */
-export function useProjectTasks(areaId: string | null, projectId: string | null) {
+export function useProjectTasks(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: taskKeys.byProject(areaId || "", projectId || ""),
-    queryFn: () => taskLib.getTasksByProject(areaId!, projectId!),
-    enabled: !!areaId && !!projectId,
+    queryKey: taskKeys.byProject(workspaceId || "", projectId || ""),
+    queryFn: () => taskLib.getTasksByProject(workspaceId!, projectId!),
+    enabled: !!workspaceId && !!projectId,
   });
 }
 
 /**
  * Hook to fetch a single task
  */
-export function useTask(areaId: string | null, taskId: string | null) {
+export function useTask(workspaceId: string | null, taskId: string | null) {
   return useQuery({
-    queryKey: taskKeys.detail(areaId || "", taskId || ""),
-    queryFn: () => taskLib.getTask(areaId!, taskId!),
-    enabled: !!areaId && !!taskId,
+    queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
+    queryFn: () => taskLib.getTask(workspaceId!, taskId!),
+    enabled: !!workspaceId && !!taskId,
   });
 }
 
@@ -53,7 +53,7 @@ export function useCreateTask() {
 
   return useMutation({
     mutationFn: (data: {
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       title: string;
       priority?: TaskPriority;
@@ -61,9 +61,9 @@ export function useCreateTask() {
       content?: string;
     }) => taskLib.createTask(data),
     onSuccess: (newTask) => {
-      // Invalidate and refetch tasks for the area
+      // Invalidate and refetch tasks for the workspace
       queryClient.invalidateQueries({
-        queryKey: taskKeys.byArea(newTask.areaId),
+        queryKey: taskKeys.byWorkspace(newTask.workspaceId),
       });
     },
   });
@@ -78,24 +78,24 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({
       taskId,
-      areaId,
+      workspaceId,
       projectId,
       updates,
     }: {
       taskId: string;
-      areaId: string;
+      workspaceId: string;
       projectId: string;
       updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content" | "projectId">>;
-    }) => taskLib.updateTask(taskId, updates, areaId, projectId),
+    }) => taskLib.updateTask(taskId, updates, workspaceId, projectId),
     onSuccess: (updatedTask, variables) => {
       if (updatedTask) {
         queryClient.invalidateQueries({
-          queryKey: taskKeys.byArea(updatedTask.areaId),
+          queryKey: taskKeys.byWorkspace(updatedTask.workspaceId),
         });
       } else {
-        // Fallback invalidation using passed areaId
+        // Fallback invalidation using passed workspaceId
         queryClient.invalidateQueries({
-          queryKey: taskKeys.byArea(variables.areaId),
+          queryKey: taskKeys.byWorkspace(variables.workspaceId),
         });
       }
     },
@@ -109,12 +109,12 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ taskId, areaId, projectId }: { taskId: string; areaId: string; projectId: string }) =>
-      taskLib.deleteTask(taskId, areaId, projectId).then((success) => ({ success, areaId })),
+    mutationFn: ({ taskId, workspaceId, projectId }: { taskId: string; workspaceId: string; projectId: string }) =>
+      taskLib.deleteTask(taskId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({
-          queryKey: taskKeys.byArea(result.areaId),
+          queryKey: taskKeys.byWorkspace(result.workspaceId),
         });
       }
     },
@@ -128,8 +128,8 @@ export function useMoveTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ taskId, newStatus, areaId, projectId }: { taskId: string; newStatus: TaskStatus; areaId?: string; projectId?: string }) =>
-      taskLib.moveTask(taskId, newStatus, areaId, projectId),
+    mutationFn: ({ taskId, newStatus, workspaceId, projectId }: { taskId: string; newStatus: TaskStatus; workspaceId?: string; projectId?: string }) =>
+      taskLib.moveTask(taskId, newStatus, workspaceId, projectId),
     onMutate: async ({ taskId, newStatus }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.all });
@@ -174,19 +174,19 @@ export function useMoveTaskToProject() {
   return useMutation({
     mutationFn: ({
       taskId,
-      areaId,
+      workspaceId,
       fromProjectId,
       toProjectId,
     }: {
       taskId: string;
-      areaId: string;
+      workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => taskLib.moveTaskToProject(taskId, areaId, fromProjectId, toProjectId),
+    }) => taskLib.moveTaskToProject(taskId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
-      // Invalidate area tasks to refresh the lists
+      // Invalidate workspace tasks to refresh the lists
       queryClient.invalidateQueries({
-        queryKey: taskKeys.byArea(variables.areaId),
+        queryKey: taskKeys.byWorkspace(variables.workspaceId),
       });
     },
   });

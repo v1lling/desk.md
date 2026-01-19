@@ -10,13 +10,13 @@
  * Note: These arrays are mutable so CRUD operations work in browser mode.
  */
 
-import type { Area, Project, Task, Note, Meeting } from "@/types";
+import type { Workspace, Project, Task, Note, Meeting } from "@/types";
 
 // ============================================================================
-// AREAS
+// WORKSPACES
 // ============================================================================
 
-export const mockAreas: Area[] = [
+export const mockWorkspaces: Workspace[] = [
   {
     id: "slsp",
     name: "SLSP",
@@ -40,7 +40,7 @@ export const mockAreas: Area[] = [
 export const mockProjects: Project[] = [
   {
     id: "slskey",
-    areaId: "slsp",
+    workspaceId: "slsp",
     name: "SLSKey",
     status: "active",
     description: "Swiss Library Service Key authentication system",
@@ -50,7 +50,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: "alma-migration",
-    areaId: "slsp",
+    workspaceId: "slsp",
     name: "Alma Migration",
     status: "active",
     description: "Migration of library data to Ex Libris Alma",
@@ -60,7 +60,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: "api-v2",
-    areaId: "slsp",
+    workspaceId: "slsp",
     name: "API v2",
     status: "paused",
     description: "Next generation REST API",
@@ -70,7 +70,7 @@ export const mockProjects: Project[] = [
   },
   {
     id: "main",
-    areaId: "sss",
+    workspaceId: "sss",
     name: "Main Project",
     status: "active",
     description: "Primary SSS development work",
@@ -88,8 +88,8 @@ export const mockTasks: Task[] = [
   {
     id: "2024-01-15-setup-webhook",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-15-setup-webhook.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/tasks/2024-01-15-setup-webhook.md",
     title: "Setup webhook for ZB Winterthur",
     status: "doing",
     priority: "high",
@@ -100,8 +100,8 @@ export const mockTasks: Task[] = [
   {
     id: "2024-01-14-review-docs",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-14-review-docs.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/tasks/2024-01-14-review-docs.md",
     title: "Review API documentation",
     status: "todo",
     priority: "medium",
@@ -111,8 +111,8 @@ export const mockTasks: Task[] = [
   {
     id: "2024-01-13-fix-auth-bug",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-13-fix-auth-bug.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/tasks/2024-01-13-fix-auth-bug.md",
     title: "Fix authentication timeout bug",
     status: "done",
     priority: "high",
@@ -122,8 +122,8 @@ export const mockTasks: Task[] = [
   {
     id: "2024-01-12-write-specs",
     projectId: "alma-migration",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/alma-migration/tasks/2024-01-12-write-specs.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/alma-migration/tasks/2024-01-12-write-specs.md",
     title: "Write migration specs",
     status: "todo",
     priority: "low",
@@ -133,8 +133,8 @@ export const mockTasks: Task[] = [
   {
     id: "2024-01-11-email-followup",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/tasks/2024-01-11-email-followup.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/tasks/2024-01-11-email-followup.md",
     title: "Email follow-up with library",
     status: "doing",
     created: "2024-01-11",
@@ -150,8 +150,8 @@ export const mockNotes: Note[] = [
   {
     id: "2024-01-15-meeting-zb-winterthur",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/notes/2024-01-15-meeting-zb-winterthur.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/notes/2024-01-15-meeting-zb-winterthur.md",
     title: "Meeting with ZB Winterthur",
     created: "2024-01-15",
     content: "# Meeting with ZB Winterthur\n\n**Date:** 2024-01-15\n**Attendees:** John, Sarah, Mike\n\n## Agenda\n- Discuss webhook integration\n- Review timeline\n- Address security concerns\n\n## Notes\nThey want to go live by end of February. Need to prioritize the webhook setup.\n\n## Action Items\n- [ ] Send API documentation\n- [ ] Schedule follow-up call\n- [ ] Prepare security audit report",
@@ -160,8 +160,8 @@ export const mockNotes: Note[] = [
   {
     id: "2024-01-12-api-changes",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/notes/2024-01-12-api-changes.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/notes/2024-01-12-api-changes.md",
     title: "API v2 Changes Summary",
     created: "2024-01-12",
     content: "# API v2 Changes Summary\n\n## Breaking Changes\n- Authentication endpoint moved to `/auth/v2`\n- Response format changed to JSON:API spec\n- Rate limiting now 100 req/min\n\n## New Features\n- Batch operations support\n- Webhook callbacks\n- GraphQL endpoint (beta)\n\n## Migration Guide\nSee docs at `/docs/migration-v2`",
@@ -170,8 +170,8 @@ export const mockNotes: Note[] = [
   {
     id: "2024-01-10-alma-kickoff",
     projectId: "alma-migration",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/alma-migration/notes/2024-01-10-alma-kickoff.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/alma-migration/notes/2024-01-10-alma-kickoff.md",
     title: "Alma Migration Kickoff",
     created: "2024-01-10",
     content: "# Alma Migration Kickoff\n\n## Project Overview\nMigrating from legacy system to Ex Libris Alma.\n\n## Timeline\n- Phase 1: Data mapping (Jan-Feb)\n- Phase 2: Test migration (Mar)\n- Phase 3: Production migration (Apr)\n\n## Team\n- Lead: Maria\n- Technical: Alex, Chris\n- Support: Lisa",
@@ -187,8 +187,8 @@ export const mockMeetings: Meeting[] = [
   {
     id: "2024-01-15-weekly-sync",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/meetings/2024-01-15-weekly-sync.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/meetings/2024-01-15-weekly-sync.md",
     title: "Weekly Sync",
     date: "2024-01-15",
     created: "2024-01-15",
@@ -199,8 +199,8 @@ export const mockMeetings: Meeting[] = [
   {
     id: "2024-01-12-kickoff-zb-winterthur",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/meetings/2024-01-12-kickoff-zb-winterthur.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/meetings/2024-01-12-kickoff-zb-winterthur.md",
     title: "ZB Winterthur Kickoff",
     date: "2024-01-12",
     created: "2024-01-12",
@@ -211,8 +211,8 @@ export const mockMeetings: Meeting[] = [
   {
     id: "2024-01-08-sprint-planning",
     projectId: "slskey",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/slskey/meetings/2024-01-08-sprint-planning.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/slskey/meetings/2024-01-08-sprint-planning.md",
     title: "Sprint Planning - January",
     date: "2024-01-08",
     created: "2024-01-08",
@@ -223,8 +223,8 @@ export const mockMeetings: Meeting[] = [
   {
     id: "2024-01-10-data-mapping-review",
     projectId: "alma-migration",
-    areaId: "slsp",
-    filePath: "~/Orbit/areas/slsp/projects/alma-migration/meetings/2024-01-10-data-mapping-review.md",
+    workspaceId: "slsp",
+    filePath: "~/Orbit/workspaces/slsp/projects/alma-migration/meetings/2024-01-10-data-mapping-review.md",
     title: "Data Mapping Review",
     date: "2024-01-10",
     created: "2024-01-10",

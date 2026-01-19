@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Flag, Loader2 } from "lucide-react";
-import { useCreateTask, useProjects, useCurrentArea } from "@/stores";
+import { useCreateTask, useProjects, useCurrentWorkspace } from "@/stores";
 import type { TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -40,9 +40,9 @@ const priorityOptions: { value: TaskPriority; label: string; color: string }[] =
 ];
 
 export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskProps) {
-  const currentArea = useCurrentArea();
+  const currentWorkspace = useCurrentWorkspace();
   const createTask = useCreateTask();
-  const { data: projects = [] } = useProjects(currentArea?.id || null);
+  const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
@@ -60,11 +60,11 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !currentArea) return;
+    if (!title.trim() || !currentWorkspace) return;
 
     try {
       await createTask.mutateAsync({
-        areaId: currentArea.id,
+        workspaceId: currentWorkspace.id,
         projectId,
         title: title.trim(),
         priority: priority === "none" ? undefined : priority,

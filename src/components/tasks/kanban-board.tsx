@@ -22,7 +22,7 @@ import {
   useTasks,
   useProjectTasks,
   useMoveTask,
-  useCurrentArea,
+  useCurrentWorkspace,
   useProjects,
   useViewState,
   useUpdateTaskOrder,
@@ -50,23 +50,23 @@ export function KanbanBoard({
   tasks: externalTasks,
   showDoneByDefault = false,
 }: KanbanBoardProps) {
-  const currentArea = useCurrentArea();
-  const currentAreaId = currentArea?.id || null;
+  const currentWorkspace = useCurrentWorkspace();
+  const currentWorkspaceId = currentWorkspace?.id || null;
   const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
-  const allTasksQuery = useTasks(projectId ? null : currentAreaId);
+  const allTasksQuery = useTasks(projectId ? null : currentWorkspaceId);
   const projectTasksQuery = useProjectTasks(
-    projectId ? currentAreaId : null,
+    projectId ? currentWorkspaceId : null,
     projectId || null
   );
-  const { data: projects = [] } = useProjects(currentAreaId);
+  const { data: projects = [] } = useProjects(currentWorkspaceId);
 
   // Fetch view state for task ordering
   // - Project view: uses project-level .view.json
-  // - All Tasks view: uses area-level .view.json (projectId = null)
+  // - All Tasks view: uses workspace-level .view.json (projectId = null)
   const effectiveProjectId = projectId || null;
-  const { data: viewState } = useViewState(currentAreaId, effectiveProjectId);
+  const { data: viewState } = useViewState(currentWorkspaceId, effectiveProjectId);
   const updateTaskOrder = useUpdateTaskOrder();
   const moveTask = useMoveTask();
 
@@ -188,7 +188,7 @@ export function KanbanBoard({
       const statusChanged = task.status !== targetStatus;
 
       // Need areaId for any operation
-      if (!currentAreaId) return;
+      if (!currentWorkspaceId) return;
 
       // Build new order for all columns (used for both project and All Tasks view)
       const newOrder: Record<TaskStatus, string[]> = {
@@ -228,7 +228,7 @@ export function KanbanBoard({
         moveTask.mutate({
           taskId,
           newStatus: targetStatus,
-          areaId: currentAreaId,
+          workspaceId: currentWorkspaceId,
           projectId: projectId,
         });
       } else {
@@ -248,9 +248,9 @@ export function KanbanBoard({
       }
 
       // Save the new order (works for both project view and All Tasks)
-      // projectId = null for All Tasks -> saves to area-level .view.json
+      // projectId = null for All Tasks -> saves to workspace-level .view.json
       updateTaskOrder.mutate({
-        areaId: currentAreaId,
+        workspaceId: currentWorkspaceId,
         projectId: effectiveProjectId,
         taskOrder: newOrder,
       });
@@ -261,7 +261,7 @@ export function KanbanBoard({
       moveTask,
       updateTaskOrder,
       projectId,
-      currentAreaId,
+      currentWorkspaceId,
       effectiveProjectId,
     ]
   );

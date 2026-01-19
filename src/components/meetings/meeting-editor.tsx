@@ -58,7 +58,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
 
       await updateMeeting.mutateAsync({
         meetingId: meeting.id,
-        areaId: meeting.areaId,
+        workspaceId: meeting.workspaceId,
         projectId: meeting.projectId,
         updates: {
           title: data.title.trim() || meeting.title,
@@ -88,7 +88,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     try {
       await deleteMeeting.mutateAsync({
         meetingId: meeting.id,
-        areaId: meeting.areaId,
+        workspaceId: meeting.workspaceId,
         projectId: meeting.projectId,
       });
       toast.success("Meeting deleted");

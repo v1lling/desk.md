@@ -21,7 +21,7 @@ import {
 import {
   onFileChange,
   getItemTypeFromPath,
-  getAreaIdFromPath,
+  getWorkspaceIdFromPath,
   getProjectIdFromPath,
   type WatchEvent,
 } from "@/lib/orbit/watcher";
@@ -30,7 +30,7 @@ import * as taskLib from "@/lib/orbit/tasks";
 import * as noteLib from "@/lib/orbit/notes";
 import * as meetingLib from "@/lib/orbit/meetings";
 import * as projectLib from "@/lib/orbit/projects";
-import * as areaLib from "@/lib/orbit/areas";
+import * as workspaceLib from "@/lib/orbit/workspaces";
 
 /**
  * Hook to initialize and maintain the search index
@@ -52,44 +52,44 @@ export function useSearchIndex() {
     try {
       const searchItems: SearchItem[] = [];
 
-      // Get all areas
-      const areas = await areaLib.getAreas();
-      const areaMap = new Map(areas.map((a) => [a.id, a.name]));
+      // Get all workspaces
+      const workspaces = await workspaceLib.getWorkspaces();
+      const workspaceMap = new Map(workspaces.map((a) => [a.id, a.name]));
 
-      // For each area, get all projects, tasks, notes, meetings
-      for (const area of areas) {
+      // For each workspace, get all projects, tasks, notes, meetings
+      for (const workspace of workspaces) {
         // Get projects
-        const projects = await projectLib.getProjects(area.id);
+        const projects = await projectLib.getProjects(workspace.id);
         const projectMap = new Map(projects.map((p) => [p.id, p.name]));
 
         // Add projects to index
         for (const project of projects) {
-          searchItems.push(projectToSearchItem(project, area.name));
+          searchItems.push(projectToSearchItem(project, workspace.name));
         }
 
-        // Get tasks for the area
-        const tasks = await taskLib.getTasks(area.id);
+        // Get tasks for the workspace
+        const tasks = await taskLib.getTasks(workspace.id);
         for (const task of tasks) {
           searchItems.push(
-            taskToSearchItem(task, area.name, projectMap.get(task.projectId))
+            taskToSearchItem(task, workspace.name, projectMap.get(task.projectId))
           );
         }
 
-        // Get notes for the area
-        const notes = await noteLib.getNotes(area.id);
+        // Get notes for the workspace
+        const notes = await noteLib.getNotes(workspace.id);
         for (const note of notes) {
           searchItems.push(
-            noteToSearchItem(note, area.name, projectMap.get(note.projectId))
+            noteToSearchItem(note, workspace.name, projectMap.get(note.projectId))
           );
         }
 
-        // Get meetings for the area
-        const meetings = await meetingLib.getMeetings(area.id);
+        // Get meetings for the workspace
+        const meetings = await meetingLib.getMeetings(workspace.id);
         for (const meeting of meetings) {
           searchItems.push(
             meetingToSearchItem(
               meeting,
-              area.name,
+              workspace.name,
               projectMap.get(meeting.projectId)
             )
           );
@@ -113,14 +113,14 @@ export function useSearchIndex() {
   // Handle file change events - update index incrementally
   const handleFileChange = useCallback(
     async (event: WatchEvent) => {
-      // For now, rebuild the affected area's items
+      // For now, rebuild the affected workspace's items
       // Future optimization: do true incremental updates
       const affectedAreas = new Set<string>();
 
       for (const path of event.paths) {
-        const areaId = getAreaIdFromPath(path);
-        if (areaId) {
-          affectedAreas.add(areaId);
+        const workspaceId = getWorkspaceIdFromPath(path);
+        if (workspaceId) {
+          affectedAreas.add(workspaceId);
         }
       }
 

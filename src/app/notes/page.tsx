@@ -5,17 +5,17 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useNotes, useProjects, useCurrentArea } from "@/stores";
+import { useNotes, useProjects, useCurrentWorkspace } from "@/stores";
 import { FolderKanban } from "lucide-react";
 import type { Note } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 export default function NotesPage() {
-  const currentArea = useCurrentArea();
-  const currentAreaId = currentArea?.id || null;
-  const { data: notes = [], isLoading } = useNotes(currentAreaId);
-  const { data: projects = [] } = useProjects(currentAreaId);
+  const currentWorkspace = useCurrentWorkspace();
+  const currentWorkspaceId = currentWorkspace?.id || null;
+  const { data: notes = [], isLoading } = useNotes(currentWorkspaceId);
+  const { data: projects = [] } = useProjects(currentWorkspaceId);
   const searchParams = useSearchParams();
   const router = useRouter();
 

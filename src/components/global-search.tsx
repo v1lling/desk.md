@@ -45,7 +45,7 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const router = useRouter();
-  const currentAreaId = useSettingsStore((state) => state.currentAreaId);
+  const currentWorkspaceId = useSettingsStore((state) => state.currentWorkspaceId);
 
   // Handle keyboard shortcut
   useEffect(() => {
@@ -69,17 +69,17 @@ export function GlobalSearch() {
 
     if (!query.trim()) {
       // Show recent items when no query
-      const recent = getRecentItems(8, undefined, currentAreaId ?? undefined);
+      const recent = getRecentItems(8, undefined, currentWorkspaceId ?? undefined);
       setResults(recent);
     } else {
       // Fuzzy search
       const searchResults = search(query, {
         limit: 10,
-        areaId: currentAreaId ?? undefined,
+        workspaceId: currentWorkspaceId ?? undefined,
       });
       setResults(searchResults);
     }
-  }, [query, currentAreaId]);
+  }, [query, currentWorkspaceId]);
 
   // Reset query when dialog closes
   useEffect(() => {

@@ -2,8 +2,8 @@
  * View State Management
  *
  * Handles UI state stored in .view.json files:
- * - Per-project: areas/{area}/projects/{project}/.view.json
- * - Per-area (All Tasks): areas/{area}/.view.json
+ * - Per-project: workspaces/{workspace}/projects/{project}/.view.json
+ * - Per-workspace (All Tasks): workspaces/{workspace}/.view.json
  *
  * This is separate from content data (markdown files) and represents
  * display preferences like task ordering within columns.
@@ -30,11 +30,11 @@ export type { ProjectViewState } from "@/types";
 
 /**
  * Get the path to a .view.json file
- * - If projectId is provided: areas/{area}/projects/{project}/.view.json
- * - If projectId is null: areas/{area}/.view.json (for All Tasks view)
+ * - If projectId is provided: workspaces/{workspace}/projects/{project}/.view.json
+ * - If projectId is null: workspaces/{workspace}/.view.json (for All Tasks view)
  */
 async function getViewStatePath(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null
 ): Promise<string> {
   const orbitPath = await getOrbitPath();
@@ -43,35 +43,35 @@ async function getViewStatePath(
     // Project-level view state
     return await joinPath(
       orbitPath,
-      PATH_SEGMENTS.AREAS,
-      areaId,
+      PATH_SEGMENTS.WORKSPACES,
+      workspaceId,
       PATH_SEGMENTS.PROJECTS,
       projectId,
       FILE_NAMES.VIEW_STATE
     );
   }
 
-  // Area-level view state (All Tasks)
+  // Workspace-level view state (All Tasks)
   return await joinPath(
     orbitPath,
-    PATH_SEGMENTS.AREAS,
-    areaId,
+    PATH_SEGMENTS.WORKSPACES,
+    workspaceId,
     FILE_NAMES.VIEW_STATE
   );
 }
 
 /**
- * Read the view state for a project or area
- * @param areaId - The area ID
- * @param projectId - The project ID, or null for area-level (All Tasks)
+ * Read the view state for a project or workspace
+ * @param workspaceId - The workspace ID
+ * @param projectId - The project ID, or null for workspace-level (All Tasks)
  * Returns empty object if file doesn't exist or is invalid
  */
 export async function getViewState(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null
 ): Promise<ProjectViewState> {
   try {
-    const path = await getViewStatePath(areaId, projectId);
+    const path = await getViewStatePath(workspaceId, projectId);
 
     if (!(await exists(path))) {
       return {};
@@ -88,21 +88,21 @@ export async function getViewState(
     return parsed as ProjectViewState;
   } catch (error) {
     // If file is corrupted or unreadable, return empty state
-    const location = projectId ? `${areaId}/${projectId}` : areaId;
+    const location = projectId ? `${workspaceId}/${projectId}` : workspaceId;
     console.warn(`Failed to read view state for ${location}:`, error);
     return {};
   }
 }
 
 /**
- * Write the view state for a project or area
+ * Write the view state for a project or workspace
  */
 export async function saveViewState(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null,
   state: ProjectViewState
 ): Promise<void> {
-  const path = await getViewStatePath(areaId, projectId);
+  const path = await getViewStatePath(workspaceId, projectId);
   await writeTextFile(path, JSON.stringify(state, null, 2));
 }
 
@@ -111,12 +111,12 @@ export async function saveViewState(
  * Merges with existing state to preserve other settings
  */
 export async function updateTaskOrder(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null,
   taskOrder: Record<TaskStatus, string[]>
 ): Promise<void> {
-  const existing = await getViewState(areaId, projectId);
-  await saveViewState(areaId, projectId, {
+  const existing = await getViewState(workspaceId, projectId);
+  await saveViewState(workspaceId, projectId, {
     ...existing,
     taskOrder,
   });
@@ -127,11 +127,11 @@ export async function updateTaskOrder(
  * Returns undefined if no custom order is set
  */
 export async function getTaskOrderForStatus(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null,
   status: TaskStatus
 ): Promise<string[] | undefined> {
-  const state = await getViewState(areaId, projectId);
+  const state = await getViewState(workspaceId, projectId);
   return state.taskOrder?.[status];
 }
 
@@ -181,11 +181,11 @@ export function sortTasksByOrder<T extends { id: string; created: string }>(
  * Remove a task from all order arrays (call when deleting a task)
  */
 export async function removeTaskFromOrder(
-  areaId: string,
+  workspaceId: string,
   projectId: string | null,
   taskId: string
 ): Promise<void> {
-  const state = await getViewState(areaId, projectId);
+  const state = await getViewState(workspaceId, projectId);
 
   if (!state.taskOrder) return;
 
@@ -196,7 +196,7 @@ export async function removeTaskFromOrder(
     done: (state.taskOrder.done || []).filter(id => id !== taskId),
   };
 
-  await saveViewState(areaId, projectId, {
+  await saveViewState(workspaceId, projectId, {
     ...state,
     taskOrder: newOrder,
   });

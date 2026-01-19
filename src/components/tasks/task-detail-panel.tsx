@@ -25,7 +25,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
   const removeTaskFromOrder = useRemoveTaskFromOrder();
-  const { data: projects = [] } = useProjects(task?.areaId || null);
+  const { data: projects = [] } = useProjects(task?.workspaceId || null);
 
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
@@ -70,7 +70,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
       await updateTask.mutateAsync({
         taskId: task.id,
-        areaId: task.areaId,
+        workspaceId: task.workspaceId,
         projectId: task.projectId,
         updates: {
           title: data.title.trim() || task.title,
@@ -100,7 +100,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       if (projectId !== originalProjectId) {
         await moveTaskToProject.mutateAsync({
           taskId: task.id,
-          areaId: task.areaId,
+          workspaceId: task.workspaceId,
           fromProjectId: originalProjectId,
           toProjectId: projectId,
         });
@@ -124,12 +124,12 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     if (!task) return;
 
     deleteTask.mutate(
-      { taskId: task.id, areaId: task.areaId, projectId: task.projectId },
+      { taskId: task.id, workspaceId: task.workspaceId, projectId: task.projectId },
       {
         onSuccess: () => {
           // Clean up view state ordering
           removeTaskFromOrder.mutate({
-            areaId: task.areaId,
+            workspaceId: task.workspaceId,
             projectId: task.projectId,
             taskId: task.id,
           });

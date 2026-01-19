@@ -5,42 +5,42 @@ import * as projectLib from "@/lib/orbit/projects";
 // Query keys
 export const projectKeys = {
   all: ["projects"] as const,
-  byArea: (areaId: string) => [...projectKeys.all, "area", areaId] as const,
-  detail: (areaId: string, projectId: string) =>
-    [...projectKeys.byArea(areaId), "detail", projectId] as const,
-  stats: (areaId: string) => [...projectKeys.byArea(areaId), "stats"] as const,
+  byWorkspace: (workspaceId: string) => [...projectKeys.all, "workspace", workspaceId] as const,
+  detail: (workspaceId: string, projectId: string) =>
+    [...projectKeys.byWorkspace(workspaceId), "detail", projectId] as const,
+  stats: (workspaceId: string) => [...projectKeys.byWorkspace(workspaceId), "stats"] as const,
 };
 
 /**
- * Hook to fetch all projects for an area
+ * Hook to fetch all projects for a workspace
  */
-export function useProjects(areaId: string | null) {
+export function useProjects(workspaceId: string | null) {
   return useQuery({
-    queryKey: projectKeys.byArea(areaId || ""),
-    queryFn: () => projectLib.getProjects(areaId!),
-    enabled: !!areaId,
+    queryKey: projectKeys.byWorkspace(workspaceId || ""),
+    queryFn: () => projectLib.getProjects(workspaceId!),
+    enabled: !!workspaceId,
   });
 }
 
 /**
  * Hook to fetch a single project
  */
-export function useProject(areaId: string | null, projectId: string | null) {
+export function useProject(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: projectKeys.detail(areaId || "", projectId || ""),
-    queryFn: () => projectLib.getProject(areaId!, projectId!),
-    enabled: !!areaId && !!projectId,
+    queryKey: projectKeys.detail(workspaceId || "", projectId || ""),
+    queryFn: () => projectLib.getProject(workspaceId!, projectId!),
+    enabled: !!workspaceId && !!projectId,
   });
 }
 
 /**
- * Hook to fetch project stats for an area
+ * Hook to fetch project stats for a workspace
  */
-export function useProjectStats(areaId: string | null) {
+export function useProjectStats(workspaceId: string | null) {
   return useQuery({
-    queryKey: projectKeys.stats(areaId || ""),
-    queryFn: () => projectLib.getProjectStats(areaId!),
-    enabled: !!areaId,
+    queryKey: projectKeys.stats(workspaceId || ""),
+    queryFn: () => projectLib.getProjectStats(workspaceId!),
+    enabled: !!workspaceId,
   });
 }
 
@@ -52,14 +52,14 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: (data: {
-      areaId: string;
+      workspaceId: string;
       name: string;
       description?: string;
       status?: ProjectStatus;
     }) => projectLib.createProject(data),
     onSuccess: (newProject) => {
       queryClient.invalidateQueries({
-        queryKey: projectKeys.byArea(newProject.areaId),
+        queryKey: projectKeys.byWorkspace(newProject.workspaceId),
       });
     },
   });
@@ -74,17 +74,17 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({
       projectId,
-      areaId,
+      workspaceId,
       updates,
     }: {
       projectId: string;
-      areaId: string;
+      workspaceId: string;
       updates: Partial<Pick<Project, "name" | "status" | "description">>;
-    }) => projectLib.updateProject(projectId, updates, areaId),
+    }) => projectLib.updateProject(projectId, updates, workspaceId),
     onSuccess: (updatedProject, variables) => {
       if (updatedProject) {
         queryClient.invalidateQueries({
-          queryKey: projectKeys.byArea(variables.areaId),
+          queryKey: projectKeys.byWorkspace(variables.workspaceId),
         });
       }
     },
@@ -98,12 +98,12 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ projectId, areaId }: { projectId: string; areaId: string }) =>
-      projectLib.deleteProject(projectId, areaId).then((success) => ({ success, areaId })),
+    mutationFn: ({ projectId, workspaceId }: { projectId: string; workspaceId: string }) =>
+      projectLib.deleteProject(projectId, workspaceId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({
-          queryKey: projectKeys.byArea(result.areaId),
+          queryKey: projectKeys.byWorkspace(result.workspaceId),
         });
       }
     },

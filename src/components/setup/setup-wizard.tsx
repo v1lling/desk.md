@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
-import { useCreateArea } from "@/stores/areas";
-import { initOrbitDirectory, slugify, getAreas, isTauri } from "@/lib/orbit";
+import { useCreateWorkspace } from "@/stores/workspaces";
+import { initOrbitDirectory, slugify, getWorkspaces, isTauri } from "@/lib/orbit";
 import { Rocket, FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
-import type { Area } from "@/types";
+import type { Workspace } from "@/types";
 
-type Step = "welcome" | "data-folder" | "existing-detected" | "first-area";
+type Step = "welcome" | "data-folder" | "existing-detected" | "first-workspace";
 
 const COLORS = [
   "#3b82f6", // blue
@@ -27,47 +27,47 @@ const COLORS = [
 export function SetupWizard() {
   const [step, setStep] = useState<Step>("welcome");
   const [dataPath, setDataPath] = useState("~/Orbit");
-  const [areaName, setAreaName] = useState("");
-  const [areaColor, setAreaColor] = useState(COLORS[0]);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceColor, setWorkspaceColor] = useState(COLORS[0]);
   const [isLoading, setIsLoading] = useState(false);
-  const [existingAreas, setExistingAreas] = useState<Area[]>([]);
+  const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
 
   const setSettingsDataPath = useSettingsStore((state) => state.setDataPath);
   const setSetupCompleted = useSettingsStore((state) => state.setSetupCompleted);
-  const setCurrentAreaId = useSettingsStore((state) => state.setCurrentAreaId);
-  const createArea = useCreateArea();
+  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const createWorkspace = useCreateWorkspace();
 
   const handleCheckDataFolder = async () => {
     setIsLoading(true);
 
     try {
-      // Save the data path first so getAreas knows where to look
+      // Save the data path first so getWorkspaces knows where to look
       setSettingsDataPath(dataPath);
 
-      // Only check for existing areas in Tauri mode
+      // Only check for existing workspaces in Tauri mode
       if (isTauri()) {
-        const areas = await getAreas();
-        if (areas.length > 0) {
-          setExistingAreas(areas);
+        const workspaces = await getWorkspaces();
+        if (workspaces.length > 0) {
+          setExistingWorkspaces(workspaces);
           setStep("existing-detected");
           return;
         }
       }
 
-      // No existing data, proceed to create first area
-      setStep("first-area");
+      // No existing data, proceed to create first workspace
+      setStep("first-workspace");
     } catch (error) {
       console.error("Error checking data folder:", error);
-      setStep("first-area");
+      setStep("first-workspace");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleUseExisting = () => {
-    // Use the first existing area as the current one
-    if (existingAreas.length > 0) {
-      setCurrentAreaId(existingAreas[0].id);
+    // Use the first existing workspace as the current one
+    if (existingWorkspaces.length > 0) {
+      setCurrentWorkspaceId(existingWorkspaces[0].id);
     }
     setSetupCompleted(true);
   };
@@ -82,21 +82,21 @@ export function SetupWizard() {
       // Initialize the Orbit directory structure
       await initOrbitDirectory();
 
-      // Create the first area
-      const areaId = slugify(areaName);
-      await createArea.mutateAsync({
-        id: areaId,
-        name: areaName,
-        color: areaColor,
+      // Create the first workspace
+      const workspaceId = slugify(workspaceName);
+      await createWorkspace.mutateAsync({
+        id: workspaceId,
+        name: workspaceName,
+        color: workspaceColor,
       });
 
-      setCurrentAreaId(areaId);
+      setCurrentWorkspaceId(workspaceId);
       setSetupCompleted(true);
     } catch (error) {
       console.error("Setup failed:", error);
       // In browser mode, still complete setup
-      const areaId = slugify(areaName);
-      setCurrentAreaId(areaId);
+      const workspaceId = slugify(workspaceName);
+      setCurrentWorkspaceId(workspaceId);
       setSetupCompleted(true);
     } finally {
       setIsLoading(false);
@@ -150,7 +150,7 @@ export function SetupWizard() {
                   placeholder="~/Orbit"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your areas, projects, and notes will be stored here as markdown files.
+                  Your workspaces, projects, and notes will be stored here as markdown files.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -174,24 +174,24 @@ export function SetupWizard() {
               </div>
               <CardTitle>Existing Data Found</CardTitle>
               <CardDescription>
-                We found {existingAreas.length} existing area{existingAreas.length > 1 ? "s" : ""} in this folder.
+                We found {existingWorkspaces.length} existing workspace{existingWorkspaces.length > 1 ? "s" : ""} in this folder.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                {existingAreas.map((area) => (
+                {existingWorkspaces.map((workspace) => (
                   <div
-                    key={area.id}
+                    key={workspace.id}
                     className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
                   >
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: area.color || "#3b82f6" }}
+                      style={{ backgroundColor: workspace.color || "#3b82f6" }}
                     />
                     <div>
-                      <p className="font-medium text-sm">{area.name}</p>
-                      {area.description && (
-                        <p className="text-xs text-muted-foreground">{area.description}</p>
+                      <p className="font-medium text-sm">{workspace.name}</p>
+                      {workspace.description && (
+                        <p className="text-xs text-muted-foreground">{workspace.description}</p>
                       )}
                     </div>
                   </div>
@@ -201,32 +201,32 @@ export function SetupWizard() {
                 <Button className="w-full" onClick={handleUseExisting}>
                   Use Existing Data
                 </Button>
-                <Button variant="outline" onClick={() => setStep("first-area")}>
-                  Create New Area Instead
+                <Button variant="outline" onClick={() => setStep("first-workspace")}>
+                  Create New Workspace Instead
                 </Button>
               </div>
             </CardContent>
           </>
         )}
 
-        {step === "first-area" && (
+        {step === "first-workspace" && (
           <>
             <CardHeader>
               <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Palette className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Create Your First Area</CardTitle>
+              <CardTitle>Create Your First Workspace</CardTitle>
               <CardDescription>
-                Areas separate your clients or workspaces. Start with one.
+                Workspaces separate your clients or projects. Start with one.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="areaName">Area Name</Label>
+                <Label htmlFor="workspaceName">Workspace Name</Label>
                 <Input
-                  id="areaName"
-                  value={areaName}
-                  onChange={(e) => setAreaName(e.target.value)}
+                  id="workspaceName"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="e.g., ACME Corp, Personal, Freelance"
                 />
               </div>
@@ -237,12 +237,12 @@ export function SetupWizard() {
                     <button
                       key={color}
                       className={`w-8 h-8 rounded-full transition-all ${
-                        areaColor === color
+                        workspaceColor === color
                           ? "ring-2 ring-offset-2 ring-primary"
                           : "hover:scale-110"
                       }`}
                       style={{ backgroundColor: color }}
-                      onClick={() => setAreaColor(color)}
+                      onClick={() => setWorkspaceColor(color)}
                     />
                   ))}
                 </div>
@@ -250,7 +250,7 @@ export function SetupWizard() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => existingAreas.length > 0 ? setStep("existing-detected") : setStep("data-folder")}
+                  onClick={() => existingWorkspaces.length > 0 ? setStep("existing-detected") : setStep("data-folder")}
                   disabled={isLoading}
                 >
                   Back
@@ -258,10 +258,10 @@ export function SetupWizard() {
                 <Button
                   className="flex-1"
                   onClick={handleCreateNew}
-                  disabled={!areaName.trim() || isLoading}
+                  disabled={!workspaceName.trim() || isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Area
+                  Create Workspace
                 </Button>
               </div>
             </CardContent>

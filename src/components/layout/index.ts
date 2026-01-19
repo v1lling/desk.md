@@ -1,3 +1,3 @@
 export { Sidebar } from "./sidebar";
-export { AreaSwitcher } from "./area-switcher";
+export { WorkspaceSwitcher } from "./workspace-switcher";
 export { Header } from "./header";

@@ -5,14 +5,14 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useTasks, useProjects, useCurrentArea } from "@/stores";
+import { useTasks, useProjects, useCurrentWorkspace } from "@/stores";
 import type { Task } from "@/types";
 
 export default function Home() {
-  const currentArea = useCurrentArea();
-  const currentAreaId = currentArea?.id || null;
-  const { data: tasks = [] } = useTasks(currentAreaId);
-  const { data: projects = [] } = useProjects(currentAreaId);
+  const currentWorkspace = useCurrentWorkspace();
+  const currentWorkspaceId = currentWorkspace?.id || null;
+  const { data: tasks = [] } = useTasks(currentWorkspaceId);
+  const { data: projects = [] } = useProjects(currentWorkspaceId);
   const searchParams = useSearchParams();
   const router = useRouter();
 

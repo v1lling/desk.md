@@ -16,8 +16,8 @@ export interface SearchItem {
   type: SearchItemType;
   title: string;
   content: string; // Preview/excerpt for search
-  areaId: string;
-  areaName?: string;
+  workspaceId: string;
+  workspaceName?: string;
   projectId: string;
   projectName?: string;
   // Metadata for filtering/display
@@ -97,10 +97,10 @@ export function removeItem(id: string, type: SearchItemType): void {
 }
 
 /**
- * Remove all items for an area (e.g., when area is deleted)
+ * Remove all items for a workspace (e.g., when workspace is deleted)
  */
-export function removeAreaItems(areaId: string): void {
-  items = items.filter((i) => i.areaId !== areaId);
+export function removeWorkspaceItems(workspaceId: string): void {
+  items = items.filter((i) => i.workspaceId !== workspaceId);
   fuse = new Fuse(items, FUSE_OPTIONS);
 }
 
@@ -111,7 +111,7 @@ export function search(
   query: string,
   options?: {
     types?: SearchItemType[];
-    areaId?: string;
+    workspaceId?: string;
     limit?: number;
   }
 ): SearchResult[] {
@@ -122,7 +122,7 @@ export function search(
 
   if (!query.trim()) {
     // Return recent items if no query
-    return getRecentItems(options?.limit ?? 10, options?.types, options?.areaId);
+    return getRecentItems(options?.limit ?? 10, options?.types, options?.workspaceId);
   }
 
   let results = fuse.search(query);
@@ -132,8 +132,8 @@ export function search(
     results = results.filter((r) => options.types!.includes(r.item.type));
   }
 
-  if (options?.areaId) {
-    results = results.filter((r) => r.item.areaId === options.areaId);
+  if (options?.workspaceId) {
+    results = results.filter((r) => r.item.workspaceId === options.workspaceId);
   }
 
   // Apply limit
@@ -157,7 +157,7 @@ export function search(
 export function getRecentItems(
   limit: number = 10,
   types?: SearchItemType[],
-  areaId?: string
+  workspaceId?: string
 ): SearchResult[] {
   let filtered = items;
 
@@ -165,8 +165,8 @@ export function getRecentItems(
     filtered = filtered.filter((i) => types.includes(i.type));
   }
 
-  if (areaId) {
-    filtered = filtered.filter((i) => i.areaId === areaId);
+  if (workspaceId) {
+    filtered = filtered.filter((i) => i.workspaceId === workspaceId);
   }
 
   // Sort by created date descending
@@ -226,7 +226,7 @@ export function clearIndex(): void {
 
 export function taskToSearchItem(
   task: Task,
-  areaName?: string,
+  workspaceName?: string,
   projectName?: string
 ): SearchItem {
   return {
@@ -234,8 +234,8 @@ export function taskToSearchItem(
     type: "task",
     title: task.title,
     content: task.content?.slice(0, 200) ?? "",
-    areaId: task.areaId,
-    areaName,
+    workspaceId: task.workspaceId,
+    workspaceName,
     projectId: task.projectId,
     projectName,
     status: task.status,
@@ -248,7 +248,7 @@ export function taskToSearchItem(
 
 export function noteToSearchItem(
   note: Note,
-  areaName?: string,
+  workspaceName?: string,
   projectName?: string
 ): SearchItem {
   return {
@@ -256,8 +256,8 @@ export function noteToSearchItem(
     type: "note",
     title: note.title,
     content: note.content?.slice(0, 200) ?? "",
-    areaId: note.areaId,
-    areaName,
+    workspaceId: note.workspaceId,
+    workspaceName,
     projectId: note.projectId,
     projectName,
     created: note.created,
@@ -267,7 +267,7 @@ export function noteToSearchItem(
 
 export function meetingToSearchItem(
   meeting: Meeting,
-  areaName?: string,
+  workspaceName?: string,
   projectName?: string
 ): SearchItem {
   return {
@@ -275,8 +275,8 @@ export function meetingToSearchItem(
     type: "meeting",
     title: meeting.title,
     content: meeting.content?.slice(0, 200) ?? "",
-    areaId: meeting.areaId,
-    areaName,
+    workspaceId: meeting.workspaceId,
+    workspaceName,
     projectId: meeting.projectId,
     projectName,
     created: meeting.created,
@@ -286,15 +286,15 @@ export function meetingToSearchItem(
 
 export function projectToSearchItem(
   project: Project,
-  areaName?: string
+  workspaceName?: string
 ): SearchItem {
   return {
     id: project.id,
     type: "project",
     title: project.name,
     content: project.description ?? "",
-    areaId: project.areaId,
-    areaName,
+    workspaceId: project.workspaceId,
+    workspaceName,
     projectId: project.id,
     projectName: project.name,
     status: project.status,

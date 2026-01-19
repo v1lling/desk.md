@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { AreaSwitcher } from "./area-switcher";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -78,10 +78,10 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Header: Area Switcher + Collapse Toggle */}
+      {/* Header: Workspace Switcher + Collapse Toggle */}
       <div className="shrink-0 p-3 flex items-center gap-2">
         <div className="flex-1 min-w-0">
-          <AreaSwitcher collapsed={collapsed} />
+          <WorkspaceSwitcher collapsed={collapsed} />
         </div>
         {onToggle && !collapsed && (
           <Button

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
-import { useProject, useProjectTasks, useProjectNotes, useProjectMeetings, useCurrentArea } from "@/stores";
+import { useProject, useProjectTasks, useProjectNotes, useProjectMeetings, useCurrentWorkspace } from "@/stores";
 import type { Task, Note, Meeting } from "@/types";
 import {
   LayoutGrid,
@@ -32,17 +32,17 @@ interface ProjectPageClientProps {
 }
 
 export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClientProps) {
-  const currentArea = useCurrentArea();
-  const currentAreaId = currentArea?.id || null;
+  const currentWorkspace = useCurrentWorkspace();
+  const currentWorkspaceId = currentWorkspace?.id || null;
   const router = useRouter();
 
   const { data: project, isLoading: projectLoading } = useProject(
-    currentAreaId,
+    currentWorkspaceId,
     projectId
   );
-  const { data: tasks = [] } = useProjectTasks(currentAreaId, projectId);
-  const { data: notes = [] } = useProjectNotes(currentAreaId, projectId);
-  const { data: meetings = [] } = useProjectMeetings(currentAreaId, projectId);
+  const { data: tasks = [] } = useProjectTasks(currentWorkspaceId, projectId);
+  const { data: notes = [] } = useProjectNotes(currentWorkspaceId, projectId);
+  const { data: meetings = [] } = useProjectMeetings(currentWorkspaceId, projectId);
 
   const [activeTab, setActiveTab] = useState("tasks");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);

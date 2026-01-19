@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Users, Loader2 } from "lucide-react";
-import { useCreateMeeting, useProjects, useCurrentArea } from "@/stores";
+import { useCreateMeeting, useProjects, useCurrentWorkspace } from "@/stores";
 import { toast } from "sonner";
 
 interface NewMeetingModalProps {
@@ -32,9 +32,9 @@ export function NewMeetingModal({
   onClose,
   defaultProjectId,
 }: NewMeetingModalProps) {
-  const currentArea = useCurrentArea();
+  const currentWorkspace = useCurrentWorkspace();
   const createMeeting = useCreateMeeting();
-  const { data: projects = [] } = useProjects(currentArea?.id || null);
+  const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
 
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -50,7 +50,7 @@ export function NewMeetingModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !currentArea || !projectId) return;
+    if (!title.trim() || !currentWorkspace || !projectId) return;
 
     try {
       const attendeesList = attendees
@@ -59,7 +59,7 @@ export function NewMeetingModal({
         .filter(Boolean);
 
       await createMeeting.mutateAsync({
-        areaId: currentArea.id,
+        workspaceId: currentWorkspace.id,
         projectId,
         title: title.trim(),
         date: date || undefined,

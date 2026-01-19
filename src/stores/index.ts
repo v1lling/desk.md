@@ -1,13 +1,13 @@
 export { useSettingsStore } from "./settings";
 export {
-  useAreas,
-  useArea,
-  useCreateArea,
-  useUpdateArea,
-  useDeleteArea,
-  useCurrentArea,
-  areaKeys,
-} from "./areas";
+  useWorkspaces,
+  useWorkspace,
+  useCreateWorkspace,
+  useUpdateWorkspace,
+  useDeleteWorkspace,
+  useCurrentWorkspace,
+  workspaceKeys,
+} from "./workspaces";
 export {
   useTasks,
   useProjectTasks,

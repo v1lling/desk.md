@@ -1,5 +1,5 @@
-// Area - represents a client/workspace
-export interface Area {
+// Workspace - represents a client/context
+export interface Workspace {
   id: string;              // Folder name
   name: string;            // Display name
   description?: string;
@@ -7,10 +7,10 @@ export interface Area {
   created: string;         // ISO date
 }
 
-// Project - lives under an area
+// Project - lives under a workspace
 export interface Project {
   id: string;              // Folder name
-  areaId: string;          // Parent area
+  workspaceId: string;     // Parent workspace
   name: string;
   status: ProjectStatus;
   description?: string;
@@ -31,7 +31,7 @@ export type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 export interface Task {
   id: string;              // Filename without .md
   projectId: string;       // Parent project (or "_unassigned")
-  areaId: string;
+  workspaceId: string;
   filePath: string;        // Full path to file
   title: string;
   status: TaskStatus;
@@ -48,7 +48,7 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 export interface Note {
   id: string;              // Filename without .md
   projectId: string;
-  areaId: string;
+  workspaceId: string;
   filePath: string;
   title: string;
   created: string;
@@ -60,7 +60,7 @@ export interface Note {
 export interface Meeting {
   id: string;              // Filename without .md
   projectId: string;
-  areaId: string;
+  workspaceId: string;
   filePath: string;
   title: string;
   date: string;            // ISO date - when the meeting occurred
@@ -73,7 +73,7 @@ export interface Meeting {
 // App configuration
 export interface OrbitConfig {
   dataPath: string;
-  currentAreaId: string | null;
+  currentWorkspaceId: string | null;
   theme: 'light' | 'dark' | 'system';
   sidebarCollapsed: boolean;
   setupCompleted: boolean;

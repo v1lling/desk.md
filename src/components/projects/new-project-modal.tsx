@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { useCreateProject, useCurrentArea } from "@/stores";
+import { useCreateProject, useCurrentWorkspace } from "@/stores";
 import type { ProjectStatus } from "@/types";
 import { toast } from "sonner";
 
@@ -34,7 +34,7 @@ const statusOptions: { value: ProjectStatus; label: string }[] = [
 ];
 
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
-  const currentArea = useCurrentArea();
+  const currentWorkspace = useCurrentWorkspace();
   const createProject = useCreateProject();
 
   const [name, setName] = useState("");
@@ -44,11 +44,11 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !currentArea) return;
+    if (!name.trim() || !currentWorkspace) return;
 
     try {
       await createProject.mutateAsync({
-        areaId: currentArea.id,
+        workspaceId: currentWorkspace.id,
         name: name.trim(),
         description: description.trim() || undefined,
         status,
@@ -128,7 +128,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || !currentArea || createProject.isPending}>
+            <Button type="submit" disabled={!name.trim() || !currentWorkspace || createProject.isPending}>
               {createProject.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}

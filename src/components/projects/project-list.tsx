@@ -1,7 +1,7 @@
 "use client";
 
 import { ProjectCard } from "./project-card";
-import { useProjects, useCurrentArea } from "@/stores";
+import { useProjects, useCurrentWorkspace } from "@/stores";
 import type { ProjectStatus } from "@/types";
 
 interface ProjectListProps {
@@ -9,8 +9,8 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ statusFilter = "all" }: ProjectListProps) {
-  const currentArea = useCurrentArea();
-  const { data: projects = [], isLoading } = useProjects(currentArea?.id || null);
+  const currentWorkspace = useCurrentWorkspace();
+  const { data: projects = [], isLoading } = useProjects(currentWorkspace?.id || null);
 
   const filteredProjects =
     statusFilter === "all"

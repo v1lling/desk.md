@@ -24,7 +24,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
   const moveNoteToProject = useMoveNoteToProject();
-  const { data: projects = [] } = useProjects(note?.areaId || null);
+  const { data: projects = [] } = useProjects(note?.workspaceId || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -57,7 +57,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
 
       await updateNote.mutateAsync({
         noteId: note.id,
-        areaId: note.areaId,
+        workspaceId: note.workspaceId,
         projectId: note.projectId,
         updates: {
           title: data.title.trim() || note.title,
@@ -84,7 +84,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
       if (projectId !== originalProjectId) {
         await moveNoteToProject.mutateAsync({
           noteId: note.id,
-          areaId: note.areaId,
+          workspaceId: note.workspaceId,
           fromProjectId: originalProjectId,
           toProjectId: projectId,
         });
@@ -108,7 +108,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     if (!note) return;
 
     try {
-      await deleteNote.mutateAsync({ noteId: note.id, areaId: note.areaId, projectId: note.projectId });
+      await deleteNote.mutateAsync({ noteId: note.id, workspaceId: note.workspaceId, projectId: note.projectId });
       toast.success("Note deleted");
       onClose();
     } catch {
