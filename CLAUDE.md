@@ -67,7 +67,8 @@ npm run tauri dev  # Desktop with file system
 ## Current State: v0.3
 
 Working features:
-- Workspaces with color coding
+- **Dashboard**: Cross-workspace overview with Focus (active tasks) and Workspaces widgets
+- Workspaces with color coding, inline in sidebar
 - Projects with status tracking
 - Tasks: Kanban board (4 columns), drag-drop, detail panel, quick add
 - Notes: WYSIWYG markdown editor (Tiptap)
@@ -75,6 +76,7 @@ Working features:
 - Unassigned items: Tasks/notes can exist without a project
 - Project reassignment: Move tasks/notes between projects
 - **Personal Space**: Inbox, tasks, and notes not tied to any workspace
+- **Collapsible sidebar sections**: Personal and workspace nav collapse independently
 - Settings: Theme toggle, data path configuration
 - File system: All data in portable markdown
 - **File watcher**: Auto-refresh UI when files change externally
@@ -92,6 +94,7 @@ Working features:
 
 Key modules in `src/lib/orbit/`:
 - `constants.ts` - Magic strings (SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID)
+- `dashboard.ts` - Cross-workspace data aggregation for dashboard
 - `personal.ts` - Personal space CRUD (inbox, tasks, notes)
 - `search.ts` - Cross-workspace search helpers
 - `search-index.ts` - In-memory Fuse.js search index
@@ -133,6 +136,7 @@ If `.view.json` is missing or corrupted, the app falls back to default ordering 
 
 ## Dev Notes
 
+- Dashboard at `/`, All Tasks at `/tasks`
 - Routes use query params (`/projects/view?id=xxx`) due to static export
 - Mock data in `lib/orbit/*.ts` - only used when `isTauri() === false`
 - Tiptap editor stores markdown internally, converts to/from HTML for editing
