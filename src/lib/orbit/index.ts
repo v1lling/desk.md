@@ -13,3 +13,4 @@ export * from "./calculations";
 export * from "./search";
 export * from "./view-state";
 export * from "./watcher";
+export * from "./search-index";

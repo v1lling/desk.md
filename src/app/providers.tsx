@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings";
 import { isTauri, initOrbitDirectory } from "@/lib/orbit";
 import { useFileWatcher } from "@/hooks/use-file-watcher";
+import { useSearchIndex } from "@/hooks/use-search-index";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -38,6 +39,12 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
 // Initialize file watcher for live updates
 function FileWatcherProvider({ children }: { children: React.ReactNode }) {
   useFileWatcher();
+  return <>{children}</>;
+}
+
+// Initialize search index
+function SearchIndexProvider({ children }: { children: React.ReactNode }) {
+  useSearchIndex();
   return <>{children}</>;
 }
 
@@ -85,7 +92,9 @@ export function Providers({ children }: ProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
         <FileWatcherProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <SearchIndexProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </SearchIndexProvider>
         </FileWatcherProvider>
       </TauriInitializer>
     </QueryClientProvider>

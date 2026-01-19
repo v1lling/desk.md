@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { AppShell } from "./app-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { GlobalSearch } from "@/components/global-search";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <Providers>
           <AppShell>{children}</AppShell>
+          <GlobalSearch />
           <Toaster position="bottom-right" />
         </Providers>
       </body>
