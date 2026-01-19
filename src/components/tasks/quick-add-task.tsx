@@ -48,7 +48,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [due, setDue] = useState("");
   const [content, setContent] = useState("");
-  const [projectId, setProjectId] = useState(defaultProjectId || "");
+  const [projectId, setProjectId] = useState(defaultProjectId || SPECIAL_DIRS.UNASSIGNED);
 
   // Set default project when provided
   useEffect(() => {
@@ -65,7 +65,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
     try {
       await createTask.mutateAsync({
         areaId: currentArea.id,
-        projectId: projectId || SPECIAL_DIRS.UNASSIGNED,
+        projectId,
         title: title.trim(),
         priority: priority === "none" ? undefined : priority,
         due: due || undefined,
@@ -122,7 +122,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
                 <SelectValue placeholder="No project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No project</SelectItem>
+                <SelectItem value={SPECIAL_DIRS.UNASSIGNED}>No project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
