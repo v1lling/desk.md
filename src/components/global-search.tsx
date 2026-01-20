@@ -104,7 +104,7 @@ export function GlobalSearch() {
           router.push(`/notes?open=${item.id}`);
           break;
         case "meeting":
-          router.push(`/projects/view?id=${item.projectId}&meeting=${item.id}`);
+          router.push(`/meetings?open=${item.id}`);
           break;
         case "project":
           router.push(`/projects/view?id=${item.projectId}`);

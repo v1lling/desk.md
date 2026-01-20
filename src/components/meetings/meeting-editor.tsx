@@ -164,17 +164,19 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   // Meetings don't have project moves, so no footer needed in panel mode
   // Save status is shown in header
 
+  // Editable title for fullscreen header
+  const fullscreenTitleInput = (
+    <Input
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      placeholder="Meeting title"
+      className="text-lg font-semibold border-none shadow-none px-0 h-auto py-0 focus-visible:ring-0 bg-transparent flex-1"
+    />
+  );
+
   // Fullscreen-specific content: maximized editor with compact metadata
   const fullscreenContent = (
     <div className="flex flex-col h-full space-y-3">
-      {/* Large title input - borderless for focus mode */}
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Meeting title"
-        className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent"
-      />
-
       {/* Compact metadata toolbar - date and attendees for meetings */}
       <MetadataToolbar
         date={date}
@@ -214,6 +216,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
         title="Edit Meeting"
         fullscreenChildren={fullscreenContent}
         fullscreenFooter={fullscreenFooter}
+        fullscreenTitleInput={fullscreenTitleInput}
         headerActions={deleteButton}
         saveStatus={saveStatus}
       >

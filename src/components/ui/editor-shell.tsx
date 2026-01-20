@@ -25,6 +25,8 @@ interface EditorShellProps {
   saveStatus?: SaveStatus;
   /** Callback when expanded state changes */
   onExpandedChange?: (expanded: boolean) => void;
+  /** Optional editable title input for fullscreen header (replaces static title) */
+  fullscreenTitleInput?: React.ReactNode;
 }
 
 /**
@@ -49,6 +51,7 @@ export function EditorShell({
   headerActions,
   saveStatus,
   onExpandedChange,
+  fullscreenTitleInput,
 }: EditorShellProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -176,11 +179,15 @@ export function EditorShell({
         <header
           className={cn(
             "flex items-center justify-between border-b border-border/60 shrink-0 transition-all duration-300",
-            isExpanded ? "px-4 py-3" : "px-6 pb-4 pt-6"
+            isExpanded ? "px-6 py-3" : "px-6 pb-4 pt-6"
           )}
         >
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {isExpanded && fullscreenTitleInput ? (
+              fullscreenTitleInput
+            ) : (
+              <h2 className="text-lg font-semibold truncate">{title}</h2>
+            )}
             {saveStatus && <SaveStatusIndicator status={saveStatus} compact />}
           </div>
           <div className="flex items-center gap-1">
@@ -202,7 +209,7 @@ export function EditorShell({
           <div
             className={cn(
               "h-full transition-all duration-300",
-              isExpanded ? "max-w-6xl mx-auto px-4 py-4" : "px-6 py-6"
+              isExpanded ? "px-6 py-4" : "px-6 py-6"
             )}
           >
             {contentToRender}
@@ -215,7 +222,7 @@ export function EditorShell({
             <div
               className={cn(
                 "transition-all duration-300",
-                isExpanded ? "max-w-6xl mx-auto px-4 py-3" : "px-6 pt-4 pb-6"
+                isExpanded ? "px-6 py-3" : "px-6 pt-4 pb-6"
               )}
             >
               {footerToRender}

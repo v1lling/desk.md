@@ -192,19 +192,27 @@ function WorkspaceItem({
         />
         <span className="flex-1 text-left truncate">{workspace.name}</span>
         {isSelected && (
-          <button
+          <span
+            role="button"
+            tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
               onToggle();
             }}
-            className="p-0.5 hover:bg-sidebar-accent rounded"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                onToggle();
+              }
+            }}
+            className="p-0.5 hover:bg-sidebar-accent rounded cursor-pointer"
           >
             {isExpanded ? (
               <ChevronDown className="size-3 text-sidebar-foreground/50" />
             ) : (
               <ChevronRight className="size-3 text-sidebar-foreground/50" />
             )}
-          </button>
+          </span>
         )}
       </button>
 

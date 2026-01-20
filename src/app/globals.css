@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -227,7 +228,9 @@
 
 .tiptap ul[data-type="taskList"] li > label {
   flex-shrink: 0;
-  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  height: 1.5rem; /* Match line-height of text */
 }
 
 .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
@@ -235,10 +238,17 @@
   width: 1rem;
   height: 1rem;
   accent-color: oklch(0.55 0.18 250);
+  margin: 0;
 }
 
 .tiptap ul[data-type="taskList"] li > div {
   flex: 1;
+  min-height: 1.5rem;
+}
+
+.tiptap ul[data-type="taskList"] li > div p {
+  margin: 0;
+  line-height: 1.5rem;
 }
 
 .tiptap ul[data-type="taskList"] li[data-checked="true"] > div p {

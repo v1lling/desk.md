@@ -188,17 +188,19 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     </div>
   ) : null;
 
+  // Editable title for fullscreen header
+  const fullscreenTitleInput = (
+    <Input
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      placeholder="Note title"
+      className="text-lg font-semibold border-none shadow-none px-0 h-auto py-0 focus-visible:ring-0 bg-transparent flex-1"
+    />
+  );
+
   // Fullscreen-specific content: maximized editor with compact project selector
   const fullscreenContent = (
     <div className="flex flex-col h-full space-y-3">
-      {/* Large title input - borderless for focus mode */}
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Note title"
-        className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent"
-      />
-
       {/* Compact metadata toolbar - just project for notes */}
       <MetadataToolbar
         projectId={projectId}
@@ -244,6 +246,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
         footer={footer}
         fullscreenChildren={fullscreenContent}
         fullscreenFooter={fullscreenFooter}
+        fullscreenTitleInput={fullscreenTitleInput}
         headerActions={deleteButton}
         saveStatus={saveStatus}
       >
