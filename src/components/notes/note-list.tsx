@@ -1,6 +1,7 @@
 "use client";
 
 import { NoteCard } from "./note-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Note } from "@/types";
 
 interface NoteListProps {
@@ -11,12 +12,10 @@ interface NoteListProps {
 export function NoteList({ notes, onNoteClick }: NoteListProps) {
   if (notes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">No notes yet</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Create your first note to get started
-        </p>
-      </div>
+      <EmptyState
+        title="No notes yet"
+        description="Create your first note to get started"
+      />
     );
   }
 

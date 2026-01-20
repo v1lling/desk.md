@@ -18,8 +18,8 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
-import type { TaskStatus, ProjectViewState } from "@/types";
+import { PATH_SEGMENTS, FILE_NAMES, PERSONAL_SPACE_ID } from "./constants";
+import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 
 // Re-export type for external use (canonical definition in @/types)
 export type { ProjectViewState } from "@/types";
@@ -30,6 +30,7 @@ export type { ProjectViewState } from "@/types";
 
 /**
  * Get the path to a .view.json file
+ * - Personal space: personal/.view.json
  * - If projectId is provided: workspaces/{workspace}/projects/{project}/.view.json
  * - If projectId is null: workspaces/{workspace}/.view.json (for All Tasks view)
  */
@@ -38,6 +39,15 @@ async function getViewStatePath(
   projectId: string | null
 ): Promise<string> {
   const orbitPath = await getOrbitPath();
+
+  // Personal space view state
+  if (workspaceId === PERSONAL_SPACE_ID) {
+    return await joinPath(
+      orbitPath,
+      PATH_SEGMENTS.PERSONAL,
+      FILE_NAMES.VIEW_STATE
+    );
+  }
 
   if (projectId) {
     // Project-level view state
@@ -200,4 +210,53 @@ export async function removeTaskFromOrder(
     ...state,
     taskOrder: newOrder,
   });
+}
+
+// =============================================================================
+// VIEW MODE HELPERS
+// =============================================================================
+
+/**
+ * Get the view mode for tasks (list or kanban)
+ * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal)
+ * @param projectId - The project ID, or null for workspace-level
+ * @param defaultMode - Default if not set (personal=list, projects=kanban)
+ */
+export async function getViewMode(
+  workspaceId: string,
+  projectId: string | null,
+  defaultMode: TaskViewMode = 'kanban'
+): Promise<TaskViewMode> {
+  const state = await getViewState(workspaceId, projectId);
+  return state.viewMode ?? defaultMode;
+}
+
+/**
+ * Set the view mode for tasks
+ */
+export async function setViewMode(
+  workspaceId: string,
+  projectId: string | null,
+  viewMode: TaskViewMode
+): Promise<void> {
+  const existing = await getViewState(workspaceId, projectId);
+  await saveViewState(workspaceId, projectId, {
+    ...existing,
+    viewMode,
+  });
+}
+
+/**
+ * Get personal space view state
+ * Convenience function for personal space operations
+ */
+export async function getPersonalViewState(): Promise<ProjectViewState> {
+  return getViewState(PERSONAL_SPACE_ID, null);
+}
+
+/**
+ * Save personal space view state
+ */
+export async function savePersonalViewState(state: ProjectViewState): Promise<void> {
+  return saveViewState(PERSONAL_SPACE_ID, null, state);
 }

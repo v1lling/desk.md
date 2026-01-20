@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
+import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
+import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
-import { useProject, useProjectTasks, useProjectNotes, useProjectMeetings, useCurrentWorkspace } from "@/stores";
+import { useProject, useProjectTasks, useProjectNotes, useProjectMeetings, useCurrentWorkspace, useViewMode, useProjects } from "@/stores";
+import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task, Note, Meeting } from "@/types";
 import {
   LayoutGrid,
@@ -43,6 +45,10 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   const { data: tasks = [] } = useProjectTasks(currentWorkspaceId, projectId);
   const { data: notes = [] } = useProjectNotes(currentWorkspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(currentWorkspaceId, projectId);
+  const { data: allProjects = [] } = useProjects(currentWorkspaceId);
+
+  // View mode for tasks (kanban default for projects)
+  const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, projectId, "kanban");
 
   const [activeTab, setActiveTab] = useState("tasks");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -79,6 +85,13 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
   // Calculate task stats using extracted utility
   const taskStats = calculateTaskStats(tasks);
+
+  // Helper to get project name (for list view)
+  const getProjectName = (taskProjectId: string) => {
+    if (isUnassigned(taskProjectId)) return null;
+    const p = allProjects.find((proj) => proj.id === taskProjectId);
+    return p?.name || taskProjectId;
+  };
 
   if (projectLoading) {
     return (
@@ -244,14 +257,23 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="flex-1 mt-0 flex flex-col">
-          <div className="px-6 py-3 flex justify-end border-b">
+          <div className="px-6 py-3 flex justify-end items-center gap-3 border-b">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button size="sm" onClick={() => setShowNewTask(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Task
             </Button>
           </div>
-          <div className="flex-1 p-6 overflow-hidden">
-            <KanbanBoard projectId={projectId} onTaskClick={handleTaskClick} />
+          <div className="flex-1 p-6 overflow-auto">
+            {viewMode === "kanban" ? (
+              <KanbanBoard projectId={projectId} onTaskClick={handleTaskClick} />
+            ) : (
+              <TaskListView
+                tasks={tasks}
+                onTaskClick={handleTaskClick}
+                groupByStatus
+              />
+            )}
           </div>
         </TabsContent>
 

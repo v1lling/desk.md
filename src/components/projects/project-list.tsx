@@ -1,6 +1,8 @@
 "use client";
 
 import { ProjectCard } from "./project-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
 import { useProjects, useCurrentWorkspace } from "@/stores";
 import type { ProjectStatus } from "@/types";
 
@@ -18,21 +20,16 @@ export function ProjectList({ statusFilter = "all" }: ProjectListProps) {
       : projects.filter((p) => p.status === statusFilter);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">
-          Loading projects...
-        </div>
-      </div>
-    );
+    return <LoadingState label="projects" />;
   }
 
   if (filteredProjects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-        <p className="text-lg font-medium mb-1">No projects yet</p>
-        <p className="text-sm">Create your first project to get started</p>
-      </div>
+      <EmptyState
+        title="No projects yet"
+        description="Create your first project to get started"
+        className="h-64"
+      />
     );
   }
 

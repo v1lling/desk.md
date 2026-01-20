@@ -89,8 +89,12 @@ export interface ApiResponse<T> {
   };
 }
 
-// View state - UI preferences stored in .view.json per project
+// View state - UI preferences stored in .view.json per project/personal space
 export interface ProjectViewState {
   /** Task ordering by status column */
   taskOrder?: Record<TaskStatus, string[]>;
+  /** View mode for tasks: list or kanban */
+  viewMode?: 'list' | 'kanban';
 }
+
+export type TaskViewMode = 'list' | 'kanban';

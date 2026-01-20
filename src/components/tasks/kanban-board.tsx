@@ -22,6 +22,7 @@ import {
   useTasks,
   useProjectTasks,
   useMoveTask,
+  useMovePersonalTask,
   useCurrentWorkspace,
   useProjects,
   useViewState,
@@ -29,8 +30,9 @@ import {
   sortTasksByOrder,
 } from "@/stores";
 import type { Task, TaskStatus } from "@/types";
-import { isUnassigned } from "@/lib/orbit/constants";
+import { isUnassigned, PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface KanbanBoardProps {
   projectId?: string;
@@ -41,6 +43,10 @@ interface KanbanBoardProps {
   tasks?: Task[];
   /** Whether to show the Done column by default (default: false) */
   showDoneByDefault?: boolean;
+  /** Personal space mode - simpler mutations, no ordering persistence */
+  isPersonal?: boolean;
+  /** Loading state (used when tasks are passed externally) */
+  isLoading?: boolean;
 }
 
 export function KanbanBoard({
@@ -49,31 +55,39 @@ export function KanbanBoard({
   showProject,
   tasks: externalTasks,
   showDoneByDefault = false,
+  isPersonal = false,
+  isLoading: externalIsLoading,
 }: KanbanBoardProps) {
   const currentWorkspace = useCurrentWorkspace();
-  const currentWorkspaceId = currentWorkspace?.id || null;
+  const currentWorkspaceId = isPersonal ? PERSONAL_SPACE_ID : (currentWorkspace?.id || null);
   const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
-  const allTasksQuery = useTasks(projectId ? null : currentWorkspaceId);
+  // Skip these queries in personal mode (tasks are passed externally)
+  const allTasksQuery = useTasks(isPersonal || projectId ? null : currentWorkspaceId);
   const projectTasksQuery = useProjectTasks(
-    projectId ? currentWorkspaceId : null,
+    !isPersonal && projectId ? currentWorkspaceId : null,
     projectId || null
   );
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
+  const { data: projects = [] } = useProjects(isPersonal ? null : currentWorkspaceId);
 
-  // Fetch view state for task ordering
+  // Fetch view state for task ordering (skip in personal mode - no ordering persistence)
   // - Project view: uses project-level .view.json
   // - All Tasks view: uses workspace-level .view.json (projectId = null)
   const effectiveProjectId = projectId || null;
-  const { data: viewState } = useViewState(currentWorkspaceId, effectiveProjectId);
+  const { data: viewState } = useViewState(
+    isPersonal ? null : currentWorkspaceId,
+    effectiveProjectId
+  );
   const updateTaskOrder = useUpdateTaskOrder();
   const moveTask = useMoveTask();
+  const movePersonalTask = useMovePersonalTask();
 
   // Use external tasks if provided (for filtering), otherwise use query results
   const queryResult = projectId ? projectTasksQuery : allTasksQuery;
-  const { data: fetchedTasks = [], isLoading } = queryResult;
+  const { data: fetchedTasks = [], isLoading: queryIsLoading } = queryResult;
   const tasks = externalTasks ?? fetchedTasks;
+  const isLoading = externalIsLoading ?? queryIsLoading;
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
@@ -187,7 +201,18 @@ export function KanbanBoard({
 
       const statusChanged = task.status !== targetStatus;
 
-      // Need areaId for any operation
+      // Personal mode: simple status update only
+      if (isPersonal) {
+        if (statusChanged) {
+          movePersonalTask.mutate({
+            taskId,
+            newStatus: targetStatus,
+          });
+        }
+        return;
+      }
+
+      // Need workspaceId for workspace operations
       if (!currentWorkspaceId) return;
 
       // Build new order for all columns (used for both project and All Tasks view)
@@ -259,21 +284,17 @@ export function KanbanBoard({
       tasks,
       groupedTasks,
       moveTask,
+      movePersonalTask,
       updateTaskOrder,
       projectId,
       currentWorkspaceId,
       effectiveProjectId,
+      isPersonal,
     ]
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">
-          Loading tasks...
-        </div>
-      </div>
-    );
+    return <LoadingState label="tasks" />;
   }
 
   return (

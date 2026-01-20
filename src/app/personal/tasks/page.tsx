@@ -5,9 +5,7 @@ import { Header } from "@/components/layout";
 import {
   usePersonalTasks,
   useCreatePersonalTask,
-  useUpdatePersonalTask,
-  useDeletePersonalTask,
-  groupPersonalTasksByStatus,
+  usePersonalViewMode,
 } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,36 +16,33 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, CheckCircle2, Circle, Clock, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { Task, TaskStatus } from "@/types";
+import { Plus } from "lucide-react";
+import type { Task } from "@/types";
+import { TaskDetailPanel, TaskListView, KanbanBoard } from "@/components/tasks";
+import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
+import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 
-const statusConfig: Record<
-  TaskStatus,
-  { label: string; icon: typeof Circle; color: string }
-> = {
-  todo: { label: "To Do", icon: Circle, color: "text-muted-foreground" },
-  doing: { label: "Doing", icon: Loader2, color: "text-blue-500" },
-  waiting: { label: "Waiting", icon: Clock, color: "text-amber-500" },
-  done: { label: "Done", icon: CheckCircle2, color: "text-emerald-500" },
-};
+const priorityOptions = [
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
 
 export default function PersonalTasksPage() {
   const { data: tasks = [], isLoading } = usePersonalTasks();
   const createTask = useCreatePersonalTask();
-  const updateTask = useUpdatePersonalTask();
-  const deleteTask = useDeletePersonalTask();
+  const { viewMode, setViewMode } = usePersonalViewMode();
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | "all">("all");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [filterPriority, setFilterPriority] = useState<string>("all");
 
-  const groupedTasks = useMemo(() => groupPersonalTasksByStatus(tasks), [tasks]);
-
+  // Filter tasks based on priority
   const filteredTasks = useMemo(() => {
-    if (filterStatus === "all") return tasks;
-    return tasks.filter((t) => t.status === filterStatus);
-  }, [tasks, filterStatus]);
+    if (filterPriority === "all") return tasks;
+    return tasks.filter((t) => t.priority === filterPriority);
+  }, [tasks, filterPriority]);
 
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -56,9 +51,12 @@ export default function PersonalTasksPage() {
     setShowNewTask(false);
   };
 
-  const handleStatusToggle = async (task: Task) => {
-    const nextStatus: TaskStatus = task.status === "done" ? "todo" : "done";
-    await updateTask.mutateAsync({ taskId: task.id, updates: { status: nextStatus } });
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedTask(null);
   };
 
   // Count active tasks (not done)
@@ -75,84 +73,39 @@ export default function PersonalTasksPage() {
         }}
       />
 
-      {/* Filter Tabs */}
-      <div className="border-b px-6 py-2">
-        <div className="flex gap-2">
-          <Button
-            variant={filterStatus === "all" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setFilterStatus("all")}
-          >
-            All ({tasks.length})
-          </Button>
-          {(Object.keys(statusConfig) as TaskStatus[]).map((status) => {
-            const config = statusConfig[status];
-            const count = groupedTasks[status].length;
-            return (
-              <Button
-                key={status}
-                variant={filterStatus === status ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setFilterStatus(status)}
-              >
-                <config.icon className={cn("size-3 mr-1", config.color)} />
-                {config.label} ({count})
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Filter bar with priority filter and view toggle */}
+      <EntityFilterBar
+        filters={[
+          {
+            id: "priority",
+            label: "Priority",
+            value: filterPriority,
+            onChange: setFilterPriority,
+            options: priorityOptions,
+            allLabel: "All priorities",
+            width: "w-[150px]",
+          },
+        ]}
+        count={filteredTasks.length}
+        countLabel="tasks"
+        rightElement={<ViewModeToggle value={viewMode} onChange={setViewMode} />}
+      />
 
       <main className="flex-1 overflow-auto p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-pulse text-muted-foreground">
-              Loading tasks...
-            </div>
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No tasks found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {filterStatus !== "all"
-                ? "Try a different filter or create a new task"
-                : "Create your first personal task"}
-            </p>
-          </div>
+        {viewMode === "list" ? (
+          <TaskListView
+            tasks={filteredTasks}
+            onTaskClick={handleTaskClick}
+            groupByStatus
+            isLoading={isLoading}
+          />
         ) : (
-          <div className="space-y-2 max-w-2xl">
-            {filteredTasks.map((task) => {
-              const config = statusConfig[task.status];
-              const Icon = config.icon;
-              return (
-                <div
-                  key={task.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer",
-                    task.status === "done" && "opacity-60"
-                  )}
-                  onClick={() => handleStatusToggle(task)}
-                >
-                  <Icon className={cn("size-5 mt-0.5 shrink-0", config.color)} />
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={cn(
-                        "font-medium",
-                        task.status === "done" && "line-through"
-                      )}
-                    >
-                      {task.title}
-                    </p>
-                    {task.content && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {task.content}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <KanbanBoard
+            tasks={filteredTasks}
+            onTaskClick={handleTaskClick}
+            isLoading={isLoading}
+            isPersonal
+          />
         )}
       </main>
 
@@ -180,6 +133,13 @@ export default function PersonalTasksPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Task Detail Panel */}
+      <TaskDetailPanel
+        task={selectedTask}
+        open={!!selectedTask}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 }

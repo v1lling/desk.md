@@ -8,11 +8,20 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
-import { useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
+import {
+  useUpdateTask,
+  useDeleteTask,
+  useMoveTaskToProject,
+  useProjects,
+  useRemoveTaskFromOrder,
+  useUpdatePersonalTask,
+  useDeletePersonalTask,
+} from "@/stores";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
+import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 
 interface TaskDetailPanelProps {
   task: Task | null;
@@ -21,11 +30,19 @@ interface TaskDetailPanelProps {
 }
 
 export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
+  // Detect if this is a personal task
+  const isPersonal = task?.workspaceId === PERSONAL_SPACE_ID;
+
+  // Workspace task hooks
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
   const removeTaskFromOrder = useRemoveTaskFromOrder();
-  const { data: projects = [] } = useProjects(task?.workspaceId || null);
+  const { data: projects = [] } = useProjects(isPersonal ? null : task?.workspaceId || null);
+
+  // Personal task hooks
+  const updatePersonalTask = useUpdatePersonalTask();
+  const deletePersonalTask = useDeletePersonalTask();
 
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
@@ -68,20 +85,29 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
     async (data: typeof autoSaveData) => {
       if (!task) return;
 
-      await updateTask.mutateAsync({
-        taskId: task.id,
-        workspaceId: task.workspaceId,
-        projectId: task.projectId,
-        updates: {
-          title: data.title.trim() || task.title,
-          status: data.status,
-          priority: data.priority,
-          due: data.due,
-          content: data.content,
-        },
-      });
+      const updates = {
+        title: data.title.trim() || task.title,
+        status: data.status,
+        priority: data.priority,
+        due: data.due,
+        content: data.content,
+      };
+
+      if (isPersonal) {
+        await updatePersonalTask.mutateAsync({
+          taskId: task.id,
+          updates,
+        });
+      } else {
+        await updateTask.mutateAsync({
+          taskId: task.id,
+          workspaceId: task.workspaceId,
+          projectId: task.projectId,
+          updates,
+        });
+      }
     },
-    [task, updateTask]
+    [task, updateTask, updatePersonalTask, isPersonal]
   );
 
   // Auto-save hook - only enabled when editor is open
@@ -123,22 +149,32 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const handleDeleteConfirm = () => {
     if (!task) return;
 
-    deleteTask.mutate(
-      { taskId: task.id, workspaceId: task.workspaceId, projectId: task.projectId },
-      {
+    if (isPersonal) {
+      deletePersonalTask.mutate(task.id, {
         onSuccess: () => {
-          // Clean up view state ordering
-          removeTaskFromOrder.mutate({
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            taskId: task.id,
-          });
           toast.success("Task deleted");
+          onClose();
         },
         onError: () => toast.error("Failed to delete task"),
-      }
-    );
-    onClose();
+      });
+    } else {
+      deleteTask.mutate(
+        { taskId: task.id, workspaceId: task.workspaceId, projectId: task.projectId },
+        {
+          onSuccess: () => {
+            // Clean up view state ordering
+            removeTaskFromOrder.mutate({
+              workspaceId: task.workspaceId,
+              projectId: task.projectId,
+              taskId: task.id,
+            });
+            toast.success("Task deleted");
+            onClose();
+          },
+          onError: () => toast.error("Failed to delete task"),
+        }
+      );
+    }
   };
 
   // Handle close - save pending changes if dirty
@@ -151,8 +187,25 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
   if (!task) return null;
 
-  // Check if project was changed (requires explicit save)
-  const projectChanged = projectId !== originalProjectId;
+  // Check if project was changed (requires explicit save) - only for workspace tasks
+  const projectChanged = !isPersonal && projectId !== originalProjectId;
+
+  // Common metadata toolbar props
+  const metadataProps = {
+    status,
+    onStatusChange: setStatus,
+    priority,
+    onPriorityChange: setPriority,
+    date: due,
+    onDateChange: setDue,
+    dateLabel: "Due" as const,
+    // Only show project for workspace tasks
+    ...(isPersonal ? {} : {
+      projectId,
+      onProjectChange: setProjectId,
+      projects: projects.map((p) => ({ id: p.id, name: p.name })),
+    }),
+  };
 
   const formContent = (
     <div className="space-y-4">
@@ -165,18 +218,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       />
 
       {/* Metadata toolbar - same component as fullscreen for consistency */}
-      <MetadataToolbar
-        status={status}
-        onStatusChange={setStatus}
-        priority={priority}
-        onPriorityChange={setPriority}
-        projectId={projectId}
-        onProjectChange={setProjectId}
-        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
-        date={due}
-        onDateChange={setDue}
-        dateLabel="Due"
-      />
+      <MetadataToolbar {...metadataProps} />
 
       {/* Content */}
       <div className="space-y-2">
@@ -234,18 +276,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const fullscreenContent = (
     <div className="flex flex-col h-full space-y-3">
       {/* Compact metadata toolbar */}
-      <MetadataToolbar
-        status={status}
-        onStatusChange={setStatus}
-        priority={priority}
-        onPriorityChange={setPriority}
-        projectId={projectId}
-        onProjectChange={setProjectId}
-        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
-        date={due}
-        onDateChange={setDue}
-        dateLabel="Due"
-      />
+      <MetadataToolbar {...metadataProps} />
 
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">

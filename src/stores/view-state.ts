@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { TaskStatus, ProjectViewState } from "@/types";
+import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 import * as viewStateLib from "@/lib/orbit/view-state";
+import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 
 // Query keys
 export const viewStateKeys = {
@@ -20,7 +21,7 @@ export function useViewState(workspaceId: string | null, projectId: string | nul
     queryKey: viewStateKeys.byScope(workspaceId || "", projectId),
     queryFn: () => viewStateLib.getViewState(workspaceId!, projectId),
     enabled: !!workspaceId, // Only need workspaceId, projectId can be null
-    staleTime: 0, // Always fetch fresh
+    staleTime: 30000, // Trust cached value for 30s to prevent flicker on view switch
   });
 }
 
@@ -102,6 +103,76 @@ export function useRemoveTaskFromOrder() {
       });
     },
   });
+}
+
+/**
+ * Hook to get/set view mode (list or kanban)
+ * Returns the current view mode and a function to change it
+ *
+ * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal space)
+ * @param projectId - The project ID, or null for workspace-level
+ * @param defaultMode - Default mode if not set (personal=list, projects=kanban)
+ */
+export function useViewMode(
+  workspaceId: string | null,
+  projectId: string | null,
+  defaultMode: TaskViewMode = "kanban"
+) {
+  const queryClient = useQueryClient();
+  const { data: viewState } = useViewState(workspaceId, projectId);
+
+  const viewMode = viewState?.viewMode ?? defaultMode;
+
+  const setViewMode = useMutation({
+    mutationFn: (newMode: TaskViewMode) =>
+      viewStateLib.setViewMode(workspaceId!, projectId, newMode),
+    onMutate: async (newMode) => {
+      if (!workspaceId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: viewStateKeys.byScope(workspaceId, projectId),
+      });
+
+      const previousState = queryClient.getQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId)
+      );
+
+      queryClient.setQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId),
+        (old) => ({
+          ...old,
+          viewMode: newMode,
+        })
+      );
+
+      return { previousState };
+    },
+    onError: (_err, _newMode, context) => {
+      // Rollback on error
+      if (context?.previousState && workspaceId) {
+        queryClient.setQueryData(
+          viewStateKeys.byScope(workspaceId, projectId),
+          context.previousState
+        );
+      }
+    },
+    // No onSettled/invalidate - optimistic update is sufficient
+    // Invalidating causes flicker due to race with file write
+  });
+
+  return {
+    viewMode,
+    setViewMode: (mode: TaskViewMode) => setViewMode.mutate(mode),
+    isLoading: setViewMode.isPending,
+  };
+}
+
+/**
+ * Hook for personal space view mode (convenience wrapper)
+ * Default is 'list' for personal tasks
+ */
+export function usePersonalViewMode() {
+  return useViewMode(PERSONAL_SPACE_ID, null, "list");
 }
 
 // Re-export helpers from lib

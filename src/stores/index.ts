@@ -52,6 +52,8 @@ export {
   useViewState,
   useUpdateTaskOrder,
   useRemoveTaskFromOrder,
+  useViewMode,
+  usePersonalViewMode,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";

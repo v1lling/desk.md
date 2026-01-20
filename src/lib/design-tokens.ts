@@ -87,3 +87,18 @@ export const priorityTextColors = {
   medium: "text-amber-600 dark:text-amber-400",
   low: "text-emerald-600 dark:text-emerald-400",
 } as const;
+
+// =============================================================================
+// TASK STATUS CONFIG
+// Complete status configuration with labels for UI display
+// =============================================================================
+
+export const taskStatusLabels = {
+  todo: "To Do",
+  doing: "In Progress",
+  waiting: "Waiting",
+  done: "Done",
+} as const;
+
+/** Ordered list of statuses for consistent display across views */
+export const taskStatusOrder: TaskStatus[] = ["doing", "todo", "waiting", "done"];

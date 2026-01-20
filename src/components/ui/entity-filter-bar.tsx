@@ -30,6 +30,8 @@ interface EntityFilterBarProps {
   count: number;
   countLabel: string;
   className?: string;
+  /** Optional element to render on the right side (e.g., view toggle) */
+  rightElement?: React.ReactNode;
 }
 
 /**
@@ -41,6 +43,7 @@ export function EntityFilterBar({
   count,
   countLabel,
   className,
+  rightElement,
 }: EntityFilterBarProps) {
   return (
     <div className={cn("px-6 py-3 border-b flex items-center gap-4 flex-wrap", className)}>
@@ -62,9 +65,12 @@ export function EntityFilterBar({
           </Select>
         </div>
       ))}
-      <Badge variant="secondary" className="ml-auto">
-        {count} {countLabel}
-      </Badge>
+      <div className="ml-auto flex items-center gap-3">
+        <Badge variant="secondary">
+          {count} {countLabel}
+        </Badge>
+        {rightElement}
+      </div>
     </div>
   );
 }

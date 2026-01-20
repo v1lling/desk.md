@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
-import { KanbanBoard, TaskDetailPanel, QuickAddTask } from "@/components/tasks";
+import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useTasks, useProjects, useCurrentWorkspace } from "@/stores";
+import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
+import { useTasks, useProjects, useCurrentWorkspace, useViewMode } from "@/stores";
+import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task } from "@/types";
 
 export default function TasksPage() {
@@ -15,6 +17,9 @@ export default function TasksPage() {
   const { data: projects = [] } = useProjects(currentWorkspaceId);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // View mode for All Tasks (workspace-level, projectId = null)
+  const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, null, "kanban");
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
@@ -62,6 +67,16 @@ export default function TasksPage() {
     { value: "low", label: "Low" },
   ];
 
+  // Helper to get project name for list view
+  const getProjectName = useCallback(
+    (projectId: string) => {
+      if (isUnassigned(projectId)) return null;
+      const project = projects.find((p) => p.id === projectId);
+      return project?.name || projectId;
+    },
+    [projects]
+  );
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -72,7 +87,7 @@ export default function TasksPage() {
         }}
       />
 
-      {/* Filter Bar */}
+      {/* Filter Bar with View Toggle */}
       <EntityFilterBar
         filters={[
           {
@@ -96,14 +111,25 @@ export default function TasksPage() {
         ]}
         count={filteredTasks.length}
         countLabel="tasks"
+        rightElement={<ViewModeToggle value={viewMode} onChange={setViewMode} />}
       />
 
       <div className="flex-1 p-6 min-h-0 overflow-auto">
-        <KanbanBoard
-          onTaskClick={handleTaskClick}
-          showProject
-          tasks={filteredTasks}
-        />
+        {viewMode === "kanban" ? (
+          <KanbanBoard
+            onTaskClick={handleTaskClick}
+            showProject
+            tasks={filteredTasks}
+          />
+        ) : (
+          <TaskListView
+            tasks={filteredTasks}
+            onTaskClick={handleTaskClick}
+            showProject
+            getProjectName={getProjectName}
+            groupByStatus
+          />
+        )}
       </div>
 
       {/* Task Detail Panel */}
