@@ -10,7 +10,7 @@
  * Note: These arrays are mutable so CRUD operations work in browser mode.
  */
 
-import type { Workspace, Project, Task, Note, Meeting } from "@/types";
+import type { Workspace, Project, Task, Doc, Meeting } from "@/types";
 
 // ============================================================================
 // WORKSPACES
@@ -143,10 +143,10 @@ export const mockTasks: Task[] = [
 ];
 
 // ============================================================================
-// NOTES
+// DOCS
 // ============================================================================
 
-export const mockNotes: Note[] = [
+export const mockDocs: Doc[] = [
   {
     id: "2024-01-15-meeting-zb-winterthur",
     projectId: "slskey",

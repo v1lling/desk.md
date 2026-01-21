@@ -2,14 +2,14 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FileText } from "lucide-react";
-import type { Note } from "@/types";
+import type { Doc } from "@/types";
 
-interface NoteCardProps {
-  note: Note;
+interface DocCardProps {
+  doc: Doc;
   onClick?: () => void;
 }
 
-export function NoteCard({ note, onClick }: NoteCardProps) {
+export function DocCard({ doc, onClick }: DocCardProps) {
   return (
     <Card
       className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -21,14 +21,14 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             <FileText className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium truncate">{note.title}</h3>
-            <p className="text-xs text-muted-foreground">{note.created}</p>
+            <h3 className="font-medium truncate">{doc.title}</h3>
+            <p className="text-xs text-muted-foreground">{doc.created}</p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <p className="text-sm text-muted-foreground line-clamp-2">
-          {note.preview}
+          {doc.preview}
         </p>
       </CardContent>
     </Card>

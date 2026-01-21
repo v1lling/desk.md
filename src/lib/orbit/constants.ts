@@ -27,7 +27,7 @@ export const PATH_SEGMENTS = {
   PERSONAL: "personal",
   PROJECTS: "projects",
   TASKS: "tasks",
-  NOTES: "notes",
+  DOCS: "docs",
   MEETINGS: "meetings",
   INBOX: "inbox",
 } as const;

@@ -22,7 +22,7 @@ export interface Project {
     waiting: number;
     done: number;
   };
-  noteCount?: number;
+  docCount?: number;
 }
 
 export type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
@@ -44,8 +44,8 @@ export interface Task {
 export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
-// Note - lives under a project
-export interface Note {
+// Doc - lives under a project (renamed from Note)
+export interface Doc {
   id: string;              // Filename without .md
   projectId: string;
   workspaceId: string;
@@ -55,6 +55,9 @@ export interface Note {
   content: string;
   preview?: string;        // First ~100 chars
 }
+
+// Keep Note as alias for backwards compatibility during migration
+export type Note = Doc;
 
 // Meeting - lives under a project
 export interface Meeting {

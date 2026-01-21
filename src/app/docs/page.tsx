@@ -3,59 +3,59 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
-import { NoteList, NoteEditor, NewNoteModal } from "@/components/notes";
+import { DocList, DocEditor, NewDocModal } from "@/components/docs";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useNotes, useProjects, useCurrentWorkspace } from "@/stores";
+import { useDocs, useProjects, useCurrentWorkspace } from "@/stores";
 import { FolderKanban } from "lucide-react";
-import type { Note } from "@/types";
+import type { Doc } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
-export default function NotesPage() {
+export default function DocsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: notes = [], isLoading } = useNotes(currentWorkspaceId);
+  const { data: docs = [], isLoading } = useDocs(currentWorkspaceId);
   const { data: projects = [] } = useProjects(currentWorkspaceId);
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [showNewNote, setShowNewNote] = useState(false);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [showNewDoc, setShowNewDoc] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
   const [filterProject, setFilterProject] = useState<string>("all");
 
   // Handle ?open= query param from search navigation
   useEffect(() => {
-    const openNoteId = searchParams.get("open");
-    if (openNoteId && notes.length > 0) {
-      const noteToOpen = notes.find((n) => n.id === openNoteId);
-      if (noteToOpen) {
-        setSelectedNote(noteToOpen);
+    const openDocId = searchParams.get("open");
+    if (openDocId && docs.length > 0) {
+      const docToOpen = docs.find((d) => d.id === openDocId);
+      if (docToOpen) {
+        setSelectedDoc(docToOpen);
         // Clear the URL param after opening
-        router.replace("/notes", { scroll: false });
+        router.replace("/docs", { scroll: false });
       }
     }
-  }, [searchParams, notes, router]);
+  }, [searchParams, docs, router]);
 
-  const handleNoteClick = (note: Note) => {
-    setSelectedNote(note);
+  const handleDocClick = (doc: Doc) => {
+    setSelectedDoc(doc);
   };
 
-  // Filter and group notes by project
-  const filteredNotes = useMemo(() => {
-    if (filterProject === "all") return notes;
-    return notes.filter((note) => note.projectId === filterProject);
-  }, [notes, filterProject]);
+  // Filter and group docs by project
+  const filteredDocs = useMemo(() => {
+    if (filterProject === "all") return docs;
+    return docs.filter((doc) => doc.projectId === filterProject);
+  }, [docs, filterProject]);
 
-  // Group notes by project for display
-  const groupedNotes = useMemo(() => {
-    const groups: Record<string, Note[]> = {};
-    filteredNotes.forEach((note) => {
-      const key = note.projectId;
+  // Group docs by project for display
+  const groupedDocs = useMemo(() => {
+    const groups: Record<string, Doc[]> = {};
+    filteredDocs.forEach((doc) => {
+      const key = doc.projectId;
       if (!groups[key]) groups[key] = [];
-      groups[key].push(note);
+      groups[key].push(doc);
     });
     return groups;
-  }, [filteredNotes]);
+  }, [filteredDocs]);
 
   const getProjectName = (projectId: string) => {
     if (projectId === "_unassigned") return "No project";
@@ -75,10 +75,10 @@ export default function NotesPage() {
   return (
     <div className="flex flex-col h-full">
       <Header
-        title="Notes"
+        title="Docs"
         action={{
-          label: "New Note",
-          onClick: () => setShowNewNote(true),
+          label: "New Doc",
+          onClick: () => setShowNewDoc(true),
         }}
       />
 
@@ -95,30 +95,30 @@ export default function NotesPage() {
             width: "w-[200px]",
           },
         ]}
-        count={filteredNotes.length}
-        countLabel="notes"
+        count={filteredDocs.length}
+        countLabel="docs"
       />
 
       <main className="flex-1 overflow-auto p-6">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-pulse text-muted-foreground">
-              Loading notes...
+              Loading docs...
             </div>
           </div>
-        ) : filteredNotes.length === 0 ? (
+        ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No notes found</p>
+            <p className="text-muted-foreground">No docs found</p>
             <p className="text-sm text-muted-foreground mt-1">
               {filterProject !== "all"
-                ? "Try selecting a different project or create a new note"
-                : "Create your first note to get started"}
+                ? "Try selecting a different project or create a new doc"
+                : "Create your first doc to get started"}
             </p>
           </div>
         ) : filterProject === "all" ? (
           // Grouped view when showing all
           <div className="space-y-8">
-            {Object.entries(groupedNotes).map(([projectId, projectNotes]) => (
+            {Object.entries(groupedDocs).map(([projectId, projectDocs]) => (
               <div key={projectId}>
                 <div className="flex items-center gap-2 mb-4">
                   <FolderKanban className="h-4 w-4 text-muted-foreground" />
@@ -135,26 +135,26 @@ export default function NotesPage() {
                     </Link>
                   )}
                   <Badge variant="outline" className="ml-2">
-                    {projectNotes.length}
+                    {projectDocs.length}
                   </Badge>
                 </div>
-                <NoteList notes={projectNotes} onNoteClick={handleNoteClick} />
+                <DocList docs={projectDocs} onDocClick={handleDocClick} />
               </div>
             ))}
           </div>
         ) : (
           // Simple list when filtered
-          <NoteList notes={filteredNotes} onNoteClick={handleNoteClick} />
+          <DocList docs={filteredDocs} onDocClick={handleDocClick} />
         )}
       </main>
 
-      <NoteEditor
-        note={selectedNote}
-        open={!!selectedNote}
-        onClose={() => setSelectedNote(null)}
+      <DocEditor
+        doc={selectedDoc}
+        open={!!selectedDoc}
+        onClose={() => setSelectedDoc(null)}
       />
 
-      <NewNoteModal open={showNewNote} onClose={() => setShowNewNote(false)} />
+      <NewDocModal open={showNewDoc} onClose={() => setShowNewDoc(false)} />
     </div>
   );
 }

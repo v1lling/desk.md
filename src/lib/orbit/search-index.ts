@@ -6,7 +6,7 @@
  */
 
 import Fuse, { type IFuseOptions } from "fuse.js";
-import type { Task, Note, Meeting, Project } from "@/types";
+import type { Task, Doc, Meeting, Project } from "@/types";
 
 // Unified search item type
 export type SearchItemType = "task" | "note" | "meeting" | "project";
@@ -247,21 +247,21 @@ export function taskToSearchItem(
 }
 
 export function noteToSearchItem(
-  note: Note,
+  doc: Doc,
   workspaceName?: string,
   projectName?: string
 ): SearchItem {
   return {
-    id: note.id,
-    type: "note",
-    title: note.title,
-    content: note.content?.slice(0, 200) ?? "",
-    workspaceId: note.workspaceId,
+    id: doc.id,
+    type: "note", // Keep as "note" for search compatibility
+    title: doc.title,
+    content: doc.content?.slice(0, 200) ?? "",
+    workspaceId: doc.workspaceId,
     workspaceName,
-    projectId: note.projectId,
+    projectId: doc.projectId,
     projectName,
-    created: note.created,
-    filePath: note.filePath,
+    created: doc.created,
+    filePath: doc.filePath,
   };
 }
 

@@ -27,7 +27,7 @@ import {
 } from "@/lib/orbit/watcher";
 import { isTauri } from "@/lib/orbit/tauri-fs";
 import * as taskLib from "@/lib/orbit/tasks";
-import * as noteLib from "@/lib/orbit/notes";
+import * as docLib from "@/lib/orbit/docs";
 import * as meetingLib from "@/lib/orbit/meetings";
 import * as projectLib from "@/lib/orbit/projects";
 import * as workspaceLib from "@/lib/orbit/workspaces";
@@ -75,11 +75,11 @@ export function useSearchIndex() {
           );
         }
 
-        // Get notes for the workspace
-        const notes = await noteLib.getNotes(workspace.id);
-        for (const note of notes) {
+        // Get docs for the workspace
+        const docs = await docLib.getDocs(workspace.id);
+        for (const doc of docs) {
           searchItems.push(
-            noteToSearchItem(note, workspace.name, projectMap.get(note.projectId))
+            noteToSearchItem(doc, workspace.name, projectMap.get(doc.projectId))
           );
         }
 

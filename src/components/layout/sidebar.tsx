@@ -35,14 +35,14 @@ interface SidebarProps {
 const workspaceNavItems = [
   { href: "/tasks", label: "All Tasks", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/notes", label: "Notes", icon: FileText },
+  { href: "/docs", label: "Docs", icon: FileText },
   { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
 
 // Personal space navigation items (Inbox moved to Dashboard)
 const personalNavItems = [
   { href: "/personal/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/personal/notes", label: "Notes", icon: StickyNote },
+  { href: "/personal/docs", label: "Docs", icon: StickyNote },
 ] as const;
 
 // Default color when workspace has no color set

@@ -8,23 +8,23 @@ import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
-import { useUpdateNote, useDeleteNote, useMoveNoteToProject, useProjects } from "@/stores";
+import { useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import type { Note } from "@/types";
+import type { Doc } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 
-interface NoteEditorProps {
-  note: Note | null;
+interface DocEditorProps {
+  doc: Doc | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
-  const updateNote = useUpdateNote();
-  const deleteNote = useDeleteNote();
-  const moveNoteToProject = useMoveNoteToProject();
-  const { data: projects = [] } = useProjects(note?.workspaceId || null);
+export function DocEditor({ doc, open, onClose }: DocEditorProps) {
+  const updateDoc = useUpdateDoc();
+  const deleteDoc = useDeleteDoc();
+  const moveDocToProject = useMoveDocToProject();
+  const { data: projects = [] } = useProjects(doc?.workspaceId || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -34,15 +34,15 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   // Track original projectId to detect moves (moves need special handling)
   const [originalProjectId, setOriginalProjectId] = useState("");
 
-  // Sync state when note changes
+  // Sync state when doc changes
   useEffect(() => {
-    if (note) {
-      setTitle(note.title);
-      setContent(note.content);
-      setProjectId(note.projectId);
-      setOriginalProjectId(note.projectId);
+    if (doc) {
+      setTitle(doc.title);
+      setContent(doc.content);
+      setProjectId(doc.projectId);
+      setOriginalProjectId(doc.projectId);
     }
-  }, [note]);
+  }, [doc]);
 
   // Auto-save data (excluding project changes which need file move)
   const autoSaveData = useMemo(
@@ -53,38 +53,38 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   // Auto-save handler
   const handleAutoSave = useCallback(
     async (data: { title: string; content: string }) => {
-      if (!note) return;
+      if (!doc) return;
 
-      await updateNote.mutateAsync({
-        noteId: note.id,
-        workspaceId: note.workspaceId,
-        projectId: note.projectId,
+      await updateDoc.mutateAsync({
+        docId: doc.id,
+        workspaceId: doc.workspaceId,
+        projectId: doc.projectId,
         updates: {
-          title: data.title.trim() || note.title,
+          title: data.title.trim() || doc.title,
           content: data.content,
         },
       });
     },
-    [note, updateNote]
+    [doc, updateDoc]
   );
 
   // Auto-save hook - only enabled when editor is open
   const { status: saveStatus, save: triggerSave, isDirty } = useAutoSave({
     data: autoSaveData,
     onSave: handleAutoSave,
-    enabled: open && !!note,
+    enabled: open && !!doc,
   });
 
   // Manual save (for project changes or explicit save)
   const handleSave = async () => {
-    if (!note) return;
+    if (!doc) return;
 
     try {
       // If project changed, move the file first
       if (projectId !== originalProjectId) {
-        await moveNoteToProject.mutateAsync({
-          noteId: note.id,
-          workspaceId: note.workspaceId,
+        await moveDocToProject.mutateAsync({
+          docId: doc.id,
+          workspaceId: doc.workspaceId,
           fromProjectId: originalProjectId,
           toProjectId: projectId,
         });
@@ -93,10 +93,10 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
 
       // Save content changes
       await triggerSave();
-      toast.success("Note saved");
+      toast.success("Doc saved");
       onClose();
     } catch {
-      toast.error("Failed to save note");
+      toast.error("Failed to save doc");
     }
   };
 
@@ -105,14 +105,14 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!note) return;
+    if (!doc) return;
 
     try {
-      await deleteNote.mutateAsync({ noteId: note.id, workspaceId: note.workspaceId, projectId: note.projectId });
-      toast.success("Note deleted");
+      await deleteDoc.mutateAsync({ docId: doc.id, workspaceId: doc.workspaceId, projectId: doc.projectId });
+      toast.success("Doc deleted");
       onClose();
     } catch {
-      toast.error("Failed to delete note");
+      toast.error("Failed to delete doc");
     }
   };
 
@@ -124,7 +124,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     onClose();
   };
 
-  if (!note) return null;
+  if (!doc) return null;
 
   // Check if project was changed (requires explicit save)
   const projectChanged = projectId !== originalProjectId;
@@ -135,7 +135,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
       <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Note title"
+        placeholder="Doc title"
         className="text-base font-medium"
       />
 
@@ -152,17 +152,17 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
         <MarkdownEditor
           value={content}
           onChange={setContent}
-          placeholder="Write your note in markdown..."
+          placeholder="Write your doc in markdown..."
           minHeight="300px"
         />
       </div>
 
       {/* File path (read-only info) */}
       <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/40">
-        <p className="truncate font-mono" title={note.filePath}>
-          {note.filePath}
+        <p className="truncate font-mono" title={doc.filePath}>
+          {doc.filePath}
         </p>
-        <p className="mt-1.5">Created: {note.created}</p>
+        <p className="mt-1.5">Created: {doc.created}</p>
       </div>
     </div>
   );
@@ -193,7 +193,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
     <Input
       value={title}
       onChange={(e) => setTitle(e.target.value)}
-      placeholder="Note title"
+      placeholder="Doc title"
       className="text-lg font-semibold border-none shadow-none px-0 h-auto py-0 focus-visible:ring-0 bg-transparent flex-1"
     />
   );
@@ -201,7 +201,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
   // Fullscreen-specific content: maximized editor with compact project selector
   const fullscreenContent = (
     <div className="flex flex-col h-full space-y-3">
-      {/* Compact metadata toolbar - just project for notes */}
+      {/* Compact metadata toolbar - just project for docs */}
       <MetadataToolbar
         projectId={projectId}
         onProjectChange={setProjectId}
@@ -213,7 +213,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
         <MarkdownEditor
           value={content}
           onChange={setContent}
-          placeholder="Write your note in markdown..."
+          placeholder="Write your doc in markdown..."
           minHeight="100%"
           className="h-full [&>div]:h-full [&>div>div]:h-full"
         />
@@ -242,7 +242,7 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
       <EditorShell
         open={open}
         onClose={handleClose}
-        title="Edit Note"
+        title="Edit Doc"
         footer={footer}
         fullscreenChildren={fullscreenContent}
         fullscreenFooter={fullscreenFooter}
@@ -256,8 +256,8 @@ export function NoteEditor({ note, open, onClose }: NoteEditorProps) {
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Delete Note"
-        description="Are you sure you want to delete this note? This action cannot be undone."
+        title="Delete Doc"
+        description="Are you sure you want to delete this doc? This action cannot be undone."
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDeleteConfirm}

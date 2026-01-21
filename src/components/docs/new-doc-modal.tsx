@@ -19,22 +19,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { useCreateNote, useProjects, useCurrentWorkspace } from "@/stores";
+import { useCreateDoc, useProjects, useCurrentWorkspace } from "@/stores";
 import { toast } from "sonner";
 
-interface NewNoteModalProps {
+interface NewDocModalProps {
   open: boolean;
   onClose: () => void;
   defaultProjectId?: string;
 }
 
-export function NewNoteModal({
+export function NewDocModal({
   open,
   onClose,
   defaultProjectId,
-}: NewNoteModalProps) {
+}: NewDocModalProps) {
   const currentWorkspace = useCurrentWorkspace();
-  const createNote = useCreateNote();
+  const createDoc = useCreateDoc();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
 
   const [title, setTitle] = useState("");
@@ -53,22 +53,22 @@ export function NewNoteModal({
     if (!title.trim() || !currentWorkspace) return;
 
     try {
-      await createNote.mutateAsync({
+      await createDoc.mutateAsync({
         workspaceId: currentWorkspace.id,
         projectId: projectId || "_unassigned",
         title: title.trim(),
         content: content || undefined,
       });
 
-      toast.success("Note created");
+      toast.success("Doc created");
 
       // Reset form
       setTitle("");
       setContent("");
       onClose();
     } catch (error) {
-      console.error("Failed to create note:", error);
-      toast.error("Failed to create note");
+      console.error("Failed to create doc:", error);
+      toast.error("Failed to create doc");
     }
   };
 
@@ -82,17 +82,17 @@ export function NewNoteModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Note</DialogTitle>
+          <DialogTitle>New Doc</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="note-title">Title</Label>
+            <Label htmlFor="doc-title">Title</Label>
             <Input
-              id="note-title"
+              id="doc-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Note title"
+              placeholder="Doc title"
               autoFocus
             />
           </div>
@@ -115,9 +115,9 @@ export function NewNoteModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="note-content">Content (optional)</Label>
+            <Label htmlFor="doc-content">Content (optional)</Label>
             <Textarea
-              id="note-content"
+              id="doc-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Start writing..."
@@ -131,12 +131,12 @@ export function NewNoteModal({
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || createNote.isPending}
+              disabled={!title.trim() || createDoc.isPending}
             >
-              {createNote.isPending && (
+              {createDoc.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Note
+              Create Doc
             </Button>
           </div>
         </form>

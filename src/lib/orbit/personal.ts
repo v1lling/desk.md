@@ -444,7 +444,7 @@ export async function getPersonalNotes(): Promise<Note[]> {
   }
 
   const personalPath = await getPersonalPath();
-  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.NOTES);
+  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.DOCS);
 
   if (!(await exists(notesPath))) {
     return [];
@@ -519,7 +519,7 @@ export async function createPersonalNote(data: {
   }
 
   const personalPath = await getPersonalPath();
-  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.NOTES);
+  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.DOCS);
   await mkdir(notesPath);
 
   const filePath = await joinPath(notesPath, filename);
@@ -614,5 +614,5 @@ export async function initPersonalDirectory(): Promise<void> {
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.NOTES));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout";
-import { NoteList } from "@/components/notes";
+import { DocList } from "@/components/docs";
 import {
   usePersonalNotes,
   usePersonalNote,
@@ -26,65 +26,65 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Plus, Trash2 } from "lucide-react";
-import type { Note } from "@/types";
+import type { Doc } from "@/types";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
-export default function PersonalNotesPage() {
-  const { data: notes = [], isLoading } = usePersonalNotes();
-  const createNote = useCreatePersonalNote();
-  const updateNote = useUpdatePersonalNote();
-  const deleteNote = useDeletePersonalNote();
+export default function PersonalDocsPage() {
+  const { data: docs = [], isLoading } = usePersonalNotes();
+  const createDoc = useCreatePersonalNote();
+  const updateDoc = useUpdatePersonalNote();
+  const deleteDoc = useDeletePersonalNote();
 
-  const [showNewNote, setShowNewNote] = useState(false);
-  const [newNoteTitle, setNewNoteTitle] = useState("");
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [showNewDoc, setShowNewDoc] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState("");
+  const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
   const [editorContent, setEditorContent] = useState("");
 
-  const handleCreateNote = async () => {
-    if (!newNoteTitle.trim()) return;
-    const note = await createNote.mutateAsync({ title: newNoteTitle.trim() });
-    setNewNoteTitle("");
-    setShowNewNote(false);
-    // Open the new note for editing
-    setSelectedNote(note);
-    setEditorContent(note.content);
+  const handleCreateDoc = async () => {
+    if (!newDocTitle.trim()) return;
+    const doc = await createDoc.mutateAsync({ title: newDocTitle.trim() });
+    setNewDocTitle("");
+    setShowNewDoc(false);
+    // Open the new doc for editing
+    setSelectedDoc(doc);
+    setEditorContent(doc.content);
   };
 
-  const handleNoteClick = (note: Note) => {
-    setSelectedNote(note);
-    setEditorContent(note.content);
+  const handleDocClick = (doc: Doc) => {
+    setSelectedDoc(doc);
+    setEditorContent(doc.content);
   };
 
   const handleSave = async () => {
-    if (!selectedNote) return;
-    await updateNote.mutateAsync({
-      noteId: selectedNote.id,
+    if (!selectedDoc) return;
+    await updateDoc.mutateAsync({
+      noteId: selectedDoc.id,
       updates: { content: editorContent },
     });
   };
 
   const handleDelete = async () => {
-    if (!selectedNote) return;
-    await deleteNote.mutateAsync(selectedNote.id);
-    setSelectedNote(null);
+    if (!selectedDoc) return;
+    await deleteDoc.mutateAsync(selectedDoc.id);
+    setSelectedDoc(null);
   };
 
   const handleCloseEditor = () => {
     // Auto-save before closing
-    if (selectedNote && editorContent !== selectedNote.content) {
+    if (selectedDoc && editorContent !== selectedDoc.content) {
       handleSave();
     }
-    setSelectedNote(null);
+    setSelectedDoc(null);
   };
 
   return (
     <div className="flex flex-col h-full">
       <Header
-        title="Personal Notes"
-        subtitle={`${notes.length} note${notes.length !== 1 ? "s" : ""}`}
+        title="Personal Docs"
+        subtitle={`${docs.length} doc${docs.length !== 1 ? "s" : ""}`}
         action={{
-          label: "New Note",
-          onClick: () => setShowNewNote(true),
+          label: "New Doc",
+          onClick: () => setShowNewDoc(true),
         }}
       />
 
@@ -92,53 +92,53 @@ export default function PersonalNotesPage() {
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-pulse text-muted-foreground">
-              Loading notes...
+              Loading docs...
             </div>
           </div>
-        ) : notes.length === 0 ? (
+        ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No notes yet</p>
+            <p className="text-muted-foreground">No docs yet</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Create your first personal note to get started
+              Create your first personal doc to get started
             </p>
           </div>
         ) : (
-          <NoteList notes={notes} onNoteClick={handleNoteClick} />
+          <DocList docs={docs} onDocClick={handleDocClick} />
         )}
       </main>
 
-      {/* New Note Dialog */}
-      <Dialog open={showNewNote} onOpenChange={setShowNewNote}>
+      {/* New Doc Dialog */}
+      <Dialog open={showNewDoc} onOpenChange={setShowNewDoc}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Personal Note</DialogTitle>
+            <DialogTitle>New Personal Doc</DialogTitle>
           </DialogHeader>
           <Input
-            value={newNoteTitle}
-            onChange={(e) => setNewNoteTitle(e.target.value)}
-            placeholder="Note title..."
-            onKeyDown={(e) => e.key === "Enter" && handleCreateNote()}
+            value={newDocTitle}
+            onChange={(e) => setNewDocTitle(e.target.value)}
+            placeholder="Doc title..."
+            onKeyDown={(e) => e.key === "Enter" && handleCreateDoc()}
             autoFocus
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewNote(false)}>
+            <Button variant="outline" onClick={() => setShowNewDoc(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateNote} disabled={!newNoteTitle.trim()}>
+            <Button onClick={handleCreateDoc} disabled={!newDocTitle.trim()}>
               <Plus className="size-4 mr-2" />
-              Create Note
+              Create Doc
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Note Editor Sheet */}
-      <Sheet open={!!selectedNote} onOpenChange={(open) => !open && handleCloseEditor()}>
+      {/* Doc Editor Sheet */}
+      <Sheet open={!!selectedDoc} onOpenChange={(open) => !open && handleCloseEditor()}>
         <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
           <SheetHeader className="px-6 py-4 border-b shrink-0">
             <div className="flex items-center justify-between">
               <SheetTitle className="text-lg font-semibold">
-                {selectedNote?.title}
+                {selectedDoc?.title}
               </SheetTitle>
               <Button
                 variant="ghost"
@@ -151,11 +151,11 @@ export default function PersonalNotesPage() {
             </div>
           </SheetHeader>
           <div className="flex-1 overflow-auto p-6">
-            {selectedNote && (
+            {selectedDoc && (
               <MarkdownEditor
                 value={editorContent}
                 onChange={setEditorContent}
-                placeholder="Write your note in markdown..."
+                placeholder="Write your doc in markdown..."
                 minHeight="400px"
               />
             )}

@@ -30,6 +30,15 @@ export {
   projectKeys,
 } from "./projects";
 export {
+  useDocs,
+  useProjectDocs,
+  useDoc,
+  useCreateDoc,
+  useUpdateDoc,
+  useDeleteDoc,
+  useMoveDocToProject,
+  docKeys,
+  // Backwards compatibility aliases
   useNotes,
   useProjectNotes,
   useNote,
@@ -38,7 +47,7 @@ export {
   useDeleteNote,
   useMoveNoteToProject,
   noteKeys,
-} from "./notes";
+} from "./docs";
 export {
   useMeetings,
   useProjectMeetings,
