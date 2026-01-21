@@ -18,7 +18,6 @@ import {
 } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
-import { findItemInAllWorkspaces } from "./search";
 
 interface DocFrontmatter {
   title: string;
@@ -194,16 +193,15 @@ export async function createDoc(data: {
 }
 
 /**
- * Update a doc
+ * Update a doc using its file path directly
+ * This is the simple, reliable way - we already have the path, use it.
  */
 export async function updateDoc(
-  docId: string,
-  updates: Partial<Pick<Doc, "title" | "content">>,
-  workspaceId?: string,
-  projectId?: string
+  doc: Doc,
+  updates: Partial<Pick<Doc, "title" | "content">>
 ): Promise<Doc | null> {
   if (!isTauri()) {
-    const index = mockDocs.findIndex((d) => d.id === docId);
+    const index = mockDocs.findIndex((d) => d.id === doc.id);
     if (index === -1) return null;
 
     const updatedFields: Partial<Doc> = { ...updates };
@@ -215,49 +213,11 @@ export async function updateDoc(
     return mockDocs[index];
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
-  if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
-    const docsPath = isUnassigned(projectId)
-      ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
-      : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.DOCS);
-
-    if (await exists(docsPath)) {
-      const entries = await readDir(docsPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === docId) {
-          const filePath = await joinPath(docsPath, entry.name);
-          const content = await readTextFile(filePath);
-          const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
-
-          const updatedData: DocFrontmatter = {
-            ...data,
-            ...(updates.title && { title: updates.title }),
-          };
-
-          const updatedContent = updates.content !== undefined ? updates.content : body;
-          const fileContent = serializeMarkdown(updatedData, updatedContent);
-          await writeTextFile(filePath, fileContent);
-
-          return {
-            id: docId,
-            projectId,
-            workspaceId,
-            filePath,
-            title: updatedData.title,
-            created: normalizeDate(data.created),
-            content: updatedContent,
-            preview: generatePreview(updatedContent),
-          };
-        }
-      }
-    }
+  // Use the file path directly - no path guessing needed
+  if (!(await exists(doc.filePath))) {
+    console.error(`Doc file not found: ${doc.filePath}`);
     return null;
   }
-
-  // Fallback: search all workspaces (slow path) - uses helper to find item
-  const doc = await findItemInAllWorkspaces(docId, getDocs);
-  if (!doc) return null;
 
   // Read existing file and update
   const content = await readTextFile(doc.filePath);
@@ -281,43 +241,21 @@ export async function updateDoc(
 }
 
 /**
- * Delete a doc
+ * Delete a doc using its file path directly
  */
-export async function deleteDoc(
-  docId: string,
-  workspaceId?: string,
-  projectId?: string
-): Promise<boolean> {
+export async function deleteDoc(doc: Doc): Promise<boolean> {
   if (!isTauri()) {
-    const index = mockDocs.findIndex((d) => d.id === docId);
+    const index = mockDocs.findIndex((d) => d.id === doc.id);
     if (index === -1) return false;
     mockDocs.splice(index, 1);
     return true;
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
-  if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
-    const docsPath = isUnassigned(projectId)
-      ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
-      : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.DOCS);
-
-    if (await exists(docsPath)) {
-      const entries = await readDir(docsPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === docId) {
-          const filePath = await joinPath(docsPath, entry.name);
-          await removeFile(filePath);
-          return true;
-        }
-      }
-    }
+  // Use the file path directly
+  if (!(await exists(doc.filePath))) {
+    console.error(`Doc file not found: ${doc.filePath}`);
     return false;
   }
-
-  // Fallback: search all workspaces (slow path) - uses helper to find item
-  const doc = await findItemInAllWorkspaces(docId, getDocs);
-  if (!doc) return false;
 
   await removeFile(doc.filePath);
   return true;

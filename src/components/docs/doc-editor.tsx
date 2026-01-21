@@ -79,9 +79,7 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
       if (!doc) return;
 
       await updateDoc.mutateAsync({
-        docId: doc.id,
-        workspaceId: doc.workspaceId,
-        projectId: doc.projectId,
+        doc,
         updates: {
           title: data.title.trim() || doc.title,
           content: data.content,
@@ -131,7 +129,7 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
     if (!doc) return;
 
     try {
-      await deleteDoc.mutateAsync({ docId: doc.id, workspaceId: doc.workspaceId, projectId: doc.projectId });
+      await deleteDoc.mutateAsync(doc);
       toast.success("Doc deleted");
       onClose();
     } catch {

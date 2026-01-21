@@ -86,31 +86,23 @@ export const useCreateNote = useCreateDoc;
 
 /**
  * Hook to update a doc
+ * Pass the full doc object - we use its filePath directly
  */
 export function useUpdateDoc() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
-      docId,
-      workspaceId,
-      projectId,
+      doc,
       updates,
     }: {
-      docId: string;
-      workspaceId: string;
-      projectId: string;
+      doc: Doc;
       updates: Partial<Pick<Doc, "title" | "content">>;
-    }) => docLib.updateDoc(docId, updates, workspaceId, projectId),
-    onSuccess: (updatedDoc, variables) => {
+    }) => docLib.updateDoc(doc, updates),
+    onSuccess: (updatedDoc) => {
       if (updatedDoc) {
-        queryClient.invalidateQueries({
-          queryKey: docKeys.byWorkspace(updatedDoc.workspaceId),
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: docKeys.byWorkspace(variables.workspaceId),
-        });
+        // Invalidate all doc queries since we support multiple scopes
+        queryClient.invalidateQueries({ queryKey: docKeys.all });
       }
     },
   });
@@ -121,18 +113,17 @@ export const useUpdateNote = useUpdateDoc;
 
 /**
  * Hook to delete a doc
+ * Pass the full doc object - we use its filePath directly
  */
 export function useDeleteDoc() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ docId, workspaceId, projectId }: { docId: string; workspaceId: string; projectId: string }) =>
-      docLib.deleteDoc(docId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
-    onSuccess: (result) => {
-      if (result.success) {
-        queryClient.invalidateQueries({
-          queryKey: docKeys.byWorkspace(result.workspaceId),
-        });
+    mutationFn: (doc: Doc) => docLib.deleteDoc(doc),
+    onSuccess: (success) => {
+      if (success) {
+        // Invalidate all doc queries since we support multiple scopes
+        queryClient.invalidateQueries({ queryKey: docKeys.all });
       }
     },
   });
