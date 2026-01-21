@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
-import { DocTree, DocList, DocEditor, NewDocModal } from "@/components/docs";
+import { DocTree, DocList, DocEditor, NewDocModal, DocDropZone } from "@/components/docs";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +16,11 @@ import {
   useRenameDocFolder,
   useDeleteDocFolder,
   useCreateDocInFolder,
+  useImportDocs,
+  useExpandedDocFolders,
 } from "@/stores";
 import { FolderKanban } from "lucide-react";
+import { toast } from "sonner";
 import type { Doc } from "@/types";
 import Link from "next/link";
 
@@ -49,6 +52,13 @@ export function DocsPageClient() {
   const renameFolder = useRenameDocFolder();
   const deleteFolder = useDeleteDocFolder();
   const createDocInFolder = useCreateDocInFolder();
+  const importDocs = useImportDocs();
+
+  // Persisted expanded folders state for workspace docs
+  const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
+    currentWorkspaceId,
+    null // workspace-level, not project-level
+  );
 
   // Handle ?open= query param from search navigation
   useEffect(() => {
@@ -155,6 +165,35 @@ export function DocsPageClient() {
     setSelectedDoc(doc);
   }, []);
 
+  // Handle file drop for import
+  const handleFilesDropped = useCallback(
+    async (files: File[]) => {
+      if (!currentWorkspaceId) return;
+
+      try {
+        // Read file contents
+        const fileContents = await Promise.all(
+          files.map(async (file) => ({
+            name: file.name,
+            content: await file.text(),
+          }))
+        );
+
+        await importDocs.mutateAsync({
+          files: fileContents,
+          scope: "workspace",
+          workspaceId: currentWorkspaceId,
+        });
+
+        toast.success(`Imported ${files.length} doc${files.length > 1 ? "s" : ""}`);
+      } catch (error) {
+        console.error("Failed to import docs:", error);
+        toast.error("Failed to import docs");
+      }
+    },
+    [currentWorkspaceId, importDocs]
+  );
+
   // Count for tabs
   const workspaceDocsCount = useMemo(() => {
     let count = 0;
@@ -210,7 +249,7 @@ export function DocsPageClient() {
       <main className="flex-1 overflow-hidden">
         {activeTab === "workspace" ? (
           // Workspace tree view - split into tree and editor
-          <div className="flex h-full">
+          <DocDropZone onFilesDropped={handleFilesDropped} className="flex h-full">
             {/* Tree sidebar */}
             <div className="w-64 border-r flex flex-col p-4">
               <DocTree
@@ -223,6 +262,8 @@ export function DocsPageClient() {
                 onCreateFolder={handleCreateFolder}
                 onRenameFolder={handleRenameFolder}
                 onDeleteFolder={handleDeleteFolder}
+                expandedFolders={expandedFolders}
+                onExpandedFoldersChange={setExpandedFolders}
               />
             </div>
 
@@ -241,12 +282,12 @@ export function DocsPageClient() {
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <p className="text-muted-foreground">Select a doc to view</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Or create a new doc or folder using the tree
+                    Drop files here to import, or create a new doc using the tree
                   </p>
                 </div>
               )}
             </div>
-          </div>
+          </DocDropZone>
         ) : (
           // All projects view - grouped list
           <div className="flex flex-col h-full">

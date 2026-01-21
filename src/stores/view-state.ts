@@ -175,5 +175,68 @@ export function usePersonalViewMode() {
   return useViewMode(PERSONAL_SPACE_ID, null, "list");
 }
 
+/**
+ * Hook to get/set expanded doc folders for tree view
+ * Returns the current expanded folders and a function to update them
+ *
+ * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal space)
+ * @param projectId - The project ID, or null for workspace-level
+ */
+export function useExpandedDocFolders(
+  workspaceId: string | null,
+  projectId: string | null
+) {
+  const queryClient = useQueryClient();
+  const { data: viewState } = useViewState(workspaceId, projectId);
+
+  const expandedFolders = viewState?.expandedDocFolders ?? [];
+
+  const setExpandedFolders = useMutation({
+    mutationFn: (folders: string[]) =>
+      viewStateLib.setExpandedDocFolders(workspaceId!, projectId, folders),
+    onMutate: async (folders) => {
+      if (!workspaceId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: viewStateKeys.byScope(workspaceId, projectId),
+      });
+
+      const previousState = queryClient.getQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId)
+      );
+
+      queryClient.setQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId),
+        (old) => ({
+          ...old,
+          expandedDocFolders: folders,
+        })
+      );
+
+      return { previousState };
+    },
+    onError: (_err, _folders, context) => {
+      if (context?.previousState && workspaceId) {
+        queryClient.setQueryData(
+          viewStateKeys.byScope(workspaceId, projectId),
+          context.previousState
+        );
+      }
+    },
+  });
+
+  return {
+    expandedFolders,
+    setExpandedFolders: (folders: string[]) => setExpandedFolders.mutate(folders),
+    toggleFolder: (folderPath: string) => {
+      const newFolders = expandedFolders.includes(folderPath)
+        ? expandedFolders.filter((f) => f !== folderPath)
+        : [...expandedFolders, folderPath];
+      setExpandedFolders.mutate(newFolders);
+    },
+    isLoading: setExpandedFolders.isPending,
+  };
+}
+
 // Re-export helpers from lib
 export { sortTasksByOrder } from "@/lib/orbit/view-state";

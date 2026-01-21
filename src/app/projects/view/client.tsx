@@ -20,6 +20,7 @@ import {
   useCreateDocFolder,
   useRenameDocFolder,
   useDeleteDocFolder,
+  useExpandedDocFolders,
 } from "@/stores";
 import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task, Doc, Meeting } from "@/types";
@@ -62,6 +63,12 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   const createDocFolder = useCreateDocFolder();
   const renameDocFolder = useRenameDocFolder();
   const deleteDocFolder = useDeleteDocFolder();
+
+  // Persisted expanded folders state for project docs
+  const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
+    currentWorkspaceId,
+    projectId
+  );
 
   // Count docs in tree
   const countDocs = (nodes: typeof docTree): number => {
@@ -372,6 +379,8 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
                 onCreateFolder={handleCreateDocFolder}
                 onRenameFolder={handleRenameDocFolder}
                 onDeleteFolder={handleDeleteDocFolder}
+                expandedFolders={expandedFolders}
+                onExpandedFoldersChange={setExpandedFolders}
               />
             </div>
             {/* Content area */}

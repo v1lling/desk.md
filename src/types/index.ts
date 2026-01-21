@@ -114,6 +114,8 @@ export interface ProjectViewState {
   taskOrder?: Record<TaskStatus, string[]>;
   /** View mode for tasks: list or kanban */
   viewMode?: 'list' | 'kanban';
+  /** Expanded folder paths in doc tree */
+  expandedDocFolders?: string[];
 }
 
 export type TaskViewMode = 'list' | 'kanban';

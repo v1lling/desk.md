@@ -803,3 +803,45 @@ export async function createDocInFolder(data: {
 
   return doc;
 }
+
+/**
+ * Import multiple docs from file contents
+ */
+export async function importDocs(
+  files: Array<{ name: string; content: string }>,
+  scope: DocScope,
+  folderPath?: string,
+  workspaceId?: string,
+  projectId?: string
+): Promise<Doc[]> {
+  const importedDocs: Doc[] = [];
+
+  for (const file of files) {
+    // Try to parse frontmatter from file
+    let title: string;
+    let content: string;
+
+    try {
+      const parsed = parseMarkdown<{ title?: string }>(file.content);
+      title = parsed.data.title || file.name.replace(/\.(md|markdown|txt)$/i, "");
+      content = file.content;
+    } catch {
+      // If parsing fails, use filename as title and raw content
+      title = file.name.replace(/\.(md|markdown|txt)$/i, "");
+      content = file.content;
+    }
+
+    const doc = await createDocInFolder({
+      scope,
+      title,
+      content,
+      folderPath,
+      workspaceId,
+      projectId,
+    });
+
+    importedDocs.push(doc);
+  }
+
+  return importedDocs;
+}

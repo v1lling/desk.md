@@ -45,6 +45,7 @@ export {
   useDeleteDocFolder,
   useMoveDoc,
   useCreateDocInFolder,
+  useImportDocs,
   // Backwards compatibility aliases
   useNotes,
   useProjectNotes,
@@ -70,6 +71,7 @@ export {
   useRemoveTaskFromOrder,
   useViewMode,
   usePersonalViewMode,
+  useExpandedDocFolders,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";

@@ -358,3 +358,41 @@ export function useCreateDocInFolder() {
     },
   });
 }
+
+/**
+ * Hook to import multiple docs from file contents
+ */
+export function useImportDocs() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      files,
+      scope,
+      folderPath,
+      workspaceId,
+      projectId,
+    }: {
+      files: Array<{ name: string; content: string }>;
+      scope: DocScope;
+      folderPath?: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.importDocs(files, scope, folderPath, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+      // Also invalidate the flat list queries
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: docKeys.byWorkspace(variables.workspaceId),
+        });
+      }
+    },
+  });
+}

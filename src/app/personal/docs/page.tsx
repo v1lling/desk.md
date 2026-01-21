@@ -9,6 +9,8 @@ import {
   useRenameDocFolder,
   useDeleteDocFolder,
   useCreateDocInFolder,
+  useExpandedDocFolders,
+  PERSONAL_SPACE_ID,
 } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,12 @@ export default function PersonalDocsPage() {
   const renameFolder = useRenameDocFolder();
   const deleteFolder = useDeleteDocFolder();
   const createDocInFolder = useCreateDocInFolder();
+
+  // Persisted expanded folders state for personal docs
+  const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
+    PERSONAL_SPACE_ID,
+    null
+  );
 
   const [showNewDoc, setShowNewDoc] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
@@ -135,6 +143,8 @@ export default function PersonalDocsPage() {
               onCreateFolder={handleCreateFolder}
               onRenameFolder={handleRenameFolder}
               onDeleteFolder={handleDeleteFolder}
+              expandedFolders={expandedFolders}
+              onExpandedFoldersChange={setExpandedFolders}
             />
           </div>
 

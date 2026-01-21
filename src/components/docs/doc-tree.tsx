@@ -27,6 +27,9 @@ interface DocTreeProps {
   onRenameFolder?: (path: string, newName: string) => Promise<void>;
   onDeleteFolder?: (path: string) => Promise<void>;
   className?: string;
+  // Optional controlled expanded state for persistence
+  expandedFolders?: string[];
+  onExpandedFoldersChange?: (folders: string[]) => void;
 }
 
 export function DocTree({
@@ -40,11 +43,31 @@ export function DocTree({
   onRenameFolder,
   onDeleteFolder,
   className,
+  expandedFolders: controlledExpandedFolders,
+  onExpandedFoldersChange,
 }: DocTreeProps) {
-  // Track expanded folders
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+  // Track expanded folders - use controlled state if provided, otherwise local state
+  const [localExpandedFolders, setLocalExpandedFolders] = useState<Set<string>>(
     new Set()
   );
+
+  // Convert controlled array to Set for consistent usage
+  const expandedFolders = controlledExpandedFolders
+    ? new Set(controlledExpandedFolders)
+    : localExpandedFolders;
+
+  const setExpandedFolders = useCallback((update: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+    if (onExpandedFoldersChange) {
+      // Controlled mode - notify parent
+      const newSet = typeof update === 'function'
+        ? update(new Set(controlledExpandedFolders || []))
+        : update;
+      onExpandedFoldersChange(Array.from(newSet));
+    } else {
+      // Uncontrolled mode - use local state
+      setLocalExpandedFolders(update);
+    }
+  }, [controlledExpandedFolders, onExpandedFoldersChange]);
 
   // Modal state for creating/renaming folders
   const [folderModal, setFolderModal] = useState<{
