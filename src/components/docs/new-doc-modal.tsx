@@ -18,28 +18,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
-import { useCreateDoc, useProjects, useCurrentWorkspace } from "@/stores";
+import { Loader2, Folder } from "lucide-react";
+import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace } from "@/stores";
 import { toast } from "sonner";
+import type { DocScope } from "@/types";
 
 interface NewDocModalProps {
   open: boolean;
   onClose: () => void;
   defaultProjectId?: string;
+  defaultScope?: DocScope;
+  defaultFolderPath?: string;
 }
 
 export function NewDocModal({
   open,
   onClose,
   defaultProjectId,
+  defaultScope,
+  defaultFolderPath,
 }: NewDocModalProps) {
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
+  const createDocInFolder = useCreateDocInFolder();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
+
+  // If defaultScope is "workspace", we're creating a workspace-level doc
+  const isWorkspaceScope = defaultScope === "workspace";
 
   useEffect(() => {
     if (defaultProjectId) {
@@ -53,12 +62,24 @@ export function NewDocModal({
     if (!title.trim() || !currentWorkspace) return;
 
     try {
-      await createDoc.mutateAsync({
-        workspaceId: currentWorkspace.id,
-        projectId: projectId || "_unassigned",
-        title: title.trim(),
-        content: content || undefined,
-      });
+      if (isWorkspaceScope) {
+        // Create in workspace docs folder (with optional folder path)
+        await createDocInFolder.mutateAsync({
+          scope: "workspace",
+          title: title.trim(),
+          content: content || undefined,
+          folderPath: defaultFolderPath,
+          workspaceId: currentWorkspace.id,
+        });
+      } else {
+        // Create in project docs folder
+        await createDoc.mutateAsync({
+          workspaceId: currentWorkspace.id,
+          projectId: projectId || "_unassigned",
+          title: title.trim(),
+          content: content || undefined,
+        });
+      }
 
       toast.success("Doc created");
 
@@ -77,6 +98,8 @@ export function NewDocModal({
     setContent("");
     onClose();
   };
+
+  const isPending = createDoc.isPending || createDocInFolder.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -97,22 +120,33 @@ export function NewDocModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="No project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No project</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isWorkspaceScope ? (
+            // Workspace scope - show folder path if any
+            defaultFolderPath && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
+                <Folder className="size-4" />
+                <span>Creating in: {defaultFolderPath}</span>
+              </div>
+            )
+          ) : (
+            // Project scope - show project selector
+            <div className="space-y-2">
+              <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No project</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="doc-content">Content (optional)</Label>
@@ -131,9 +165,9 @@ export function NewDocModal({
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || createDoc.isPending}
+              disabled={!title.trim() || isPending}
             >
-              {createDoc.isPending && (
+              {isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Create Doc

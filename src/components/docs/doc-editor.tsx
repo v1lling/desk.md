@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Trash2 } from "lucide-react";
+import { Trash2, Folder, ChevronRight } from "lucide-react";
 import { useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import type { Doc } from "@/types";
@@ -18,6 +18,29 @@ interface DocEditorProps {
   doc: Doc | null;
   open: boolean;
   onClose: () => void;
+}
+
+// Helper to render folder path breadcrumb
+function FolderBreadcrumb({ path }: { path?: string }) {
+  if (!path) return null;
+
+  // Extract folder path (everything before the filename)
+  const parts = path.split("/");
+  if (parts.length <= 1) return null; // No folder, just a filename
+
+  const folderParts = parts.slice(0, -1); // Remove filename
+
+  return (
+    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+      <Folder className="size-3.5" />
+      {folderParts.map((part, index) => (
+        <span key={index} className="flex items-center gap-1">
+          {index > 0 && <ChevronRight className="size-3" />}
+          <span>{part}</span>
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function DocEditor({ doc, open, onClose }: DocEditorProps) {
@@ -131,6 +154,9 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
 
   const formContent = (
     <div className="space-y-4">
+      {/* Folder path breadcrumb */}
+      {doc.path && <FolderBreadcrumb path={doc.path} />}
+
       {/* Title */}
       <Input
         value={title}
@@ -201,6 +227,9 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
   // Fullscreen-specific content: maximized editor with compact project selector
   const fullscreenContent = (
     <div className="flex flex-col h-full space-y-3">
+      {/* Folder path breadcrumb */}
+      {doc.path && <FolderBreadcrumb path={doc.path} />}
+
       {/* Compact metadata toolbar - just project for docs */}
       <MetadataToolbar
         projectId={projectId}

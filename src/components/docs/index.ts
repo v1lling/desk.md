@@ -2,6 +2,8 @@ export { DocCard } from "./doc-card";
 export { DocList } from "./doc-list";
 export { DocEditor } from "./doc-editor";
 export { NewDocModal } from "./new-doc-modal";
+export { DocTree } from "./doc-tree";
+export { DocTreeItem } from "./doc-tree-item";
 
 // Backwards compatibility aliases
 export { DocCard as NoteCard } from "./doc-card";

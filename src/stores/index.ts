@@ -38,6 +38,13 @@ export {
   useDeleteDoc,
   useMoveDocToProject,
   docKeys,
+  // Tree-based hooks
+  useDocTree,
+  useCreateDocFolder,
+  useRenameDocFolder,
+  useDeleteDocFolder,
+  useMoveDoc,
+  useCreateDocInFolder,
   // Backwards compatibility aliases
   useNotes,
   useProjectNotes,

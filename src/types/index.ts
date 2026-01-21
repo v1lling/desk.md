@@ -47,9 +47,10 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 // Doc - lives under a project (renamed from Note)
 export interface Doc {
   id: string;              // Filename without .md
+  path?: string;           // Relative path with folders (e.g., "tech/architecture.md")
   projectId: string;
   workspaceId: string;
-  filePath: string;
+  filePath: string;        // Full absolute path
   title: string;
   created: string;
   content: string;
@@ -58,6 +59,21 @@ export interface Doc {
 
 // Keep Note as alias for backwards compatibility during migration
 export type Note = Doc;
+
+// Folder in the doc tree
+export interface DocFolder {
+  name: string;
+  path: string;            // Relative path (e.g., "tech" or "tech/api")
+  children: DocTreeNode[];
+}
+
+// Tree node - either a folder or a doc
+export type DocTreeNode =
+  | { type: 'folder'; folder: DocFolder }
+  | { type: 'doc'; doc: Doc };
+
+// Doc scope - where the doc lives
+export type DocScope = 'personal' | 'workspace' | 'project';
 
 // Meeting - lives under a project
 export interface Meeting {

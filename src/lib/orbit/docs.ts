@@ -1,7 +1,7 @@
 /**
  * Docs library - File system operations for docs
  */
-import type { Doc } from "@/types";
+import type { Doc, DocFolder, DocTreeNode, DocScope } from "@/types";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
@@ -11,6 +11,8 @@ import {
   writeTextFile,
   mkdir,
   removeFile,
+  removeDir,
+  rename,
   joinPath,
   exists,
 } from "./tauri-fs";
@@ -395,4 +397,409 @@ export async function moveDocToProject(
     content: body,
     preview: generatePreview(body),
   };
+}
+
+// ============================================================================
+// Tree Building and Folder Operations
+// ============================================================================
+
+/**
+ * Get the base docs path for a given scope
+ */
+export async function getDocsBasePath(
+  scope: DocScope,
+  workspaceId?: string,
+  projectId?: string
+): Promise<string> {
+  const orbitPath = await getOrbitPath();
+
+  if (scope === "personal") {
+    return joinPath(orbitPath, PATH_SEGMENTS.PERSONAL, PATH_SEGMENTS.DOCS);
+  }
+
+  if (!workspaceId) {
+    throw new Error("workspaceId required for workspace/project scope");
+  }
+
+  if (scope === "workspace") {
+    return joinPath(
+      orbitPath,
+      PATH_SEGMENTS.WORKSPACES,
+      workspaceId,
+      PATH_SEGMENTS.DOCS
+    );
+  }
+
+  // scope === "project"
+  if (!projectId) {
+    throw new Error("projectId required for project scope");
+  }
+
+  if (isUnassigned(projectId)) {
+    return joinPath(
+      orbitPath,
+      PATH_SEGMENTS.WORKSPACES,
+      workspaceId,
+      SPECIAL_DIRS.UNASSIGNED,
+      PATH_SEGMENTS.DOCS
+    );
+  }
+
+  return joinPath(
+    orbitPath,
+    PATH_SEGMENTS.WORKSPACES,
+    workspaceId,
+    PATH_SEGMENTS.PROJECTS,
+    projectId,
+    PATH_SEGMENTS.DOCS
+  );
+}
+
+/**
+ * Recursively build a doc tree from a directory
+ */
+async function buildDocTreeRecursive(
+  basePath: string,
+  relativePath: string,
+  scope: DocScope,
+  workspaceId: string,
+  projectId: string
+): Promise<DocTreeNode[]> {
+  const currentPath = relativePath
+    ? await joinPath(basePath, relativePath)
+    : basePath;
+
+  if (!(await exists(currentPath))) {
+    return [];
+  }
+
+  const entries = await readDir(currentPath);
+  const nodes: DocTreeNode[] = [];
+
+  // Separate folders and files
+  const folders = entries.filter(
+    (e) => e.isDirectory && !e.name.startsWith(".")
+  );
+  const files = entries.filter((e) => e.isFile && e.name.endsWith(".md"));
+
+  // Process folders first (sorted alphabetically)
+  folders.sort((a, b) => a.name.localeCompare(b.name));
+  for (const folder of folders) {
+    const folderRelPath = relativePath
+      ? `${relativePath}/${folder.name}`
+      : folder.name;
+
+    const children = await buildDocTreeRecursive(
+      basePath,
+      folderRelPath,
+      scope,
+      workspaceId,
+      projectId
+    );
+
+    nodes.push({
+      type: "folder",
+      folder: {
+        name: folder.name,
+        path: folderRelPath,
+        children,
+      },
+    });
+  }
+
+  // Process files (sorted by name)
+  files.sort((a, b) => a.name.localeCompare(b.name));
+  for (const file of files) {
+    try {
+      const filePath = await joinPath(currentPath, file.name);
+      const content = await readTextFile(filePath);
+      const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
+
+      const docRelPath = relativePath
+        ? `${relativePath}/${file.name}`
+        : file.name;
+
+      nodes.push({
+        type: "doc",
+        doc: {
+          id: filenameToId(file.name),
+          path: docRelPath,
+          projectId,
+          workspaceId,
+          filePath,
+          title: data.title || file.name.replace(".md", ""),
+          created: normalizeDate(data.created),
+          content: body,
+          preview: generatePreview(body),
+        },
+      });
+    } catch (e) {
+      console.warn(`Failed to read doc ${file.name}:`, e);
+    }
+  }
+
+  return nodes;
+}
+
+/**
+ * Get a doc tree for a given scope
+ */
+export async function getDocTree(
+  scope: DocScope,
+  workspaceId?: string,
+  projectId?: string
+): Promise<DocTreeNode[]> {
+  if (!isTauri()) {
+    // Return flat mock data as tree (no folders in mock)
+    const filtered = mockDocs.filter((doc) => {
+      if (scope === "personal") return doc.workspaceId === "_personal";
+      if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === "_workspace";
+      return doc.workspaceId === workspaceId && doc.projectId === projectId;
+    });
+
+    return filtered.map((doc) => ({
+      type: "doc" as const,
+      doc,
+    }));
+  }
+
+  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+
+  // Ensure docs directory exists
+  await mkdir(basePath);
+
+  return buildDocTreeRecursive(
+    basePath,
+    "",
+    scope,
+    workspaceId || "_personal",
+    projectId || (scope === "workspace" ? "_workspace" : "_personal")
+  );
+}
+
+/**
+ * Create a new folder in the docs tree
+ */
+export async function createDocFolder(
+  scope: DocScope,
+  folderPath: string, // e.g., "tech" or "tech/api"
+  workspaceId?: string,
+  projectId?: string
+): Promise<DocFolder> {
+  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const fullPath = await joinPath(basePath, folderPath);
+
+  await mkdir(fullPath);
+
+  const name = folderPath.includes("/")
+    ? folderPath.split("/").pop()!
+    : folderPath;
+
+  return {
+    name,
+    path: folderPath,
+    children: [],
+  };
+}
+
+/**
+ * Rename a folder in the docs tree
+ */
+export async function renameDocFolder(
+  scope: DocScope,
+  oldPath: string,
+  newName: string,
+  workspaceId?: string,
+  projectId?: string
+): Promise<DocFolder> {
+  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const oldFullPath = await joinPath(basePath, oldPath);
+
+  // Build new path - replace last segment with new name
+  const pathParts = oldPath.split("/");
+  pathParts[pathParts.length - 1] = newName;
+  const newPath = pathParts.join("/");
+  const newFullPath = await joinPath(basePath, newPath);
+
+  if (!isTauri()) {
+    return { name: newName, path: newPath, children: [] };
+  }
+
+  await rename(oldFullPath, newFullPath);
+
+  // Rebuild children after rename
+  const children = await buildDocTreeRecursive(
+    basePath,
+    newPath,
+    scope,
+    workspaceId || "_personal",
+    projectId || (scope === "workspace" ? "_workspace" : "_personal")
+  );
+
+  return {
+    name: newName,
+    path: newPath,
+    children,
+  };
+}
+
+/**
+ * Delete a folder and all its contents
+ */
+export async function deleteDocFolder(
+  scope: DocScope,
+  folderPath: string,
+  workspaceId?: string,
+  projectId?: string
+): Promise<boolean> {
+  if (!isTauri()) {
+    return true;
+  }
+
+  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const fullPath = await joinPath(basePath, folderPath);
+
+  if (!(await exists(fullPath))) {
+    return false;
+  }
+
+  await removeDir(fullPath);
+  return true;
+}
+
+/**
+ * Move a doc to a different folder (within the same scope)
+ */
+export async function moveDoc(
+  scope: DocScope,
+  docId: string,
+  fromPath: string, // folder path or empty for root
+  toPath: string, // folder path or empty for root
+  workspaceId?: string,
+  projectId?: string
+): Promise<Doc | null> {
+  if (!isTauri()) {
+    const doc = mockDocs.find((d) => d.id === docId);
+    if (doc) {
+      doc.path = toPath ? `${toPath}/${doc.id}.md` : `${doc.id}.md`;
+    }
+    return doc || null;
+  }
+
+  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+
+  // Find the source file
+  const fromDir = fromPath
+    ? await joinPath(basePath, fromPath)
+    : basePath;
+
+  if (!(await exists(fromDir))) return null;
+
+  const entries = await readDir(fromDir);
+  let sourceFilename: string | null = null;
+
+  for (const entry of entries) {
+    if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === docId) {
+      sourceFilename = entry.name;
+      break;
+    }
+  }
+
+  if (!sourceFilename) return null;
+
+  const sourceFilePath = await joinPath(fromDir, sourceFilename);
+
+  // Read the doc content
+  const content = await readTextFile(sourceFilePath);
+  const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
+
+  // Ensure target directory exists
+  const toDir = toPath ? await joinPath(basePath, toPath) : basePath;
+  await mkdir(toDir);
+
+  // Write to new location
+  const targetFilePath = await joinPath(toDir, sourceFilename);
+  const fileContent = serializeMarkdown(data, body);
+  await writeTextFile(targetFilePath, fileContent);
+
+  // Delete original file
+  await removeFile(sourceFilePath);
+
+  const newRelPath = toPath
+    ? `${toPath}/${sourceFilename}`
+    : sourceFilename;
+
+  return {
+    id: docId,
+    path: newRelPath,
+    projectId: projectId || (scope === "workspace" ? "_workspace" : "_personal"),
+    workspaceId: workspaceId || "_personal",
+    filePath: targetFilePath,
+    title: data.title,
+    created: normalizeDate(data.created),
+    content: body,
+    preview: generatePreview(body),
+  };
+}
+
+/**
+ * Create a doc in a specific folder
+ */
+export async function createDocInFolder(data: {
+  scope: DocScope;
+  title: string;
+  content?: string;
+  folderPath?: string; // e.g., "tech" or "tech/api" - omit for root
+  workspaceId?: string;
+  projectId?: string;
+}): Promise<Doc> {
+  const filename = generateFilename(data.title);
+  const id = filenameToId(filename);
+  const content = data.content || `# ${data.title}\n\n`;
+  const wsId = data.workspaceId || "_personal";
+  const projId = data.projectId || (data.scope === "workspace" ? "_workspace" : "_personal");
+
+  const relPath = data.folderPath
+    ? `${data.folderPath}/${filename}`
+    : filename;
+
+  const doc: Doc = {
+    id,
+    path: relPath,
+    projectId: projId,
+    workspaceId: wsId,
+    filePath: "",
+    title: data.title,
+    created: todayISO(),
+    content,
+    preview: generatePreview(content),
+  };
+
+  if (!isTauri()) {
+    doc.filePath = `~/Orbit/${data.scope}/${data.folderPath || ""}/${filename}`;
+    mockDocs.unshift(doc);
+    return doc;
+  }
+
+  const basePath = await getDocsBasePath(data.scope, data.workspaceId, data.projectId);
+
+  // Ensure folder exists
+  const folderPath = data.folderPath
+    ? await joinPath(basePath, data.folderPath)
+    : basePath;
+  await mkdir(folderPath);
+
+  const filePath = await joinPath(folderPath, filename);
+  doc.filePath = filePath;
+
+  // Create doc file
+  const frontmatter: DocFrontmatter = {
+    title: doc.title,
+    created: doc.created,
+  };
+
+  const fileContent = serializeMarkdown(frontmatter, doc.content);
+  await writeTextFile(filePath, fileContent);
+
+  return doc;
 }

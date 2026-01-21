@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Doc } from "@/types";
+import type { Doc, DocScope } from "@/types";
 import * as docLib from "@/lib/orbit/docs";
 
 // Query keys
@@ -10,6 +10,9 @@ export const docKeys = {
     [...docKeys.byWorkspace(workspaceId), "project", projectId] as const,
   detail: (workspaceId: string, docId: string) =>
     [...docKeys.byWorkspace(workspaceId), "detail", docId] as const,
+  // Tree keys for scoped doc trees
+  tree: (scope: DocScope, workspaceId?: string, projectId?: string) =>
+    [...docKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
 };
 
 // Keep old key names as aliases for backwards compatibility
@@ -167,3 +170,191 @@ export function useMoveDocToProject() {
 
 // Alias for backwards compatibility
 export const useMoveNoteToProject = useMoveDocToProject;
+
+// ============================================================================
+// Tree-based hooks for scoped doc trees
+// ============================================================================
+
+/**
+ * Hook to fetch a doc tree for a given scope
+ */
+export function useDocTree(
+  scope: DocScope,
+  workspaceId?: string | null,
+  projectId?: string | null
+) {
+  const enabled =
+    scope === "personal" ||
+    (scope === "workspace" && !!workspaceId) ||
+    (scope === "project" && !!workspaceId && !!projectId);
+
+  return useQuery({
+    queryKey: docKeys.tree(scope, workspaceId || undefined, projectId || undefined),
+    queryFn: () =>
+      docLib.getDocTree(
+        scope,
+        workspaceId || undefined,
+        projectId || undefined
+      ),
+    enabled,
+  });
+}
+
+/**
+ * Hook to create a folder in the doc tree
+ */
+export function useCreateDocFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      scope,
+      folderPath,
+      workspaceId,
+      projectId,
+    }: {
+      scope: DocScope;
+      folderPath: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.createDocFolder(scope, folderPath, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to rename a folder in the doc tree
+ */
+export function useRenameDocFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      scope,
+      oldPath,
+      newName,
+      workspaceId,
+      projectId,
+    }: {
+      scope: DocScope;
+      oldPath: string;
+      newName: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.renameDocFolder(scope, oldPath, newName, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to delete a folder from the doc tree
+ */
+export function useDeleteDocFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      scope,
+      folderPath,
+      workspaceId,
+      projectId,
+    }: {
+      scope: DocScope;
+      folderPath: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.deleteDocFolder(scope, folderPath, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to move a doc between folders (within same scope)
+ */
+export function useMoveDoc() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      scope,
+      docId,
+      fromPath,
+      toPath,
+      workspaceId,
+      projectId,
+    }: {
+      scope: DocScope;
+      docId: string;
+      fromPath: string;
+      toPath: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.moveDoc(scope, docId, fromPath, toPath, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to create a doc in a specific folder
+ */
+export function useCreateDocInFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      scope: DocScope;
+      title: string;
+      content?: string;
+      folderPath?: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => docLib.createDocInFolder(data),
+    onSuccess: (newDoc, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: docKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+      // Also invalidate the flat list queries for backward compatibility
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: docKeys.byWorkspace(variables.workspaceId),
+        });
+      }
+    },
+  });
+}

@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { DocList, DocEditor, NewDocModal } from "@/components/docs";
+import { DocTree, DocEditor, NewDocModal } from "@/components/docs";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
-import { useProject, useProjectTasks, useProjectDocs, useProjectMeetings, useCurrentWorkspace, useViewMode, useProjects } from "@/stores";
+import {
+  useProject,
+  useProjectTasks,
+  useProjectMeetings,
+  useCurrentWorkspace,
+  useViewMode,
+  useProjects,
+  useDocTree,
+  useCreateDocFolder,
+  useRenameDocFolder,
+  useDeleteDocFolder,
+} from "@/stores";
 import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task, Doc, Meeting } from "@/types";
 import {
@@ -43,9 +54,25 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     projectId
   );
   const { data: tasks = [] } = useProjectTasks(currentWorkspaceId, projectId);
-  const { data: docs = [] } = useProjectDocs(currentWorkspaceId, projectId);
+  const { data: docTree = [], isLoading: docsLoading } = useDocTree("project", currentWorkspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(currentWorkspaceId, projectId);
   const { data: allProjects = [] } = useProjects(currentWorkspaceId);
+
+  // Folder mutations for docs
+  const createDocFolder = useCreateDocFolder();
+  const renameDocFolder = useRenameDocFolder();
+  const deleteDocFolder = useDeleteDocFolder();
+
+  // Count docs in tree
+  const countDocs = (nodes: typeof docTree): number => {
+    let count = 0;
+    for (const node of nodes) {
+      if (node.type === "doc") count++;
+      else if (node.type === "folder") count += countDocs(node.folder.children);
+    }
+    return count;
+  };
+  const docCount = countDocs(docTree);
 
   // View mode for tasks (kanban default for projects)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, projectId, "kanban");
@@ -78,6 +105,53 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   const handleDocClick = (doc: Doc) => {
     setSelectedDoc(doc);
   };
+
+  // Folder operations for project docs
+  const handleCreateDocFolder = useCallback(
+    async (parentPath: string, name: string) => {
+      if (!currentWorkspaceId) return;
+      const fullPath = parentPath ? `${parentPath}/${name}` : name;
+      await createDocFolder.mutateAsync({
+        scope: "project",
+        folderPath: fullPath,
+        workspaceId: currentWorkspaceId,
+        projectId,
+      });
+    },
+    [currentWorkspaceId, projectId, createDocFolder]
+  );
+
+  const handleRenameDocFolder = useCallback(
+    async (path: string, newName: string) => {
+      if (!currentWorkspaceId) return;
+      await renameDocFolder.mutateAsync({
+        scope: "project",
+        oldPath: path,
+        newName,
+        workspaceId: currentWorkspaceId,
+        projectId,
+      });
+    },
+    [currentWorkspaceId, projectId, renameDocFolder]
+  );
+
+  const handleDeleteDocFolder = useCallback(
+    async (path: string) => {
+      if (!currentWorkspaceId) return;
+      await deleteDocFolder.mutateAsync({
+        scope: "project",
+        folderPath: path,
+        workspaceId: currentWorkspaceId,
+        projectId,
+      });
+    },
+    [currentWorkspaceId, projectId, deleteDocFolder]
+  );
+
+  const handleDeleteDoc = useCallback((doc: Doc) => {
+    // Open in editor where user can delete
+    setSelectedDoc(doc);
+  }, []);
 
   const handleMeetingClick = (meeting: Meeting) => {
     setSelectedMeeting(meeting);
@@ -169,7 +243,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               <FileText className="h-4 w-4" />
               Docs
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {docs.length}
+                {docCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="meetings" className="gap-2">
@@ -278,15 +352,48 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         </TabsContent>
 
         {/* Docs Tab */}
-        <TabsContent value="docs" className="flex-1 mt-0 flex flex-col">
-          <div className="px-6 py-3 flex justify-end border-b">
+        <TabsContent value="docs" className="flex-1 mt-0 flex flex-col overflow-hidden">
+          <div className="px-6 py-3 flex justify-end border-b shrink-0">
             <Button size="sm" onClick={() => setShowNewDoc(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Doc
             </Button>
           </div>
-          <div className="flex-1 p-6 overflow-auto">
-            <DocList docs={docs} onDocClick={handleDocClick} />
+          <div className="flex-1 flex overflow-hidden">
+            {/* Tree sidebar */}
+            <div className="w-64 border-r flex flex-col p-4 overflow-auto">
+              <DocTree
+                nodes={docTree}
+                isLoading={docsLoading}
+                selectedDocId={selectedDoc?.id}
+                onSelectDoc={handleDocClick}
+                onCreateDoc={() => setShowNewDoc(true)}
+                onDeleteDoc={handleDeleteDoc}
+                onCreateFolder={handleCreateDocFolder}
+                onRenameFolder={handleRenameDocFolder}
+                onDeleteFolder={handleDeleteDocFolder}
+              />
+            </div>
+            {/* Content area */}
+            <div className="flex-1 p-6 overflow-auto">
+              {selectedDoc ? (
+                <div className="h-full flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Selected: {selectedDoc.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    The doc editor panel will open automatically.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <p className="text-muted-foreground">Select a doc to view</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Or create a new doc or folder using the tree
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 
