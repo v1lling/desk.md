@@ -61,6 +61,7 @@ export {
   useInboxTasks,
   useCreateInboxTask,
   useMoveFromInbox,
+  useMoveFromInboxToWorkspace,
   usePersonalTasks,
   useAllPersonalTasks,
   useCreatePersonalTask,

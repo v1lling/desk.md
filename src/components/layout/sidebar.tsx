@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronRight,
-  Inbox,
   CheckSquare,
   StickyNote,
   User,
@@ -40,9 +39,8 @@ const workspaceNavItems = [
   { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
 
-// Personal space navigation items
+// Personal space navigation items (Inbox moved to Dashboard)
 const personalNavItems = [
-  { href: "/personal/inbox", label: "Inbox", icon: Inbox },
   { href: "/personal/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/personal/notes", label: "Notes", icon: StickyNote },
 ] as const;

@@ -66,6 +66,34 @@ export function useMoveFromInbox() {
   });
 }
 
+/**
+ * Hook to move task from inbox to a workspace project
+ */
+export function useMoveFromInboxToWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      workspaceId,
+      projectId,
+    }: {
+      taskId: string;
+      workspaceId: string;
+      projectId: string;
+    }) => personalLib.moveFromInboxToWorkspace(taskId, workspaceId, projectId),
+    onSuccess: (_data, variables) => {
+      // Invalidate inbox
+      queryClient.invalidateQueries({ queryKey: personalKeys.inboxTasks() });
+      queryClient.invalidateQueries({ queryKey: personalKeys.allTasks() });
+      // Invalidate target workspace tasks
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.workspaceId] });
+      // Invalidate dashboard (active tasks, summaries)
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
 // ============================================================================
 // PERSONAL TASKS
 // ============================================================================

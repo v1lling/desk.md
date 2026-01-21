@@ -374,6 +374,63 @@ export async function moveFromInbox(taskId: string): Promise<Task | null> {
   };
 }
 
+/**
+ * Move task from inbox to a workspace project
+ */
+export async function moveFromInboxToWorkspace(
+  taskId: string,
+  workspaceId: string,
+  projectId: string
+): Promise<Task | null> {
+  // Import here to avoid circular deps
+  const { SPECIAL_DIRS, isUnassigned } = await import("./constants");
+
+  if (!isTauri()) {
+    const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
+    if (index === -1) return null;
+
+    // Remove from mock personal tasks and return as workspace task
+    const [task] = mockPersonalTasks.splice(index, 1);
+    return {
+      ...task,
+      projectId,
+      workspaceId,
+    };
+  }
+
+  const inboxTasks = await getInboxTasks();
+  const task = inboxTasks.find((t) => t.id === taskId);
+  if (!task) return null;
+
+  // Read content
+  const content = await readTextFile(task.filePath);
+  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+
+  // Build target path
+  const orbitPath = await getOrbitPath();
+  const tasksPath = isUnassigned(projectId)
+    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
+
+  await mkdir(tasksPath);
+
+  const filename = task.filePath.split("/").pop()!;
+  const newFilePath = await joinPath(tasksPath, filename);
+
+  const fileContent = serializeMarkdown(data, body);
+  await writeTextFile(newFilePath, fileContent);
+
+  // Delete from inbox
+  await removeFile(task.filePath);
+
+  return {
+    ...task,
+    projectId,
+    workspaceId,
+    filePath: newFilePath,
+  };
+}
+
 // ============================================================================
 // NOTES
 // ============================================================================

@@ -67,7 +67,8 @@ npm run tauri dev  # Desktop with file system
 ## Current State: v0.3
 
 Working features:
-- **Dashboard**: Cross-workspace overview with Focus (active tasks) and Workspaces widgets
+- **Dashboard**: Cross-workspace overview with Capture, Focus, and Workspaces widgets
+- **Capture widget**: Quick task capture with triage flow (move to Personal or Workspace/Project)
 - Workspaces with color coding, inline in sidebar
 - Projects with status tracking
 - Tasks: Kanban board (4 columns), drag-drop, detail panel, quick add

@@ -1,6 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Header } from "@/components/layout";
+import {
+  CaptureWidget,
+  TriageDetailModal,
+  type TriageDestination,
+} from "@/components/dashboard";
 import {
   useActiveTasks,
   useWorkspaceSummaries,
@@ -9,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Circle, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Task } from "@/types";
 import type { ActiveTask, WorkspaceSummary } from "@/lib/orbit/dashboard";
 
 // Default color for workspaces without a color
@@ -155,19 +162,49 @@ export default function DashboardPage() {
   const { data: workspaceSummaries = [], isLoading: summariesLoading } =
     useWorkspaceSummaries();
 
+  // Triage detail modal state
+  const [triageModalOpen, setTriageModalOpen] = useState(false);
+  const [triagedTask, setTriagedTask] = useState<Task | null>(null);
+  const [triageDestination, setTriageDestination] = useState<TriageDestination | null>(null);
+
+  const handleTriageComplete = (task: Task, destination: TriageDestination) => {
+    setTriagedTask(task);
+    setTriageDestination(destination);
+    setTriageModalOpen(true);
+  };
+
+  const handleTriageModalClose = () => {
+    setTriageModalOpen(false);
+    setTriagedTask(null);
+    setTriageDestination(null);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <Header title="Dashboard" />
 
       <main className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+          {/* Row 1: Capture + Focus */}
+          <CaptureWidget onTriageComplete={handleTriageComplete} />
           <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
-          <WorkspacesWidget
-            summaries={workspaceSummaries}
-            isLoading={summariesLoading}
-          />
+
+          {/* Row 2: Workspaces (spans full width on larger screens) */}
+          <div className="lg:col-span-2">
+            <WorkspacesWidget
+              summaries={workspaceSummaries}
+              isLoading={summariesLoading}
+            />
+          </div>
         </div>
       </main>
+
+      <TriageDetailModal
+        open={triageModalOpen}
+        onClose={handleTriageModalClose}
+        task={triagedTask}
+        destination={triageDestination}
+      />
     </div>
   );
 }
