@@ -5,6 +5,7 @@ import { EditorShell } from "@/components/ui/editor-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
@@ -51,6 +52,9 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Track if editor is ready to render (deferred to avoid blocking open animation)
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   // Track original projectId to detect moves (moves need special handling)
   const [originalProjectId, setOriginalProjectId] = useState("");
@@ -65,8 +69,22 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       setContent(task.content);
       setProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
+      
+      // Reset ready state when task changes (or on first open)
+      setIsEditorReady(false);
     }
   }, [task]);
+
+  // Defer editor rendering to allow panel animation to start smoothly
+  // We use requestAnimationFrame to ensure the browser paints the open state first
+  useEffect(() => {
+    if (open && task && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [open, task, isEditorReady]);
 
   // Auto-save data (excluding project changes which need file move)
   const autoSaveData = useMemo(
@@ -223,12 +241,18 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       {/* Content */}
       <div className="space-y-2">
         <Label>Notes</Label>
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Add notes, details, or checklist items..."
-          minHeight="200px"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Add notes, details, or checklist items..."
+            minHeight="200px"
+          />
+        ) : (
+          <div className="h-[200px] border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="file" />
+          </div>
+        )}
       </div>
 
       {/* File path (read-only info) */}
@@ -280,13 +304,19 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Add notes, details, or checklist items..."
-          minHeight="100%"
-          className="h-full [&>div]:h-full [&>div>div]:h-full"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Add notes, details, or checklist items..."
+            minHeight="100%"
+            className="h-full [&>div]:h-full [&>div>div]:h-full"
+          />
+        ) : (
+          <div className="h-full border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="editor" />
+          </div>
+        )}
       </div>
 
       {/* NO file path info in fullscreen - focus on writing */}

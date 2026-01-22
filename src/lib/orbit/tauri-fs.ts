@@ -17,6 +17,17 @@ export function isTauri(): boolean {
   return false;
 }
 
+// Check if running on macOS (for title bar styling)
+export function isMacOS(): boolean {
+  if (typeof window === "undefined") return false;
+  return navigator.userAgent.includes("Mac");
+}
+
+// Check if we need traffic light padding (macOS + Tauri with overlay title bar)
+export function needsTrafficLightPadding(): boolean {
+  return isTauri() && isMacOS();
+}
+
 // Lazy import Tauri modules only when needed
 async function getTauriFsModule() {
   const fs = await import("@tauri-apps/plugin-fs");

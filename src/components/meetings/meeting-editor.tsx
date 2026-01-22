@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUpdateMeeting, useDeleteMeeting } from "@/stores";
@@ -29,6 +30,9 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
   const [attendees, setAttendees] = useState("");
   const [content, setContent] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Track if editor is ready to render (deferred to avoid blocking open animation)
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   // Sync state when meeting changes
   useEffect(() => {
@@ -37,8 +41,23 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
       setDate(meeting.date);
       setAttendees(meeting.attendees?.join(", ") || "");
       setContent(meeting.content);
+      setAttendees(meeting.attendees?.join(", ") || "");
+      setContent(meeting.content);
+      
+      // Reset ready state when meeting changes (or on first open)
+      setIsEditorReady(false);
     }
   }, [meeting]);
+
+  // Defer editor rendering to allow panel animation to start smoothly
+  useEffect(() => {
+    if (open && meeting && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [open, meeting, isEditorReady]);
 
   // Auto-save data
   const autoSaveData = useMemo(
@@ -130,12 +149,18 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
       {/* Notes */}
       <div className="space-y-2">
         <Label>Notes</Label>
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Write your meeting notes..."
-          minHeight="200px"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Write your meeting notes..."
+            minHeight="200px"
+          />
+        ) : (
+          <div className="h-[200px] border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="file" />
+          </div>
+        )}
       </div>
 
       {/* File path (read-only info) */}
@@ -188,13 +213,19 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
 
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Write your meeting notes..."
-          minHeight="100%"
-          className="h-full [&>div]:h-full [&>div>div]:h-full"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Write your meeting notes..."
+            minHeight="100%"
+            className="h-full [&>div]:h-full [&>div>div]:h-full"
+          />
+        ) : (
+          <div className="h-full border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="file" />
+          </div>
+        )}
       </div>
 
       {/* NO file path info in fullscreen */}

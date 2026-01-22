@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { initOrbitDirectory, slugify, getWorkspaces, isTauri } from "@/lib/orbit";
+import { initOrbitDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/orbit";
 import { Rocket, FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
 import type { Workspace } from "@/types";
 
@@ -31,6 +31,11 @@ export function SetupWizard() {
   const [workspaceColor, setWorkspaceColor] = useState(COLORS[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
+  const [hasTitleBarPadding, setHasTitleBarPadding] = useState(false);
+
+  useEffect(() => {
+    setHasTitleBarPadding(needsTrafficLightPadding());
+  }, []);
 
   const setSettingsDataPath = useSettingsStore((state) => state.setDataPath);
   const setSetupCompleted = useSettingsStore((state) => state.setSetupCompleted);
@@ -104,8 +109,13 @@ export function SetupWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-8">
-      <Card className="w-full max-w-lg">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
+      {/* Draggable title bar region for macOS */}
+      {hasTitleBarPadding && (
+        <div data-tauri-drag-region className="h-7 shrink-0" />
+      )}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Card className="w-full max-w-lg">
         {step === "welcome" && (
           <>
             <CardHeader className="text-center">
@@ -267,7 +277,8 @@ export function SetupWizard() {
             </CardContent>
           </>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

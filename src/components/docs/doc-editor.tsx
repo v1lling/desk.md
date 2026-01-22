@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2, Folder, ChevronRight } from "lucide-react";
 import { useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
@@ -53,6 +54,9 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Track if editor is ready to render (deferred to avoid blocking open animation)
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   // Track original projectId to detect moves (moves need special handling)
   const [originalProjectId, setOriginalProjectId] = useState("");
@@ -64,8 +68,20 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
       setContent(doc.content);
       setProjectId(doc.projectId);
       setOriginalProjectId(doc.projectId);
+      // Reset ready state when doc changes (or on first open)
+      setIsEditorReady(false);
     }
   }, [doc]);
+
+  // Defer editor rendering to allow panel animation to start smoothly
+  useEffect(() => {
+    if (open && doc && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [open, doc, isEditorReady]);
 
   // Auto-save data (excluding project changes which need file move)
   const autoSaveData = useMemo(
@@ -173,12 +189,18 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
       {/* Content */}
       <div className="space-y-2">
         <Label>Content</Label>
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Write your doc in markdown..."
-          minHeight="300px"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Write your doc in markdown..."
+            minHeight="300px"
+          />
+        ) : (
+          <div className="h-[300px] border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="file" />
+          </div>
+        )}
       </div>
 
       {/* File path (read-only info) */}
@@ -237,13 +259,19 @@ export function DocEditor({ doc, open, onClose }: DocEditorProps) {
 
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Write your doc in markdown..."
-          minHeight="100%"
-          className="h-full [&>div]:h-full [&>div>div]:h-full"
-        />
+        {isEditorReady ? (
+          <MarkdownEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Write your doc in markdown..."
+            minHeight="100%"
+            className="h-full [&>div]:h-full [&>div>div]:h-full"
+          />
+        ) : (
+          <div className="h-full border rounded-lg flex items-center justify-center bg-muted/10">
+            <LoadingState label="file" />
+          </div>
+        )}
       </div>
 
       {/* NO file path info in fullscreen */}
