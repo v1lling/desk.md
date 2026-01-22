@@ -5,11 +5,17 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-// Link extension is provided by tiptap-markdown, so we don't need to import it separately
+import { Link } from "@tiptap/extension-link";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import { Markdown } from "tiptap-markdown";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { isTauri } from "@/lib/orbit/tauri-fs";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 
 interface TiptapEditorProps {
   value: string;
@@ -54,6 +60,17 @@ export function TiptapEditor({
       TaskItem.configure({
         nested: true,
       }),
+      Link.configure({
+        openOnClick: false, // We handle clicks manually to open in browser
+        autolink: true,
+        linkOnPaste: true,
+      }),
+      Table.configure({
+        resizable: false,
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
       Markdown.configure({
         html: false,
         transformCopiedText: true,
@@ -69,9 +86,9 @@ export function TiptapEditor({
           "prose-h1:text-2xl prose-h1:mt-6 prose-h1:mb-4",
           "prose-h2:text-xl prose-h2:mt-5 prose-h2:mb-3",
           "prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2",
-          "prose-p:my-2 prose-p:leading-relaxed",
-          "prose-ul:my-2 prose-ol:my-2",
-          "prose-li:my-0.5",
+          "prose-p:my-1.5 prose-p:leading-normal",
+          "prose-ul:my-1 prose-ol:my-1 prose-ul:pl-4 prose-ol:pl-4",
+          "prose-li:my-0 prose-li:leading-normal",
           "prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none",
           "prose-pre:bg-muted prose-pre:rounded-lg",
           "prose-blockquote:border-l-2 prose-blockquote:border-muted-foreground/30 prose-blockquote:pl-4 prose-blockquote:italic",
@@ -99,6 +116,24 @@ export function TiptapEditor({
       isSyncing.current = false;
     }
   }, [value, editor]);
+
+  // Handle link clicks to open in browser
+  const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const link = target.closest("a");
+    if (link && link.href) {
+      event.preventDefault();
+      if (isTauri()) {
+        // Use Tauri shell plugin to open in default browser
+        openUrl(link.href).catch((err) => {
+          console.error("Failed to open URL:", err);
+        });
+      } else {
+        // Browser mode: use window.open
+        window.open(link.href, "_blank", "noopener,noreferrer");
+      }
+    }
+  }, []);
 
   // Handle keyboard shortcuts
   const handleKeyDown = useCallback(
@@ -133,7 +168,7 @@ export function TiptapEditor({
       style={{ minHeight }}
     >
       <ScrollArea className="h-full" style={{ minHeight }}>
-        <div className="p-4" onKeyDown={handleKeyDown}>
+        <div className="p-4" onKeyDown={handleKeyDown} onClick={handleClick}>
           <EditorContent editor={editor} />
         </div>
       </ScrollArea>

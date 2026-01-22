@@ -9,6 +9,7 @@
     "core:default",
     "dialog:default",
     "fs:default",
+    "shell:allow-open",
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [

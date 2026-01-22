@@ -270,3 +270,45 @@
   font-size: 0.875rem;
   color: inherit;
 }
+
+/* Table styles */
+.tiptap table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  width: 100%;
+  table-layout: auto;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid oklch(0.85 0 0);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+.tiptap table th {
+  font-weight: 600;
+  background: oklch(0.96 0.003 90);
+}
+
+.dark .tiptap table td,
+.dark .tiptap table th {
+  border-color: oklch(0.35 0 0);
+}
+
+.dark .tiptap table th {
+  background: oklch(0.22 0.01 260);
+}
+
+/* Link styles */
+.tiptap a {
+  color: oklch(0.55 0.18 250);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tiptap a:hover {
+  color: oklch(0.45 0.2 250);
+}
