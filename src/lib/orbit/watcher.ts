@@ -194,15 +194,22 @@ export function isWatcherActive(): boolean {
  * Utility: Extract item type from path
  * e.g., "/Users/x/Orbit/workspaces/foo/projects/bar/tasks/baz.md" → "task"
  */
-export function getItemTypeFromPath(path: string): "task" | "note" | "meeting" | "project" | "workspace" | "config" | "view" | "unknown" {
+export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | "project" | "workspace" | "config" | "view" | "unknown" {
   if (path.endsWith(".view.json")) return "view";
   if (path.endsWith("config.json")) return "config";
   if (path.includes("/tasks/")) return "task";
-  if (path.includes("/notes/")) return "note";
+  if (path.includes("/docs/")) return "doc";
   if (path.includes("/meetings/")) return "meeting";
   if (path.includes("/projects/") && path.endsWith("project.md")) return "project";
   if (path.includes("/workspaces/") && path.endsWith("workspace.md")) return "workspace";
   return "unknown";
+}
+
+/**
+ * Utility: Check if path is in personal space
+ */
+export function isPersonalPath(path: string): boolean {
+  return path.includes("/personal/");
 }
 
 /**

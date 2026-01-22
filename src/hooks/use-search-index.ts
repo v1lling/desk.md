@@ -13,7 +13,7 @@ import {
   upsertItem,
   removeItem,
   taskToSearchItem,
-  noteToSearchItem,
+  docToSearchItem,
   meetingToSearchItem,
   projectToSearchItem,
   type SearchItem,
@@ -79,7 +79,7 @@ export function useSearchIndex() {
         const docs = await docLib.getDocs(workspace.id);
         for (const doc of docs) {
           searchItems.push(
-            noteToSearchItem(doc, workspace.name, projectMap.get(doc.projectId))
+            docToSearchItem(doc, workspace.name, projectMap.get(doc.projectId))
           );
         }
 

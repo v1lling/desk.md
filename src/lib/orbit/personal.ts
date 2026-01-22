@@ -4,17 +4,17 @@
  * Personal space is a special area outside of workspaces for:
  * - Inbox: Quick capture tasks to be triaged later
  * - Tasks: Personal tasks not tied to any workspace
- * - Notes: Personal notes and scratchpad
+ * - Docs: Personal docs (handled by docs.ts)
  *
  * File structure:
  * ~/Orbit/personal/
  *   ├── inbox/tasks/*.md    # Quick capture
  *   ├── tasks/*.md          # Personal tasks
- *   ├── notes/*.md          # Personal notes
+ *   ├── docs/               # Personal docs (see docs.ts)
  *   └── .view.json          # UI state
  */
 
-import type { Task, Note, TaskStatus, TaskPriority } from "@/types";
+import type { Task, TaskStatus, TaskPriority } from "@/types";
 import {
   parseMarkdown,
   serializeMarkdown,
@@ -75,31 +75,6 @@ export const mockPersonalTasks: Task[] = [
   },
 ];
 
-export const mockPersonalNotes: Note[] = [
-  {
-    id: "2024-01-16-ideas",
-    projectId: "_notes",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/notes/2024-01-16-ideas.md",
-    title: "Random Ideas",
-    created: "2024-01-16",
-    content:
-      "# Random Ideas\n\n- App idea: Plant watering reminder\n- Blog post: How I organize my work\n- Side project: CLI tool for markdown notes",
-    preview: "Random Ideas - App idea: Plant watering reminder...",
-  },
-  {
-    id: "2024-01-10-reading-list",
-    projectId: "_notes",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/notes/2024-01-10-reading-list.md",
-    title: "Reading List 2024",
-    created: "2024-01-10",
-    content:
-      "# Reading List 2024\n\n## Currently Reading\n- The Pragmatic Programmer\n\n## To Read\n- Clean Code\n- Domain-Driven Design\n- Designing Data-Intensive Applications",
-    preview: "Reading List 2024 - Currently Reading: The Pragmatic Programmer...",
-  },
-];
-
 // ============================================================================
 // FRONTMATTER TYPES
 // ============================================================================
@@ -109,11 +84,6 @@ interface TaskFrontmatter {
   status: TaskStatus;
   priority?: TaskPriority;
   due?: string;
-  created: string;
-}
-
-interface NoteFrontmatter {
-  title: string;
   created: string;
 }
 
@@ -431,171 +401,6 @@ export async function moveFromInboxToWorkspace(
   };
 }
 
-// ============================================================================
-// NOTES
-// ============================================================================
-
-/**
- * Get all personal notes
- */
-export async function getPersonalNotes(): Promise<Note[]> {
-  if (!isTauri()) {
-    return [...mockPersonalNotes];
-  }
-
-  const personalPath = await getPersonalPath();
-  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.DOCS);
-
-  if (!(await exists(notesPath))) {
-    return [];
-  }
-
-  const entries = await readDir(notesPath);
-  const notes: Note[] = [];
-
-  for (const entry of entries) {
-    if (entry.isFile && entry.name.endsWith(".md")) {
-      try {
-        const notePath = await joinPath(notesPath, entry.name);
-        const content = await readTextFile(notePath);
-        const { data, content: body } = parseMarkdown<NoteFrontmatter>(content);
-
-        notes.push({
-          id: filenameToId(entry.name),
-          projectId: "_notes",
-          workspaceId: PERSONAL_SPACE_ID,
-          filePath: notePath,
-          title: data.title || entry.name,
-          created: normalizeDate(data.created),
-          content: body,
-          preview: generatePreview(body),
-        });
-      } catch (e) {
-        console.warn(`Failed to read personal note ${entry.name}:`, e);
-      }
-    }
-  }
-
-  // Sort by created date (newest first)
-  notes.sort((a, b) => b.created.localeCompare(a.created));
-
-  return notes;
-}
-
-/**
- * Get a single personal note by ID
- */
-export async function getPersonalNote(noteId: string): Promise<Note | null> {
-  const notes = await getPersonalNotes();
-  return notes.find((n) => n.id === noteId) || null;
-}
-
-/**
- * Create a personal note
- */
-export async function createPersonalNote(data: {
-  title: string;
-  content?: string;
-}): Promise<Note> {
-  const filename = generateFilename(data.title);
-  const id = filenameToId(filename);
-  const content = data.content || `# ${data.title}\n\n`;
-
-  const note: Note = {
-    id,
-    projectId: "_notes",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "",
-    title: data.title,
-    created: todayISO(),
-    content,
-    preview: generatePreview(content),
-  };
-
-  if (!isTauri()) {
-    note.filePath = `~/Orbit/personal/notes/${filename}`;
-    mockPersonalNotes.unshift(note);
-    return note;
-  }
-
-  const personalPath = await getPersonalPath();
-  const notesPath = await joinPath(personalPath, PATH_SEGMENTS.DOCS);
-  await mkdir(notesPath);
-
-  const filePath = await joinPath(notesPath, filename);
-  note.filePath = filePath;
-
-  const frontmatter: NoteFrontmatter = {
-    title: note.title,
-    created: note.created,
-  };
-
-  const fileContent = serializeMarkdown(frontmatter, note.content);
-  await writeTextFile(filePath, fileContent);
-
-  return note;
-}
-
-/**
- * Update a personal note
- */
-export async function updatePersonalNote(
-  noteId: string,
-  updates: Partial<Pick<Note, "title" | "content">>
-): Promise<Note | null> {
-  if (!isTauri()) {
-    const index = mockPersonalNotes.findIndex((n) => n.id === noteId);
-    if (index === -1) return null;
-
-    const updatedFields: Partial<Note> = { ...updates };
-    if (updates.content) {
-      updatedFields.preview = generatePreview(updates.content);
-    }
-
-    mockPersonalNotes[index] = { ...mockPersonalNotes[index], ...updatedFields };
-    return mockPersonalNotes[index];
-  }
-
-  const note = await getPersonalNote(noteId);
-  if (!note) return null;
-
-  const content = await readTextFile(note.filePath);
-  const { data } = parseMarkdown<NoteFrontmatter>(content);
-
-  const updatedData: NoteFrontmatter = {
-    ...data,
-    ...(updates.title && { title: updates.title }),
-  };
-
-  const updatedContent = updates.content !== undefined ? updates.content : note.content;
-  const fileContent = serializeMarkdown(updatedData, updatedContent);
-  await writeTextFile(note.filePath, fileContent);
-
-  return {
-    ...note,
-    title: updatedData.title,
-    content: updatedContent,
-    preview: generatePreview(updatedContent),
-  };
-}
-
-/**
- * Delete a personal note
- */
-export async function deletePersonalNote(noteId: string): Promise<boolean> {
-  if (!isTauri()) {
-    const index = mockPersonalNotes.findIndex((n) => n.id === noteId);
-    if (index === -1) return false;
-    mockPersonalNotes.splice(index, 1);
-    return true;
-  }
-
-  const note = await getPersonalNote(noteId);
-  if (!note) return false;
-
-  await removeFile(note.filePath);
-  return true;
-}
 
 // ============================================================================
 // INITIALIZATION

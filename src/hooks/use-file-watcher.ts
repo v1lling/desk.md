@@ -13,15 +13,18 @@ import {
   onFileChange,
   getItemTypeFromPath,
   getWorkspaceIdFromPath,
+  getProjectIdFromPath,
+  isPersonalPath,
   type WatchEvent,
 } from "@/lib/orbit/watcher";
 import {
   taskKeys,
-  noteKeys,
+  docKeys,
   meetingKeys,
   projectKeys,
   workspaceKeys,
   viewStateKeys,
+  personalKeys,
 } from "@/stores";
 
 /**
@@ -62,33 +65,52 @@ function handleFileChange(
   queryClient: ReturnType<typeof useQueryClient>
 ) {
   const affectedWorkspaces = new Set<string>();
+  const affectedProjects = new Map<string, Set<string>>(); // workspaceId -> Set<projectId>
   const affectedTypes = new Set<string>();
+  let hasPersonalChanges = false;
 
   // Analyze all changed paths
   for (const path of event.paths) {
     const itemType = getItemTypeFromPath(path);
     const workspaceId = getWorkspaceIdFromPath(path);
+    const projectId = getProjectIdFromPath(path);
 
     affectedTypes.add(itemType);
-    if (workspaceId) {
+
+    if (isPersonalPath(path)) {
+      hasPersonalChanges = true;
+    } else if (workspaceId) {
       affectedWorkspaces.add(workspaceId);
+      if (projectId) {
+        if (!affectedProjects.has(workspaceId)) {
+          affectedProjects.set(workspaceId, new Set());
+        }
+        affectedProjects.get(workspaceId)!.add(projectId);
+      }
     }
   }
 
   console.log(
     `[watcher] File change: ${event.kind}`,
     `types: [${Array.from(affectedTypes).join(", ")}]`,
-    `areas: [${Array.from(affectedWorkspaces).join(", ")}]`
+    `workspaces: [${Array.from(affectedWorkspaces).join(", ")}]`,
+    hasPersonalChanges ? "(includes personal)" : ""
   );
 
   // Invalidate caches based on what changed
   for (const itemType of affectedTypes) {
     switch (itemType) {
       case "task":
-        // Invalidate tasks for affected areas
+        // Invalidate tasks for affected workspaces
         for (const workspaceId of affectedWorkspaces) {
           queryClient.invalidateQueries({
             queryKey: taskKeys.byWorkspace(workspaceId),
+          });
+        }
+        // Personal tasks
+        if (hasPersonalChanges) {
+          queryClient.invalidateQueries({
+            queryKey: personalKeys.all,
           });
         }
         // Also invalidate view state (task ordering)
@@ -97,10 +119,31 @@ function handleFileChange(
         });
         break;
 
-      case "note":
+      case "doc":
+        // Invalidate doc queries for affected workspaces
         for (const workspaceId of affectedWorkspaces) {
+          // Flat doc list
           queryClient.invalidateQueries({
-            queryKey: noteKeys.byWorkspace(workspaceId),
+            queryKey: docKeys.byWorkspace(workspaceId),
+          });
+          // Workspace-level doc tree
+          queryClient.invalidateQueries({
+            queryKey: docKeys.tree("workspace", workspaceId, undefined),
+          });
+          // Project-level doc trees
+          const projects = affectedProjects.get(workspaceId);
+          if (projects) {
+            for (const projectId of projects) {
+              queryClient.invalidateQueries({
+                queryKey: docKeys.tree("project", workspaceId, projectId),
+              });
+            }
+          }
+        }
+        // Personal docs tree
+        if (hasPersonalChanges) {
+          queryClient.invalidateQueries({
+            queryKey: docKeys.tree("personal", undefined, undefined),
           });
         }
         break;
@@ -137,7 +180,6 @@ function handleFileChange(
 
       case "config":
         // Config changed - this is handled by Zustand persist, not TanStack Query
-        // Could trigger a settings reload if needed
         console.log("[watcher] Config file changed externally");
         break;
 
@@ -149,7 +191,7 @@ function handleFileChange(
               queryKey: taskKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: noteKeys.byWorkspace(workspaceId),
+              queryKey: docKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
               queryKey: meetingKeys.byWorkspace(workspaceId),
@@ -158,6 +200,14 @@ function handleFileChange(
               queryKey: projectKeys.byWorkspace(workspaceId),
             });
           }
+        }
+        if (hasPersonalChanges) {
+          queryClient.invalidateQueries({
+            queryKey: personalKeys.all,
+          });
+          queryClient.invalidateQueries({
+            queryKey: docKeys.tree("personal", undefined, undefined),
+          });
         }
         break;
     }

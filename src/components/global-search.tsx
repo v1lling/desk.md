@@ -28,14 +28,14 @@ import { useSettingsStore } from "@/stores/settings";
 
 const TYPE_ICONS: Record<SearchItemType, React.ReactNode> = {
   task: <CheckSquare className="h-4 w-4" />,
-  note: <FileText className="h-4 w-4" />,
+  doc: <FileText className="h-4 w-4" />,
   meeting: <Calendar className="h-4 w-4" />,
   project: <FolderKanban className="h-4 w-4" />,
 };
 
 const TYPE_LABELS: Record<SearchItemType, string> = {
   task: "Task",
-  note: "Note",
+  doc: "Doc",
   meeting: "Meeting",
   project: "Project",
 };
@@ -100,8 +100,8 @@ export function GlobalSearch() {
         case "task":
           router.push(`/?open=${item.id}`);
           break;
-        case "note":
-          router.push(`/notes?open=${item.id}`);
+        case "doc":
+          router.push(`/docs?open=${item.id}`);
           break;
         case "meeting":
           router.push(`/meetings?open=${item.id}`);
@@ -117,7 +117,7 @@ export function GlobalSearch() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
       <CommandInput
-        placeholder="Search tasks, notes, projects..."
+        placeholder="Search tasks, docs, projects..."
         value={query}
         onValueChange={setQuery}
       />

@@ -43,7 +43,7 @@ export function slugify(text: string): string {
 }
 
 /**
- * Generate a filename for a task/note: YYYY-MM-DD-slug.md
+ * Generate a filename for a task/doc: YYYY-MM-DD-slug.md
  */
 export function generateFilename(title: string, date?: Date): string {
   const d = date || new Date();

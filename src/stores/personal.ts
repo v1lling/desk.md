@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Task, Note, TaskStatus, TaskPriority } from "@/types";
+import type { Task, TaskStatus, TaskPriority } from "@/types";
 import * as personalLib from "@/lib/orbit/personal";
 import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 
@@ -9,8 +9,6 @@ export const personalKeys = {
   inboxTasks: () => [...personalKeys.all, "inbox"] as const,
   tasks: () => [...personalKeys.all, "tasks"] as const,
   allTasks: () => [...personalKeys.all, "allTasks"] as const,
-  notes: () => [...personalKeys.all, "notes"] as const,
-  note: (noteId: string) => [...personalKeys.notes(), noteId] as const,
 };
 
 // Re-export the personal space ID for convenience
@@ -208,80 +206,6 @@ export function useMovePersonalTask() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: personalKeys.all });
-    },
-  });
-}
-
-// ============================================================================
-// PERSONAL NOTES
-// ============================================================================
-
-/**
- * Hook to fetch all personal notes
- */
-export function usePersonalNotes() {
-  return useQuery({
-    queryKey: personalKeys.notes(),
-    queryFn: () => personalLib.getPersonalNotes(),
-  });
-}
-
-/**
- * Hook to fetch a single personal note
- */
-export function usePersonalNote(noteId: string | null) {
-  return useQuery({
-    queryKey: personalKeys.note(noteId || ""),
-    queryFn: () => personalLib.getPersonalNote(noteId!),
-    enabled: !!noteId,
-  });
-}
-
-/**
- * Hook to create a personal note
- */
-export function useCreatePersonalNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: { title: string; content?: string }) =>
-      personalLib.createPersonalNote(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.notes() });
-    },
-  });
-}
-
-/**
- * Hook to update a personal note
- */
-export function useUpdatePersonalNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      noteId,
-      updates,
-    }: {
-      noteId: string;
-      updates: Partial<Pick<Note, "title" | "content">>;
-    }) => personalLib.updatePersonalNote(noteId, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.notes() });
-    },
-  });
-}
-
-/**
- * Hook to delete a personal note
- */
-export function useDeletePersonalNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (noteId: string) => personalLib.deletePersonalNote(noteId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.notes() });
     },
   });
 }

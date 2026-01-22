@@ -89,7 +89,7 @@ export function DocTree({
       }
       return next;
     });
-  }, []);
+  }, [setExpandedFolders]);
 
   const handleNewRootFolder = () => {
     setFolderModal({ mode: "create", parentPath: "" });

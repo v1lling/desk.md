@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 import * as viewStateLib from "@/lib/orbit/view-state";
@@ -189,9 +190,13 @@ export function useExpandedDocFolders(
   const queryClient = useQueryClient();
   const { data: viewState } = useViewState(workspaceId, projectId);
 
-  const expandedFolders = viewState?.expandedDocFolders ?? [];
+  // Memoize to avoid creating new array reference when viewState is undefined
+  const expandedFolders = useMemo(
+    () => viewState?.expandedDocFolders ?? [],
+    [viewState?.expandedDocFolders]
+  );
 
-  const setExpandedFolders = useMutation({
+  const mutation = useMutation({
     mutationFn: (folders: string[]) =>
       viewStateLib.setExpandedDocFolders(workspaceId!, projectId, folders),
     onMutate: async (folders) => {
@@ -225,16 +230,16 @@ export function useExpandedDocFolders(
     },
   });
 
+  // Memoize the setExpandedFolders callback to prevent recreating on every render
+  const setExpandedFolders = useCallback(
+    (folders: string[]) => mutation.mutate(folders),
+    [mutation.mutate]
+  );
+
   return {
     expandedFolders,
-    setExpandedFolders: (folders: string[]) => setExpandedFolders.mutate(folders),
-    toggleFolder: (folderPath: string) => {
-      const newFolders = expandedFolders.includes(folderPath)
-        ? expandedFolders.filter((f) => f !== folderPath)
-        : [...expandedFolders, folderPath];
-      setExpandedFolders.mutate(newFolders);
-    },
-    isLoading: setExpandedFolders.isPending,
+    setExpandedFolders,
+    isLoading: mutation.isPending,
   };
 }
 

@@ -9,7 +9,7 @@ import Fuse, { type IFuseOptions } from "fuse.js";
 import type { Task, Doc, Meeting, Project } from "@/types";
 
 // Unified search item type
-export type SearchItemType = "task" | "note" | "meeting" | "project";
+export type SearchItemType = "task" | "doc" | "meeting" | "project";
 
 export interface SearchItem {
   id: string;
@@ -190,7 +190,7 @@ export function getIndexStats(): {
 } {
   const byType: Record<SearchItemType, number> = {
     task: 0,
-    note: 0,
+    doc: 0,
     meeting: 0,
     project: 0,
   };
@@ -246,14 +246,14 @@ export function taskToSearchItem(
   };
 }
 
-export function noteToSearchItem(
+export function docToSearchItem(
   doc: Doc,
   workspaceName?: string,
   projectName?: string
 ): SearchItem {
   return {
     id: doc.id,
-    type: "note", // Keep as "note" for search compatibility
+    type: "doc",
     title: doc.title,
     content: doc.content?.slice(0, 200) ?? "",
     workspaceId: doc.workspaceId,
