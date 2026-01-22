@@ -162,6 +162,18 @@ export function useMoveDocToProject() {
 // Alias for backwards compatibility
 export const useMoveNoteToProject = useMoveDocToProject;
 
+/**
+ * Hook to fetch ALL docs for a workspace (includes nested folders)
+ * Uses getDocTree internally for proper recursion through folder structures
+ */
+export function useAllWorkspaceDocs(workspaceId: string | null) {
+  return useQuery({
+    queryKey: [...docKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
+    queryFn: () => docLib.getAllDocsForWorkspace(workspaceId!),
+    enabled: !!workspaceId,
+  });
+}
+
 // ============================================================================
 // Tree-based hooks for scoped doc trees
 // ============================================================================
@@ -332,7 +344,7 @@ export function useCreateDocInFolder() {
       workspaceId?: string;
       projectId?: string;
     }) => docLib.createDocInFolder(data),
-    onSuccess: (newDoc, variables) => {
+    onSuccess: (_newDoc, variables) => {
       queryClient.invalidateQueries({
         queryKey: docKeys.tree(
           variables.scope,

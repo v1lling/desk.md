@@ -24,108 +24,24 @@ interface DocFrontmatter {
   created: string;
 }
 
-/**
- * Read all docs from a project's docs directory
- */
-async function readProjectDocs(
-  workspaceId: string,
-  projectId: string,
-  projectPath: string
-): Promise<Doc[]> {
-  const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
-
-  if (!(await exists(docsPath))) {
-    return [];
-  }
-
-  const entries = await readDir(docsPath);
-  const docs: Doc[] = [];
-
-  for (const entry of entries) {
-    if (entry.isFile && entry.name.endsWith(".md")) {
-      try {
-        const docPath = await joinPath(docsPath, entry.name);
-        const content = await readTextFile(docPath);
-        const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
-
-        docs.push({
-          id: filenameToId(entry.name),
-          projectId,
-          workspaceId,
-          filePath: docPath,
-          title: data.title || entry.name,
-          created: normalizeDate(data.created),
-          content: body,
-          preview: generatePreview(body),
-        });
-      } catch (e) {
-        console.warn(`Failed to read doc ${entry.name}:`, e);
-      }
-    }
-  }
-
-  // Sort by created date (newest first)
-  docs.sort((a, b) => b.created.localeCompare(a.created));
-
-  return docs;
-}
 
 /**
- * Get all docs for a workspace (across all projects)
+ * Get all docs for a workspace (across all projects, including nested folders)
+ * Delegates to getAllDocsForWorkspace for proper tree-based recursion.
  */
 export async function getDocs(workspaceId: string): Promise<Doc[]> {
-  if (!isTauri()) {
-    return mockDocs.filter((doc) => doc.workspaceId === workspaceId);
-  }
-
-  const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
-
-  if (!(await exists(projectsPath))) {
-    return [];
-  }
-
-  const projectEntries = await readDir(projectsPath);
-  const allDocs: Doc[] = [];
-
-  for (const entry of projectEntries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
-      const projectPath = await joinPath(projectsPath, entry.name);
-      const projectDocs = await readProjectDocs(workspaceId, entry.name, projectPath);
-      allDocs.push(...projectDocs);
-    }
-  }
-
-  // Also read unassigned docs
-  const unassignedPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED);
-  if (await exists(unassignedPath)) {
-    const unassignedDocs = await readProjectDocs(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
-    allDocs.push(...unassignedDocs);
-  }
-
-  // Sort all docs by created date (newest first)
-  allDocs.sort((a, b) => b.created.localeCompare(a.created));
-
-  return allDocs;
+  return getAllDocsForWorkspace(workspaceId);
 }
 
 /**
- * Get docs for a specific project
+ * Get docs for a specific project (including nested folders)
+ * Delegates to getAllDocs for proper tree-based recursion.
  */
 export async function getDocsByProject(
   workspaceId: string,
   projectId: string
 ): Promise<Doc[]> {
-  if (!isTauri()) {
-    return mockDocs.filter((doc) => doc.workspaceId === workspaceId && doc.projectId === projectId);
-  }
-
-  const orbitPath = await getOrbitPath();
-  const projectPath = isUnassigned(projectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
-
-  return readProjectDocs(workspaceId, projectId, projectPath);
+  return getAllDocs("project", workspaceId, projectId);
 }
 
 /**
@@ -782,4 +698,89 @@ export async function importDocs(
   }
 
   return importedDocs;
+}
+
+// ============================================================================
+// Flat Doc Access (using tree internally for full recursion)
+// ============================================================================
+
+/**
+ * Flatten a doc tree into a flat array of docs
+ * Recursively extracts all docs from folders
+ */
+export function flattenDocTree(nodes: DocTreeNode[]): Doc[] {
+  const docs: Doc[] = [];
+
+  for (const node of nodes) {
+    if (node.type === "doc") {
+      docs.push(node.doc);
+    } else if (node.type === "folder" && node.folder.children) {
+      docs.push(...flattenDocTree(node.folder.children));
+    }
+  }
+
+  return docs;
+}
+
+/**
+ * Get all docs for a scope as a flat array (includes nested folders)
+ * Uses getDocTree internally for proper recursion
+ */
+export async function getAllDocs(
+  scope: DocScope,
+  workspaceId?: string,
+  projectId?: string
+): Promise<Doc[]> {
+  const tree = await getDocTree(scope, workspaceId, projectId);
+  const docs = flattenDocTree(tree);
+
+  // Sort by created date (newest first)
+  docs.sort((a, b) => b.created.localeCompare(a.created));
+
+  return docs;
+}
+
+/**
+ * Get all docs for a workspace across all projects (includes nested folders)
+ * Combines workspace-level docs + all project docs
+ */
+export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]> {
+  if (!isTauri()) {
+    return mockDocs.filter((doc) => doc.workspaceId === workspaceId);
+  }
+
+  const allDocs: Doc[] = [];
+
+  // 1. Get workspace-level docs
+  const workspaceDocs = await getAllDocs("workspace", workspaceId);
+  allDocs.push(...workspaceDocs);
+
+  // 2. Get all project docs
+  const orbitPath = await getOrbitPath();
+  const projectsPath = await joinPath(
+    orbitPath,
+    PATH_SEGMENTS.WORKSPACES,
+    workspaceId,
+    PATH_SEGMENTS.PROJECTS
+  );
+
+  if (await exists(projectsPath)) {
+    const projectEntries = await readDir(projectsPath);
+
+    for (const entry of projectEntries) {
+      if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
+        const projectDocs = await getAllDocs("project", workspaceId, entry.name);
+        allDocs.push(...projectDocs);
+      }
+    }
+  }
+
+  // 3. Get unassigned docs
+  const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED);
+  allDocs.push(...unassignedDocs);
+
+  // Sort all docs by created date (newest first)
+  allDocs.sort((a, b) => b.created.localeCompare(a.created));
+
+  return allDocs;
 }
