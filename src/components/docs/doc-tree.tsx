@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DocTreeItem } from "./doc-tree-item";
 import type { Doc, DocTreeNode, DocScope } from "@/types";
@@ -79,6 +80,9 @@ export function DocTree({
   const [folderName, setFolderName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState<{ path: string } | null>(null);
+
   const toggleFolder = useCallback((path: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -109,14 +113,14 @@ export function DocTree({
     setFolderName(name);
   };
 
-  const handleDeleteFolder = async (path: string) => {
-    if (
-      onDeleteFolder &&
-      window.confirm(
-        `Delete folder "${path.split("/").pop()}" and all its contents?`
-      )
-    ) {
-      await onDeleteFolder(path);
+  const handleDeleteFolder = (path: string) => {
+    setDeleteConfirm({ path });
+  };
+
+  const handleDeleteFolderConfirm = async () => {
+    if (deleteConfirm && onDeleteFolder) {
+      await onDeleteFolder(deleteConfirm.path);
+      setDeleteConfirm(null);
     }
   };
 
@@ -256,6 +260,17 @@ export function DocTree({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Folder delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+        title="Delete Folder"
+        description={`Delete "${deleteConfirm?.path.split("/").pop()}" and all its contents? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteFolderConfirm}
+      />
     </div>
   );
 }
