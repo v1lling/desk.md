@@ -195,6 +195,45 @@ class FileTreeService implements IFileTreeService {
   }
 
   /**
+   * Get parsed file content by absolute path (with caching)
+   * Use this when you already have the absolute path
+   */
+  async getContentByAbsolutePath<T>(
+    absolutePath: string,
+    parser?: ContentParser<T>
+  ): Promise<T | null> {
+    await this.ensureInitialized();
+
+    if (!isFileSystemAvailable()) {
+      return null;
+    }
+
+    if (!(await exists(absolutePath))) {
+      return null;
+    }
+
+    // Check cache first
+    const cached = this.cache.get<T>(absolutePath);
+    if (cached) {
+      return cached.parsed;
+    }
+
+    // Read from disk
+    try {
+      const raw = await readTextFile(absolutePath);
+      const parsed = parser ? parser(raw, absolutePath) : (raw as unknown as T);
+
+      // Cache the result
+      this.cache.set(absolutePath, raw, parsed, Date.now());
+
+      return parsed;
+    } catch (error) {
+      console.error(`[FileTreeService] Failed to read: ${absolutePath}`, error);
+      return null;
+    }
+  }
+
+  /**
    * Subscribe to changes at a path
    */
   subscribe(relativePath: string, callback: TreeChangeCallback): () => void {

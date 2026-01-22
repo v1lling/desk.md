@@ -57,3 +57,17 @@ export {
   disconnectFromWatcher,
   isWatcherConnected,
 } from "./watcher-integration";
+
+// Parsers
+export type {
+  ParsedMarkdownDoc,
+  ParsedDoc,
+  ParsedTask,
+} from "./parsers";
+export {
+  parseMarkdownDoc,
+  createDocParser,
+  createTaskParser,
+  parseJson,
+  parsePlainText,
+} from "./parsers";

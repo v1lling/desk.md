@@ -18,6 +18,7 @@ import {
 } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID, isUnassigned } from "./constants";
+import { getFileTreeService } from "./file-tree";
 
 interface DocFrontmatter {
   title: string;
@@ -362,11 +363,24 @@ async function buildDocTreeRecursive(
   }
 
   // Process files (sorted by name)
+  // Use file-tree service for cached content reads
+  const fileTreeService = getFileTreeService();
   files.sort((a, b) => a.name.localeCompare(b.name));
   for (const file of files) {
     try {
       const filePath = await joinPath(currentPath, file.name);
-      const content = await readTextFile(filePath);
+
+      // Use cached content from file-tree service
+      const content = await fileTreeService.getContentByAbsolutePath<string>(
+        filePath,
+        (raw) => raw
+      );
+
+      if (!content) {
+        console.warn(`Failed to read doc ${file.name}: no content`);
+        continue;
+      }
+
       const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
 
       const docRelPath = relativePath
