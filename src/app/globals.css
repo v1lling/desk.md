@@ -190,6 +190,12 @@
   display: none; /* Chrome, Safari, Tauri/WKWebView */
 }
 
+/* Position horizontal scrollbar at top */
+.os-scrollbar-top .os-scrollbar-horizontal {
+  top: 0;
+  bottom: auto;
+}
+
 /* Tiptap editor styles */
 .tiptap {
   outline: none;
