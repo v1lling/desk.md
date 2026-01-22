@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DocTree, DocList, DocEditor, NewDocModal, DocDropZone } from "@/components/docs";
+import { DocTree, DocList, DocSlidePanel, DocInlineEditor, NewDocModal, DocDropZone } from "@/components/docs";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -247,7 +247,7 @@ export function DocsPageClient() {
       </div>
 
       {/* Tab Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 h-full overflow-hidden">
         {activeTab === "workspace" ? (
           // Workspace tree view - split into tree and editor
           <DocDropZone onFilesDropped={handleFilesDropped} className="flex h-full">
@@ -270,24 +270,11 @@ export function DocsPageClient() {
             </div>
 
             {/* Editor area */}
-            <div className="flex-1 p-6">
-              {selectedDoc ? (
-                <div className="h-full flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Editing: {selectedDoc.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Use the side panel or click edit to modify this doc.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <p className="text-muted-foreground">Select a doc to view</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Drop files here to import, or create a new doc using the tree
-                  </p>
-                </div>
-              )}
+            <div className="flex-1 h-full overflow-hidden">
+              <DocInlineEditor
+                doc={selectedDoc}
+                onClose={() => setSelectedDoc(null)}
+              />
             </div>
           </DocDropZone>
         ) : (
@@ -361,9 +348,10 @@ export function DocsPageClient() {
         )}
       </main>
 
-      <DocEditor
+      {/* Slide panel for All Projects tab - inline editor handles workspace tab */}
+      <DocSlidePanel
         doc={selectedDoc}
-        open={!!selectedDoc}
+        open={activeTab === "all" && !!selectedDoc}
         onClose={() => setSelectedDoc(null)}
       />
 

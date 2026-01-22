@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { DocTree, DocEditor, NewDocModal } from "@/components/docs";
+import { DocTree, DocInlineEditor, NewDocModal } from "@/components/docs";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
 import {
   useProject,
@@ -203,7 +203,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Project Header */}
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center gap-4 mb-2">
@@ -232,7 +232,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="flex-1 flex flex-col"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
       >
         <div className="px-6 pt-2">
           <TabsList className="h-10 w-auto">
@@ -371,7 +371,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               New Doc
             </Button>
           </div>
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 h-full flex overflow-hidden">
             {/* Tree sidebar */}
             <div className="w-64 h-full border-r flex flex-col">
               <DocTree
@@ -390,24 +390,11 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               />
             </div>
             {/* Content area */}
-            <div className="flex-1 p-6">
-              {selectedDoc ? (
-                <div className="h-full flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Selected: {selectedDoc.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    The doc editor panel will open automatically.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <p className="text-muted-foreground">Select a doc to view</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Or create a new doc or folder using the tree
-                  </p>
-                </div>
-              )}
+            <div className="flex-1 h-full overflow-hidden">
+              <DocInlineEditor
+                doc={selectedDoc}
+                onClose={() => setSelectedDoc(null)}
+              />
             </div>
           </div>
         </TabsContent>
@@ -433,13 +420,6 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         task={selectedTask}
         open={!!selectedTask}
         onClose={() => setSelectedTask(null)}
-      />
-
-      {/* Doc Editor */}
-      <DocEditor
-        doc={selectedDoc}
-        open={!!selectedDoc}
-        onClose={() => setSelectedDoc(null)}
       />
 
       {/* Quick Add Task Modal */}

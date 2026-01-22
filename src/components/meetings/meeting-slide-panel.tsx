@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { EditorShell } from "@/components/ui/editor-shell";
+import { SlidePanel } from "@/components/ui/slide-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,13 +15,13 @@ import type { Meeting } from "@/types";
 import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 
-interface MeetingEditorProps {
+interface MeetingSlidePanelProps {
   meeting: Meeting | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
+export function MeetingSlidePanel({ meeting, open, onClose }: MeetingSlidePanelProps) {
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
 
@@ -39,8 +39,6 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
     if (meeting) {
       setTitle(meeting.title);
       setDate(meeting.date);
-      setAttendees(meeting.attendees?.join(", ") || "");
-      setContent(meeting.content);
       setAttendees(meeting.attendees?.join(", ") || "");
       setContent(meeting.content);
       
@@ -150,7 +148,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
       <div className="space-y-2">
         <Label>Notes</Label>
         {isEditorReady ? (
-          <MarkdownEditor
+          <RichTextEditor
             value={content}
             onChange={setContent}
             placeholder="Write your meeting notes..."
@@ -214,7 +212,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">
         {isEditorReady ? (
-          <MarkdownEditor
+          <RichTextEditor
             value={content}
             onChange={setContent}
             placeholder="Write your meeting notes..."
@@ -241,7 +239,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
 
   return (
     <>
-      <EditorShell
+      <SlidePanel
         open={open}
         onClose={handleClose}
         title="Edit Meeting"
@@ -252,7 +250,7 @@ export function MeetingEditor({ meeting, open, onClose }: MeetingEditorProps) {
         saveStatus={saveStatus}
       >
         {formContent}
-      </EditorShell>
+      </SlidePanel>
 
       <ConfirmDialog
         open={showDeleteConfirm}

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { EditorShell } from "@/components/ui/editor-shell";
+import { SlidePanel } from "@/components/ui/slide-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -24,13 +24,13 @@ import { toast } from "sonner";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 
-interface TaskDetailPanelProps {
+interface TaskSlidePanelProps {
   task: Task | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
+export function TaskSlidePanel({ task, open, onClose }: TaskSlidePanelProps) {
   // Detect if this is a personal task
   const isPersonal = task?.workspaceId === PERSONAL_SPACE_ID;
 
@@ -242,7 +242,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       <div className="space-y-2">
         <Label>Notes</Label>
         {isEditorReady ? (
-          <MarkdownEditor
+          <RichTextEditor
             value={content}
             onChange={setContent}
             placeholder="Add notes, details, or checklist items..."
@@ -305,7 +305,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
       {/* Maximized editor - fills remaining space */}
       <div className="flex-1 min-h-0">
         {isEditorReady ? (
-          <MarkdownEditor
+          <RichTextEditor
             value={content}
             onChange={setContent}
             placeholder="Add notes, details, or checklist items..."
@@ -339,7 +339,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
 
   return (
     <>
-      <EditorShell
+      <SlidePanel
         open={open}
         onClose={handleClose}
         title="Edit Task"
@@ -351,7 +351,7 @@ export function TaskDetailPanel({ task, open, onClose }: TaskDetailPanelProps) {
         saveStatus={saveStatus}
       >
         {formContent}
-      </EditorShell>
+      </SlidePanel>
 
       <ConfirmDialog
         open={showDeleteConfirm}

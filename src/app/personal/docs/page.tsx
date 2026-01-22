@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Header } from "@/components/layout";
-import { DocTree, DocEditor } from "@/components/docs";
+import { DocTree, DocInlineEditor } from "@/components/docs";
 import {
   useDocTree,
   useCreateDocFolder,
@@ -129,7 +129,7 @@ export default function PersonalDocsPage() {
         }}
       />
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 h-full flex overflow-hidden">
         {/* Tree sidebar */}
         <div className="w-64 h-full border-r flex flex-col">
           <DocTree
@@ -149,24 +149,11 @@ export default function PersonalDocsPage() {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 p-6">
-          {selectedDoc ? (
-            <div className="h-full flex flex-col">
-              <p className="text-sm text-muted-foreground mb-2">
-                Selected: {selectedDoc.title}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Click the doc in the sidebar or use the editor panel to modify.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <p className="text-muted-foreground">Select a doc to view</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Or create a new doc or folder using the tree
-              </p>
-            </div>
-          )}
+        <div className="flex-1 h-full overflow-hidden">
+          <DocInlineEditor
+            doc={selectedDoc}
+            onClose={() => setSelectedDoc(null)}
+          />
         </div>
       </main>
 
@@ -214,12 +201,6 @@ export default function PersonalDocsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Doc Editor */}
-      <DocEditor
-        doc={selectedDoc}
-        open={!!selectedDoc}
-        onClose={() => setSelectedDoc(null)}
-      />
     </div>
   );
 }

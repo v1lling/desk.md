@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { isTauri } from "@/lib/orbit/tauri-fs";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 
-interface TiptapEditorProps {
+interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -25,13 +25,22 @@ interface TiptapEditorProps {
   minHeight?: string;
 }
 
-export function TiptapEditor({
+/**
+ * RichTextEditor - WYSIWYG markdown editor built on Tiptap
+ *
+ * Features:
+ * - Markdown input/output
+ * - Headings, lists, task lists, tables
+ * - Link support with click-to-open
+ * - Code blocks
+ */
+export function RichTextEditor({
   value,
   onChange,
   placeholder = "Write something...",
   className,
   minHeight = "300px",
-}: TiptapEditorProps) {
+}: RichTextEditorProps) {
   // Track if we're currently syncing to avoid loops
   const isSyncing = useRef(false);
 
@@ -96,7 +105,7 @@ export function TiptapEditor({
       // Get markdown content
       const storage = editor.storage as unknown as Record<string, { getMarkdown: () => string }>;
       const markdown = storage.markdown.getMarkdown();
-      
+
       isSyncing.current = true;
       onChange(markdown);
       isSyncing.current = false;
@@ -113,7 +122,7 @@ export function TiptapEditor({
     // but it catches the most common case of "nothing changed"
     const storage = editor.storage as unknown as Record<string, { getMarkdown: () => string }>;
     const currentMarkdown = storage.markdown.getMarkdown();
-    
+
     if (value !== currentMarkdown) {
       // Save selection
       const { from, to } = editor.state.selection;
@@ -151,7 +160,7 @@ export function TiptapEditor({
   }
 
   return (
-    <div 
+    <div
       className={cn(
         "rounded-lg border border-border/60 bg-background overflow-hidden",
         className
@@ -166,6 +175,3 @@ export function TiptapEditor({
     </div>
   );
 }
-
-// Export for backwards compatibility
-export { TiptapEditor as MarkdownEditor };

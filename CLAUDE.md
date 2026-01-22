@@ -64,6 +64,28 @@ Key features:
 - Global search (Cmd+K)
 - Auto-save with file watcher
 
+## UI Patterns
+
+### Scrolling
+Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).
+
+**Important**: ScrollArea needs proper height constraints from parent containers to work:
+```tsx
+// Parent containers need: h-full, overflow-hidden, min-h-0 (for flex)
+<div className="flex flex-col h-full overflow-hidden">
+  <header>...</header>
+  <ScrollArea className="flex-1 min-h-0">
+    <div className="p-6">{content}</div>
+  </ScrollArea>
+</div>
+```
+
+### Component Architecture
+- `RichTextEditor` - Tiptap WYSIWYG markdown editor
+- `SlidePanel` - Slide-in panel from right (for editing entities)
+- `DocInlineEditor` / `DocSlidePanel` - Doc editing in different contexts
+- `TaskSlidePanel`, `MeetingSlidePanel` - Entity editors
+
 ## Dev Notes
 
 - Dashboard at `/`, All Tasks at `/tasks`

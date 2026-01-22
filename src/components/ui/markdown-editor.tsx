@@ -1,12 +1,11 @@
 "use client";
 
 /**
- * @deprecated This file re-exports from tiptap-editor for backwards compatibility.
- * Import directly from "@/components/ui/tiptap-editor" for new code.
+ * @deprecated Use RichTextEditor from "@/components/ui/rich-text-editor" instead.
+ * This file provides backwards compatibility re-exports.
  */
 
-export { TiptapEditor as MarkdownEditor } from "./tiptap-editor";
-export type { } from "./tiptap-editor";
+export { RichTextEditor as MarkdownEditor } from "./rich-text-editor";
 
 // Keep the MarkdownPreview for read-only displays if needed
 import { cn } from "@/lib/utils";
