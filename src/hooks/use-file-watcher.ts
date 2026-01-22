@@ -26,6 +26,12 @@ import {
   viewStateKeys,
   personalKeys,
 } from "@/stores";
+import {
+  getFileTreeService,
+  connectToWatcher,
+  disconnectFromWatcher,
+  fileTreeKeys,
+} from "@/lib/orbit/file-tree";
 
 /**
  * Hook to initialize file watching and connect to query cache
@@ -40,6 +46,13 @@ export function useFileWatcher() {
     if (isInitialized.current) return;
     isInitialized.current = true;
 
+    // Initialize file tree service first
+    const fileTreeService = getFileTreeService();
+    fileTreeService.initialize().then(() => {
+      // Connect file tree service to watcher
+      connectToWatcher();
+    });
+
     // Start the watcher
     startWatching();
 
@@ -51,6 +64,7 @@ export function useFileWatcher() {
     // Cleanup on unmount
     return () => {
       unsubscribe();
+      disconnectFromWatcher();
       stopWatching();
       isInitialized.current = false;
     };
@@ -212,6 +226,12 @@ function handleFileChange(
         break;
     }
   }
+
+  // Also invalidate file-tree queries for any file change
+  // The file-tree service handles its own internal cache invalidation via watcher-integration
+  queryClient.invalidateQueries({
+    queryKey: fileTreeKeys.all,
+  });
 }
 
 export default useFileWatcher;

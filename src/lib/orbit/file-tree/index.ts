@@ -50,3 +50,10 @@ export {
   useInvalidateFileTree,
   useFileTreeSubscription,
 } from "./hooks";
+
+// Watcher integration
+export {
+  connectToWatcher,
+  disconnectFromWatcher,
+  isWatcherConnected,
+} from "./watcher-integration";

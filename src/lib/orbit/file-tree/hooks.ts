@@ -6,9 +6,10 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import type { TreeNode, TraversalOptions, CacheStats, ContentParser } from "./types";
 import { getFileTreeService } from "./service";
+import { connectToWatcher, disconnectFromWatcher } from "./watcher-integration";
 
 /**
  * Query keys for file tree queries
@@ -22,18 +23,30 @@ export const fileTreeKeys = {
 };
 
 /**
- * Hook to initialize the file tree service
+ * Hook to initialize the file tree service and connect to watcher
  * Call this once at app startup (e.g., in providers)
  */
 export function useFileTreeInit() {
+  const isInitialized = useRef(false);
+
   useEffect(() => {
+    // Prevent double initialization in strict mode
+    if (isInitialized.current) return;
+    isInitialized.current = true;
+
     const service = getFileTreeService();
-    service.initialize().catch((err) => {
-      console.error("[useFileTreeInit] Failed to initialize:", err);
-    });
+    service.initialize()
+      .then(() => {
+        // Connect to watcher after service is initialized
+        connectToWatcher();
+      })
+      .catch((err) => {
+        console.error("[useFileTreeInit] Failed to initialize:", err);
+      });
 
     return () => {
-      // Don't shutdown on unmount - service is singleton
+      disconnectFromWatcher();
+      isInitialized.current = false;
     };
   }, []);
 }
