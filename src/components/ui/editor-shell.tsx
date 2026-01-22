@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -205,16 +206,16 @@ export function EditorShell({
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <ScrollArea className="flex-1 min-h-0">
           <div
             className={cn(
-              "h-full transition-all duration-300",
+              "transition-all duration-300",
               isExpanded ? "px-6 py-4" : "px-6 py-6"
             )}
           >
             {contentToRender}
           </div>
-        </div>
+        </ScrollArea>
 
         {/* Footer - only rendered if content exists */}
         {footerToRender && (

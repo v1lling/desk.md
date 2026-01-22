@@ -11,10 +11,8 @@
 // =============================================================================
 
 export const SPECIAL_DIRS = {
-  /** Directory for tasks/notes not assigned to any project */
+  /** Directory for tasks/docs not assigned to any project */
   UNASSIGNED: "_unassigned",
-  /** Directory for AI context files (future) */
-  CONTEXT: "context",
 } as const;
 
 // =============================================================================

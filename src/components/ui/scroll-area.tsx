@@ -1,58 +1,50 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
+import * as React from "react";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-
-function ScrollArea({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
-  return (
-    <ScrollAreaPrimitive.Root
-      data-slot="scroll-area"
-      className={cn("relative", className)}
-      {...props}
-    >
-      <ScrollAreaPrimitive.Viewport
-        data-slot="scroll-area-viewport"
-        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
-      >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  )
+interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  className?: string;
+  /** Direction of scroll. Defaults to "vertical" */
+  orientation?: "vertical" | "horizontal" | "both";
 }
 
-function ScrollBar({
+/**
+ * Custom scroll area using OverlayScrollbars.
+ * Works on all platforms including Tauri/WKWebView on macOS.
+ *
+ * Usage: Wrap scrollable content. In flex containers, use with flex-1.
+ * Theme defined in globals.css (.os-theme-orbit).
+ */
+function ScrollArea({
+  children,
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: ScrollAreaProps) {
   return (
-    <ScrollAreaPrimitive.ScrollAreaScrollbar
-      data-slot="scroll-area-scrollbar"
-      orientation={orientation}
-      className={cn(
-        "flex touch-none p-px transition-colors select-none",
-        orientation === "vertical" &&
-          "h-full w-2.5 border-l border-l-transparent",
-        orientation === "horizontal" &&
-          "h-2.5 flex-col border-t border-t-transparent",
-        className
-      )}
+    <OverlayScrollbarsComponent
+      data-slot="scroll-area"
+      className={cn("overflow-hidden", className)}
+      options={{
+        scrollbars: {
+          theme: "os-theme-orbit",
+          autoHide: "never",
+          clickScroll: true,
+        },
+        overflow: {
+          x: orientation === "horizontal" || orientation === "both" ? "scroll" : "hidden",
+          y: orientation === "vertical" || orientation === "both" ? "scroll" : "hidden",
+        },
+      }}
+      defer
       {...props}
     >
-      <ScrollAreaPrimitive.ScrollAreaThumb
-        data-slot="scroll-area-thumb"
-        className="bg-border relative flex-1 rounded-full"
-      />
-    </ScrollAreaPrimitive.ScrollAreaScrollbar>
-  )
+      {children}
+    </OverlayScrollbarsComponent>
+  );
 }
 
-export { ScrollArea, ScrollBar }
+export { ScrollArea };

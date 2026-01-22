@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
@@ -207,7 +208,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center gap-4 mb-2">
           <Link
-            href="/projects"
+            href="/"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -264,8 +265,9 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         </div>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="flex-1 p-6 mt-0">
-          <div className="max-w-3xl space-y-6">
+        <TabsContent value="overview" className="flex-1 mt-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6 max-w-3xl space-y-6">
             {/* Project Info */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Project Details</h2>
@@ -333,7 +335,8 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
                 </Button>
               </div>
             </div>
-          </div>
+            </div>
+          </ScrollArea>
         </TabsContent>
 
         {/* Tasks Tab */}
@@ -345,17 +348,19 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               New Task
             </Button>
           </div>
-          <div className="flex-1 p-6 overflow-auto">
-            {viewMode === "kanban" ? (
-              <KanbanBoard projectId={projectId} onTaskClick={handleTaskClick} />
-            ) : (
-              <TaskListView
-                tasks={tasks}
-                onTaskClick={handleTaskClick}
-                groupByStatus
-              />
-            )}
-          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-6">
+              {viewMode === "kanban" ? (
+                <KanbanBoard projectId={projectId} onTaskClick={handleTaskClick} />
+              ) : (
+                <TaskListView
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                  groupByStatus
+                />
+              )}
+            </div>
+          </ScrollArea>
         </TabsContent>
 
         {/* Docs Tab */}
@@ -368,8 +373,9 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
           </div>
           <div className="flex-1 flex overflow-hidden">
             {/* Tree sidebar */}
-            <div className="w-64 border-r flex flex-col p-4 overflow-auto">
+            <div className="w-64 h-full border-r flex flex-col">
               <DocTree
+                className="flex-1 min-h-0 px-4"
                 nodes={docTree}
                 isLoading={docsLoading}
                 selectedDocId={selectedDoc?.id}
@@ -384,7 +390,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               />
             </div>
             {/* Content area */}
-            <div className="flex-1 p-6 overflow-auto">
+            <div className="flex-1 p-6">
               {selectedDoc ? (
                 <div className="h-full flex flex-col">
                   <p className="text-sm text-muted-foreground mb-2">
@@ -414,9 +420,11 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
               New Meeting
             </Button>
           </div>
-          <div className="flex-1 p-6 overflow-auto">
-            <MeetingList meetings={meetings} onMeetingClick={handleMeetingClick} />
-          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-6">
+              <MeetingList meetings={meetings} onMeetingClick={handleMeetingClick} />
+            </div>
+          </ScrollArea>
         </TabsContent>
       </Tabs>
 

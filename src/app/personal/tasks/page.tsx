@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Header } from "@/components/layout";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   usePersonalTasks,
   useCreatePersonalTask,
@@ -91,23 +92,25 @@ export default function PersonalTasksPage() {
         rightElement={<ViewModeToggle value={viewMode} onChange={setViewMode} />}
       />
 
-      <main className="flex-1 overflow-auto p-6">
-        {viewMode === "list" ? (
-          <TaskListView
-            tasks={filteredTasks}
-            onTaskClick={handleTaskClick}
-            groupByStatus
-            isLoading={isLoading}
-          />
-        ) : (
-          <KanbanBoard
-            tasks={filteredTasks}
-            onTaskClick={handleTaskClick}
-            isLoading={isLoading}
-            isPersonal
-          />
-        )}
-      </main>
+      <ScrollArea className="flex-1">
+        <main className="p-6">
+          {viewMode === "list" ? (
+            <TaskListView
+              tasks={filteredTasks}
+              onTaskClick={handleTaskClick}
+              groupByStatus
+              isLoading={isLoading}
+            />
+          ) : (
+            <KanbanBoard
+              tasks={filteredTasks}
+              onTaskClick={handleTaskClick}
+              isLoading={isLoading}
+              isPersonal
+            />
+          )}
+        </main>
+      </ScrollArea>
 
       {/* New Task Dialog */}
       <Dialog open={showNewTask} onOpenChange={setShowNewTask}>

@@ -17,7 +17,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID, isUnassigned } from "./constants";
 
 interface DocFrontmatter {
   title: string;
@@ -164,7 +164,7 @@ export async function createDoc(data: {
   };
 
   if (!isTauri()) {
-    doc.filePath = `~/Orbit/workspaces/${data.workspaceId}/projects/${data.projectId}/docs/${filename}`;
+    doc.filePath = `~/Orbit/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
@@ -490,7 +490,7 @@ export async function getDocTree(
   if (!isTauri()) {
     // Return flat mock data as tree (no folders in mock)
     const filtered = mockDocs.filter((doc) => {
-      if (scope === "personal") return doc.workspaceId === "_personal";
+      if (scope === "personal") return doc.workspaceId === PERSONAL_SPACE_ID;
       if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === "_workspace";
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
     });
@@ -510,8 +510,8 @@ export async function getDocTree(
     basePath,
     "",
     scope,
-    workspaceId || "_personal",
-    projectId || (scope === "workspace" ? "_workspace" : "_personal")
+    workspaceId || PERSONAL_SPACE_ID,
+    projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID)
   );
 }
 
@@ -570,8 +570,8 @@ export async function renameDocFolder(
     basePath,
     newPath,
     scope,
-    workspaceId || "_personal",
-    projectId || (scope === "workspace" ? "_workspace" : "_personal")
+    workspaceId || PERSONAL_SPACE_ID,
+    projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID)
   );
 
   return {
@@ -670,8 +670,8 @@ export async function moveDoc(
   return {
     id: docId,
     path: newRelPath,
-    projectId: projectId || (scope === "workspace" ? "_workspace" : "_personal"),
-    workspaceId: workspaceId || "_personal",
+    projectId: projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID),
+    workspaceId: workspaceId || PERSONAL_SPACE_ID,
     filePath: targetFilePath,
     title: data.title,
     created: normalizeDate(data.created),
@@ -694,8 +694,8 @@ export async function createDocInFolder(data: {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n`;
-  const wsId = data.workspaceId || "_personal";
-  const projId = data.projectId || (data.scope === "workspace" ? "_workspace" : "_personal");
+  const wsId = data.workspaceId || PERSONAL_SPACE_ID;
+  const projId = data.projectId || (data.scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID);
 
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`

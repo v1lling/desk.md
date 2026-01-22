@@ -15,6 +15,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockWorkspaces } from "./mock-data";
+import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 
 interface WorkspaceFrontmatter {
   name: string;
@@ -32,7 +33,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
   }
 
   const orbitPath = await getOrbitPath();
-  const workspacesPath = await joinPath(orbitPath, "workspaces");
+  const workspacesPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES);
 
   // Check if workspaces directory exists
   if (!(await exists(workspacesPath))) {
@@ -45,7 +46,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
   for (const entry of entries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
       try {
-        const workspacePath = await joinPath(workspacesPath, entry.name, "workspace.md");
+        const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
         const content = await readTextFile(workspacePath);
         const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
 
@@ -74,7 +75,7 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
   }
 
   const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, "workspaces", workspaceId, "workspace.md");
+  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
     const content = await readTextFile(workspacePath);
@@ -115,14 +116,14 @@ export async function createWorkspace(data: {
   }
 
   const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, "workspaces", data.id);
+  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.id);
 
   // Create workspace directory structure
   await mkdir(workspacePath);
-  await mkdir(await joinPath(workspacePath, "projects"));
-  await mkdir(await joinPath(workspacePath, "_unassigned"));
-  await mkdir(await joinPath(workspacePath, "_unassigned", "tasks"));
-  await mkdir(await joinPath(workspacePath, "_unassigned", "notes"));
+  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
+  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
+  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
 
   // Create workspace.md
   const frontmatter: WorkspaceFrontmatter = {
@@ -138,7 +139,7 @@ ${workspace.description || ""}
 `;
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
-  await writeTextFile(await joinPath(workspacePath, "workspace.md"), fileContent);
+  await writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
 
   return workspace;
 }
@@ -158,7 +159,7 @@ export async function updateWorkspace(
   }
 
   const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, "workspaces", workspaceId, "workspace.md");
+  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
     const content = await readTextFile(workspacePath);
@@ -198,7 +199,7 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
   }
 
   const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, "workspaces", workspaceId);
+  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId);
 
   try {
     await removeDir(workspacePath);

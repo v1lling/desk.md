@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Zap, Plus, MoreHorizontal, User, Briefcase, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -143,20 +144,22 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
           Capture tasks quickly, triage later
         </div>
       ) : (
-        <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
-          {tasks.map((task) => (
-            <CaptureItem
-              key={task.id}
-              task={task}
-              workspaces={workspaces}
-              onMoveToPersonal={() => handleMoveToPersonal(task)}
-              onMoveToWorkspace={(ws, pid, pname) =>
-                handleMoveToWorkspace(task, ws, pid, pname)
-              }
-              onDelete={() => handleDelete(task.id)}
-            />
-          ))}
-        </div>
+        <ScrollArea className="max-h-[280px]">
+          <div className="space-y-1.5">
+            {tasks.map((task) => (
+              <CaptureItem
+                key={task.id}
+                task={task}
+                workspaces={workspaces}
+                onMoveToPersonal={() => handleMoveToPersonal(task)}
+                onMoveToWorkspace={(ws, pid, pname) =>
+                  handleMoveToWorkspace(task, ws, pid, pname)
+                }
+                onDelete={() => handleDelete(task.id)}
+              />
+            ))}
+          </div>
+        </ScrollArea>
       )}
     </div>
   );

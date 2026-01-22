@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -114,23 +115,25 @@ export default function TasksPage() {
         rightElement={<ViewModeToggle value={viewMode} onChange={setViewMode} />}
       />
 
-      <div className="flex-1 p-6 min-h-0 overflow-auto">
-        {viewMode === "kanban" ? (
-          <KanbanBoard
-            onTaskClick={handleTaskClick}
-            showProject
-            tasks={filteredTasks}
-          />
-        ) : (
-          <TaskListView
-            tasks={filteredTasks}
-            onTaskClick={handleTaskClick}
-            showProject
-            getProjectName={getProjectName}
-            groupByStatus
-          />
-        )}
-      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-6">
+          {viewMode === "kanban" ? (
+            <KanbanBoard
+              onTaskClick={handleTaskClick}
+              showProject
+              tasks={filteredTasks}
+            />
+          ) : (
+            <TaskListView
+              tasks={filteredTasks}
+              onTaskClick={handleTaskClick}
+              showProject
+              getProjectName={getProjectName}
+              groupByStatus
+            />
+          )}
+        </div>
+      </ScrollArea>
 
       {/* Task Detail Panel */}
       <TaskDetailPanel

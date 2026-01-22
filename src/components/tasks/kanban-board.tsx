@@ -33,6 +33,7 @@ import type { Task, TaskStatus } from "@/types";
 import { isUnassigned, PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 import { LoadingState } from "@/components/ui/loading-state";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface KanbanBoardProps {
   projectId?: string;
@@ -305,7 +306,7 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="overflow-x-auto pb-4">
+      <ScrollArea orientation="horizontal" className="pb-4">
         <div className="grid grid-flow-col auto-cols-[300px] gap-4 items-stretch">
         <KanbanColumn
           status="todo"
@@ -377,7 +378,7 @@ export function KanbanBoard({
           </button>
         )}
         </div>
-      </div>
+      </ScrollArea>
       <DragOverlay>
         {activeTask ? (
           <TaskCard

@@ -22,8 +22,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
+import { useProjects } from "@/stores/projects";
 import { useSettingsStore } from "@/stores/settings";
 import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
+import { NewProjectModal } from "@/components/projects/new-project-modal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LucideIcon } from "lucide-react";
 
 interface SidebarProps {
@@ -31,10 +34,9 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-// Workspace-scoped navigation items
+// Workspace-scoped navigation items (no Projects - they're shown inline)
 const workspaceNavItems = [
   { href: "/tasks", label: "All Tasks", icon: ListTodo },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/docs", label: "Docs", icon: FileText },
   { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
@@ -128,6 +130,7 @@ function WorkspaceItem({
   isExpanded,
   onSelect,
   onToggle,
+  onNewProject,
   collapsed,
   pathname,
 }: {
@@ -136,17 +139,18 @@ function WorkspaceItem({
   isExpanded: boolean;
   onSelect: () => void;
   onToggle: () => void;
+  onNewProject: () => void;
   collapsed: boolean;
   pathname: string;
 }) {
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
+  const { data: projects = [] } = useProjects(isSelected ? workspace.id : null);
   const fillColor = workspace.color || DEFAULT_WORKSPACE_COLOR;
 
-  // Check if any workspace route is active (not dashboard, personal, or settings)
-  const isWorkspaceRouteActive =
-    isSelected &&
-    pathname !== "/" &&
-    !pathname.startsWith("/personal") &&
-    !pathname.startsWith("/settings");
+  // Sort projects alphabetically
+  const sortedProjects = [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   if (collapsed) {
     return (
@@ -228,6 +232,65 @@ function WorkspaceItem({
               indent
             />
           ))}
+
+          {/* Projects section (expandable) */}
+          <div>
+            <button
+              onClick={() => setProjectsExpanded(!projectsExpanded)}
+              className={cn(
+                "w-full flex items-center gap-2 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+              )}
+            >
+              <FolderKanban className="size-4 shrink-0 text-sidebar-foreground/60" />
+              <span className="flex-1 text-left">Projects</span>
+              {projectsExpanded ? (
+                <ChevronDown className="size-3 text-sidebar-foreground/50" />
+              ) : (
+                <ChevronRight className="size-3 text-sidebar-foreground/50" />
+              )}
+            </button>
+
+            {/* Project list */}
+            {projectsExpanded && (
+              <div className="mt-0.5 space-y-0.5">
+                {sortedProjects.length === 0 ? (
+                  <div className="pl-10 pr-3 py-2 text-xs text-sidebar-foreground/40 italic">
+                    No projects yet
+                  </div>
+                ) : (
+                  sortedProjects.map((project) => {
+                    const projectHref = `/projects/view?id=${project.id}`;
+                    const isProjectActive = pathname === "/projects/view" &&
+                      new URLSearchParams(window?.location?.search || "").get("id") === project.id;
+
+                    return (
+                      <Link
+                        key={project.id}
+                        href={projectHref}
+                        className={cn(
+                          "flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-sm transition-colors",
+                          isProjectActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm font-medium"
+                            : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        )}
+                      >
+                        <span className="truncate">{project.name}</span>
+                      </Link>
+                    );
+                  })
+                )}
+                {/* New Project button */}
+                <button
+                  onClick={onNewProject}
+                  className="w-full flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                >
+                  <Plus className="size-3" />
+                  <span>New Project</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -245,6 +308,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const [personalExpanded, setPersonalExpanded] = useState(true);
   const [workspaceExpanded, setWorkspaceExpanded] = useState(true);
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   return (
     <>
@@ -279,7 +343,8 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
+        <ScrollArea className="flex-1 h-0">
+          <nav className="px-3 py-3 space-y-4">
           {/* Dashboard - top level */}
           <div>
             <NavLink
@@ -332,6 +397,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                   isExpanded={workspaceExpanded}
                   onSelect={() => setCurrentWorkspaceId(workspace.id)}
                   onToggle={() => setWorkspaceExpanded(!workspaceExpanded)}
+                  onNewProject={() => setShowNewProjectModal(true)}
                   collapsed={collapsed}
                   pathname={pathname}
                 />
@@ -358,7 +424,8 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               )}
             </div>
           </div>
-        </nav>
+          </nav>
+        </ScrollArea>
 
         {/* Footer */}
         <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50 space-y-1">
@@ -387,6 +454,11 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       <NewWorkspaceModal
         open={showNewWorkspaceModal}
         onClose={() => setShowNewWorkspaceModal(false)}
+      />
+
+      <NewProjectModal
+        open={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
       />
     </>
   );

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "overlayscrollbars/overlayscrollbars.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -157,42 +158,36 @@
   }
 }
 
-/* Custom scrollbar styling */
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: oklch(0.8 0 0) transparent;
-  }
+/* OverlayScrollbars custom theme - works on all platforms including Tauri/WKWebView */
+.os-theme-orbit {
+  --os-size: 8px;
+  --os-padding-perpendicular: 2px;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 4px;
+  --os-handle-border-radius: 4px;
+  --os-handle-bg: oklch(0.75 0.005 260 / 0.4);
+  --os-handle-bg-hover: oklch(0.65 0.005 260 / 0.6);
+  --os-handle-bg-active: oklch(0.55 0.005 260 / 0.7);
+}
 
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+.dark .os-theme-orbit {
+  --os-handle-bg: oklch(0.45 0.01 260 / 0.7);
+  --os-handle-bg-hover: oklch(0.55 0.01 260 / 0.85);
+  --os-handle-bg-active: oklch(0.6 0.01 260 / 0.95);
+}
 
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
+/*
+ * OverlayScrollbars viewport fixes for flexbox containers.
+ * Without these, the viewport element doesn't properly constrain height
+ * in flex layouts, and native scrollbars may appear alongside custom ones.
+ */
+[data-overlayscrollbars-viewport] {
+  height: 100%;
+  scrollbar-width: none; /* Firefox */
+}
 
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.8 0 0);
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: oklch(0.7 0 0);
-  }
-
-  .dark .scrollbar-thin {
-    scrollbar-color: oklch(0.35 0 0) transparent;
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.35 0 0);
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: oklch(0.45 0 0);
-  }
+[data-overlayscrollbars-viewport]::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Tauri/WKWebView */
 }
 
 /* Tiptap editor styles */

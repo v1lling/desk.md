@@ -9,6 +9,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
 import { useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TiptapEditorProps {
   value: string;
@@ -131,13 +132,11 @@ export function TiptapEditor({
       )}
       style={{ minHeight }}
     >
-      <div
-        className="p-4 h-full overflow-y-auto"
-        style={{ minHeight }}
-        onKeyDown={handleKeyDown}
-      >
-        <EditorContent editor={editor} className="h-full" />
-      </div>
+      <ScrollArea className="h-full" style={{ minHeight }}>
+        <div className="p-4" onKeyDown={handleKeyDown}>
+          <EditorContent editor={editor} />
+        </div>
+      </ScrollArea>
     </div>
   );
 }

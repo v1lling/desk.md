@@ -33,7 +33,7 @@ async function readProjectMeetings(
   projectId: string,
   projectPath: string
 ): Promise<Meeting[]> {
-  const meetingsPath = await joinPath(projectPath, "meetings");
+  const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
 
   if (!(await exists(meetingsPath))) {
     return [];
@@ -82,7 +82,7 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   }
 
   const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, "workspaces", workspaceId, "projects");
+  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -117,7 +117,7 @@ export async function getMeetingsByProject(
   }
 
   const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, "workspaces", workspaceId, "projects", projectId);
+  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   return readProjectMeetings(workspaceId, projectId, projectPath);
 }
@@ -163,13 +163,13 @@ export async function createMeeting(data: {
   };
 
   if (!isTauri()) {
-    meeting.filePath = `~/Orbit/workspaces/${data.workspaceId}/projects/${data.projectId}/meetings/${filename}`;
+    meeting.filePath = `~/Orbit/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
   }
 
   const orbitPath = await getOrbitPath();
-  const meetingsPath = await joinPath(orbitPath, "workspaces", data.workspaceId, "projects", data.projectId, "meetings");
+  const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.MEETINGS);
 
   // Ensure meetings directory exists
   await mkdir(meetingsPath);

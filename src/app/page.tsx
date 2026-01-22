@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CaptureWidget,
   TriageDetailModal,
@@ -183,21 +184,23 @@ export default function DashboardPage() {
     <div className="flex flex-col h-full">
       <Header title="Dashboard" />
 
-      <main className="flex-1 overflow-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
-          {/* Row 1: Capture + Focus */}
-          <CaptureWidget onTriageComplete={handleTriageComplete} />
-          <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
+      <ScrollArea className="flex-1">
+        <main className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+            {/* Row 1: Capture + Focus */}
+            <CaptureWidget onTriageComplete={handleTriageComplete} />
+            <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
 
-          {/* Row 2: Workspaces (spans full width on larger screens) */}
-          <div className="lg:col-span-2">
-            <WorkspacesWidget
-              summaries={workspaceSummaries}
-              isLoading={summariesLoading}
-            />
+            {/* Row 2: Workspaces (spans full width on larger screens) */}
+            <div className="lg:col-span-2">
+              <WorkspacesWidget
+                summaries={workspaceSummaries}
+                isLoading={summariesLoading}
+              />
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </ScrollArea>
 
       <TriageDetailModal
         open={triageModalOpen}

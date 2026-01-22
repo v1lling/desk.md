@@ -34,7 +34,7 @@ async function readProjectTasks(
   projectId: string,
   projectPath: string
 ): Promise<Task[]> {
-  const tasksPath = await joinPath(projectPath, "tasks");
+  const tasksPath = await joinPath(projectPath, PATH_SEGMENTS.TASKS);
 
   if (!(await exists(tasksPath))) {
     return [];

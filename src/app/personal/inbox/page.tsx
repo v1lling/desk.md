@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskCard } from "@/components/tasks";
 import {
   useInboxTasks,
@@ -49,74 +50,76 @@ export default function InboxPage() {
     <div className="flex flex-col h-full">
       <Header title="Inbox" subtitle="Quick capture for items to triage later" />
 
-      <main className="flex-1 overflow-auto p-6">
-        {/* Quick Add Form */}
-        <form onSubmit={handleQuickAdd} className="mb-6">
-          <div className="flex gap-2">
-            <Input
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Quick add a task..."
-              className="flex-1"
-            />
-            <Button type="submit" disabled={!newTaskTitle.trim()}>
-              <Plus className="size-4 mr-2" />
-              Add
-            </Button>
-          </div>
-        </form>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-pulse text-muted-foreground">
-              Loading inbox...
+      <ScrollArea className="flex-1">
+        <main className="p-6">
+          {/* Quick Add Form */}
+          <form onSubmit={handleQuickAdd} className="mb-6">
+            <div className="flex gap-2">
+              <Input
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="Quick add a task..."
+                className="flex-1"
+              />
+              <Button type="submit" disabled={!newTaskTitle.trim()}>
+                <Plus className="size-4 mr-2" />
+                Add
+              </Button>
             </div>
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">Your inbox is empty</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Use quick add above to capture tasks for later triage
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center gap-2 p-3 rounded-lg border bg-card"
-              >
-                <div className="flex-1">
-                  <TaskCard
-                    task={task}
-                    onClick={() => setSelectedTask(task)}
-                    showProject={false}
-                  />
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMoveToTasks(task.id)}
-                    title="Move to Personal Tasks"
-                  >
-                    <ArrowRight className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(task.id)}
-                    className="text-destructive hover:text-destructive"
-                    title="Delete"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
+          </form>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-pulse text-muted-foreground">
+                Loading inbox...
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">Your inbox is empty</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Use quick add above to capture tasks for later triage
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-2 p-3 rounded-lg border bg-card"
+                >
+                  <div className="flex-1">
+                    <TaskCard
+                      task={task}
+                      onClick={() => setSelectedTask(task)}
+                      showProject={false}
+                    />
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleMoveToTasks(task.id)}
+                      title="Move to Personal Tasks"
+                    >
+                      <ArrowRight className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(task.id)}
+                      className="text-destructive hover:text-destructive"
+                      title="Delete"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </ScrollArea>
     </div>
   );
 }

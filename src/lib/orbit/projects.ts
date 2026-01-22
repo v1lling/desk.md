@@ -31,7 +31,7 @@ async function countProjectTasks(projectPath: string): Promise<{
   total: number;
   byStatus: { todo: number; doing: number; waiting: number; done: number };
 }> {
-  const tasksPath = await joinPath(projectPath, "tasks");
+  const tasksPath = await joinPath(projectPath, PATH_SEGMENTS.TASKS);
 
   if (!(await exists(tasksPath))) {
     return { total: 0, byStatus: { todo: 0, doing: 0, waiting: 0, done: 0 } };
@@ -183,9 +183,8 @@ export async function createProject(data: {
 
   // Create project directory structure
   await mkdir(projectPath);
-  await mkdir(await joinPath(projectPath, "tasks"));
-  await mkdir(await joinPath(projectPath, "notes"));
-  await mkdir(await joinPath(projectPath, "context"));
+  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
 
   // Create project.md
   const frontmatter: ProjectFrontmatter = {

@@ -129,45 +129,44 @@ export default function PersonalDocsPage() {
         }}
       />
 
-      <main className="flex-1 overflow-hidden">
-        <div className="flex h-full">
-          {/* Tree sidebar */}
-          <div className="w-64 border-r flex flex-col p-4">
-            <DocTree
-              nodes={tree}
-              isLoading={isLoading}
-              selectedDocId={selectedDoc?.id}
-              onSelectDoc={handleDocClick}
-              onCreateDoc={handleCreateDocInFolder}
-              onDeleteDoc={handleDeleteDoc}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onDeleteFolder={handleDeleteFolder}
-              expandedFolders={expandedFolders}
-              onExpandedFoldersChange={setExpandedFolders}
-            />
-          </div>
+      <main className="flex-1 flex overflow-hidden">
+        {/* Tree sidebar */}
+        <div className="w-64 h-full border-r flex flex-col">
+          <DocTree
+            className="flex-1 min-h-0 px-4"
+            nodes={tree}
+            isLoading={isLoading}
+            selectedDocId={selectedDoc?.id}
+            onSelectDoc={handleDocClick}
+            onCreateDoc={handleCreateDocInFolder}
+            onDeleteDoc={handleDeleteDoc}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
+            expandedFolders={expandedFolders}
+            onExpandedFoldersChange={setExpandedFolders}
+          />
+        </div>
 
-          {/* Content area */}
-          <div className="flex-1 p-6">
-            {selectedDoc ? (
-              <div className="h-full flex flex-col">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Selected: {selectedDoc.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Click the doc in the sidebar or use the editor panel to modify.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground">Select a doc to view</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Or create a new doc or folder using the tree
-                </p>
-              </div>
-            )}
-          </div>
+        {/* Content area */}
+        <div className="flex-1 p-6">
+          {selectedDoc ? (
+            <div className="h-full flex flex-col">
+              <p className="text-sm text-muted-foreground mb-2">
+                Selected: {selectedDoc.title}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Click the doc in the sidebar or use the editor panel to modify.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <p className="text-muted-foreground">Select a doc to view</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Or create a new doc or folder using the tree
+              </p>
+            </div>
+          )}
         </div>
       </main>
 

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { FolderPlus, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -150,8 +151,8 @@ export function DocTree({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Tree content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Tree content - scrollable */}
+      <ScrollArea className="flex-1 min-h-0">
         {nodes.length === 0 ? (
           <EmptyState
             title="No docs yet"
@@ -180,10 +181,10 @@ export function DocTree({
             ))}
           </div>
         )}
-      </div>
+      </ScrollArea>
 
-      {/* Bottom actions */}
-      <div className="shrink-0 border-t pt-2 mt-2 flex items-center gap-2">
+      {/* Bottom actions - fixed at bottom */}
+      <div className="shrink-0 border-t p-2 flex items-center gap-2">
         {onCreateFolder && (
           <Button
             variant="ghost"

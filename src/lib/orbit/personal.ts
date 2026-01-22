@@ -240,8 +240,8 @@ export async function createPersonalTask(data: {
   };
 
   if (!isTauri()) {
-    const dir = data.isInbox ? "inbox/tasks" : "tasks";
-    task.filePath = `~/Orbit/personal/${dir}/${filename}`;
+    const dir = data.isInbox ? `${PATH_SEGMENTS.INBOX}/${PATH_SEGMENTS.TASKS}` : PATH_SEGMENTS.TASKS;
+    task.filePath = `~/Orbit/${PATH_SEGMENTS.PERSONAL}/${dir}/${filename}`;
     mockPersonalTasks.push(task);
     return task;
   }

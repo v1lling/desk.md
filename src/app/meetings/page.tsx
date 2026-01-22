@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { useMeetings, useProjects, useCurrentWorkspace } from "@/stores";
@@ -96,48 +97,50 @@ export default function MeetingsPage() {
         countLabel="meetings"
       />
 
-      <main className="flex-1 overflow-auto p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-pulse text-muted-foreground">
-              Loading meetings...
-            </div>
-          </div>
-        ) : filteredMeetings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No meetings found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {filterProject !== "all"
-                ? "Try selecting a different project or create a new meeting"
-                : "Create your first meeting note to get started"}
-            </p>
-          </div>
-        ) : filterProject === "all" ? (
-          // Grouped view when showing all
-          <div className="space-y-8">
-            {Object.entries(groupedMeetings).map(([projectId, projectMeetings]) => (
-              <div key={projectId}>
-                <div className="flex items-center gap-2 mb-4">
-                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                  <Link
-                    href={`/projects/view?id=${projectId}`}
-                    className="font-medium hover:underline"
-                  >
-                    {getProjectName(projectId)}
-                  </Link>
-                  <Badge variant="outline" className="ml-2">
-                    {projectMeetings.length}
-                  </Badge>
-                </div>
-                <MeetingList meetings={projectMeetings} onMeetingClick={handleMeetingClick} />
+      <ScrollArea className="flex-1">
+        <main className="p-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-pulse text-muted-foreground">
+                Loading meetings...
               </div>
-            ))}
-          </div>
-        ) : (
-          // Simple list when filtered
-          <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />
-        )}
-      </main>
+            </div>
+          ) : filteredMeetings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No meetings found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {filterProject !== "all"
+                  ? "Try selecting a different project or create a new meeting"
+                  : "Create your first meeting note to get started"}
+              </p>
+            </div>
+          ) : filterProject === "all" ? (
+            // Grouped view when showing all
+            <div className="space-y-8">
+              {Object.entries(groupedMeetings).map(([projectId, projectMeetings]) => (
+                <div key={projectId}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                    <Link
+                      href={`/projects/view?id=${projectId}`}
+                      className="font-medium hover:underline"
+                    >
+                      {getProjectName(projectId)}
+                    </Link>
+                    <Badge variant="outline" className="ml-2">
+                      {projectMeetings.length}
+                    </Badge>
+                  </div>
+                  <MeetingList meetings={projectMeetings} onMeetingClick={handleMeetingClick} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Simple list when filtered
+            <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />
+          )}
+        </main>
+      </ScrollArea>
 
       <MeetingEditor
         meeting={selectedMeeting}

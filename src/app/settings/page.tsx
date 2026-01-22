@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaces } from "@/stores/workspaces";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,8 +145,9 @@ export default function SettingsPage() {
     <div className="flex flex-col h-full">
       <Header title="Settings" />
 
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-2xl space-y-6">
+      <ScrollArea className="flex-1">
+        <main className="p-6">
+          <div className="max-w-2xl space-y-6">
           {/* Appearance */}
           <Card>
             <CardHeader>
@@ -307,8 +309,9 @@ export default function SettingsPage() {
               </p>
             </CardContent>
           </Card>
-        </div>
-      </main>
+          </div>
+        </main>
+      </ScrollArea>
 
       {/* Data Path Change Dialog */}
       <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}>

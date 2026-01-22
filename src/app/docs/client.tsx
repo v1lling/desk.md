@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DocTree, DocList, DocEditor, NewDocModal, DocDropZone } from "@/components/docs";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -251,8 +252,9 @@ export function DocsPageClient() {
           // Workspace tree view - split into tree and editor
           <DocDropZone onFilesDropped={handleFilesDropped} className="flex h-full">
             {/* Tree sidebar */}
-            <div className="w-64 border-r flex flex-col p-4">
+            <div className="w-64 h-full border-r flex flex-col">
               <DocTree
+                className="flex-1 min-h-0 px-4"
                 nodes={workspaceTree}
                 isLoading={treeLoading}
                 selectedDocId={selectedDoc?.id}
@@ -307,8 +309,9 @@ export function DocsPageClient() {
               countLabel="docs"
             />
 
-            <div className="flex-1 overflow-auto p-6">
-              {projectDocsLoading ? (
+            <ScrollArea className="flex-1">
+              <div className="p-6">
+                {projectDocsLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="animate-pulse text-muted-foreground">
                     Loading docs...
@@ -352,7 +355,8 @@ export function DocsPageClient() {
               ) : (
                 <DocList docs={filteredDocs} onDocClick={handleDocClick} />
               )}
-            </div>
+              </div>
+            </ScrollArea>
           </div>
         )}
       </main>

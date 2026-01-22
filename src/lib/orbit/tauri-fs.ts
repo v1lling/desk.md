@@ -2,6 +2,7 @@
  * Tauri File System wrapper
  * Provides a unified API that works in both Tauri and browser environments
  */
+import { PATH_SEGMENTS } from "./constants";
 
 // Check if running in Tauri
 export function isTauri(): boolean {
@@ -184,16 +185,16 @@ export async function initOrbitDirectory(): Promise<void> {
   await mkdir(orbitPath);
 
   // Create workspaces directory
-  const workspacesPath = await joinPath(orbitPath, "workspaces");
+  const workspacesPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES);
   await mkdir(workspacesPath);
 
   // Create personal directory structure
-  const personalPath = await joinPath(orbitPath, "personal");
+  const personalPath = await joinPath(orbitPath, PATH_SEGMENTS.PERSONAL);
   await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, "inbox"));
-  await mkdir(await joinPath(personalPath, "inbox", "tasks"));
-  await mkdir(await joinPath(personalPath, "tasks"));
-  await mkdir(await joinPath(personalPath, "notes"));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
 
   // Create config if it doesn't exist
   const configPath = await joinPath(orbitPath, "config.json");
