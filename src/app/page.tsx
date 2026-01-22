@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "@/components/layout";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import {
   CaptureWidget,
   TriageDetailModal,
   type TriageDestination,
 } from "@/components/dashboard";
+import { AIChatPanel } from "@/components/ai";
 import {
   useActiveTasks,
   useWorkspaceSummaries,
   useSettingsStore,
 } from "@/stores";
 import { useRouter } from "next/navigation";
-import { Circle, CheckCircle2, Loader2 } from "lucide-react";
+import { Circle, CheckCircle2, Loader2, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
 import type { ActiveTask, WorkspaceSummary } from "@/lib/orbit/dashboard";
@@ -168,6 +169,9 @@ export default function DashboardPage() {
   const [triagedTask, setTriagedTask] = useState<Task | null>(null);
   const [triageDestination, setTriageDestination] = useState<TriageDestination | null>(null);
 
+  // AI Chat panel state
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+
   const handleTriageComplete = (task: Task, destination: TriageDestination) => {
     setTriagedTask(task);
     setTriageDestination(destination);
@@ -182,7 +186,18 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Dashboard" />
+      <header className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h1 className="text-lg font-semibold">Dashboard</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAiChatOpen(true)}
+          className="gap-2"
+        >
+          <Bot className="h-4 w-4" />
+          AI Chat
+        </Button>
+      </header>
 
       <ScrollArea className="flex-1">
         <main className="p-6">
@@ -208,6 +223,8 @@ export default function DashboardPage() {
         task={triagedTask}
         destination={triageDestination}
       />
+
+      <AIChatPanel open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
     </div>
   );
 }

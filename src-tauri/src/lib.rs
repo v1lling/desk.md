@@ -1,11 +1,17 @@
 use log::info;
 
+mod ai;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let mut builder = tauri::Builder::default()
     .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_shell::init());
+    .plugin(tauri_plugin_shell::init())
+    .invoke_handler(tauri::generate_handler![
+      ai::claude_chat,
+      ai::claude_check,
+    ]);
 
   // Add MCP plugin in debug builds only
   #[cfg(debug_assertions)]

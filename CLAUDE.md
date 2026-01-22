@@ -46,6 +46,7 @@ type DocScope = 'personal' | 'workspace' | 'project';
 | Directory | Purpose |
 |-----------|---------|
 | `src/lib/orbit/` | Core CRUD operations |
+| `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/stores/` | TanStack Query hooks |
 | `src/components/` | React components by feature |
 | `src/app/` | Next.js routes |
@@ -61,6 +62,7 @@ Key features:
 - Projects inline in sidebar (alphabetically sorted)
 - Project detail with Tasks, Docs, Meetings tabs
 - **Docs**: Tree structure with folders, drag-drop import
+- **AI Chat**: Claude Code CLI or Anthropic API, with doc context
 - Global search (Cmd+K)
 - Auto-save with file watcher
 

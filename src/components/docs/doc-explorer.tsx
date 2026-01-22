@@ -22,6 +22,7 @@ import {
   useDeleteDocFolder,
   useExpandedDocFolders,
   useImportDocs,
+  PERSONAL_SPACE_ID,
 } from "@/stores";
 import { toast } from "sonner";
 import type { Doc, DocScope } from "@/types";
@@ -81,9 +82,9 @@ export function DocExplorer({
     selectedScope?.projectId
   );
 
-  // Expanded folders state
+  // Expanded folders state - use PERSONAL_SPACE_ID for personal scope
   const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
-    selectedScope?.workspaceId || null,
+    selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_SPACE_ID : null),
     selectedScope?.projectId || null
   );
 
