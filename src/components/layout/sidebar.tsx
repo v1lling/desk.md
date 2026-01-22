@@ -19,7 +19,7 @@ import {
   ListTodo,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
 import { useProjects } from "@/stores/projects";
@@ -133,6 +133,7 @@ function WorkspaceItem({
   onNewProject,
   collapsed,
   pathname,
+  searchParams,
 }: {
   workspace: { id: string; name: string; color?: string };
   isSelected: boolean;
@@ -142,6 +143,7 @@ function WorkspaceItem({
   onNewProject: () => void;
   collapsed: boolean;
   pathname: string;
+  searchParams: ReturnType<typeof useSearchParams>;
 }) {
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const { data: projects = [] } = useProjects(isSelected ? workspace.id : null);
@@ -238,7 +240,7 @@ function WorkspaceItem({
             <button
               onClick={() => setProjectsExpanded(!projectsExpanded)}
               className={cn(
-                "w-full flex items-center gap-2 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "w-full flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
             >
@@ -255,26 +257,36 @@ function WorkspaceItem({
             {projectsExpanded && (
               <div className="mt-0.5 space-y-0.5">
                 {sortedProjects.length === 0 ? (
-                  <div className="pl-10 pr-3 py-2 text-xs text-sidebar-foreground/40 italic">
+                  <div className="pl-[3.25rem] pr-3 py-2 text-xs text-sidebar-foreground/40 italic">
                     No projects yet
                   </div>
                 ) : (
                   sortedProjects.map((project) => {
                     const projectHref = `/projects/view?id=${project.id}`;
                     const isProjectActive = pathname === "/projects/view" &&
-                      new URLSearchParams(window?.location?.search || "").get("id") === project.id;
+                      searchParams.get("id") === project.id;
 
                     return (
                       <Link
                         key={project.id}
                         href={projectHref}
                         className={cn(
-                          "flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-sm transition-colors",
+                          "flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm transition-colors",
                           isProjectActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm font-medium"
                             : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                         )}
                       >
+                        <span className="size-4 shrink-0 flex items-center justify-center">
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              isProjectActive
+                                ? "bg-sidebar-accent-foreground"
+                                : "bg-sidebar-foreground/40"
+                            )}
+                          />
+                        </span>
                         <span className="truncate">{project.name}</span>
                       </Link>
                     );
@@ -283,9 +295,9 @@ function WorkspaceItem({
                 {/* New Project button */}
                 <button
                   onClick={onNewProject}
-                  className="w-full flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  className="w-full flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
                 >
-                  <Plus className="size-3" />
+                  <Plus className="size-4 shrink-0" />
                   <span>New Project</span>
                 </button>
               </div>
@@ -299,6 +311,7 @@ function WorkspaceItem({
 
 export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: workspaces = [] } = useWorkspaces();
   const currentWorkspace = useCurrentWorkspace();
   const setCurrentWorkspaceId = useSettingsStore(
@@ -400,6 +413,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                   onNewProject={() => setShowNewProjectModal(true)}
                   collapsed={collapsed}
                   pathname={pathname}
+                  searchParams={searchParams}
                 />
               ))}
 

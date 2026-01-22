@@ -306,8 +306,8 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <ScrollArea orientation="horizontal" className="pb-4">
-        <div className="grid grid-flow-col auto-cols-[300px] gap-4 items-stretch">
+      <ScrollArea orientation="horizontal" horizontalScrollbarPosition="top">
+        <div className="grid grid-flow-col auto-cols-[300px] gap-4 items-stretch pt-4">
         <KanbanColumn
           status="todo"
           tasks={groupedTasks.todo}

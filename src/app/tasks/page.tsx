@@ -116,7 +116,7 @@ export default function TasksPage() {
       />
 
       <ScrollArea className="flex-1">
-        <div className="p-6">
+        <div className={viewMode === "kanban" ? "px-6 pt-2 pb-6" : "p-6"}>
           {viewMode === "kanban" ? (
             <KanbanBoard
               onTaskClick={handleTaskClick}

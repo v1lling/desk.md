@@ -9,6 +9,8 @@ interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
   /** Direction of scroll. Defaults to "vertical" */
   orientation?: "vertical" | "horizontal" | "both";
+  /** Position of horizontal scrollbar. Defaults to "bottom" */
+  horizontalScrollbarPosition?: "top" | "bottom";
 }
 
 /**
@@ -22,12 +24,17 @@ function ScrollArea({
   children,
   className,
   orientation = "vertical",
+  horizontalScrollbarPosition = "bottom",
   ...props
 }: ScrollAreaProps) {
   return (
     <OverlayScrollbarsComponent
       data-slot="scroll-area"
-      className={cn("overflow-hidden", className)}
+      className={cn(
+        "overflow-hidden",
+        horizontalScrollbarPosition === "top" && "os-scrollbar-top",
+        className
+      )}
       options={{
         scrollbars: {
           theme: "os-theme-orbit",
