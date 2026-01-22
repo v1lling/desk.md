@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { DocTree, DocInlineEditor, NewDocModal } from "@/components/docs";
+import { DocExplorer, type DocExplorerScope } from "@/components/docs";
 import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
 import {
   useProject,
@@ -18,13 +18,9 @@ import {
   useViewMode,
   useProjects,
   useDocTree,
-  useCreateDocFolder,
-  useRenameDocFolder,
-  useDeleteDocFolder,
-  useExpandedDocFolders,
 } from "@/stores";
 import { isUnassigned } from "@/lib/orbit/constants";
-import type { Task, Doc, Meeting } from "@/types";
+import type { Task, Meeting } from "@/types";
 import {
   LayoutGrid,
   FileText,
@@ -56,41 +52,30 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     projectId
   );
   const { data: tasks = [] } = useProjectTasks(currentWorkspaceId, projectId);
-  const { data: docTree = [], isLoading: docsLoading } = useDocTree("project", currentWorkspaceId, projectId);
+  const { data: docTree = [] } = useDocTree("project", currentWorkspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(currentWorkspaceId, projectId);
   const { data: allProjects = [] } = useProjects(currentWorkspaceId);
 
-  // Folder mutations for docs
-  const createDocFolder = useCreateDocFolder();
-  const renameDocFolder = useRenameDocFolder();
-  const deleteDocFolder = useDeleteDocFolder();
-
-  // Persisted expanded folders state for project docs
-  const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
-    currentWorkspaceId,
-    projectId
-  );
-
   // Count docs in tree
-  const countDocs = (nodes: typeof docTree): number => {
-    let count = 0;
-    for (const node of nodes) {
-      if (node.type === "doc") count++;
-      else if (node.type === "folder") count += countDocs(node.folder.children);
-    }
-    return count;
-  };
-  const docCount = countDocs(docTree);
+  const docCount = useMemo(() => {
+    const countNodes = (nodes: typeof docTree): number => {
+      let count = 0;
+      for (const node of nodes) {
+        if (node.type === "doc") count++;
+        else if (node.type === "folder") count += countNodes(node.folder.children);
+      }
+      return count;
+    };
+    return countNodes(docTree);
+  }, [docTree]);
 
   // View mode for tasks (kanban default for projects)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, projectId, "kanban");
 
   const [activeTab, setActiveTab] = useState("tasks");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
-  const [showNewDoc, setShowNewDoc] = useState(false);
   const [showNewMeeting, setShowNewMeeting] = useState(false);
 
   // Handle ?meeting= query param from search navigation
@@ -110,57 +95,6 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     setSelectedTask(task);
   };
 
-  const handleDocClick = (doc: Doc) => {
-    setSelectedDoc(doc);
-  };
-
-  // Folder operations for project docs
-  const handleCreateDocFolder = useCallback(
-    async (parentPath: string, name: string) => {
-      if (!currentWorkspaceId) return;
-      const fullPath = parentPath ? `${parentPath}/${name}` : name;
-      await createDocFolder.mutateAsync({
-        scope: "project",
-        folderPath: fullPath,
-        workspaceId: currentWorkspaceId,
-        projectId,
-      });
-    },
-    [currentWorkspaceId, projectId, createDocFolder]
-  );
-
-  const handleRenameDocFolder = useCallback(
-    async (path: string, newName: string) => {
-      if (!currentWorkspaceId) return;
-      await renameDocFolder.mutateAsync({
-        scope: "project",
-        oldPath: path,
-        newName,
-        workspaceId: currentWorkspaceId,
-        projectId,
-      });
-    },
-    [currentWorkspaceId, projectId, renameDocFolder]
-  );
-
-  const handleDeleteDocFolder = useCallback(
-    async (path: string) => {
-      if (!currentWorkspaceId) return;
-      await deleteDocFolder.mutateAsync({
-        scope: "project",
-        folderPath: path,
-        workspaceId: currentWorkspaceId,
-        projectId,
-      });
-    },
-    [currentWorkspaceId, projectId, deleteDocFolder]
-  );
-
-  const handleDeleteDoc = useCallback((doc: Doc) => {
-    // Open in editor where user can delete
-    setSelectedDoc(doc);
-  }, []);
-
   const handleMeetingClick = (meeting: Meeting) => {
     setSelectedMeeting(meeting);
   };
@@ -174,6 +108,20 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     const p = allProjects.find((proj) => proj.id === taskProjectId);
     return p?.name || taskProjectId;
   };
+
+  // DocExplorer scope for this project
+  const docScopes: DocExplorerScope[] = useMemo(() => {
+    if (!currentWorkspaceId) return [];
+    return [
+      {
+        id: projectId,
+        label: project?.name || "Docs",
+        scope: "project",
+        workspaceId: currentWorkspaceId,
+        projectId: projectId,
+      },
+    ];
+  }, [currentWorkspaceId, projectId, project?.name]);
 
   if (projectLoading) {
     return (
@@ -325,7 +273,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
                   <Plus className="h-4 w-4 mr-2" />
                   New Task
                 </Button>
-                <Button variant="outline" onClick={() => setShowNewDoc(true)}>
+                <Button variant="outline" onClick={() => setActiveTab("docs")}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Doc
                 </Button>
@@ -364,39 +312,8 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         </TabsContent>
 
         {/* Docs Tab */}
-        <TabsContent value="docs" className="flex-1 mt-0 flex flex-col overflow-hidden">
-          <div className="px-6 py-3 flex justify-end border-b shrink-0">
-            <Button size="sm" onClick={() => setShowNewDoc(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Doc
-            </Button>
-          </div>
-          <div className="flex-1 h-full flex overflow-hidden">
-            {/* Tree sidebar */}
-            <div className="w-64 h-full border-r flex flex-col">
-              <DocTree
-                className="flex-1 min-h-0 px-4"
-                nodes={docTree}
-                isLoading={docsLoading}
-                selectedDocId={selectedDoc?.id}
-                onSelectDoc={handleDocClick}
-                onCreateDoc={() => setShowNewDoc(true)}
-                onDeleteDoc={handleDeleteDoc}
-                onCreateFolder={handleCreateDocFolder}
-                onRenameFolder={handleRenameDocFolder}
-                onDeleteFolder={handleDeleteDocFolder}
-                expandedFolders={expandedFolders}
-                onExpandedFoldersChange={setExpandedFolders}
-              />
-            </div>
-            {/* Content area */}
-            <div className="flex-1 h-full overflow-hidden">
-              <DocInlineEditor
-                doc={selectedDoc}
-                onClose={() => setSelectedDoc(null)}
-              />
-            </div>
-          </div>
+        <TabsContent value="docs" className="flex-1 mt-0 overflow-hidden">
+          <DocExplorer scopes={docScopes} />
         </TabsContent>
 
         {/* Meetings Tab */}
@@ -426,13 +343,6 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
       <QuickAddTask
         open={showNewTask}
         onClose={() => setShowNewTask(false)}
-        defaultProjectId={projectId}
-      />
-
-      {/* New Doc Modal */}
-      <NewDocModal
-        open={showNewDoc}
-        onClose={() => setShowNewDoc(false)}
         defaultProjectId={projectId}
       />
 

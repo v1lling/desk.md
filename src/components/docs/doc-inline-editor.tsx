@@ -102,12 +102,7 @@ export function DocInlineEditor({ doc, onClose, className }: DocInlineEditorProp
 
   if (!doc) {
     return (
-      <div className={cn("flex flex-col items-center justify-center h-full text-center", className)}>
-        <p className="text-muted-foreground">Select a doc to view</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Or create a new doc or folder using the tree
-        </p>
-      </div>
+      <div className={cn("h-full bg-muted/5", className)} />
     );
   }
 

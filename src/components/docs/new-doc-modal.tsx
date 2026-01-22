@@ -28,6 +28,7 @@ interface NewDocModalProps {
   onClose: () => void;
   defaultProjectId?: string;
   defaultScope?: DocScope;
+  defaultWorkspaceId?: string;
   defaultFolderPath?: string;
 }
 
@@ -36,19 +37,25 @@ export function NewDocModal({
   onClose,
   defaultProjectId,
   defaultScope,
+  defaultWorkspaceId,
   defaultFolderPath,
 }: NewDocModalProps) {
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
   const createDocInFolder = useCreateDocInFolder();
-  const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
+
+  // Use provided workspaceId or fall back to current workspace
+  const workspaceId = defaultWorkspaceId || currentWorkspace?.id;
+  const { data: projects = [] } = useProjects(workspaceId || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
-  // If defaultScope is "workspace", we're creating a workspace-level doc
+  // Determine scope mode
+  const isPersonalScope = defaultScope === "personal";
   const isWorkspaceScope = defaultScope === "workspace";
+  const isProjectScope = defaultScope === "project";
 
   useEffect(() => {
     if (defaultProjectId) {
@@ -59,22 +66,43 @@ export function NewDocModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !currentWorkspace) return;
+    if (!title.trim()) return;
+
+    // For non-personal scopes, we need a workspace
+    if (!isPersonalScope && !workspaceId) return;
 
     try {
-      if (isWorkspaceScope) {
+      if (isPersonalScope) {
+        // Create in personal docs folder
+        await createDocInFolder.mutateAsync({
+          scope: "personal",
+          title: title.trim(),
+          content: content || undefined,
+          folderPath: defaultFolderPath,
+        });
+      } else if (isWorkspaceScope) {
         // Create in workspace docs folder (with optional folder path)
         await createDocInFolder.mutateAsync({
           scope: "workspace",
           title: title.trim(),
           content: content || undefined,
           folderPath: defaultFolderPath,
-          workspaceId: currentWorkspace.id,
+          workspaceId: workspaceId,
+        });
+      } else if (isProjectScope && defaultProjectId) {
+        // Create in specific project docs folder
+        await createDocInFolder.mutateAsync({
+          scope: "project",
+          title: title.trim(),
+          content: content || undefined,
+          folderPath: defaultFolderPath,
+          workspaceId: workspaceId,
+          projectId: defaultProjectId,
         });
       } else {
-        // Create in project docs folder
+        // Create in project docs folder (user selects project)
         await createDoc.mutateAsync({
-          workspaceId: currentWorkspace.id,
+          workspaceId: workspaceId!,
           projectId: projectId || "_unassigned",
           title: title.trim(),
           content: content || undefined,
@@ -120,8 +148,8 @@ export function NewDocModal({
             />
           </div>
 
-          {isWorkspaceScope ? (
-            // Workspace scope - show folder path if any
+          {/* Show folder path for personal/workspace/project scopes */}
+          {(isPersonalScope || isWorkspaceScope || isProjectScope) ? (
             defaultFolderPath && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
                 <Folder className="size-4" />
@@ -129,7 +157,7 @@ export function NewDocModal({
               </div>
             )
           ) : (
-            // Project scope - show project selector
+            // No specific scope - show project selector
             <div className="space-y-2">
               <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Select value={projectId} onValueChange={setProjectId}>

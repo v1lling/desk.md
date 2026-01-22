@@ -151,6 +151,34 @@ export function DocTree({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
+      {/* Toolbar - fixed at top */}
+      {(onCreateFolder || onCreateDoc) && (
+        <div className="shrink-0 flex items-center gap-1 py-2">
+          {onCreateFolder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              onClick={handleNewRootFolder}
+              title="New folder"
+            >
+              <FolderPlus className="size-4" />
+            </Button>
+          )}
+          {onCreateDoc && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              onClick={() => onCreateDoc()}
+              title="New doc"
+            >
+              <FileText className="size-4" />
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Tree content - scrollable */}
       <ScrollArea className="flex-1 min-h-0">
         {nodes.length === 0 ? (
@@ -182,32 +210,6 @@ export function DocTree({
           </div>
         )}
       </ScrollArea>
-
-      {/* Bottom actions - fixed at bottom */}
-      <div className="shrink-0 border-t p-2 flex items-center gap-2">
-        {onCreateFolder && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleNewRootFolder}
-          >
-            <FolderPlus className="size-4 mr-1" />
-            Folder
-          </Button>
-        )}
-        {onCreateDoc && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => onCreateDoc()}
-          >
-            <FileText className="size-4 mr-1" />
-            Doc
-          </Button>
-        )}
-      </div>
 
       {/* Folder create/rename modal */}
       <Dialog

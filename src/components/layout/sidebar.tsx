@@ -17,6 +17,7 @@ import {
   Calendar,
   Home,
   ListTodo,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -331,27 +332,53 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
           collapsed ? "w-16" : "w-64"
         )}
       >
-        {/* Header: Brand + Collapse Toggle */}
+        {/* Header: Search + Collapse Toggle */}
         <div className="shrink-0 p-3 flex items-center gap-2 border-b border-sidebar-border/50">
-          {!collapsed && (
-            <span className="flex-1 font-semibold text-sidebar-foreground">
-              Orbit
-            </span>
-          )}
-          {collapsed && (
-            <span className="flex-1 font-bold text-sidebar-foreground text-center">
-              O
-            </span>
-          )}
-          {onToggle && !collapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggle}
-              className="size-8 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+          {!collapsed ? (
+            <>
+              <button
+                onClick={() => {
+                  const event = new KeyboardEvent("keydown", {
+                    key: "k",
+                    metaKey: true,
+                    bubbles: true,
+                  });
+                  document.dispatchEvent(event);
+                }}
+                className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-sidebar-accent/30 text-sidebar-foreground/50 text-sm hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70 transition-colors"
+              >
+                <Search className="size-4" />
+                <span className="flex-1 text-left">Search...</span>
+                <kbd className="text-[10px] font-medium bg-sidebar-accent/50 px-1.5 py-0.5 rounded">
+                  ⌘K
+                </kbd>
+              </button>
+              {onToggle && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggle}
+                  className="size-8 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                const event = new KeyboardEvent("keydown", {
+                  key: "k",
+                  metaKey: true,
+                  bubbles: true,
+                });
+                document.dispatchEvent(event);
+              }}
+              className="w-full flex items-center justify-center py-1.5 rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground/70 transition-colors"
+              title="Search (⌘K)"
             >
-              <ChevronLeft className="size-4" />
-            </Button>
+              <Search className="size-4" />
+            </button>
           )}
         </div>
 
