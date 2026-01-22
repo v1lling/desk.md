@@ -17,6 +17,7 @@ import {
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 import { findItemInAllWorkspaces } from "./search";
+import { getFileTreeService } from "./file-tree";
 
 interface MeetingFrontmatter {
   title: string;
@@ -41,12 +42,24 @@ async function readProjectMeetings(
 
   const entries = await readDir(meetingsPath);
   const meetings: Meeting[] = [];
+  const fileTreeService = getFileTreeService();
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
       try {
         const meetingPath = await joinPath(meetingsPath, entry.name);
-        const content = await readTextFile(meetingPath);
+
+        // Use cached content from file-tree service
+        const content = await fileTreeService.getContentByAbsolutePath<string>(
+          meetingPath,
+          (raw) => raw
+        );
+
+        if (!content) {
+          console.warn(`Failed to read meeting ${entry.name}: no content`);
+          continue;
+        }
+
         const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
 
         meetings.push({

@@ -17,6 +17,7 @@ import {
 import { mockTasks } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
 import { findItemInAllWorkspaces } from "./search";
+import { getFileTreeService } from "./file-tree";
 
 interface TaskFrontmatter {
   title: string;
@@ -42,12 +43,24 @@ async function readProjectTasks(
 
   const entries = await readDir(tasksPath);
   const tasks: Task[] = [];
+  const fileTreeService = getFileTreeService();
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
       try {
         const taskPath = await joinPath(tasksPath, entry.name);
-        const content = await readTextFile(taskPath);
+
+        // Use cached content from file-tree service
+        const content = await fileTreeService.getContentByAbsolutePath<string>(
+          taskPath,
+          (raw) => raw
+        );
+
+        if (!content) {
+          console.warn(`Failed to read task ${entry.name}: no content`);
+          continue;
+        }
+
         const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
         tasks.push({
