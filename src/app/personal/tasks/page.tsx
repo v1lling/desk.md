@@ -7,6 +7,7 @@ import {
   usePersonalTasks,
   useCreatePersonalTask,
   usePersonalViewMode,
+  useOpenTab,
 } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import type { Task } from "@/types";
-import { TaskDetailPanel, TaskListView, KanbanBoard } from "@/components/tasks";
+import { TaskListView, KanbanBoard } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 
@@ -33,10 +34,10 @@ export default function PersonalTasksPage() {
   const { data: tasks = [], isLoading } = usePersonalTasks();
   const createTask = useCreatePersonalTask();
   const { viewMode, setViewMode } = usePersonalViewMode();
+  const { openTask } = useOpenTab();
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
   // Filter tasks based on priority
@@ -53,11 +54,7 @@ export default function PersonalTasksPage() {
   };
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-  };
-
-  const handleCloseDetail = () => {
-    setSelectedTask(null);
+    openTask(task);
   };
 
   // Count active tasks (not done)
@@ -137,12 +134,6 @@ export default function PersonalTasksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Task Detail Panel */}
-      <TaskDetailPanel
-        task={selectedTask}
-        open={!!selectedTask}
-        onClose={handleCloseDetail}
-      />
     </div>
   );
 }

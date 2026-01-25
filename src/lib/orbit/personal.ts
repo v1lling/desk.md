@@ -2,16 +2,16 @@
  * Personal Space library - File system operations for personal items
  *
  * Personal space is a special area outside of workspaces for:
- * - Inbox: Quick capture tasks to be triaged later
+ * - Capture: Quick capture tasks to be triaged later
  * - Tasks: Personal tasks not tied to any workspace
  * - Docs: Personal docs (handled by docs.ts)
  *
  * File structure:
  * ~/Orbit/personal/
- *   ├── inbox/tasks/*.md    # Quick capture
- *   ├── tasks/*.md          # Personal tasks
- *   ├── docs/               # Personal docs (see docs.ts)
- *   └── .view.json          # UI state
+ *   ├── capture/tasks/*.md   # Quick capture
+ *   ├── tasks/*.md           # Personal tasks
+ *   ├── docs/                 # Personal docs (see docs.ts)
+ *   └── .view.json           # UI state
  */
 
 import type { Task, TaskStatus, TaskPriority } from "@/types";
@@ -44,9 +44,9 @@ import { PATH_SEGMENTS, PERSONAL_SPACE_ID } from "./constants";
 export const mockPersonalTasks: Task[] = [
   {
     id: "2024-01-16-book-dentist",
-    projectId: "_inbox",
+    projectId: "_capture",
     workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/inbox/tasks/2024-01-16-book-dentist.md",
+    filePath: "~/Orbit/personal/capture/tasks/2024-01-16-book-dentist.md",
     title: "Book dentist appointment",
     status: "todo",
     priority: "low",
@@ -101,7 +101,7 @@ async function getPersonalPath(): Promise<string> {
 // ============================================================================
 
 /**
- * Read tasks from a specific personal directory (inbox or tasks)
+ * Read tasks from a specific personal directory (capture or tasks)
  */
 async function readPersonalTasksFromDir(
   dirPath: string,
@@ -145,20 +145,20 @@ async function readPersonalTasksFromDir(
 }
 
 /**
- * Get all personal inbox tasks (quick capture)
+ * Get all capture tasks (quick capture)
  */
-export async function getInboxTasks(): Promise<Task[]> {
+export async function getCaptureTasks(): Promise<Task[]> {
   if (!isTauri()) {
-    return mockPersonalTasks.filter((t) => t.projectId === "_inbox");
+    return mockPersonalTasks.filter((t) => t.projectId === "_capture");
   }
 
   const personalPath = await getPersonalPath();
-  const inboxPath = await joinPath(personalPath, PATH_SEGMENTS.INBOX);
-  return readPersonalTasksFromDir(inboxPath, "_inbox");
+  const capturePath = await joinPath(personalPath, PATH_SEGMENTS.CAPTURE);
+  return readPersonalTasksFromDir(capturePath, "_capture");
 }
 
 /**
- * Get all personal tasks (not inbox)
+ * Get all personal tasks (not capture)
  */
 export async function getPersonalTasks(): Promise<Task[]> {
   if (!isTauri()) {
@@ -170,16 +170,24 @@ export async function getPersonalTasks(): Promise<Task[]> {
 }
 
 /**
- * Get all personal space tasks (inbox + personal)
+ * Get all personal space tasks (capture + personal)
  */
 export async function getAllPersonalTasks(): Promise<Task[]> {
   if (!isTauri()) {
     return [...mockPersonalTasks];
   }
 
-  const inboxTasks = await getInboxTasks();
+  const captureTasks = await getCaptureTasks();
   const personalTasks = await getPersonalTasks();
-  return [...inboxTasks, ...personalTasks];
+  return [...captureTasks, ...personalTasks];
+}
+
+/**
+ * Get a single personal task by ID (searches both capture and tasks)
+ */
+export async function getPersonalTask(taskId: string): Promise<Task | null> {
+  const allTasks = await getAllPersonalTasks();
+  return allTasks.find((t) => t.id === taskId) || null;
 }
 
 /**
@@ -187,14 +195,14 @@ export async function getAllPersonalTasks(): Promise<Task[]> {
  */
 export async function createPersonalTask(data: {
   title: string;
-  isInbox?: boolean; // true = inbox, false = personal tasks
+  isCapture?: boolean; // true = capture, false = personal tasks
   priority?: TaskPriority;
   due?: string;
   content?: string;
 }): Promise<Task> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
-  const projectId = data.isInbox ? "_inbox" : "_tasks";
+  const projectId = data.isCapture ? "_capture" : "_tasks";
 
   const task: Task = {
     id,
@@ -210,15 +218,15 @@ export async function createPersonalTask(data: {
   };
 
   if (!isTauri()) {
-    const dir = data.isInbox ? `${PATH_SEGMENTS.INBOX}/${PATH_SEGMENTS.TASKS}` : PATH_SEGMENTS.TASKS;
+    const dir = data.isCapture ? `${PATH_SEGMENTS.CAPTURE}/${PATH_SEGMENTS.TASKS}` : PATH_SEGMENTS.TASKS;
     task.filePath = `~/Orbit/${PATH_SEGMENTS.PERSONAL}/${dir}/${filename}`;
     mockPersonalTasks.push(task);
     return task;
   }
 
   const personalPath = await getPersonalPath();
-  const tasksPath = data.isInbox
-    ? await joinPath(personalPath, PATH_SEGMENTS.INBOX, PATH_SEGMENTS.TASKS)
+  const tasksPath = data.isCapture
+    ? await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS)
     : await joinPath(personalPath, PATH_SEGMENTS.TASKS);
 
   await mkdir(tasksPath);
@@ -254,7 +262,7 @@ export async function updatePersonalTask(
     return mockPersonalTasks[index];
   }
 
-  // Find the task in inbox or tasks
+  // Find the task in capture or tasks
   const allTasks = await getAllPersonalTasks();
   const task = allTasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -305,9 +313,9 @@ export async function deletePersonalTask(taskId: string): Promise<boolean> {
 }
 
 /**
- * Move task from inbox to personal tasks (triage)
+ * Move task from capture to personal tasks (triage)
  */
-export async function moveFromInbox(taskId: string): Promise<Task | null> {
+export async function moveFromCapture(taskId: string): Promise<Task | null> {
   if (!isTauri()) {
     const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
@@ -315,8 +323,8 @@ export async function moveFromInbox(taskId: string): Promise<Task | null> {
     return mockPersonalTasks[index];
   }
 
-  const inboxTasks = await getInboxTasks();
-  const task = inboxTasks.find((t) => t.id === taskId);
+  const captureTasks = await getCaptureTasks();
+  const task = captureTasks.find((t) => t.id === taskId);
   if (!task) return null;
 
   // Read content
@@ -334,7 +342,7 @@ export async function moveFromInbox(taskId: string): Promise<Task | null> {
   const fileContent = serializeMarkdown(data, body);
   await writeTextFile(newFilePath, fileContent);
 
-  // Delete from inbox
+  // Delete from capture
   await removeFile(task.filePath);
 
   return {
@@ -345,9 +353,9 @@ export async function moveFromInbox(taskId: string): Promise<Task | null> {
 }
 
 /**
- * Move task from inbox to a workspace project
+ * Move task from capture to a workspace project
  */
-export async function moveFromInboxToWorkspace(
+export async function moveCaptureToWorkspace(
   taskId: string,
   workspaceId: string,
   projectId: string
@@ -368,8 +376,8 @@ export async function moveFromInboxToWorkspace(
     };
   }
 
-  const inboxTasks = await getInboxTasks();
-  const task = inboxTasks.find((t) => t.id === taskId);
+  const captureTasks = await getCaptureTasks();
+  const task = captureTasks.find((t) => t.id === taskId);
   if (!task) return null;
 
   // Read content
@@ -390,7 +398,7 @@ export async function moveFromInboxToWorkspace(
   const fileContent = serializeMarkdown(data, body);
   await writeTextFile(newFilePath, fileContent);
 
-  // Delete from inbox
+  // Delete from capture
   await removeFile(task.filePath);
 
   return {
@@ -416,8 +424,8 @@ export async function initPersonalDirectory(): Promise<void> {
 
   // Create directory structure
   await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
 }

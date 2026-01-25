@@ -16,10 +16,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  useInboxTasks,
-  useCreateInboxTask,
-  useMoveFromInbox,
-  useMoveFromInboxToWorkspace,
+  useCaptureTasks,
+  useCreateCaptureTask,
+  useMoveFromCapture,
+  useMoveCaptureToWorkspace,
   useDeletePersonalTask,
   useWorkspaces,
   useProjects,
@@ -41,11 +41,11 @@ export interface TriageDestination {
 }
 
 export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
-  const { data: tasks = [], isLoading } = useInboxTasks();
+  const { data: tasks = [], isLoading } = useCaptureTasks();
   const { data: workspaces = [] } = useWorkspaces();
-  const createTask = useCreateInboxTask();
-  const moveFromInbox = useMoveFromInbox();
-  const moveToWorkspace = useMoveFromInboxToWorkspace();
+  const createTask = useCreateCaptureTask();
+  const moveFromCapture = useMoveFromCapture();
+  const moveToWorkspace = useMoveCaptureToWorkspace();
   const deleteTask = useDeletePersonalTask();
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -59,7 +59,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
   };
 
   const handleMoveToPersonal = async (task: Task) => {
-    await moveFromInbox.mutateAsync(task.id);
+    await moveFromCapture.mutateAsync(task.id);
     onTriageComplete?.(task, { type: "personal" });
   };
 
@@ -164,9 +164,6 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
     </div>
   );
 }
-
-// Keep old name as alias for backward compatibility
-export const InboxWidget = CaptureWidget;
 
 interface CaptureItemProps {
   task: Task;

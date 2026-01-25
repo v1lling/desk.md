@@ -202,8 +202,8 @@ export async function initOrbitDirectory(): Promise<void> {
   // Create personal directory structure
   const personalPath = await joinPath(orbitPath, PATH_SEGMENTS.PERSONAL);
   await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.INBOX, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
 

@@ -13,7 +13,7 @@ npm run tauri dev  # Desktop with real file system
 
 ```
 Personal Space (private, no workspace)
-├── Inbox, Tasks, Docs
+├── Capture, Tasks, Docs
 
 Workspace (Client/Context)
 ├── Workspace-level Docs
@@ -32,6 +32,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed structure, file pa
 - **Editor**: Tiptap (WYSIWYG markdown)
 - **Drag & Drop**: @dnd-kit
 
+> **Note**: Next.js is used with `output: "export"` (static HTML/JS/CSS). No SSR, no API routes, no server components - Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. If a real backend is ever needed (sync, auth), it would be a separate service.
+
 ## Data Models
 
 ```typescript
@@ -47,7 +49,9 @@ type DocScope = 'personal' | 'workspace' | 'project';
 |-----------|---------|
 | `src/lib/orbit/` | Core CRUD operations |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
-| `src/stores/` | TanStack Query hooks |
+| `src/stores/` | TanStack Query hooks + Zustand stores |
+| `src/components/tabs/` | Tab bar and content system |
+| `src/components/editors/` | Full-width doc/task/meeting editors |
 | `src/components/` | React components by feature |
 | `src/app/` | Next.js routes |
 
@@ -57,7 +61,7 @@ See [docs/FEATURES.md](docs/FEATURES.md) for full feature list.
 
 Key features:
 - Dashboard with Focus and Workspaces widgets
-- Personal Space (inbox, tasks, docs)
+- Personal Space (capture, tasks, docs)
 - Workspaces with color coding
 - Projects inline in sidebar (alphabetically sorted)
 - Project detail with Tasks, Docs, Meetings tabs
@@ -83,10 +87,19 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 ```
 
 ### Component Architecture
+
+**Tab-Based Editing (Obsidian-style)**:
+- `TabBar` / `TabContent` - Tab system in `src/components/tabs/`
+- `DocEditor` / `TaskEditor` / `MeetingEditor` - Full-width editors in `src/components/editors/`
+- "Orbit" tab is always pinned, showing current app view
+- Clicking docs/tasks/meetings opens them in new tabs
+- Tab state persists in localStorage via `useTabStore`
+- Keyboard shortcuts: Cmd+W close, Cmd+Shift+[ ] switch tabs
+
+**Core UI Components**:
 - `RichTextEditor` - Tiptap WYSIWYG markdown editor
-- `SlidePanel` - Slide-in panel from right (for editing entities)
-- `DocInlineEditor` / `DocSlidePanel` - Doc editing in different contexts
-- `TaskSlidePanel`, `MeetingSlidePanel` - Entity editors
+- `SlidePanel` - Slide-in panel (used by AI chat)
+- `DocExplorer` - Doc tree browser with scope dropdown
 
 ## Dev Notes
 

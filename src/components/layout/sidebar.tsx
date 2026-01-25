@@ -42,7 +42,7 @@ const workspaceNavItems = [
   { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
 
-// Personal space navigation items (Inbox moved to Dashboard)
+// Personal space navigation items (Capture widget is on Dashboard)
 const personalNavItems = [
   { href: "/personal/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/personal/docs", label: "Docs", icon: StickyNote },

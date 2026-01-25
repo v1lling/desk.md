@@ -24,7 +24,7 @@ interface UseDocFormOptions {
  * - Project move detection
  * - Delete with confirmation
  *
- * Used by both DocSlidePanel and DocInlineEditor
+ * Used by DocEditor (tab-based editor)
  */
 export function useDocForm(doc: Doc | null, options: UseDocFormOptions) {
   const { enabled, onDeleted, onClose } = options;

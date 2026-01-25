@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
+import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useMeetings, useProjects, useCurrentWorkspace } from "@/stores";
+import { useMeetings, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { FolderKanban } from "lucide-react";
 import type { Meeting } from "@/types";
 import Link from "next/link";
@@ -19,9 +19,9 @@ export default function MeetingsPage() {
   const { data: projects = [] } = useProjects(currentWorkspaceId);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { openMeeting } = useOpenTab();
 
   const [showNewMeeting, setShowNewMeeting] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [filterProject, setFilterProject] = useState<string>("all");
 
   // Handle ?open= query param from search navigation
@@ -30,15 +30,15 @@ export default function MeetingsPage() {
     if (openMeetingId && meetings.length > 0) {
       const meetingToOpen = meetings.find((m) => m.id === openMeetingId);
       if (meetingToOpen) {
-        setSelectedMeeting(meetingToOpen);
+        openMeeting(meetingToOpen);
         // Clear the URL param after opening
         router.replace("/meetings", { scroll: false });
       }
     }
-  }, [searchParams, meetings, router]);
+  }, [searchParams, meetings, router, openMeeting]);
 
   const handleMeetingClick = (meeting: Meeting) => {
-    setSelectedMeeting(meeting);
+    openMeeting(meeting);
   };
 
   // Filter meetings by project
@@ -141,12 +141,6 @@ export default function MeetingsPage() {
           )}
         </main>
       </ScrollArea>
-
-      <MeetingEditor
-        meeting={selectedMeeting}
-        open={!!selectedMeeting}
-        onClose={() => setSelectedMeeting(null)}
-      />
 
       <NewMeetingModal open={showNewMeeting} onClose={() => setShowNewMeeting(false)} />
     </div>

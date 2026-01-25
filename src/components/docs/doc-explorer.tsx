@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocTree } from "./doc-tree";
-import { DocInlineEditor } from "./doc-inline-editor";
 import { NewDocModal } from "./new-doc-modal";
 import { DocDropZone } from "./doc-drop-zone";
 import {
@@ -22,6 +21,7 @@ import {
   useDeleteDocFolder,
   useExpandedDocFolders,
   useImportDocs,
+  useOpenTab,
   PERSONAL_SPACE_ID,
 } from "@/stores";
 import { toast } from "sonner";
@@ -46,24 +46,18 @@ interface DocExplorerProps {
   onScopeChange?: (scopeId: string) => void;
   /** Class name for the container */
   className?: string;
-  /** Width of the tree panel */
-  treeWidth?: string;
 }
 
 /**
- * DocExplorer - Unified doc browsing component with scope selector
+ * DocExplorer - Full-width doc browser with scope selector
  *
- * Used for:
- * - Workspace docs page (dropdown: Shared + all projects)
- * - Personal docs page (single scope, no dropdown)
- * - Project docs tab (single scope, no dropdown)
+ * Docs open in tabs when clicked. This component is purely for navigation.
  */
 export function DocExplorer({
   scopes,
   defaultScopeId,
   onScopeChange,
   className,
-  treeWidth = "w-64",
 }: DocExplorerProps) {
   // Selected scope
   const [selectedScopeId, setSelectedScopeId] = useState(
@@ -82,6 +76,19 @@ export function DocExplorer({
     selectedScope?.projectId
   );
 
+  // Count docs in tree
+  const docCount = useMemo(() => {
+    const count = (nodes: typeof tree): number =>
+      nodes.reduce((acc, node) => {
+        if (node.type === "doc") return acc + 1;
+        if (node.type === "folder" && node.folder.children) {
+          return acc + count(node.folder.children);
+        }
+        return acc;
+      }, 0);
+    return count(tree);
+  }, [tree]);
+
   // Expanded folders state - use PERSONAL_SPACE_ID for personal scope
   const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
     selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_SPACE_ID : null),
@@ -93,9 +100,9 @@ export function DocExplorer({
   const renameFolder = useRenameDocFolder();
   const deleteFolder = useDeleteDocFolder();
   const importDocs = useImportDocs();
+  const { openDoc } = useOpenTab();
 
   // Local state
-  const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
   const [showNewDoc, setShowNewDoc] = useState(false);
   const [newDocFolderPath, setNewDocFolderPath] = useState<string | undefined>();
 
@@ -103,7 +110,6 @@ export function DocExplorer({
   const handleScopeChange = useCallback(
     (scopeId: string) => {
       setSelectedScopeId(scopeId);
-      setSelectedDoc(null); // Clear selection when switching scope
       onScopeChange?.(scopeId);
     },
     [onScopeChange]
@@ -152,18 +158,16 @@ export function DocExplorer({
   );
 
   // Doc operations
-  const handleDocClick = useCallback((doc: Doc) => {
-    setSelectedDoc(doc);
-  }, []);
+  const handleDocClick = useCallback(
+    (doc: Doc) => {
+      openDoc(doc);
+    },
+    [openDoc]
+  );
 
   const handleCreateDocInFolder = useCallback((folderPath?: string) => {
     setNewDocFolderPath(folderPath);
     setShowNewDoc(true);
-  }, []);
-
-  const handleDeleteDoc = useCallback((doc: Doc) => {
-    // Open in editor where user can delete
-    setSelectedDoc(doc);
   }, []);
 
   const handleNewDocClose = useCallback(() => {
@@ -200,80 +204,108 @@ export function DocExplorer({
     [selectedScope, importDocs]
   );
 
+  // Trigger file input for import
+  const handleImportClick = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.accept = ".md,.txt,.markdown";
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files.length > 0) {
+        await handleFilesDropped(Array.from(files));
+      }
+    };
+    input.click();
+  }, [handleFilesDropped]);
+
   const showDropdown = scopes.length > 1;
 
   return (
     <DocDropZone
       onFilesDropped={handleFilesDropped}
-      className={cn("flex h-full", className)}
+      className={cn("flex flex-col h-full", className)}
     >
-      {/* Tree panel */}
-      <div className={cn("h-full border-r flex flex-col", treeWidth)}>
-        {/* Scope dropdown */}
-        {showDropdown && (
-          <div className="shrink-0 px-4 py-2 border-b">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-between"
-                >
-                  <span className="truncate">{selectedScope?.label}</span>
-                  <ChevronDown className="size-4 shrink-0 ml-2 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {scopes.map((scope, index) => {
-                  // Add separator after workspace-level scopes
-                  const nextScope = scopes[index + 1];
-                  const showSeparator =
-                    scope.isWorkspaceLevel && nextScope && !nextScope.isWorkspaceLevel;
+      {/* Header */}
+      <div className="shrink-0 px-6 py-4 border-b flex items-center gap-3">
+        {/* Scope dropdown or title */}
+        {showDropdown ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <span className="truncate">{selectedScope?.label}</span>
+                <ChevronDown className="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {scopes.map((scope, index) => {
+                const nextScope = scopes[index + 1];
+                const showSeparator =
+                  scope.isWorkspaceLevel && nextScope && !nextScope.isWorkspaceLevel;
 
-                  return (
-                    <div key={scope.id}>
-                      <DropdownMenuItem
-                        onClick={() => handleScopeChange(scope.id)}
-                        className={cn(
-                          selectedScopeId === scope.id && "bg-accent",
-                          scope.isWorkspaceLevel && "font-medium"
-                        )}
-                      >
-                        {scope.label}
-                      </DropdownMenuItem>
-                      {showSeparator && <DropdownMenuSeparator />}
-                    </div>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                return (
+                  <div key={scope.id}>
+                    <DropdownMenuItem
+                      onClick={() => handleScopeChange(scope.id)}
+                      className={cn(
+                        selectedScopeId === scope.id && "bg-accent",
+                        scope.isWorkspaceLevel && "font-medium"
+                      )}
+                    >
+                      {scope.label}
+                    </DropdownMenuItem>
+                    {showSeparator && <DropdownMenuSeparator />}
+                  </div>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <h2 className="text-sm font-medium">{selectedScope?.label}</h2>
         )}
 
-        {/* Doc tree */}
-        <DocTree
-          className="flex-1 min-h-0 px-4"
-          nodes={tree}
-          isLoading={isLoading}
-          selectedDocId={selectedDoc?.id}
-          onSelectDoc={handleDocClick}
-          onCreateDoc={handleCreateDocInFolder}
-          onDeleteDoc={handleDeleteDoc}
-          onCreateFolder={handleCreateFolder}
-          onRenameFolder={handleRenameFolder}
-          onDeleteFolder={handleDeleteFolder}
-          expandedFolders={expandedFolders}
-          onExpandedFoldersChange={setExpandedFolders}
-        />
+        {/* Doc count */}
+        <span className="text-xs text-muted-foreground">
+          {docCount} {docCount === 1 ? "doc" : "docs"}
+        </span>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Actions */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleImportClick}
+          className="gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <Upload className="size-4" />
+          <span className="hidden sm:inline">Import</span>
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => setShowNewDoc(true)}
+          className="gap-1.5"
+        >
+          <Plus className="size-4" />
+          <span>New Doc</span>
+        </Button>
       </div>
 
-      {/* Editor panel */}
-      <div className="flex-1 h-full overflow-hidden">
-        <DocInlineEditor
-          doc={selectedDoc}
-          onClose={() => setSelectedDoc(null)}
-        />
-      </div>
+      {/* Doc tree - full width */}
+      <DocTree
+        className="flex-1 min-h-0 px-6 py-4"
+        nodes={tree}
+        isLoading={isLoading}
+        onSelectDoc={handleDocClick}
+        onCreateDoc={handleCreateDocInFolder}
+        onCreateFolder={handleCreateFolder}
+        onRenameFolder={handleRenameFolder}
+        onDeleteFolder={handleDeleteFolder}
+        expandedFolders={expandedFolders}
+        onExpandedFoldersChange={setExpandedFolders}
+      />
 
       {/* New doc modal */}
       <NewDocModal

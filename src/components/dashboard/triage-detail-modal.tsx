@@ -22,7 +22,7 @@ import {
 import { Loader2, Check, User, Briefcase } from "lucide-react";
 import { useUpdateTask, useUpdatePersonalTask } from "@/stores";
 import type { Task, TaskPriority } from "@/types";
-import type { TriageDestination } from "./inbox-widget";
+import type { TriageDestination } from "./capture-widget";
 
 interface TriageDetailModalProps {
   open: boolean;

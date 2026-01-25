@@ -15,9 +15,6 @@ export const docKeys = {
     [...docKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
 };
 
-// Keep old key names as aliases for backwards compatibility
-export const noteKeys = docKeys;
-
 /**
  * Hook to fetch all docs for a workspace
  */
@@ -28,9 +25,6 @@ export function useDocs(workspaceId: string | null) {
     enabled: !!workspaceId,
   });
 }
-
-// Alias for backwards compatibility
-export const useNotes = useDocs;
 
 /**
  * Hook to fetch docs for a specific project
@@ -43,9 +37,6 @@ export function useProjectDocs(workspaceId: string | null, projectId: string | n
   });
 }
 
-// Alias for backwards compatibility
-export const useProjectNotes = useProjectDocs;
-
 /**
  * Hook to fetch a single doc
  */
@@ -56,9 +47,6 @@ export function useDoc(workspaceId: string | null, docId: string | null) {
     enabled: !!workspaceId && !!docId,
   });
 }
-
-// Alias for backwards compatibility
-export const useNote = useDoc;
 
 /**
  * Hook to create a new doc
@@ -80,9 +68,6 @@ export function useCreateDoc() {
     },
   });
 }
-
-// Alias for backwards compatibility
-export const useCreateNote = useCreateDoc;
 
 /**
  * Hook to update a doc
@@ -108,9 +93,6 @@ export function useUpdateDoc() {
   });
 }
 
-// Alias for backwards compatibility
-export const useUpdateNote = useUpdateDoc;
-
 /**
  * Hook to delete a doc
  * Pass the full doc object - we use its filePath directly
@@ -128,9 +110,6 @@ export function useDeleteDoc() {
     },
   });
 }
-
-// Alias for backwards compatibility
-export const useDeleteNote = useDeleteDoc;
 
 /**
  * Hook to move a doc to a different project
@@ -158,9 +137,6 @@ export function useMoveDocToProject() {
     },
   });
 }
-
-// Alias for backwards compatibility
-export const useMoveNoteToProject = useMoveDocToProject;
 
 /**
  * Hook to fetch ALL docs for a workspace (includes nested folders)

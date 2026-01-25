@@ -25,6 +25,7 @@ import {
   type SearchItemType,
 } from "@/lib/orbit/search-index";
 import { useSettingsStore } from "@/stores/settings";
+import { useOpenTab } from "@/stores/tabs";
 
 const TYPE_ICONS: Record<SearchItemType, React.ReactNode> = {
   task: <CheckSquare className="h-4 w-4" />,
@@ -88,6 +89,8 @@ export function GlobalSearch() {
     }
   }, [open]);
 
+  const { openTask, openDoc, openMeeting } = useOpenTab();
+
   // Handle item selection
   const handleSelect = useCallback(
     (result: SearchResult) => {
@@ -95,23 +98,38 @@ export function GlobalSearch() {
 
       const { item } = result;
 
-      // Navigate based on item type, with ?open= param to auto-open editor
+      // Open in tab for tasks, docs, meetings; navigate for projects
       switch (item.type) {
         case "task":
-          router.push(`/?open=${item.id}`);
+          openTask({
+            id: item.id,
+            title: item.title,
+            workspaceId: item.workspaceId,
+            projectId: item.projectId,
+          });
           break;
         case "doc":
-          router.push(`/docs?open=${item.id}`);
+          openDoc({
+            id: item.id,
+            title: item.title,
+            workspaceId: item.workspaceId,
+            projectId: item.projectId,
+          });
           break;
         case "meeting":
-          router.push(`/meetings?open=${item.id}`);
+          openMeeting({
+            id: item.id,
+            title: item.title,
+            workspaceId: item.workspaceId,
+            projectId: item.projectId,
+          });
           break;
         case "project":
           router.push(`/projects/view?id=${item.projectId}`);
           break;
       }
     },
-    [router]
+    [router, openTask, openDoc, openMeeting]
   );
 
   return (

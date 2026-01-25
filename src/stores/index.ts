@@ -46,15 +46,6 @@ export {
   useMoveDoc,
   useCreateDocInFolder,
   useImportDocs,
-  // Backwards compatibility aliases
-  useNotes,
-  useProjectNotes,
-  useNote,
-  useCreateNote,
-  useUpdateNote,
-  useDeleteNote,
-  useMoveNoteToProject,
-  noteKeys,
 } from "./docs";
 export {
   useMeetings,
@@ -76,11 +67,12 @@ export {
   viewStateKeys,
 } from "./view-state";
 export {
-  useInboxTasks,
-  useCreateInboxTask,
-  useMoveFromInbox,
-  useMoveFromInboxToWorkspace,
+  useCaptureTasks,
+  useCreateCaptureTask,
+  useMoveFromCapture,
+  useMoveCaptureToWorkspace,
   usePersonalTasks,
+  usePersonalTask,
   useAllPersonalTasks,
   useCreatePersonalTask,
   useUpdatePersonalTask,
@@ -97,3 +89,9 @@ export {
   usePersonalSummary,
   dashboardKeys,
 } from "./dashboard";
+export {
+  useTabStore,
+  useOpenTab,
+  type TabItem,
+  type TabType,
+} from "./tabs";

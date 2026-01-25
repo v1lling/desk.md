@@ -4,10 +4,10 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
+import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { useTasks, useProjects, useCurrentWorkspace, useViewMode } from "@/stores";
+import { useTasks, useProjects, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
 import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task } from "@/types";
 
@@ -21,8 +21,8 @@ export default function TasksPage() {
 
   // View mode for All Tasks (workspace-level, projectId = null)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, null, "kanban");
+  const { openTask } = useOpenTab();
 
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
   const [filterProject, setFilterProject] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
@@ -33,15 +33,15 @@ export default function TasksPage() {
     if (openTaskId && tasks.length > 0) {
       const taskToOpen = tasks.find((t) => t.id === openTaskId);
       if (taskToOpen) {
-        setSelectedTask(taskToOpen);
+        openTask(taskToOpen);
         // Clear the URL param after opening
         router.replace("/tasks", { scroll: false });
       }
     }
-  }, [searchParams, tasks, router]);
+  }, [searchParams, tasks, router, openTask]);
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
+    openTask(task);
   };
 
   // Filter tasks based on selected filters
@@ -134,13 +134,6 @@ export default function TasksPage() {
           )}
         </div>
       </ScrollArea>
-
-      {/* Task Detail Panel */}
-      <TaskDetailPanel
-        task={selectedTask}
-        open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-      />
 
       {/* Quick Add Task Modal */}
       <QuickAddTask

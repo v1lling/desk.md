@@ -6,10 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { KanbanBoard, TaskDetailPanel, QuickAddTask, TaskListView } from "@/components/tasks";
+import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { DocExplorer, type DocExplorerScope } from "@/components/docs";
-import { MeetingList, MeetingEditor, NewMeetingModal } from "@/components/meetings";
+import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import {
   useProject,
   useProjectTasks,
@@ -18,6 +18,7 @@ import {
   useViewMode,
   useProjects,
   useDocTree,
+  useOpenTab,
 } from "@/stores";
 import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task, Meeting } from "@/types";
@@ -71,10 +72,9 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
   // View mode for tasks (kanban default for projects)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, projectId, "kanban");
+  const { openTask, openMeeting } = useOpenTab();
 
   const [activeTab, setActiveTab] = useState("tasks");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewMeeting, setShowNewMeeting] = useState(false);
 
@@ -83,20 +83,19 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     if (openMeetingId && meetings.length > 0) {
       const meetingToOpen = meetings.find((m) => m.id === openMeetingId);
       if (meetingToOpen) {
-        setSelectedMeeting(meetingToOpen);
-        setActiveTab("meetings");
+        openMeeting(meetingToOpen);
         // Clear the URL param after opening
         router.replace(`/projects/view?id=${projectId}`, { scroll: false });
       }
     }
-  }, [openMeetingId, meetings, router, projectId]);
+  }, [openMeetingId, meetings, router, projectId, openMeeting]);
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
+    openTask(task);
   };
 
   const handleMeetingClick = (meeting: Meeting) => {
-    setSelectedMeeting(meeting);
+    openMeeting(meeting);
   };
 
   // Calculate task stats using extracted utility
@@ -332,25 +331,11 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         </TabsContent>
       </Tabs>
 
-      {/* Task Detail Panel */}
-      <TaskDetailPanel
-        task={selectedTask}
-        open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-      />
-
       {/* Quick Add Task Modal */}
       <QuickAddTask
         open={showNewTask}
         onClose={() => setShowNewTask(false)}
         defaultProjectId={projectId}
-      />
-
-      {/* Meeting Editor */}
-      <MeetingEditor
-        meeting={selectedMeeting}
-        open={!!selectedMeeting}
-        onClose={() => setSelectedMeeting(null)}
       />
 
       {/* New Meeting Modal */}

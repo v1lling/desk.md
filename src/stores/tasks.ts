@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import * as taskLib from "@/lib/orbit/tasks";
+import * as personalLib from "@/lib/orbit/personal";
+import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 
 // Query keys
 export const taskKeys = {
@@ -36,11 +38,17 @@ export function useProjectTasks(workspaceId: string | null, projectId: string | 
 
 /**
  * Hook to fetch a single task
+ * Automatically routes to personal task store when workspaceId is PERSONAL_SPACE_ID
  */
 export function useTask(workspaceId: string | null, taskId: string | null) {
+  const isPersonal = workspaceId === PERSONAL_SPACE_ID;
+
   return useQuery({
     queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
-    queryFn: () => taskLib.getTask(workspaceId!, taskId!),
+    queryFn: () =>
+      isPersonal
+        ? personalLib.getPersonalTask(taskId!)
+        : taskLib.getTask(workspaceId!, taskId!),
     enabled: !!workspaceId && !!taskId,
   });
 }

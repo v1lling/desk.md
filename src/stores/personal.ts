@@ -6,32 +6,33 @@ import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 // Query keys
 export const personalKeys = {
   all: ["personal"] as const,
-  inboxTasks: () => [...personalKeys.all, "inbox"] as const,
+  captureTasks: () => [...personalKeys.all, "capture"] as const,
   tasks: () => [...personalKeys.all, "tasks"] as const,
   allTasks: () => [...personalKeys.all, "allTasks"] as const,
+  detail: (taskId: string) => [...personalKeys.all, "detail", taskId] as const,
 };
 
 // Re-export the personal space ID for convenience
 export { PERSONAL_SPACE_ID };
 
 // ============================================================================
-// INBOX TASKS
+// CAPTURE TASKS (Quick Capture)
 // ============================================================================
 
 /**
- * Hook to fetch inbox tasks (quick capture)
+ * Hook to fetch capture tasks (quick capture for later triage)
  */
-export function useInboxTasks() {
+export function useCaptureTasks() {
   return useQuery({
-    queryKey: personalKeys.inboxTasks(),
-    queryFn: () => personalLib.getInboxTasks(),
+    queryKey: personalKeys.captureTasks(),
+    queryFn: () => personalLib.getCaptureTasks(),
   });
 }
 
 /**
- * Hook to create an inbox task (quick capture)
+ * Hook to create a capture task (quick capture)
  */
-export function useCreateInboxTask() {
+export function useCreateCaptureTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -40,24 +41,24 @@ export function useCreateInboxTask() {
       priority?: TaskPriority;
       due?: string;
       content?: string;
-    }) => personalLib.createPersonalTask({ ...data, isInbox: true }),
+    }) => personalLib.createPersonalTask({ ...data, isCapture: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.inboxTasks() });
+      queryClient.invalidateQueries({ queryKey: personalKeys.captureTasks() });
       queryClient.invalidateQueries({ queryKey: personalKeys.allTasks() });
     },
   });
 }
 
 /**
- * Hook to move task from inbox to personal tasks (triage)
+ * Hook to move task from capture to personal tasks (triage)
  */
-export function useMoveFromInbox() {
+export function useMoveFromCapture() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => personalLib.moveFromInbox(taskId),
+    mutationFn: (taskId: string) => personalLib.moveFromCapture(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.inboxTasks() });
+      queryClient.invalidateQueries({ queryKey: personalKeys.captureTasks() });
       queryClient.invalidateQueries({ queryKey: personalKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: personalKeys.allTasks() });
     },
@@ -65,9 +66,9 @@ export function useMoveFromInbox() {
 }
 
 /**
- * Hook to move task from inbox to a workspace project
+ * Hook to move task from capture to a workspace project
  */
-export function useMoveFromInboxToWorkspace() {
+export function useMoveCaptureToWorkspace() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -79,10 +80,10 @@ export function useMoveFromInboxToWorkspace() {
       taskId: string;
       workspaceId: string;
       projectId: string;
-    }) => personalLib.moveFromInboxToWorkspace(taskId, workspaceId, projectId),
+    }) => personalLib.moveCaptureToWorkspace(taskId, workspaceId, projectId),
     onSuccess: (_data, variables) => {
-      // Invalidate inbox
-      queryClient.invalidateQueries({ queryKey: personalKeys.inboxTasks() });
+      // Invalidate capture
+      queryClient.invalidateQueries({ queryKey: personalKeys.captureTasks() });
       queryClient.invalidateQueries({ queryKey: personalKeys.allTasks() });
       // Invalidate target workspace tasks
       queryClient.invalidateQueries({ queryKey: ["tasks", variables.workspaceId] });
@@ -97,7 +98,7 @@ export function useMoveFromInboxToWorkspace() {
 // ============================================================================
 
 /**
- * Hook to fetch personal tasks (not inbox)
+ * Hook to fetch personal tasks (not capture)
  */
 export function usePersonalTasks() {
   return useQuery({
@@ -107,12 +108,23 @@ export function usePersonalTasks() {
 }
 
 /**
- * Hook to fetch all personal space tasks (inbox + personal)
+ * Hook to fetch all personal space tasks (capture + personal)
  */
 export function useAllPersonalTasks() {
   return useQuery({
     queryKey: personalKeys.allTasks(),
     queryFn: () => personalLib.getAllPersonalTasks(),
+  });
+}
+
+/**
+ * Hook to fetch a single personal task by ID
+ */
+export function usePersonalTask(taskId: string | null) {
+  return useQuery({
+    queryKey: personalKeys.detail(taskId || ""),
+    queryFn: () => personalLib.getPersonalTask(taskId!),
+    enabled: !!taskId,
   });
 }
 
@@ -128,7 +140,7 @@ export function useCreatePersonalTask() {
       priority?: TaskPriority;
       due?: string;
       content?: string;
-    }) => personalLib.createPersonalTask({ ...data, isInbox: false }),
+    }) => personalLib.createPersonalTask({ ...data, isCapture: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: personalKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: personalKeys.allTasks() });

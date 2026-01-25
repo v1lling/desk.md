@@ -57,9 +57,6 @@ export interface Doc {
   preview?: string;        // First ~100 chars
 }
 
-// Keep Note as alias for backwards compatibility during migration
-export type Note = Doc;
-
 // Folder in the doc tree
 export interface DocFolder {
   name: string;

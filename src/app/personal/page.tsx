@@ -7,7 +7,7 @@ export default function PersonalPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/personal/inbox");
+    router.replace("/personal/tasks");
   }, [router]);
 
   return (

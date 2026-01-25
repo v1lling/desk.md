@@ -47,11 +47,19 @@ export async function getDocsByProject(
 
 /**
  * Get a single doc by ID
+ * Supports both workspace docs and personal docs (when workspaceId is PERSONAL_SPACE_ID)
  */
 export async function getDoc(
   workspaceId: string,
   docId: string
 ): Promise<Doc | null> {
+  // Handle personal docs
+  if (workspaceId === PERSONAL_SPACE_ID) {
+    const docs = await getAllDocs("personal");
+    return docs.find((doc) => doc.id === docId) || null;
+  }
+
+  // Handle workspace docs
   const docs = await getDocs(workspaceId);
   return docs.find((doc) => doc.id === docId) || null;
 }

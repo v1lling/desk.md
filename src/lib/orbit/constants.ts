@@ -27,7 +27,7 @@ export const PATH_SEGMENTS = {
   TASKS: "tasks",
   DOCS: "docs",
   MEETINGS: "meetings",
-  INBOX: "inbox",
+  CAPTURE: "capture",
 } as const;
 
 /** Special "workspace ID" used for personal space items */

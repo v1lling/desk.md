@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout";
 import { SetupWizard } from "@/components/setup";
+import { TabBar, TabContent } from "@/components/tabs";
 import { useSettingsStore } from "@/stores/settings";
 import { needsTrafficLightPadding } from "@/lib/orbit/tauri-fs";
 
@@ -51,8 +52,9 @@ export function AppShell({ children }: AppShellProps) {
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <main className="flex-1 min-h-0 overflow-hidden">
-          {children}
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <TabBar />
+          <TabContent>{children}</TabContent>
         </main>
       </div>
     </div>
