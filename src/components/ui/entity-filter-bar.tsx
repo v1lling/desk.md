@@ -10,12 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-interface FilterOption {
+export interface FilterOption {
   value: string;
   label: string;
 }
 
-interface FilterConfig {
+export interface FilterConfig {
   id: string;
   label: string;
   value: string;

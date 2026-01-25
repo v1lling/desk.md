@@ -101,6 +101,35 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 - `SlidePanel` - Slide-in panel (used by AI chat)
 - `DocExplorer` - Doc tree browser with scope dropdown
 
+### Reusable Hooks (`src/hooks/`)
+
+Use these hooks instead of duplicating logic:
+- `useProjectName(workspaceId)` - Project name lookup by ID
+- `useOpenFromQuery(items, onOpen, path)` - Handle `?open=id` URL params
+- `useGroupedItems(items, getKey)` - Group items by a key function
+- `useEditorTab(tabId, title, isDirty)` - Manage editor tab title/dirty state
+
+### Form Components
+
+For modal forms, use these instead of raw `<div className="space-y-2"><Label>`:
+```tsx
+import { FormField } from "@/components/ui/form-field";
+import { FormGrid } from "@/components/ui/form-grid";
+
+<FormField id="name" label="Name" optional>
+  <Input id="name" ... />
+</FormField>
+
+<FormGrid columns={2}>
+  <FormField label="Date">...</FormField>
+  <FormField label="Priority">...</FormField>
+</FormGrid>
+```
+
+### Page Patterns (`src/components/patterns/`)
+
+- `FilteredListPage` - Standard layout for pages with Header + FilterBar + ScrollArea + Modal
+
 ## Dev Notes
 
 - Dashboard at `/`, All Tasks at `/tasks`

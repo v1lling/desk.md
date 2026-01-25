@@ -1,23 +1,17 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Header } from "@/components/layout";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState, useMemo } from "react";
 import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
-import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { useTasks, useProjects, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
-import { isUnassigned } from "@/lib/orbit/constants";
+import { FilteredListPage } from "@/components/patterns";
+import { useTasks, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
+import { useProjectName, useOpenFromQuery } from "@/hooks";
 import type { Task } from "@/types";
 
 export default function TasksPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: tasks = [] } = useTasks(currentWorkspaceId);
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const { projects, getProjectName } = useProjectName(currentWorkspaceId);
 
   // View mode for All Tasks (workspace-level, projectId = null)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, null, "kanban");
@@ -28,17 +22,7 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
   // Handle ?open= query param from search navigation
-  useEffect(() => {
-    const openTaskId = searchParams.get("open");
-    if (openTaskId && tasks.length > 0) {
-      const taskToOpen = tasks.find((t) => t.id === openTaskId);
-      if (taskToOpen) {
-        openTask(taskToOpen);
-        // Clear the URL param after opening
-        router.replace("/tasks", { scroll: false });
-      }
-    }
-  }, [searchParams, tasks, router, openTask]);
+  useOpenFromQuery(tasks, openTask, "/tasks");
 
   const handleTaskClick = (task: Task) => {
     openTask(task);
@@ -68,78 +52,57 @@ export default function TasksPage() {
     { value: "low", label: "Low" },
   ];
 
-  // Helper to get project name for list view
-  const getProjectName = useCallback(
-    (projectId: string) => {
-      if (isUnassigned(projectId)) return null;
-      const project = projects.find((p) => p.id === projectId);
-      return project?.name || projectId;
-    },
-    [projects]
-  );
-
   return (
-    <div className="flex flex-col h-full">
-      <Header
-        title="All Tasks"
-        action={{
-          label: "New Task",
-          onClick: () => setShowNewTask(true),
-        }}
-      />
-
-      {/* Filter Bar with View Toggle */}
-      <EntityFilterBar
-        filters={[
-          {
-            id: "project",
-            label: "Project",
-            value: filterProject,
-            onChange: setFilterProject,
-            options: projectOptions,
-            allLabel: "All projects",
-            width: "w-[200px]",
-          },
-          {
-            id: "priority",
-            label: "Priority",
-            value: filterPriority,
-            onChange: setFilterPriority,
-            options: priorityOptions,
-            allLabel: "All priorities",
-            width: "w-[150px]",
-          },
-        ]}
-        count={filteredTasks.length}
-        countLabel="tasks"
-        rightElement={<ViewModeToggle value={viewMode} onChange={setViewMode} />}
-      />
-
-      <ScrollArea className="flex-1">
-        <div className={viewMode === "kanban" ? "px-4 pt-2 pb-4" : "p-4"}>
-          {viewMode === "kanban" ? (
-            <KanbanBoard
-              onTaskClick={handleTaskClick}
-              showProject
-              tasks={filteredTasks}
-            />
-          ) : (
-            <TaskListView
-              tasks={filteredTasks}
-              onTaskClick={handleTaskClick}
-              showProject
-              getProjectName={getProjectName}
-              groupByStatus
-            />
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Quick Add Task Modal */}
-      <QuickAddTask
-        open={showNewTask}
-        onClose={() => setShowNewTask(false)}
-      />
-    </div>
+    <FilteredListPage
+      title="All Tasks"
+      actionLabel="New Task"
+      onAction={() => setShowNewTask(true)}
+      filters={[
+        {
+          id: "project",
+          label: "Project",
+          value: filterProject,
+          onChange: setFilterProject,
+          options: projectOptions,
+          allLabel: "All projects",
+          width: "w-[200px]",
+        },
+        {
+          id: "priority",
+          label: "Priority",
+          value: filterPriority,
+          onChange: setFilterPriority,
+          options: priorityOptions,
+          allLabel: "All priorities",
+          width: "w-[150px]",
+        },
+      ]}
+      count={filteredTasks.length}
+      countLabel="tasks"
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      modal={
+        <QuickAddTask
+          open={showNewTask}
+          onClose={() => setShowNewTask(false)}
+        />
+      }
+    >
+      {viewMode === "kanban" ? (
+        <KanbanBoard
+          onTaskClick={handleTaskClick}
+          showProject
+          tasks={filteredTasks}
+        />
+      ) : (
+        <TaskListView
+          tasks={filteredTasks}
+          onTaskClick={handleTaskClick}
+          showProject
+          getProjectName={getProjectName}
+          groupByStatus
+        />
+      )}
+    </FilteredListPage>
   );
 }

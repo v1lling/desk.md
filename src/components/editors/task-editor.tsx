@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useUpdatePersonalTask, useDeletePersonalTask } from "@/stores";
-import { useTabStore } from "@/stores/tabs";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -25,9 +25,6 @@ interface TaskEditorProps {
 export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEditorProps) {
   const isPersonal = workspaceId === PERSONAL_SPACE_ID;
   const { data: task, isLoading } = useTask(workspaceId, taskId);
-
-  const updateTab = useTabStore((state) => state.updateTab);
-  const setTabDirty = useTabStore((state) => state.setTabDirty);
 
   // Workspace task hooks
   const updateTask = useUpdateTask();
@@ -74,13 +71,6 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
       return () => cancelAnimationFrame(frameId);
     }
   }, [task, isEditorReady]);
-
-  // Update tab title
-  useEffect(() => {
-    if (title) {
-      updateTab(`task-${taskId}`, { title });
-    }
-  }, [title, taskId, updateTab]);
 
   // Auto-save data
   const autoSaveData = useMemo(
@@ -131,10 +121,8 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
     enabled: !!task,
   });
 
-  // Update tab dirty state
-  useEffect(() => {
-    setTabDirty(`task-${taskId}`, isDirty);
-  }, [isDirty, taskId, setTabDirty]);
+  // Manage tab title and dirty state
+  useEditorTab(`task-${taskId}`, title, isDirty);
 
   // Manual save (for project changes)
   const handleSave = async () => {

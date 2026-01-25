@@ -1,41 +1,32 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useMemo, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
-import { useMeetings, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
+import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
+import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
 import { FolderKanban } from "lucide-react";
 import type { Meeting } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { LoadingState } from "@/components/ui/loading-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Calendar } from "lucide-react";
 
 export default function MeetingsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: meetings = [], isLoading } = useMeetings(currentWorkspaceId);
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const { projects, getProjectName } = useProjectName(currentWorkspaceId);
   const { openMeeting } = useOpenTab();
 
   const [showNewMeeting, setShowNewMeeting] = useState(false);
   const [filterProject, setFilterProject] = useState<string>("all");
 
   // Handle ?open= query param from search navigation
-  useEffect(() => {
-    const openMeetingId = searchParams.get("open");
-    if (openMeetingId && meetings.length > 0) {
-      const meetingToOpen = meetings.find((m) => m.id === openMeetingId);
-      if (meetingToOpen) {
-        openMeeting(meetingToOpen);
-        // Clear the URL param after opening
-        router.replace("/meetings", { scroll: false });
-      }
-    }
-  }, [searchParams, meetings, router, openMeeting]);
+  useOpenFromQuery(meetings, openMeeting, "/meetings");
 
   const handleMeetingClick = (meeting: Meeting) => {
     openMeeting(meeting);
@@ -48,21 +39,17 @@ export default function MeetingsPage() {
   }, [meetings, filterProject]);
 
   // Group meetings by project for display
-  const groupedMeetings = useMemo(() => {
-    const groups: Record<string, Meeting[]> = {};
-    filteredMeetings.forEach((meeting) => {
-      const key = meeting.projectId;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(meeting);
-    });
-    return groups;
-  }, [filteredMeetings]);
+  const getProjectId = useCallback((meeting: Meeting) => meeting.projectId, []);
+  const groupedMeetings = useGroupedItems(filteredMeetings, getProjectId);
 
-  const getProjectName = (projectId: string) => {
-    if (projectId === "_unassigned") return "No project";
-    const project = projects.find((p) => p.id === projectId);
-    return project?.name || projectId;
-  };
+  // Project name with fallback for unassigned
+  const getDisplayProjectName = useCallback(
+    (projectId: string) => {
+      if (projectId === "_unassigned") return "No project";
+      return getProjectName(projectId) || projectId;
+    },
+    [getProjectName]
+  );
 
   // Prepare filter options
   const projectOptions = useMemo(
@@ -100,20 +87,17 @@ export default function MeetingsPage() {
       <ScrollArea className="flex-1">
         <main className="p-4">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-pulse text-muted-foreground">
-                Loading meetings...
-              </div>
-            </div>
+            <LoadingState label="meetings" />
           ) : filteredMeetings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-muted-foreground">No meetings found</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {filterProject !== "all"
+            <EmptyState
+              icon={Calendar}
+              title="No meetings found"
+              description={
+                filterProject !== "all"
                   ? "Try selecting a different project or create a new meeting"
-                  : "Create your first meeting note to get started"}
-              </p>
-            </div>
+                  : "Create your first meeting note to get started"
+              }
+            />
           ) : filterProject === "all" ? (
             // Grouped view when showing all
             <div className="space-y-8">
@@ -125,7 +109,7 @@ export default function MeetingsPage() {
                       href={`/projects/view?id=${projectId}`}
                       className="font-medium hover:underline"
                     >
-                      {getProjectName(projectId)}
+                      {getDisplayProjectName(projectId)}
                     </Link>
                     <Badge variant="outline" className="ml-2">
                       {projectMeetings.length}

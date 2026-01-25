@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { FormGrid } from "@/components/ui/form-grid";
 import {
   Select,
   SelectContent,
@@ -102,9 +103,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="new-title">Title</Label>
+          <FormField id="new-title" label="Title">
             <Input
               id="new-title"
               value={title}
@@ -112,11 +111,9 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
               placeholder="What needs to be done?"
               autoFocus
             />
-          </div>
+          </FormField>
 
-          {/* Project (optional) */}
-          <div className="space-y-2">
-            <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <FormField label="Project" optional>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
                 <SelectValue placeholder="No project" />
@@ -130,12 +127,10 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          {/* Priority & Due row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Priority</Label>
+          <FormGrid>
+            <FormField label="Priority">
               <Select
                 value={priority}
                 onValueChange={(v) => setPriority(v as TaskPriority | "none")}
@@ -155,10 +150,9 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="new-due">Due Date</Label>
+            <FormField id="new-due" label="Due Date">
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -169,12 +163,10 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
                   className="pl-10"
                 />
               </div>
-            </div>
-          </div>
+            </FormField>
+          </FormGrid>
 
-          {/* Notes (optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="new-content">Notes (optional)</Label>
+          <FormField id="new-content" label="Notes" optional>
             <Textarea
               id="new-content"
               value={content}
@@ -182,9 +174,8 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
               placeholder="Add details..."
               className="min-h-[80px] resize-none"
             />
-          </div>
+          </FormField>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

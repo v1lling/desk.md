@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import { Loader2 } from "lucide-react";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { useSettingsStore } from "@/stores/settings";
@@ -77,9 +77,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="workspace-name">Workspace Name</Label>
+          <FormField id="workspace-name" label="Workspace Name">
             <Input
               id="workspace-name"
               value={name}
@@ -88,15 +86,13 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
               autoFocus
             />
             {name && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 Folder: ~/Orbit/workspaces/{slugify(name.trim()) || "..."}
               </p>
             )}
-          </div>
+          </FormField>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="workspace-description">Description (optional)</Label>
+          <FormField id="workspace-description" label="Description" optional>
             <Textarea
               id="workspace-description"
               value={description}
@@ -104,11 +100,9 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
               placeholder="Brief description of this workspace..."
               className="min-h-[80px] resize-none"
             />
-          </div>
+          </FormField>
 
-          {/* Color */}
-          <div className="space-y-2">
-            <Label>Color</Label>
+          <FormField label="Color">
             <div className="flex gap-2 flex-wrap">
               {workspaceColorOptions.map((opt) => (
                 <button
@@ -125,9 +119,8 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
                 />
               ))}
             </div>
-          </div>
+          </FormField>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

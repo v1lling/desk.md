@@ -24,13 +24,13 @@ import {
   useMoveTask,
   useMovePersonalTask,
   useCurrentWorkspace,
-  useProjects,
   useViewState,
   useUpdateTaskOrder,
   sortTasksByOrder,
 } from "@/stores";
+import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@/types";
-import { isUnassigned, PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
+import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -70,7 +70,7 @@ export function KanbanBoard({
     !isPersonal && projectId ? currentWorkspaceId : null,
     projectId || null
   );
-  const { data: projects = [] } = useProjects(isPersonal ? null : currentWorkspaceId);
+  const { getProjectName } = useProjectName(isPersonal ? null : currentWorkspaceId);
 
   // Fetch view state for task ordering (skip in personal mode - no ordering persistence)
   // - Project view: uses project-level .view.json
@@ -92,16 +92,6 @@ export function KanbanBoard({
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
-
-  // Helper to get project name by ID
-  const getProjectName = useCallback(
-    (taskProjectId: string) => {
-      if (isUnassigned(taskProjectId)) return null;
-      const project = projects.find((p) => p.id === taskProjectId);
-      return project?.name || taskProjectId;
-    },
-    [projects]
-  );
 
   // Group and sort tasks by status
   const groupedTasks = useMemo(() => {

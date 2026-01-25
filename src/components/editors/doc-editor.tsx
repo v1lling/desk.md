@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { useDoc } from "@/stores";
 import { useDocForm } from "@/components/docs/use-doc-form";
-import { useTabStore } from "@/stores/tabs";
+import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -43,8 +42,6 @@ function FolderBreadcrumb({ path }: { path?: string }) {
 
 export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorProps) {
   const { data: doc, isLoading } = useDoc(workspaceId, docId);
-  const updateTab = useTabStore((state) => state.updateTab);
-  const setTabDirty = useTabStore((state) => state.setTabDirty);
 
   const form = useDocForm(doc || null, {
     enabled: !!doc,
@@ -52,17 +49,8 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
     onClose,
   });
 
-  // Update tab title when doc title changes
-  useEffect(() => {
-    if (form.title) {
-      updateTab(`doc-${docId}`, { title: form.title });
-    }
-  }, [form.title, docId, updateTab]);
-
-  // Update tab dirty state
-  useEffect(() => {
-    setTabDirty(`doc-${docId}`, form.isDirty);
-  }, [form.isDirty, docId, setTabDirty]);
+  // Manage tab title and dirty state
+  useEditorTab(`doc-${docId}`, form.title, form.isDirty);
 
   if (isLoading) {
     return (

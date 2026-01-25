@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { FormGrid } from "@/components/ui/form-grid";
 import {
   Select,
   SelectContent,
@@ -94,8 +95,7 @@ export function NewMeetingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label htmlFor="meeting-title">Title</Label>
+          <FormField id="meeting-title" label="Title">
             <Input
               id="meeting-title"
               value={title}
@@ -103,10 +103,9 @@ export function NewMeetingModal({
               placeholder="Weekly Sync, Client Call, Sprint Planning..."
               autoFocus
             />
-          </div>
+          </FormField>
 
-          <div className="space-y-2">
-            <Label>Project</Label>
+          <FormField label="Project">
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select project" />
@@ -119,11 +118,10 @@ export function NewMeetingModal({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="meeting-date">Date</Label>
+          <FormGrid>
+            <FormField id="meeting-date" label="Date">
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -134,10 +132,9 @@ export function NewMeetingModal({
                   className="pl-10"
                 />
               </div>
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="meeting-attendees">Attendees</Label>
+            <FormField id="meeting-attendees" label="Attendees">
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -148,8 +145,8 @@ export function NewMeetingModal({
                   className="pl-10"
                 />
               </div>
-            </div>
-          </div>
+            </FormField>
+          </FormGrid>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>

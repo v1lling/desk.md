@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import {
   Select,
   SelectContent,
@@ -137,8 +137,7 @@ export function NewDocModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label htmlFor="doc-title">Title</Label>
+          <FormField id="doc-title" label="Title">
             <Input
               id="doc-title"
               value={title}
@@ -146,7 +145,7 @@ export function NewDocModal({
               placeholder="Doc title"
               autoFocus
             />
-          </div>
+          </FormField>
 
           {/* Show folder path for personal/workspace/project scopes */}
           {(isPersonalScope || isWorkspaceScope || isProjectScope) ? (
@@ -157,9 +156,7 @@ export function NewDocModal({
               </div>
             )
           ) : (
-            // No specific scope - show project selector
-            <div className="space-y-2">
-              <Label>Project <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <FormField label="Project" optional>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger>
                   <SelectValue placeholder="No project" />
@@ -173,11 +170,10 @@ export function NewDocModal({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="doc-content">Content (optional)</Label>
+          <FormField id="doc-content" label="Content" optional>
             <Textarea
               id="doc-content"
               value={content}
@@ -185,7 +181,7 @@ export function NewDocModal({
               placeholder="Start writing..."
               className="min-h-[120px] resize-none"
             />
-          </div>
+          </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import {
   Select,
   SelectContent,
@@ -82,9 +82,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="project-name">Project Name</Label>
+          <FormField id="project-name" label="Project Name">
             <Input
               id="project-name"
               value={name}
@@ -92,11 +90,9 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
               placeholder="e.g., Website Redesign"
               autoFocus
             />
-          </div>
+          </FormField>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="project-description">Description (optional)</Label>
+          <FormField id="project-description" label="Description" optional>
             <Textarea
               id="project-description"
               value={description}
@@ -104,11 +100,9 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
               placeholder="Brief description of the project..."
               className="min-h-[80px] resize-none"
             />
-          </div>
+          </FormField>
 
-          {/* Status */}
-          <div className="space-y-2">
-            <Label>Status</Label>
+          <FormField label="Status">
             <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
               <SelectTrigger>
                 <SelectValue />
@@ -121,9 +115,8 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

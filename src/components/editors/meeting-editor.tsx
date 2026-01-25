@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
-import { useTabStore } from "@/stores/tabs";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -22,9 +22,6 @@ interface MeetingEditorProps {
 
 export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: MeetingEditorProps) {
   const { data: meeting, isLoading } = useMeeting(workspaceId, meetingId);
-
-  const updateTab = useTabStore((state) => state.updateTab);
-  const setTabDirty = useTabStore((state) => state.setTabDirty);
 
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
@@ -57,13 +54,6 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
       return () => cancelAnimationFrame(frameId);
     }
   }, [meeting, isEditorReady]);
-
-  // Update tab title
-  useEffect(() => {
-    if (title) {
-      updateTab(`meeting-${meetingId}`, { title });
-    }
-  }, [title, meetingId, updateTab]);
 
   // Auto-save data
   const autoSaveData = useMemo(
@@ -103,10 +93,8 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
     enabled: !!meeting,
   });
 
-  // Update tab dirty state
-  useEffect(() => {
-    setTabDirty(`meeting-${meetingId}`, isDirty);
-  }, [isDirty, meetingId, setTabDirty]);
+  // Manage tab title and dirty state
+  useEditorTab(`meeting-${meetingId}`, title, isDirty);
 
   const handleDeleteConfirm = async () => {
     if (!meeting) return;
