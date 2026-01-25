@@ -18,7 +18,10 @@ export const meetingKeys = {
 export function useMeetings(workspaceId: string | null) {
   return useQuery({
     queryKey: meetingKeys.byWorkspace(workspaceId || ""),
-    queryFn: () => meetingLib.getMeetings(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return meetingLib.getMeetings(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }
@@ -29,7 +32,10 @@ export function useMeetings(workspaceId: string | null) {
 export function useProjectMeetings(workspaceId: string | null, projectId: string | null) {
   return useQuery({
     queryKey: meetingKeys.byProject(workspaceId || "", projectId || ""),
-    queryFn: () => meetingLib.getMeetingsByProject(workspaceId!, projectId!),
+    queryFn: async () => {
+      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
+      return meetingLib.getMeetingsByProject(workspaceId, projectId);
+    },
     enabled: !!workspaceId && !!projectId,
   });
 }
@@ -40,7 +46,10 @@ export function useProjectMeetings(workspaceId: string | null, projectId: string
 export function useMeeting(workspaceId: string | null, meetingId: string | null) {
   return useQuery({
     queryKey: meetingKeys.detail(workspaceId || "", meetingId || ""),
-    queryFn: () => meetingLib.getMeeting(workspaceId!, meetingId!),
+    queryFn: async () => {
+      if (!workspaceId || !meetingId) throw new Error("workspaceId and meetingId are required");
+      return meetingLib.getMeeting(workspaceId, meetingId);
+    },
     enabled: !!workspaceId && !!meetingId,
   });
 }

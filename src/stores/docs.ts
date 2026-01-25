@@ -21,7 +21,10 @@ export const docKeys = {
 export function useDocs(workspaceId: string | null) {
   return useQuery({
     queryKey: docKeys.byWorkspace(workspaceId || ""),
-    queryFn: () => docLib.getDocs(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return docLib.getDocs(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }
@@ -32,7 +35,10 @@ export function useDocs(workspaceId: string | null) {
 export function useProjectDocs(workspaceId: string | null, projectId: string | null) {
   return useQuery({
     queryKey: docKeys.byProject(workspaceId || "", projectId || ""),
-    queryFn: () => docLib.getDocsByProject(workspaceId!, projectId!),
+    queryFn: async () => {
+      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
+      return docLib.getDocsByProject(workspaceId, projectId);
+    },
     enabled: !!workspaceId && !!projectId,
   });
 }
@@ -43,7 +49,10 @@ export function useProjectDocs(workspaceId: string | null, projectId: string | n
 export function useDoc(workspaceId: string | null, docId: string | null) {
   return useQuery({
     queryKey: docKeys.detail(workspaceId || "", docId || ""),
-    queryFn: () => docLib.getDoc(workspaceId!, docId!),
+    queryFn: async () => {
+      if (!workspaceId || !docId) throw new Error("workspaceId and docId are required");
+      return docLib.getDoc(workspaceId, docId);
+    },
     enabled: !!workspaceId && !!docId,
   });
 }
@@ -145,7 +154,10 @@ export function useMoveDocToProject() {
 export function useAllWorkspaceDocs(workspaceId: string | null) {
   return useQuery({
     queryKey: [...docKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
-    queryFn: () => docLib.getAllDocsForWorkspace(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return docLib.getAllDocsForWorkspace(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }

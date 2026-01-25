@@ -20,7 +20,10 @@ export const viewStateKeys = {
 export function useViewState(workspaceId: string | null, projectId: string | null) {
   return useQuery({
     queryKey: viewStateKeys.byScope(workspaceId || "", projectId),
-    queryFn: () => viewStateLib.getViewState(workspaceId!, projectId),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return viewStateLib.getViewState(workspaceId, projectId);
+    },
     enabled: !!workspaceId, // Only need workspaceId, projectId can be null
     staleTime: 30000, // Trust cached value for 30s to prevent flicker on view switch
   });
@@ -125,8 +128,10 @@ export function useViewMode(
   const viewMode = viewState?.viewMode ?? defaultMode;
 
   const setViewMode = useMutation({
-    mutationFn: (newMode: TaskViewMode) =>
-      viewStateLib.setViewMode(workspaceId!, projectId, newMode),
+    mutationFn: async (newMode: TaskViewMode) => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return viewStateLib.setViewMode(workspaceId, projectId, newMode);
+    },
     onMutate: async (newMode) => {
       if (!workspaceId) return;
 
@@ -197,8 +202,10 @@ export function useExpandedDocFolders(
   );
 
   const mutation = useMutation({
-    mutationFn: (folders: string[]) =>
-      viewStateLib.setExpandedDocFolders(workspaceId!, projectId, folders),
+    mutationFn: async (folders: string[]) => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return viewStateLib.setExpandedDocFolders(workspaceId, projectId, folders);
+    },
     onMutate: async (folders) => {
       if (!workspaceId) return;
 

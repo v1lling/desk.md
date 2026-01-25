@@ -17,7 +17,10 @@ export const projectKeys = {
 export function useProjects(workspaceId: string | null) {
   return useQuery({
     queryKey: projectKeys.byWorkspace(workspaceId || ""),
-    queryFn: () => projectLib.getProjects(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return projectLib.getProjects(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }
@@ -28,7 +31,10 @@ export function useProjects(workspaceId: string | null) {
 export function useProject(workspaceId: string | null, projectId: string | null) {
   return useQuery({
     queryKey: projectKeys.detail(workspaceId || "", projectId || ""),
-    queryFn: () => projectLib.getProject(workspaceId!, projectId!),
+    queryFn: async () => {
+      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
+      return projectLib.getProject(workspaceId, projectId);
+    },
     enabled: !!workspaceId && !!projectId,
   });
 }
@@ -39,7 +45,10 @@ export function useProject(workspaceId: string | null, projectId: string | null)
 export function useProjectStats(workspaceId: string | null) {
   return useQuery({
     queryKey: projectKeys.stats(workspaceId || ""),
-    queryFn: () => projectLib.getProjectStats(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return projectLib.getProjectStats(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }

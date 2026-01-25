@@ -20,7 +20,10 @@ export const taskKeys = {
 export function useTasks(workspaceId: string | null) {
   return useQuery({
     queryKey: taskKeys.byWorkspace(workspaceId || ""),
-    queryFn: () => taskLib.getTasks(workspaceId!),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return taskLib.getTasks(workspaceId);
+    },
     enabled: !!workspaceId,
   });
 }
@@ -31,7 +34,10 @@ export function useTasks(workspaceId: string | null) {
 export function useProjectTasks(workspaceId: string | null, projectId: string | null) {
   return useQuery({
     queryKey: taskKeys.byProject(workspaceId || "", projectId || ""),
-    queryFn: () => taskLib.getTasksByProject(workspaceId!, projectId!),
+    queryFn: async () => {
+      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
+      return taskLib.getTasksByProject(workspaceId, projectId);
+    },
     enabled: !!workspaceId && !!projectId,
   });
 }
@@ -45,10 +51,12 @@ export function useTask(workspaceId: string | null, taskId: string | null) {
 
   return useQuery({
     queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
-    queryFn: () =>
-      isPersonal
-        ? personalLib.getPersonalTask(taskId!)
-        : taskLib.getTask(workspaceId!, taskId!),
+    queryFn: async () => {
+      if (!workspaceId || !taskId) throw new Error("workspaceId and taskId are required");
+      return isPersonal
+        ? personalLib.getPersonalTask(taskId)
+        : taskLib.getTask(workspaceId, taskId);
+    },
     enabled: !!workspaceId && !!taskId,
   });
 }

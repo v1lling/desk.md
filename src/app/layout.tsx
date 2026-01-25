@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { AppShell } from "./app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalSearch } from "@/components/global-search";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,8 +33,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <AppShell>{children}</AppShell>
-          <GlobalSearch />
+          <ErrorBoundary>
+            <AppShell>{children}</AppShell>
+            <GlobalSearch />
+          </ErrorBoundary>
           <Toaster position="bottom-right" />
         </Providers>
       </body>

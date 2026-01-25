@@ -123,7 +123,10 @@ export function useAllPersonalTasks() {
 export function usePersonalTask(taskId: string | null) {
   return useQuery({
     queryKey: personalKeys.detail(taskId || ""),
-    queryFn: () => personalLib.getPersonalTask(taskId!),
+    queryFn: async () => {
+      if (!taskId) throw new Error("taskId is required");
+      return personalLib.getPersonalTask(taskId);
+    },
     enabled: !!taskId,
   });
 }
