@@ -307,7 +307,7 @@ export function KanbanBoard({
       onDragEnd={handleDragEnd}
     >
       <ScrollArea orientation="horizontal" horizontalScrollbarPosition="top">
-        <div className="grid grid-flow-col auto-cols-[300px] gap-4 items-stretch pt-4">
+        <div className="grid grid-flow-col auto-cols-[280px] gap-3 items-stretch pt-3">
         <KanbanColumn
           status="todo"
           tasks={groupedTasks.todo}
@@ -333,8 +333,8 @@ export function KanbanBoard({
           isDropTarget={activeColumn === "waiting"}
         />
         {showDone ? (
-          <div className="flex flex-col min-w-[300px] w-[300px]">
-            <div className="flex items-center gap-2.5 mb-4 px-1">
+          <div className="flex flex-col min-w-[280px] w-[280px]">
+            <div className="flex items-center gap-2 mb-3 px-1">
               <div
                 className={`w-2 h-2 rounded-full ${taskStatusColors.done}`}
               />

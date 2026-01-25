@@ -58,11 +58,11 @@ export const TabItem = memo(function TabItem({
       onMouseDown={handleMouseDown}
       title={tab.title}
       className={cn(
-        "group relative flex items-center gap-1.5 h-9 text-sm transition-colors",
+        "group relative flex items-center gap-1.5 h-8 text-xs transition-colors",
         // Browser-like sizing: min width, can shrink, max width
         isOrbitTab
-          ? "min-w-[120px] max-w-[200px] px-3 shrink-0"
-          : "min-w-[100px] max-w-[160px] px-3 shrink",
+          ? "min-w-[100px] max-w-[180px] px-2.5 shrink-0"
+          : "min-w-[80px] max-w-[140px] px-2.5 shrink",
         // Orbit tab has special styling with thicker separator
         isOrbitTab
           ? cn(

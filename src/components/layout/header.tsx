@@ -14,16 +14,16 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, action }: HeaderProps) {
   return (
-    <header className="h-14 border-b border-border flex items-center justify-between px-6">
+    <header className="h-12 border-b border-border flex items-center justify-between px-4">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold truncate">{title}</h1>
+        <h1 className="text-base font-semibold truncate">{title}</h1>
         {subtitle && (
           <p className="text-xs text-muted-foreground truncate -mt-0.5">{subtitle}</p>
         )}
       </div>
       {action && (
         <Button size="sm" onClick={action.onClick}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4" />
           {action.label}
         </Button>
       )}

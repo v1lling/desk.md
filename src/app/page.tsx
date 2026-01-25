@@ -35,31 +35,31 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="bg-card border border-border rounded-lg p-3">
+      <div className="flex items-center gap-2 mb-2">
         <Loader2 className="size-4 text-orange-500" />
-        <h2 className="font-medium">Focus</h2>
+        <h2 className="text-sm font-medium">Focus</h2>
         <span className="text-xs text-muted-foreground">
           {tasks.length} in progress
         </span>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
           <Loader2 className="size-4 animate-spin mr-2" />
           Loading...
         </div>
       ) : tasks.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground text-sm">
+        <div className="py-6 text-center text-muted-foreground text-sm">
           No tasks in progress
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {tasks.map((task) => (
             <button
               key={`${task.workspaceId}-${task.id}`}
               onClick={() => handleTaskClick(task)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent/50 transition-colors text-left"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent/50 transition-colors text-left"
             >
               <Circle
                 className="size-2 shrink-0"
@@ -100,28 +100,28 @@ function WorkspacesWidget({
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="bg-card border border-border rounded-lg p-3">
+      <div className="flex items-center gap-2 mb-2">
         <CheckCircle2 className="size-4 text-blue-500" />
-        <h2 className="font-medium">Workspaces</h2>
+        <h2 className="text-sm font-medium">Workspaces</h2>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
           <Loader2 className="size-4 animate-spin mr-2" />
           Loading...
         </div>
       ) : summaries.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground text-sm">
+        <div className="py-6 text-center text-muted-foreground text-sm">
           No workspaces yet
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-0.5">
           {summaries.map((summary) => (
             <button
               key={summary.workspaceId}
               onClick={() => handleWorkspaceClick(summary)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent/50 transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent/50 transition-colors"
             >
               <Circle
                 className="size-3 shrink-0"
@@ -186,13 +186,13 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="h-14 border-b border-border flex items-center justify-between px-6">
-        <h1 className="text-lg font-semibold">Dashboard</h1>
+      <header className="h-12 border-b border-border flex items-center justify-between px-4">
+        <h1 className="text-base font-semibold">Dashboard</h1>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setAiChatOpen(true)}
-          className="gap-2"
+          className="gap-1.5"
         >
           <Bot className="h-4 w-4" />
           AI Chat
@@ -200,8 +200,8 @@ export default function DashboardPage() {
       </header>
 
       <ScrollArea className="flex-1">
-        <main className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+        <main className="p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl">
             {/* Row 1: Capture + Focus */}
             <CaptureWidget onTriageComplete={handleTriageComplete} />
             <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />

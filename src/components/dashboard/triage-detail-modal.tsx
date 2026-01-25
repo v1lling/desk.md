@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Check, User, Briefcase } from "lucide-react";
+import { Loader2, Check, User, FolderKanban } from "lucide-react";
 import { useUpdateTask, useUpdatePersonalTask } from "@/stores";
 import type { Task, TaskPriority } from "@/types";
 import type { TriageDestination } from "./capture-widget";
@@ -166,7 +166,7 @@ function DestinationBadge({ destination }: { destination: TriageDestination }) {
 
   return (
     <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium">
-      <Briefcase className="size-3" />
+      <FolderKanban className="size-3" />
       {destination.workspaceName}
       {destination.projectName && (
         <>

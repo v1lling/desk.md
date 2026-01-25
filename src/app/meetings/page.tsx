@@ -98,7 +98,7 @@ export default function MeetingsPage() {
       />
 
       <ScrollArea className="flex-1">
-        <main className="p-6">
+        <main className="p-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-pulse text-muted-foreground">

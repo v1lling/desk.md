@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, Plus, MoreHorizontal, User, Briefcase, Trash2, Loader2 } from "lucide-react";
+import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -248,7 +248,7 @@ function WorkspaceSubmenu({ workspace, onSelect }: WorkspaceSubmenuProps) {
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
-        <Briefcase className="size-4 mr-2" />
+        <FolderKanban className="size-4 mr-2" />
         {workspace.name}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="w-48">

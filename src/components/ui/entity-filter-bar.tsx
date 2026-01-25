@@ -46,12 +46,12 @@ export function EntityFilterBar({
   rightElement,
 }: EntityFilterBarProps) {
   return (
-    <div className={cn("px-6 py-3 border-b flex items-center gap-4 flex-wrap", className)}>
+    <div className={cn("px-4 py-2 border-b flex items-center gap-3 flex-wrap", className)}>
       {filters.map((filter) => (
-        <div key={filter.id} className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{filter.label}:</span>
+        <div key={filter.id} className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">{filter.label}:</span>
           <Select value={filter.value} onValueChange={filter.onChange}>
-            <SelectTrigger className={cn("h-8", filter.width || "w-[180px]")}>
+            <SelectTrigger className={cn("h-7 text-xs", filter.width || "w-[160px]")}>
               <SelectValue placeholder={filter.allLabel || "All"} />
             </SelectTrigger>
             <SelectContent>
@@ -65,8 +65,8 @@ export function EntityFilterBar({
           </Select>
         </div>
       ))}
-      <div className="ml-auto flex items-center gap-3">
-        <Badge variant="secondary">
+      <div className="ml-auto flex items-center gap-2">
+        <Badge variant="secondary" className="text-xs">
           {count} {countLabel}
         </Badge>
         {rightElement}

@@ -90,7 +90,7 @@ export default function PersonalTasksPage() {
       />
 
       <ScrollArea className="flex-1">
-        <main className={viewMode === "kanban" ? "px-6 pt-2 pb-6" : "p-6"}>
+        <main className={viewMode === "kanban" ? "px-4 pt-2 pb-4" : "p-4"}>
           {viewMode === "list" ? (
             <TaskListView
               tasks={filteredTasks}

@@ -45,10 +45,10 @@ export function KanbanColumn({
   const showHighlight = isOver || isDropTarget;
 
   return (
-    <div className={cn("flex flex-col h-full", !hideHeader && "min-w-[300px] w-[300px]")}>
+    <div className={cn("flex flex-col h-full", !hideHeader && "min-w-[280px] w-[280px]")}>
       {/* Column header */}
       {!hideHeader && (
-        <div className="flex items-center gap-2.5 mb-4 px-1 flex-shrink-0">
+        <div className="flex items-center gap-2 mb-3 px-1 flex-shrink-0">
           <div className={cn("w-2 h-2 rounded-full", config.color)} />
           <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
           <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
@@ -71,7 +71,7 @@ export function KanbanColumn({
           items={tasks.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}

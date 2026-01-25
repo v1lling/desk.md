@@ -102,3 +102,34 @@ export const taskStatusLabels = {
 
 /** Ordered list of statuses for consistent display across views */
 export const taskStatusOrder: TaskStatus[] = ["doing", "todo", "waiting", "done"];
+
+// =============================================================================
+// ICON ASSIGNMENTS
+// Standardized icon mapping to ensure consistency across the app
+// Import icons from here instead of directly from lucide-react for consistency
+// =============================================================================
+
+export {
+  // Navigation
+  Home as IconDashboard,
+  Settings as IconSettings,
+  Search as IconSearch,
+
+  // Content types - STANDARDIZED
+  CheckSquare as IconTasks,      // Use for all task references
+  FileText as IconDocs,          // Use for all doc references
+  Calendar as IconMeetings,      // Use for meetings
+  FolderKanban as IconProjects,  // Use for projects/workspaces
+
+  // Personal space
+  User as IconPersonal,
+
+  // Actions
+  Plus as IconAdd,
+  Trash2 as IconDelete,
+  Loader2 as IconLoading,
+  ChevronDown as IconChevronDown,
+  ChevronRight as IconChevronRight,
+  ChevronLeft as IconChevronLeft,
+  Circle as IconCircle,
+} from "lucide-react";

@@ -215,8 +215,8 @@ export default function SettingsPage() {
       <Header title="Settings" />
 
       <ScrollArea className="flex-1">
-        <main className="p-6">
-          <div className="max-w-2xl space-y-6">
+        <main className="p-4">
+          <div className="max-w-2xl space-y-4">
           {/* Appearance */}
           <Card>
             <CardHeader>

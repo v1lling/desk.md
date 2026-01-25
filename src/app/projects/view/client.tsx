@@ -23,7 +23,7 @@ import {
 import { isUnassigned } from "@/lib/orbit/constants";
 import type { Task, Meeting } from "@/types";
 import {
-  LayoutGrid,
+  CheckSquare,
   FileText,
   Info,
   Plus,
@@ -31,7 +31,6 @@ import {
   CheckCircle2,
   Circle,
   ArrowLeft,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -152,24 +151,22 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Project Header */}
-      <header className="border-b border-border px-6 py-4">
-        <div className="flex items-center gap-4 mb-2">
-          <Link
-            href="/"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <h1 className="text-xl font-semibold">{project.name}</h1>
-          <Badge
-            variant="outline"
-            className={cn("capitalize", statusColors[project.status])}
-          >
-            {project.status}
-          </Badge>
-        </div>
+      <header className="h-12 border-b border-border px-4 flex items-center gap-3">
+        <Link
+          href="/"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <h1 className="text-base font-semibold">{project.name}</h1>
+        <Badge
+          variant="outline"
+          className={cn("capitalize text-xs", statusColors[project.status])}
+        >
+          {project.status}
+        </Badge>
         {project.description && (
-          <p className="text-sm text-muted-foreground ml-8">
+          <p className="text-xs text-muted-foreground truncate flex-1">
             {project.description}
           </p>
         )}
@@ -181,30 +178,30 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         onValueChange={setActiveTab}
         className="flex-1 flex flex-col min-h-0 overflow-hidden"
       >
-        <div className="px-6 pt-2">
-          <TabsList className="h-10 w-auto">
-            <TabsTrigger value="overview" className="gap-2">
-              <Info className="h-4 w-4" />
+        <div className="px-4 pt-1.5">
+          <TabsList className="h-8 w-auto">
+            <TabsTrigger value="overview" className="gap-1.5 text-xs">
+              <Info className="h-3.5 w-3.5" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="gap-2">
-              <LayoutGrid className="h-4 w-4" />
+            <TabsTrigger value="tasks" className="gap-1.5 text-xs">
+              <CheckSquare className="h-3.5 w-3.5" />
               Tasks
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                 {taskStats.total}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="docs" className="gap-2">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="docs" className="gap-1.5 text-xs">
+              <FileText className="h-3.5 w-3.5" />
               Docs
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                 {docCount}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="meetings" className="gap-2">
-              <Users className="h-4 w-4" />
+            <TabsTrigger value="meetings" className="gap-1.5 text-xs">
+              <Calendar className="h-3.5 w-3.5" />
               Meetings
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                 {meetings.length}
               </Badge>
             </TabsTrigger>
@@ -214,59 +211,59 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
         {/* Overview Tab */}
         <TabsContent value="overview" className="flex-1 mt-0 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="p-6 max-w-3xl space-y-6">
+            <div className="p-4 max-w-3xl space-y-4">
             {/* Project Info */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Project Details</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 border rounded-lg">
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold">Project Details</h2>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="p-3 border rounded-lg">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm">Created</span>
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span className="text-xs">Created</span>
                   </div>
-                  <p className="font-medium">{project.created}</p>
+                  <p className="text-sm font-medium">{project.created}</p>
                 </div>
-                <div className="p-4 border rounded-lg">
+                <div className="p-3 border rounded-lg">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="text-sm">Status</span>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="text-xs">Status</span>
                   </div>
-                  <p className="font-medium capitalize">{project.status}</p>
+                  <p className="text-sm font-medium capitalize">{project.status}</p>
                 </div>
               </div>
             </div>
 
             {/* Task Summary */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Task Summary</h2>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 border rounded-lg">
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold">Task Summary</h2>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="p-3 border rounded-lg">
                   <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.todo)}>
-                    <Circle className="h-4 w-4" />
-                    <span className="text-sm">To Do</span>
+                    <Circle className="h-3.5 w-3.5" />
+                    <span className="text-xs">To Do</span>
                   </div>
-                  <p className="text-2xl font-bold">{taskStats.todo}</p>
+                  <p className="text-xl font-bold">{taskStats.todo}</p>
                 </div>
-                <div className="p-4 border rounded-lg">
+                <div className="p-3 border rounded-lg">
                   <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.doing)}>
-                    <Circle className="h-4 w-4 fill-current" />
-                    <span className="text-sm">In Progress</span>
+                    <Circle className="h-3.5 w-3.5 fill-current" />
+                    <span className="text-xs">In Progress</span>
                   </div>
-                  <p className="text-2xl font-bold">{taskStats.doing}</p>
+                  <p className="text-xl font-bold">{taskStats.doing}</p>
                 </div>
-                <div className="p-4 border rounded-lg">
+                <div className="p-3 border rounded-lg">
                   <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.done)}>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="text-sm">Done</span>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="text-xs">Done</span>
                   </div>
-                  <p className="text-2xl font-bold">{taskStats.done}</p>
+                  <p className="text-xl font-bold">{taskStats.done}</p>
                 </div>
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Quick Actions</h2>
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold">Quick Actions</h2>
               <div className="flex gap-2 flex-wrap">
                 <Button onClick={() => setShowNewTask(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -288,15 +285,15 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="flex-1 mt-0 flex flex-col">
-          <div className="px-6 py-3 flex justify-end items-center gap-3 border-b">
+          <div className="px-4 py-2 flex justify-end items-center gap-2 border-b">
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button size="sm" onClick={() => setShowNewTask(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               New Task
             </Button>
           </div>
           <ScrollArea className="flex-1">
-            <div className={viewMode === "kanban" ? "px-6 pt-2 pb-6" : "p-6"}>
+            <div className={viewMode === "kanban" ? "px-4 pt-2 pb-4" : "p-4"}>
               {viewMode === "kanban" ? (
                 <KanbanBoard projectId={projectId} onTaskClick={handleTaskClick} />
               ) : (
@@ -317,14 +314,14 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
         {/* Meetings Tab */}
         <TabsContent value="meetings" className="flex-1 mt-0 flex flex-col">
-          <div className="px-6 py-3 flex justify-end border-b">
+          <div className="px-4 py-2 flex justify-end border-b">
             <Button size="sm" onClick={() => setShowNewMeeting(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               New Meeting
             </Button>
           </div>
           <ScrollArea className="flex-1">
-            <div className="p-6">
+            <div className="p-4">
               <MeetingList meetings={meetings} onMeetingClick={handleMeetingClick} />
             </div>
           </ScrollArea>

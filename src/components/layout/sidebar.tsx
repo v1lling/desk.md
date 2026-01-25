@@ -10,13 +10,11 @@ import {
   ChevronDown,
   ChevronRight,
   CheckSquare,
-  StickyNote,
   User,
   Circle,
   Plus,
   Calendar,
   Home,
-  ListTodo,
   Search,
 } from "lucide-react";
 import Link from "next/link";
@@ -37,7 +35,7 @@ interface SidebarProps {
 
 // Workspace-scoped navigation items (no Projects - they're shown inline)
 const workspaceNavItems = [
-  { href: "/tasks", label: "All Tasks", icon: ListTodo },
+  { href: "/tasks", label: "All Tasks", icon: CheckSquare },
   { href: "/docs", label: "Docs", icon: FileText },
   { href: "/meetings", label: "Meetings", icon: Calendar },
 ] as const;
@@ -45,7 +43,7 @@ const workspaceNavItems = [
 // Personal space navigation items (Capture widget is on Dashboard)
 const personalNavItems = [
   { href: "/personal/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/personal/docs", label: "Docs", icon: StickyNote },
+  { href: "/personal/docs", label: "Docs", icon: FileText },
 ] as const;
 
 // Default color when workspace has no color set
@@ -71,11 +69,11 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
         collapsed && "justify-center px-0",
-        indent && !collapsed && "pl-6",
+        indent && !collapsed && "pl-5",
         isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
       )}
     >
@@ -111,7 +109,7 @@ function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider hover:text-sidebar-foreground/70 transition-colors"
+      className="w-full flex items-center gap-2 px-2.5 py-1 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider hover:text-sidebar-foreground/70 transition-colors"
     >
       <Icon className="size-3" />
       <span className="flex-1 text-left">{label}</span>
@@ -160,7 +158,7 @@ function WorkspaceItem({
       <button
         onClick={onSelect}
         className={cn(
-          "w-full flex items-center justify-center py-2 rounded-lg transition-colors",
+          "w-full flex items-center justify-center py-1.5 rounded-md transition-colors",
           isSelected
             ? "bg-sidebar-accent/50"
             : "hover:bg-sidebar-accent/30"
@@ -184,7 +182,7 @@ function WorkspaceItem({
           if (!isExpanded) onToggle();
         }}
         className={cn(
-          "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+          "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
           isSelected
             ? "bg-sidebar-accent/50 text-sidebar-foreground"
             : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
@@ -223,7 +221,7 @@ function WorkspaceItem({
 
       {/* Workspace sub-nav */}
       {isSelected && isExpanded && (
-        <div className="mt-1 space-y-0.5">
+        <div className="mt-0.5 space-y-0.5">
           {workspaceNavItems.map((item) => (
             <NavLink
               key={item.href}
@@ -241,7 +239,7 @@ function WorkspaceItem({
             <button
               onClick={() => setProjectsExpanded(!projectsExpanded)}
               className={cn(
-                "w-full flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "w-full flex items-center gap-2 pl-5 pr-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
                 "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
             >
@@ -258,7 +256,7 @@ function WorkspaceItem({
             {projectsExpanded && (
               <div className="mt-0.5 space-y-0.5">
                 {sortedProjects.length === 0 ? (
-                  <div className="pl-[3.25rem] pr-3 py-2 text-xs text-sidebar-foreground/40 italic">
+                  <div className="pl-[2.75rem] pr-2.5 py-1.5 text-xs text-sidebar-foreground/40 italic">
                     No projects yet
                   </div>
                 ) : (
@@ -272,9 +270,9 @@ function WorkspaceItem({
                         key={project.id}
                         href={projectHref}
                         className={cn(
-                          "flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm transition-colors",
+                          "flex items-center gap-2 pl-5 pr-2.5 py-1.5 rounded-md text-sm transition-colors",
                           isProjectActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm font-medium"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                             : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                         )}
                       >
@@ -296,7 +294,7 @@ function WorkspaceItem({
                 {/* New Project button */}
                 <button
                   onClick={onNewProject}
-                  className="w-full flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  className="w-full flex items-center gap-2 pl-5 pr-2.5 py-1.5 rounded-md text-sm text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
                 >
                   <Plus className="size-4 shrink-0" />
                   <span>New Project</span>
@@ -329,11 +327,11 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       <aside
         className={cn(
           "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-200",
-          collapsed ? "w-16" : "w-64"
+          collapsed ? "w-14" : "w-56"
         )}
       >
         {/* Header: Search + Collapse Toggle */}
-        <div className="shrink-0 p-3 flex items-center gap-2 border-b border-sidebar-border/50">
+        <div className="shrink-0 p-2 flex items-center gap-1.5 border-b border-sidebar-border/50">
           {!collapsed ? (
             <>
               <button
@@ -345,11 +343,11 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                   });
                   document.dispatchEvent(event);
                 }}
-                className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-sidebar-accent/30 text-sidebar-foreground/50 text-sm hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70 transition-colors"
+                className="flex-1 flex items-center gap-2 px-2.5 py-1 rounded-md bg-sidebar-accent/30 text-sidebar-foreground/50 text-sm hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70 transition-colors"
               >
-                <Search className="size-4" />
-                <span className="flex-1 text-left">Search...</span>
-                <kbd className="text-[10px] font-medium bg-sidebar-accent/50 px-1.5 py-0.5 rounded">
+                <Search className="size-3.5" />
+                <span className="flex-1 text-left text-xs">Search...</span>
+                <kbd className="text-[10px] font-medium bg-sidebar-accent/50 px-1 py-0.5 rounded">
                   ⌘K
                 </kbd>
               </button>
@@ -358,9 +356,9 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                   variant="ghost"
                   size="icon"
                   onClick={onToggle}
-                  className="size-8 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+                  className="size-7 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-3.5" />
                 </Button>
               )}
             </>
@@ -374,7 +372,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                 });
                 document.dispatchEvent(event);
               }}
-              className="w-full flex items-center justify-center py-1.5 rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground/70 transition-colors"
+              className="w-full flex items-center justify-center py-1 rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground/70 transition-colors"
               title="Search (⌘K)"
             >
               <Search className="size-4" />
@@ -384,7 +382,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
 
         {/* Main Navigation */}
         <ScrollArea className="flex-1 h-0">
-          <nav className="px-3 py-3 space-y-4">
+          <nav className="px-2 py-2 space-y-3">
           {/* Dashboard - top level */}
           <div>
             <NavLink
@@ -406,7 +404,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               collapsed={collapsed}
             />
             {(personalExpanded || collapsed) && (
-              <div className="mt-1 space-y-0.5">
+              <div className="mt-0.5 space-y-0.5">
                 {personalNavItems.map((item) => (
                   <NavLink
                     key={item.href}
@@ -424,11 +422,11 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
           {/* Workspaces Section */}
           <div>
             {!collapsed && (
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+              <div className="flex items-center gap-2 px-2.5 py-1 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
                 <span>Workspaces</span>
               </div>
             )}
-            <div className="mt-1 space-y-0.5">
+            <div className="mt-0.5 space-y-0.5">
               {workspaces.map((workspace) => (
                 <WorkspaceItem
                   key={workspace.id}
@@ -448,7 +446,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               {!collapsed && (
                 <button
                   onClick={() => setShowNewWorkspaceModal(true)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
                 >
                   <Plus className="size-3" />
                   <span>New Workspace</span>
@@ -457,7 +455,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               {collapsed && (
                 <button
                   onClick={() => setShowNewWorkspaceModal(true)}
-                  className="w-full flex items-center justify-center py-2 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+                  className="w-full flex items-center justify-center py-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
                   title="New Workspace"
                 >
                   <Plus className="size-4" />
@@ -469,7 +467,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="shrink-0 px-3 pb-3 pt-2 border-t border-sidebar-border/50 space-y-1">
+        <div className="shrink-0 px-2 pb-2 pt-1.5 border-t border-sidebar-border/50 space-y-0.5">
           <NavLink
             href="/settings"
             label="Settings"
@@ -484,9 +482,9 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              className="w-full h-9 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+              className="w-full h-7 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
             >
-              <ChevronLeft className="size-4 rotate-180" />
+              <ChevronLeft className="size-3.5 rotate-180" />
             </Button>
           )}
         </div>
