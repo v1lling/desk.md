@@ -50,6 +50,8 @@ type DocScope = 'personal' | 'workspace' | 'project';
 | `src/lib/orbit/` | Core CRUD operations |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
+| `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
+| `src/components/patterns/` | Page-level layout patterns |
 | `src/components/tabs/` | Tab bar and content system |
 | `src/components/editors/` | Full-width doc/task/meeting editors |
 | `src/components/` | React components by feature |
