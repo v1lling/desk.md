@@ -13,18 +13,23 @@ export function parseMarkdown<T>(
   };
 }
 
+// Reserved gray-matter keys that should not be in frontmatter data
+const GRAY_MATTER_RESERVED = ["engine", "engines", "language", "delimiters", "excerpt"];
+
 /**
  * Serialize data and content back to markdown with frontmatter
- * Automatically removes undefined values to prevent YAML serialization errors
+ * Automatically removes undefined values and gray-matter reserved keys
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function serializeMarkdown(
   data: any,
   content: string
 ): string {
-  // Filter out undefined values - gray-matter/YAML can't serialize undefined
+  // Filter out undefined values and gray-matter reserved keys
   const cleanedData = Object.fromEntries(
-    Object.entries(data).filter(([, value]) => value !== undefined)
+    Object.entries(data).filter(
+      ([key, value]) => value !== undefined && !GRAY_MATTER_RESERVED.includes(key)
+    )
   );
   return matter.stringify(content, cleanedData);
 }

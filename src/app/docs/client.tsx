@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Header } from "@/components/layout/header";
 import { DocExplorer, type DocExplorerScope } from "@/components/docs";
 import { useProjects, useCurrentWorkspace } from "@/stores";
 
@@ -45,7 +44,6 @@ export function DocsPageClient() {
   if (!currentWorkspaceId) {
     return (
       <div className="flex flex-col h-full">
-        <Header title="Docs" />
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           Select a workspace to view docs
         </div>
@@ -55,7 +53,6 @@ export function DocsPageClient() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Docs" />
       <main className="flex-1 h-full overflow-hidden">
         <DocExplorer scopes={scopes} defaultScopeId="_shared" />
       </main>

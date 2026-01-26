@@ -54,13 +54,8 @@ export default function PersonalTasksPage() {
     openTask(task);
   };
 
-  // Count active tasks (not done)
-  const activeCount = tasks.filter((t) => t.status !== "done").length;
-
   return (
     <FilteredListPage
-      title="Personal Tasks"
-      subtitle={`${activeCount} active task${activeCount !== 1 ? "s" : ""}`}
       actionLabel="New Task"
       onAction={() => setShowNewTask(true)}
       filters={[

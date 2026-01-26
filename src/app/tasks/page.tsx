@@ -54,7 +54,6 @@ export default function TasksPage() {
 
   return (
     <FilteredListPage
-      title="All Tasks"
       actionLabel="New Task"
       onAction={() => setShowNewTask(true)}
       filters={[

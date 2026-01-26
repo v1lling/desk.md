@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "@/components/layout/header";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaces } from "@/stores/workspaces";
@@ -212,8 +211,6 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Settings" />
-
       <ScrollArea className="flex-1">
         <main className="p-4">
           <div className="max-w-2xl space-y-4">

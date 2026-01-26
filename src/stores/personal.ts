@@ -219,9 +219,8 @@ export function useMovePersonalTask() {
         });
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: personalKeys.all });
-    },
+    // No onSettled/invalidate - optimistic update is sufficient
+    // Invalidating causes race condition with file write, causing snap-back
   });
 }
 

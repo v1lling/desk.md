@@ -4,6 +4,7 @@ import { memo, useCallback } from "react";
 import { Home, FileText, CheckSquare, Calendar, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabItem as TabItemType, TabType } from "@/stores/tabs";
+import { TabContextMenu } from "./tab-context-menu";
 
 const TAB_ICONS: Record<TabType, React.ElementType> = {
   orbit: Home,
@@ -18,6 +19,8 @@ interface TabItemProps {
   onActivate: () => void;
   onClose: () => void;
   onMiddleClick: () => void;
+  onCloseOthers: () => void;
+  hasOtherClosableTabs: boolean;
   /** Workspace color indicator (for Orbit tab on workspace-scoped pages) */
   workspaceColor?: string;
 }
@@ -28,6 +31,8 @@ export const TabItem = memo(function TabItem({
   onActivate,
   onClose,
   onMiddleClick,
+  onCloseOthers,
+  hasOtherClosableTabs,
   workspaceColor,
 }: TabItemProps) {
   const Icon = TAB_ICONS[tab.type];
@@ -53,11 +58,17 @@ export const TabItem = memo(function TabItem({
   );
 
   return (
-    <button
-      onClick={onActivate}
-      onMouseDown={handleMouseDown}
-      title={tab.title}
-      className={cn(
+    <TabContextMenu
+      tab={tab}
+      hasOtherClosableTabs={hasOtherClosableTabs}
+      onClose={onClose}
+      onCloseOthers={onCloseOthers}
+    >
+      <button
+        onClick={onActivate}
+        onMouseDown={handleMouseDown}
+        title={tab.title}
+        className={cn(
         "group relative flex items-center gap-1.5 h-8 text-xs transition-colors",
         // Browser-like sizing: min width, can shrink, max width
         isOrbitTab
@@ -118,5 +129,6 @@ export const TabItem = memo(function TabItem({
         />
       )}
     </button>
+    </TabContextMenu>
   );
 });

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Header } from "@/components/layout/header";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
+import { Button } from "@/components/ui/button";
 import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
-import { FolderKanban } from "lucide-react";
+import { FolderKanban, Plus } from "lucide-react";
 import type { Meeting } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -59,15 +59,6 @@ export default function MeetingsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header
-        title="Meetings"
-        action={{
-          label: "New Meeting",
-          onClick: () => setShowNewMeeting(true),
-        }}
-      />
-
-      {/* Filter Bar */}
       <EntityFilterBar
         filters={[
           {
@@ -82,6 +73,12 @@ export default function MeetingsPage() {
         ]}
         count={filteredMeetings.length}
         countLabel="meetings"
+        rightElement={
+          <Button size="sm" onClick={() => setShowNewMeeting(true)}>
+            <Plus className="size-4 mr-1" />
+            New Meeting
+          </Button>
+        }
       />
 
       <ScrollArea className="flex-1">

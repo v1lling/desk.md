@@ -30,9 +30,7 @@ import {
   Calendar,
   CheckCircle2,
   Circle,
-  ArrowLeft,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { statusColors, taskStatusTextColors } from "@/lib/design-tokens";
 import { calculateTaskStats } from "@/lib/orbit/calculations";
@@ -152,12 +150,6 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     <div className="flex flex-col h-full overflow-hidden">
       {/* Project Header */}
       <header className="h-12 border-b border-border px-4 flex items-center gap-3">
-        <Link
-          href="/"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
         <h1 className="text-base font-semibold">{project.name}</h1>
         <Badge
           variant="outline"

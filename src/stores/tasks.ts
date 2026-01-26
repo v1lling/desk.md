@@ -174,10 +174,8 @@ export function useMoveTask() {
         });
       }
     },
-    onSettled: (_data, _error, variables) => {
-      // Always refetch after mutation settles
-      queryClient.invalidateQueries({ queryKey: taskKeys.all });
-    },
+    // No onSettled/invalidate - optimistic update is sufficient
+    // Invalidating causes race condition with file write, causing snap-back
   });
 }
 

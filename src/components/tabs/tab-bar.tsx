@@ -51,6 +51,7 @@ export function TabBar() {
   const activeTabId = useTabStore((state) => state.activeTabId);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const closeTab = useTabStore((state) => state.closeTab);
+  const closeOtherTabs = useTabStore((state) => state.closeOtherTabs);
   const updateTab = useTabStore((state) => state.updateTab);
   const currentWorkspace = useCurrentWorkspace();
 
@@ -93,6 +94,21 @@ export function TabBar() {
       closeTab(tabId);
     },
     [closeTab]
+  );
+
+  const handleCloseOthers = useCallback(
+    (tabId: string) => {
+      closeOtherTabs(tabId);
+    },
+    [closeOtherTabs]
+  );
+
+  // Check if there are other closable (non-pinned) tabs besides a given tab
+  const hasOtherClosableTabs = useCallback(
+    (tabId: string) => {
+      return tabs.filter((t) => !t.isPinned && t.id !== tabId).length > 0;
+    },
+    [tabs]
   );
 
   // Keyboard shortcuts
@@ -141,6 +157,8 @@ export function TabBar() {
               onActivate={() => handleActivate(tab.id)}
               onClose={() => handleClose(tab.id)}
               onMiddleClick={() => handleClose(tab.id)}
+              onCloseOthers={() => handleCloseOthers(tab.id)}
+              hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
               workspaceColor={tab.type === "orbit" ? orbitWorkspaceColor : undefined}
             />
           ))}

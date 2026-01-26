@@ -76,12 +76,8 @@ export function useUpdateTaskOrder() {
         );
       }
     },
-    onSettled: (_data, _error, variables) => {
-      // Refetch after mutation settles
-      queryClient.invalidateQueries({
-        queryKey: viewStateKeys.byScope(variables.workspaceId, variables.projectId),
-      });
-    },
+    // No onSettled/invalidate - optimistic update is sufficient
+    // Invalidating causes flicker due to race with file write
   });
 }
 
