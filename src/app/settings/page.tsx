@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSettingsStore } from "@/stores/settings";
+import {
+  useSettingsStore,
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_DEFAULT_WIDTH,
+} from "@/stores/settings";
 import { useWorkspaces } from "@/stores/workspaces";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -95,14 +99,16 @@ export default function SettingsPage() {
   const {
     dataPath,
     theme,
-    sidebarCollapsed,
+    sidebarWidth,
     setDataPath,
     setTheme,
-    setSidebarCollapsed,
+    setSidebarWidth,
     setCurrentWorkspaceId,
     setSetupCompleted,
     reset,
   } = useSettingsStore();
+
+  const isCollapsed = sidebarWidth <= SIDEBAR_COLLAPSED_WIDTH;
 
   const queryClient = useQueryClient();
   const { data: workspaces = [] } = useWorkspaces();
@@ -266,13 +272,13 @@ export default function SettingsPage() {
                 <div className="space-y-0.5">
                   <Label>Compact sidebar</Label>
                   <p className="text-sm text-muted-foreground">
-                    Show only icons in the sidebar
+                    Show only icons in the sidebar (or drag the edge to resize)
                   </p>
                 </div>
                 <Switch
-                  checked={sidebarCollapsed}
+                  checked={isCollapsed}
                   onCheckedChange={(checked) => {
-                    setSidebarCollapsed(checked);
+                    setSidebarWidth(checked ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_DEFAULT_WIDTH);
                     toast.success(checked ? "Sidebar collapsed" : "Sidebar expanded");
                   }}
                 />

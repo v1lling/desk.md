@@ -91,7 +91,7 @@ export interface OrbitConfig {
   dataPath: string;
   currentWorkspaceId: string | null;
   theme: 'light' | 'dark' | 'system';
-  sidebarCollapsed: boolean;
+  sidebarWidth: number;  // pixels (56 = collapsed, 224 = default)
   setupCompleted: boolean;
 }
 

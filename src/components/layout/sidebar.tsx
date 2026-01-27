@@ -29,8 +29,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LucideIcon } from "lucide-react";
 
 interface SidebarProps {
-  collapsed?: boolean;
+  width: number;
+  isCollapsed: boolean;
   onToggle?: () => void;
+  isDragging?: boolean;
 }
 
 // Workspace-scoped navigation items (no Projects - they're shown inline)
@@ -308,7 +310,7 @@ function WorkspaceItem({
   );
 }
 
-export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
+export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: workspaces = [] } = useWorkspaces();
@@ -322,13 +324,18 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
+  // Use isCollapsed for conditional rendering
+  const collapsed = isCollapsed;
+
   return (
     <>
       <aside
         className={cn(
-          "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-200",
-          collapsed ? "w-14" : "w-56"
+          "flex flex-col h-full min-h-0 bg-sidebar",
+          // Only animate when not dragging
+          !isDragging && "transition-[width] duration-200"
         )}
+        style={{ width: `${width}px` }}
       >
         {/* Header: Search + Collapse Toggle */}
         <div className="shrink-0 p-2 flex items-center gap-1.5 border-b border-sidebar-border/50">

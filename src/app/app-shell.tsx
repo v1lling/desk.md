@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout";
 import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useSettingsStore } from "@/stores/settings";
+import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/orbit/tauri-fs";
 
 interface AppShellProps {
@@ -15,8 +17,16 @@ export function AppShell({ children }: AppShellProps) {
   const [hydrated, setHydrated] = useState(false);
   const [hasTitleBar, setHasTitleBar] = useState(false);
   const setupCompleted = useSettingsStore((state) => state.setupCompleted);
-  const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed);
-  const setSidebarCollapsed = useSettingsStore((state) => state.setSidebarCollapsed);
+
+  const {
+    width: sidebarWidth,
+    isCollapsed,
+    isDragging,
+    handleResize,
+    handleResizeEnd,
+    handleDoubleClick,
+    toggleCollapsed,
+  } = useSidebarResize();
 
   // Wait for hydration to avoid flash of wrong content
   useEffect(() => {
@@ -49,8 +59,15 @@ export function AppShell({ children }: AppShellProps) {
       )}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          width={sidebarWidth}
+          isCollapsed={isCollapsed}
+          onToggle={toggleCollapsed}
+          isDragging={isDragging}
+        />
+        <ResizeHandle
+          onResize={handleResize}
+          onResizeEnd={handleResizeEnd}
+          onDoubleClick={handleDoubleClick}
         />
         <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <TabBar />
