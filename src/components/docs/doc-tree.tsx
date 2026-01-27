@@ -22,7 +22,9 @@ interface DocTreeProps {
   nodes: DocTreeNode[];
   isLoading?: boolean;
   selectedDocId?: string | null;
+  selectedFolderPath?: string | null;
   onSelectDoc?: (doc: Doc) => void;
+  onSelectFolder?: (folderPath: string) => void;
   onCreateDoc?: (folderPath?: string) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onCreateFolder?: (parentPath: string, name: string) => Promise<void>;
@@ -38,7 +40,9 @@ export function DocTree({
   nodes,
   isLoading,
   selectedDocId,
+  selectedFolderPath,
   onSelectDoc,
+  onSelectFolder,
   onCreateDoc,
   onDeleteDoc,
   onCreateFolder,
@@ -155,65 +159,79 @@ export function DocTree({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Toolbar - fixed at top */}
-      {(onCreateFolder || onCreateDoc) && (
-        <div className="shrink-0 flex items-center gap-1 py-2">
-          {onCreateFolder && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-muted-foreground hover:text-foreground"
-              onClick={handleNewRootFolder}
-              title="New folder"
-            >
-              <FolderPlus className="size-4" />
-            </Button>
-          )}
-          {onCreateDoc && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-muted-foreground hover:text-foreground"
-              onClick={() => onCreateDoc()}
-              title="New doc"
-            >
-              <FileText className="size-4" />
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Tree content - scrollable */}
-      <ScrollArea className="flex-1 min-h-0">
-        {nodes.length === 0 ? (
-          <EmptyState
-            title="No docs yet"
-            description="Create a doc or folder to get started"
-          />
-        ) : (
-          <div className="py-2">
-            {nodes.map((node) => (
-              <DocTreeItem
-                key={
-                  node.type === "folder"
-                    ? `folder-${node.folder.path}`
-                    : `doc-${node.doc.id}`
-                }
-                node={node}
-                selectedDocId={selectedDocId}
-                expandedFolders={expandedFolders}
-                onSelectDoc={onSelectDoc}
-                onToggleFolder={toggleFolder}
-                onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
-                onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
-                onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
-                onNewDocInFolder={onCreateDoc}
-                onDeleteDoc={onDeleteDoc}
-              />
-            ))}
+      {/* Tree container with visual structure */}
+      <div className="flex-1 min-h-0 flex flex-col border rounded-lg bg-muted/5 overflow-hidden">
+        {/* Toolbar header */}
+        {(onCreateFolder || onCreateDoc) && (
+          <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b bg-muted/10">
+            {onCreateFolder && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  // Create in selected folder if one is selected, otherwise at root
+                  if (selectedFolderPath) {
+                    handleNewSubfolder(selectedFolderPath);
+                  } else {
+                    handleNewRootFolder();
+                  }
+                }}
+              >
+                <FolderPlus className="size-4" />
+                <span className="text-xs">Folder</span>
+              </Button>
+            )}
+            {onCreateDoc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => onCreateDoc(selectedFolderPath || undefined)}
+              >
+                <FileText className="size-4" />
+                <span className="text-xs">Doc</span>
+              </Button>
+            )}
           </div>
         )}
-      </ScrollArea>
+
+        {/* Tree content - scrollable */}
+        <ScrollArea className="flex-1 min-h-0">
+          {nodes.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                title="No docs yet"
+                description="Create a doc or folder to get started"
+              />
+            </div>
+          ) : (
+            <div className="py-2 px-1">
+              {nodes.map((node) => (
+                <DocTreeItem
+                  key={
+                    node.type === "folder"
+                      ? `folder-${node.folder.path}`
+                      : `doc-${node.doc.id}`
+                  }
+                  node={node}
+                  selectedDocId={selectedDocId}
+                  selectedFolderPath={selectedFolderPath}
+                  expandedFolders={expandedFolders}
+                  onSelectDoc={onSelectDoc}
+                  onSelectFolder={onSelectFolder}
+                  onToggleFolder={toggleFolder}
+                  onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
+                  onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
+                  onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
+                  onNewDocInFolder={onCreateDoc}
+                  onDeleteDoc={onDeleteDoc}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
 
       {/* Folder create/rename modal */}
       <Dialog

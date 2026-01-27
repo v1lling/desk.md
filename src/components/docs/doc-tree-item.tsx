@@ -14,6 +14,13 @@ import {
   FolderPlus,
 } from "lucide-react";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,14 +28,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { Doc, DocFolder, DocTreeNode } from "@/types";
+import type { Doc, DocTreeNode } from "@/types";
 
 interface DocTreeItemProps {
   node: DocTreeNode;
   depth?: number;
   selectedDocId?: string | null;
+  selectedFolderPath?: string | null;
   expandedFolders: Set<string>;
   onSelectDoc?: (doc: Doc) => void;
+  onSelectFolder?: (folderPath: string) => void;
   onToggleFolder: (path: string) => void;
   onRenameFolder?: (path: string) => void;
   onDeleteFolder?: (path: string) => void;
@@ -37,12 +46,31 @@ interface DocTreeItemProps {
   onDeleteDoc?: (doc: Doc) => void;
 }
 
+// Indent guide component - renders vertical lines for tree hierarchy
+function IndentGuides({ depth }: { depth: number }) {
+  if (depth === 0) return null;
+
+  return (
+    <div className="absolute left-0 top-0 bottom-0 pointer-events-none">
+      {Array.from({ length: depth }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute top-0 bottom-0 w-px bg-border/50"
+          style={{ left: `${i * 16 + 16}px` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function DocTreeItem({
   node,
   depth = 0,
   selectedDocId,
+  selectedFolderPath,
   expandedFolders,
   onSelectDoc,
+  onSelectFolder,
   onToggleFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -56,104 +84,157 @@ export function DocTreeItem({
   if (node.type === "folder") {
     const folder = node.folder;
     const isExpanded = expandedFolders.has(folder.path);
+    const isFolderSelected = selectedFolderPath === folder.path;
+
+    const menuContent = (
+      <>
+        {onNewDocInFolder && (
+          <ContextMenuItem onClick={() => onNewDocInFolder(folder.path)}>
+            <FileText className="size-4 mr-2" />
+            New Doc
+          </ContextMenuItem>
+        )}
+        {onNewSubfolder && (
+          <ContextMenuItem onClick={() => onNewSubfolder(folder.path)}>
+            <FolderPlus className="size-4 mr-2" />
+            New Subfolder
+          </ContextMenuItem>
+        )}
+        {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder) && (
+          <ContextMenuSeparator />
+        )}
+        {onRenameFolder && (
+          <ContextMenuItem onClick={() => onRenameFolder(folder.path)}>
+            <Pencil className="size-4 mr-2" />
+            Rename
+          </ContextMenuItem>
+        )}
+        {onDeleteFolder && (
+          <ContextMenuItem
+            onClick={() => onDeleteFolder(folder.path)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="size-4 mr-2" />
+            Delete
+          </ContextMenuItem>
+        )}
+      </>
+    );
 
     return (
-      <div>
-        <div
-          className={cn(
-            "group flex items-center gap-1 py-1.5 px-2 rounded-md cursor-pointer",
-            "hover:bg-accent/50 transition-colors"
-          )}
-          style={{ paddingLeft }}
-          onClick={() => onToggleFolder(folder.path)}
-        >
-          <span className="shrink-0 text-muted-foreground">
-            {isExpanded ? (
-              <ChevronDown className="size-4" />
-            ) : (
-              <ChevronRight className="size-4" />
-            )}
-          </span>
-          <span className="shrink-0 text-muted-foreground">
-            {isExpanded ? (
-              <FolderOpen className="size-4" />
-            ) : (
-              <Folder className="size-4" />
-            )}
-          </span>
-          <span className="flex-1 text-sm font-medium truncate">
-            {folder.name}
-          </span>
-          <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
+      <div className="relative">
+        <IndentGuides depth={depth} />
+
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div
+              className="py-0.5"
+              style={{ paddingLeft }}
+            >
+              <div
                 className={cn(
-                  "size-6 opacity-0 group-hover:opacity-100 transition-opacity",
-                  showMenu && "opacity-100"
+                  "group inline-flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer",
+                  "hover:bg-accent/50 transition-colors",
+                  isFolderSelected && "bg-accent"
                 )}
-                onClick={(e) => e.stopPropagation()}
+                onClick={() => {
+                  onSelectFolder?.(folder.path);
+                  onToggleFolder(folder.path);
+                }}
               >
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onNewDocInFolder && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNewDocInFolder(folder.path);
-                  }}
-                >
-                  <FileText className="size-4 mr-2" />
-                  New Doc
-                </DropdownMenuItem>
-              )}
-              {onNewSubfolder && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNewSubfolder(folder.path);
-                  }}
-                >
-                  <FolderPlus className="size-4 mr-2" />
-                  New Subfolder
-                </DropdownMenuItem>
-              )}
-              {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder) && (
-                <DropdownMenuSeparator />
-              )}
-              {onRenameFolder && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRenameFolder(folder.path);
-                  }}
-                >
-                  <Pencil className="size-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-              )}
-              {onDeleteFolder && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteFolder(folder.path);
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="size-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <span className="shrink-0 text-muted-foreground">
+                  {isExpanded ? (
+                    <ChevronDown className="size-4" />
+                  ) : (
+                    <ChevronRight className="size-4" />
+                  )}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {isExpanded ? (
+                    <FolderOpen className="size-4" />
+                  ) : (
+                    <Folder className="size-4" />
+                  )}
+                </span>
+                <span className="text-sm font-medium truncate max-w-[200px]">
+                  {folder.name}
+                </span>
+                <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1",
+                        showMenu && "opacity-100"
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {onNewDocInFolder && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNewDocInFolder(folder.path);
+                        }}
+                      >
+                        <FileText className="size-4 mr-2" />
+                        New Doc
+                      </DropdownMenuItem>
+                    )}
+                    {onNewSubfolder && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNewSubfolder(folder.path);
+                        }}
+                      >
+                        <FolderPlus className="size-4 mr-2" />
+                        New Subfolder
+                      </DropdownMenuItem>
+                    )}
+                    {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder) && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {onRenameFolder && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRenameFolder(folder.path);
+                        }}
+                      >
+                        <Pencil className="size-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                    )}
+                    {onDeleteFolder && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteFolder(folder.path);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            {menuContent}
+          </ContextMenuContent>
+        </ContextMenu>
 
         {isExpanded && folder.children.length > 0 && (
           <div>
-            {folder.children.map((child, index) => (
+            {folder.children.map((child) => (
               <DocTreeItem
                 key={
                   child.type === "folder"
@@ -163,8 +244,10 @@ export function DocTreeItem({
                 node={child}
                 depth={depth + 1}
                 selectedDocId={selectedDocId}
+                selectedFolderPath={selectedFolderPath}
                 expandedFolders={expandedFolders}
                 onSelectDoc={onSelectDoc}
+                onSelectFolder={onSelectFolder}
                 onToggleFolder={onToggleFolder}
                 onRenameFolder={onRenameFolder}
                 onDeleteFolder={onDeleteFolder}
@@ -184,43 +267,66 @@ export function DocTreeItem({
   const isSelected = selectedDocId === doc.id;
 
   return (
-    <div
-      className={cn(
-        "group flex items-center gap-1 py-1.5 px-2 rounded-md cursor-pointer",
-        "hover:bg-accent/50 transition-colors",
-        isSelected && "bg-accent"
-      )}
-      style={{ paddingLeft: paddingLeft + 20 }} // Extra indent for docs
-      onClick={() => onSelectDoc?.(doc)}
-    >
-      <FileText className="size-4 shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-sm truncate">{doc.title}</span>
-      {onDeleteDoc && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
+    <div className="relative">
+      <IndentGuides depth={depth} />
+
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            className="py-0.5"
+            style={{ paddingLeft: paddingLeft + 20 }} // Extra indent for docs (no chevron)
+          >
+            <div
+              className={cn(
+                "group inline-flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer",
+                "hover:bg-accent/50 transition-colors",
+                isSelected && "bg-accent"
+              )}
+              onClick={() => onSelectDoc?.(doc)}
             >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteDoc(doc);
-              }}
+              <FileText className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm truncate max-w-[200px]">{doc.title}</span>
+              {onDeleteDoc && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteDoc(doc);
+                      }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="size-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {onDeleteDoc && (
+            <ContextMenuItem
+              onClick={() => onDeleteDoc(doc)}
               className="text-destructive focus:text-destructive"
             >
               <Trash2 className="size-4 mr-2" />
               Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+            </ContextMenuItem>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
     </div>
   );
 }
