@@ -19,11 +19,13 @@ import {
   useCreateDocFolder,
   useRenameDocFolder,
   useDeleteDocFolder,
+  useDeleteDoc,
   useExpandedDocFolders,
   useImportDocs,
   useOpenTab,
   PERSONAL_SPACE_ID,
 } from "@/stores";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Doc, DocScope } from "@/types";
 
@@ -111,12 +113,17 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
   const createFolder = useCreateDocFolder();
   const renameFolder = useRenameDocFolder();
   const deleteFolder = useDeleteDocFolder();
+  const deleteDoc = useDeleteDoc();
   const importDocs = useImportDocs();
   const { openDoc } = useOpenTab();
 
   // Local state
   const [showNewDoc, setShowNewDoc] = useState(false);
   const [newDocFolderPath, setNewDocFolderPath] = useState<string | undefined>();
+  // Selection state - either a doc or a folder can be selected
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null);
+  const [deleteDocConfirm, setDeleteDocConfirm] = useState<Doc | null>(null);
 
   // Handle scope change
   const handleScopeChange = useCallback(
@@ -169,13 +176,40 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
     [selectedScope, deleteFolder]
   );
 
-  // Doc operations
+  // Selection and doc operations
   const handleDocClick = useCallback(
     (doc: Doc) => {
+      setSelectedDocId(doc.id);
+      setSelectedFolderPath(null); // Clear folder selection
       openDoc(doc);
     },
     [openDoc]
   );
+
+  const handleFolderSelect = useCallback((folderPath: string) => {
+    setSelectedFolderPath(folderPath);
+    setSelectedDocId(null); // Clear doc selection
+  }, []);
+
+  const handleDeleteDoc = useCallback((doc: Doc) => {
+    setDeleteDocConfirm(doc);
+  }, []);
+
+  const handleDeleteDocConfirm = useCallback(async () => {
+    if (!deleteDocConfirm) return;
+    try {
+      await deleteDoc.mutateAsync(deleteDocConfirm);
+      toast.success("Doc deleted");
+      // Clear selection if deleted doc was selected
+      if (selectedDocId === deleteDocConfirm.id) {
+        setSelectedDocId(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete doc:", error);
+      toast.error("Failed to delete doc");
+    }
+    setDeleteDocConfirm(null);
+  }, [deleteDocConfirm, deleteDoc, selectedDocId]);
 
   const handleCreateDocInFolder = useCallback((folderPath?: string) => {
     setNewDocFolderPath(folderPath);
@@ -321,8 +355,12 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
         className="flex-1 min-h-0 px-6 py-4"
         nodes={tree}
         isLoading={isLoading}
+        selectedDocId={selectedDocId}
+        selectedFolderPath={selectedFolderPath}
         onSelectDoc={handleDocClick}
+        onSelectFolder={handleFolderSelect}
         onCreateDoc={handleCreateDocInFolder}
+        onDeleteDoc={handleDeleteDoc}
         onCreateFolder={handleCreateFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
@@ -338,6 +376,17 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
         defaultWorkspaceId={selectedScope?.workspaceId}
         defaultProjectId={selectedScope?.projectId}
         defaultFolderPath={newDocFolderPath}
+      />
+
+      {/* Delete doc confirmation */}
+      <ConfirmDialog
+        open={!!deleteDocConfirm}
+        onOpenChange={(open) => !open && setDeleteDocConfirm(null)}
+        title="Delete Doc"
+        description={`Delete "${deleteDocConfirm?.title}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteDocConfirm}
       />
     </DocDropZone>
   );
