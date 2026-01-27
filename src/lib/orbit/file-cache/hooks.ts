@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useCallback, useRef } from "react";
 import type { TreeNode, TraversalOptions, CacheStats, ContentParser } from "./types";
 import { getFileTreeService } from "./service";
-import { connectToWatcher, disconnectFromWatcher } from "./watcher-integration";
+import { connectToWatcher, disconnectFromWatcher } from "./cache-invalidator";
 
 /**
  * Query keys for file tree queries

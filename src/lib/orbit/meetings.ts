@@ -17,7 +17,9 @@ import {
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 import { findItemInAllWorkspaces } from "./search";
-import { getFileTreeService } from "./file-tree";
+import { getFileTreeService } from "./file-cache";
+import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
+import { publishDeleted } from "@/stores/editor-event-bus";
 
 interface MeetingFrontmatter {
   title: string;
@@ -322,6 +324,14 @@ export async function deleteMeeting(
       for (const entry of entries) {
         if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === meetingId) {
           const filePath = await joinPath(meetingsPath, entry.name);
+
+          // Notify editor if file was open
+          const registry = useOpenEditorRegistry.getState();
+          if (registry.isOpen(filePath)) {
+            registry.handlePathDeleted(filePath);
+            publishDeleted(filePath);
+          }
+
           await removeFile(filePath);
           return true;
         }
@@ -333,6 +343,13 @@ export async function deleteMeeting(
   // Fallback: search all workspaces (slow path) - uses helper to find item
   const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
   if (!meeting) return false;
+
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(meeting.filePath)) {
+    registry.handlePathDeleted(meeting.filePath);
+    publishDeleted(meeting.filePath);
+  }
 
   await removeFile(meeting.filePath);
   return true;

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings";
 import { isTauri, initOrbitDirectory } from "@/lib/orbit";
-import { useFileWatcher } from "@/hooks/use-file-watcher";
+import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
 
 interface ProvidersProps {
@@ -36,9 +36,9 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Initialize file watcher for live updates
-function FileWatcherProvider({ children }: { children: React.ReactNode }) {
-  useFileWatcher();
+// Initialize query invalidator for live updates
+function QueryInvalidatorProvider({ children }: { children: React.ReactNode }) {
+  useQueryInvalidator();
   return <>{children}</>;
 }
 
@@ -91,11 +91,11 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
-        <FileWatcherProvider>
+        <QueryInvalidatorProvider>
           <SearchIndexProvider>
             <ThemeProvider>{children}</ThemeProvider>
           </SearchIndexProvider>
-        </FileWatcherProvider>
+        </QueryInvalidatorProvider>
       </TauriInitializer>
     </QueryClientProvider>
   );

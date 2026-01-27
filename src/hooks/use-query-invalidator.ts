@@ -1,8 +1,12 @@
 /**
- * useFileWatcher Hook
+ * useQueryInvalidator Hook
  *
- * Connects the file system watcher to TanStack Query cache invalidation.
- * Should be used once at the app root level.
+ * Routes file system events to the appropriate handler:
+ * - Open files → Editor update (via event bus)
+ * - Closed files → TanStack Query invalidation
+ *
+ * This hook replaces the old useFileWatcher and adds awareness
+ * of which files are currently open in editors.
  */
 
 import { useEffect, useRef } from "react";
@@ -31,13 +35,19 @@ import {
   connectToWatcher,
   disconnectFromWatcher,
   fileTreeKeys,
-} from "@/lib/orbit/file-tree";
+} from "@/lib/orbit/file-cache";
+import {
+  useOpenEditorRegistry,
+  type EditorSession,
+} from "@/stores/open-editor-registry";
+import { publishContentUpdate } from "@/stores/editor-event-bus";
+import { readTextFile } from "@/lib/orbit/tauri-fs";
 
 /**
- * Hook to initialize file watching and connect to query cache
+ * Hook to initialize file watching and route events
  * Call this once in your app root (e.g., layout.tsx or providers)
  */
-export function useFileWatcher() {
+export function useQueryInvalidator() {
   const queryClient = useQueryClient();
   const isInitialized = useRef(false);
 
@@ -57,8 +67,8 @@ export function useFileWatcher() {
     startWatching();
 
     // Subscribe to file changes
-    const unsubscribe = onFileChange((event: WatchEvent) => {
-      handleFileChange(event, queryClient);
+    const unsubscribe = onFileChange(async (event: WatchEvent) => {
+      await handleFileChange(event, queryClient);
     });
 
     // Cleanup on unmount
@@ -72,19 +82,44 @@ export function useFileWatcher() {
 }
 
 /**
- * Handle file change events and invalidate appropriate caches
+ * Handle file change events
+ * Routes to either editor update or query invalidation based on whether file is open
  */
-function handleFileChange(
+async function handleFileChange(
   event: WatchEvent,
   queryClient: ReturnType<typeof useQueryClient>
 ) {
+  const registry = useOpenEditorRegistry.getState();
   const affectedWorkspaces = new Set<string>();
   const affectedProjects = new Map<string, Set<string>>(); // workspaceId -> Set<projectId>
   const affectedTypes = new Set<string>();
   let hasPersonalChanges = false;
 
-  // Analyze all changed paths
+  // Track which paths were handled by editors (to skip query invalidation)
+  const handledByEditor = new Set<string>();
+
+  // First pass: check each path for open editors
   for (const path of event.paths) {
+    const session = registry.getSession(path);
+
+    if (session) {
+      // ═══════════════════════════════════════════════════════════════════
+      // File is OPEN in editor - check for external changes
+      // ═══════════════════════════════════════════════════════════════════
+      const handled = await handleOpenFileChange(path, session, event.kind);
+      if (handled) {
+        handledByEditor.add(path);
+      }
+    }
+  }
+
+  // Second pass: analyze paths for query invalidation (skipping editor-handled paths)
+  for (const path of event.paths) {
+    // Skip if this path was handled by an editor
+    if (handledByEditor.has(path)) {
+      continue;
+    }
+
     const itemType = getItemTypeFromPath(path);
     const workspaceId = getWorkspaceIdFromPath(path);
     const projectId = getProjectIdFromPath(path);
@@ -104,14 +139,96 @@ function handleFileChange(
     }
   }
 
-  console.log(
-    `[watcher] File change: ${event.kind}`,
-    `types: [${Array.from(affectedTypes).join(", ")}]`,
-    `workspaces: [${Array.from(affectedWorkspaces).join(", ")}]`,
-    hasPersonalChanges ? "(includes personal)" : ""
+  // Log what's happening
+  if (handledByEditor.size > 0) {
+    console.log(
+      `[query-invalidator] ${handledByEditor.size} path(s) routed to editor(s)`
+    );
+  }
+
+  if (affectedTypes.size > 0) {
+    console.log(
+      `[query-invalidator] File change: ${event.kind}`,
+      `types: [${Array.from(affectedTypes).join(", ")}]`,
+      `workspaces: [${Array.from(affectedWorkspaces).join(", ")}]`,
+      hasPersonalChanges ? "(includes personal)" : ""
+    );
+  }
+
+  // Invalidate caches based on what changed (for non-editor paths)
+  invalidateQueriesForChanges(
+    affectedTypes,
+    affectedWorkspaces,
+    affectedProjects,
+    hasPersonalChanges,
+    queryClient
   );
 
-  // Invalidate caches based on what changed
+  // Also invalidate file-tree queries for any file change
+  // The file-tree service handles its own internal cache invalidation via watcher-integration
+  queryClient.invalidateQueries({
+    queryKey: fileTreeKeys.all,
+  });
+}
+
+/**
+ * Handle a file change for an open file
+ * Returns true if the change was handled (external change detected)
+ */
+async function handleOpenFileChange(
+  path: string,
+  session: EditorSession,
+  eventKind: WatchEvent["kind"]
+): Promise<boolean> {
+  // For remove events, the file is gone - mark as deleted
+  if (eventKind === "remove") {
+    useOpenEditorRegistry.getState().handlePathDeleted(path);
+    return true;
+  }
+
+  try {
+    const fileContent = await readTextFile(path);
+
+    // File matches what we last saved → our save event, ignore
+    if (fileContent === session.lastSavedContent) {
+      return true; // Handled (it was our own save)
+    }
+
+    // External change → update editor via event bus
+    console.log(
+      `[query-invalidator] External change detected: ${path.split("/").pop()}`
+    );
+    publishContentUpdate(path, fileContent);
+
+    // Update lastSavedContent in registry to prevent re-triggering
+    useOpenEditorRegistry.getState().updateLastSaved(path, fileContent);
+
+    return true;
+  } catch (error) {
+    // File might have been deleted or moved
+    if (
+      error instanceof Error &&
+      (error.message.includes("not found") ||
+        error.message.includes("No such file"))
+    ) {
+      useOpenEditorRegistry.getState().handlePathDeleted(path);
+      return true;
+    }
+    console.error(`[query-invalidator] Error reading file: ${path}`, error);
+    return false;
+  }
+}
+
+/**
+ * Invalidate TanStack Query caches based on what changed
+ */
+function invalidateQueriesForChanges(
+  affectedTypes: Set<string>,
+  affectedWorkspaces: Set<string>,
+  affectedProjects: Map<string, Set<string>>,
+  hasPersonalChanges: boolean,
+  queryClient: ReturnType<typeof useQueryClient>
+) {
   for (const itemType of affectedTypes) {
     switch (itemType) {
       case "task":
@@ -194,7 +311,7 @@ function handleFileChange(
 
       case "config":
         // Config changed - this is handled by Zustand persist, not TanStack Query
-        console.log("[watcher] Config file changed externally");
+        console.log("[query-invalidator] Config file changed externally");
         break;
 
       case "unknown":
@@ -226,12 +343,9 @@ function handleFileChange(
         break;
     }
   }
-
-  // Also invalidate file-tree queries for any file change
-  // The file-tree service handles its own internal cache invalidation via watcher-integration
-  queryClient.invalidateQueries({
-    queryKey: fileTreeKeys.all,
-  });
 }
 
-export default useFileWatcher;
+// Keep the old export name as an alias for backwards compatibility
+export const useFileWatcher = useQueryInvalidator;
+
+export default useQueryInvalidator;

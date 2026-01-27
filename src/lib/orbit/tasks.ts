@@ -17,7 +17,9 @@ import {
 import { mockTasks } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
 import { findItemInAllWorkspaces } from "./search";
-import { getFileTreeService } from "./file-tree";
+import { getFileTreeService } from "./file-cache";
+import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
+import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
 
 interface TaskFrontmatter {
   title: string;
@@ -329,6 +331,14 @@ export async function deleteTask(
       for (const entry of entries) {
         if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === taskId) {
           const filePath = await joinPath(tasksPath, entry.name);
+
+          // Notify editor if file was open
+          const registry = useOpenEditorRegistry.getState();
+          if (registry.isOpen(filePath)) {
+            registry.handlePathDeleted(filePath);
+            publishDeleted(filePath);
+          }
+
           await removeFile(filePath);
           return true;
         }
@@ -340,6 +350,13 @@ export async function deleteTask(
   // Fallback: search all workspaces (slow path) - uses helper to find item
   const task = await findItemInAllWorkspaces(taskId, getTasks);
   if (!task) return false;
+
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(task.filePath)) {
+    registry.handlePathDeleted(task.filePath);
+    publishDeleted(task.filePath);
+  }
 
   await removeFile(task.filePath);
   return true;
@@ -420,6 +437,13 @@ export async function moveTaskToProject(
 
   // Delete original file
   await removeFile(sourceFilePath);
+
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(sourceFilePath)) {
+    registry.handlePathChange(sourceFilePath, targetFilePath);
+    publishPathChange(sourceFilePath, targetFilePath);
+  }
 
   return {
     id: taskId,

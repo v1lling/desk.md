@@ -51,12 +51,12 @@ export {
   useFileTreeSubscription,
 } from "./hooks";
 
-// Watcher integration
+// Cache invalidation (watcher integration)
 export {
   connectToWatcher,
   disconnectFromWatcher,
   isWatcherConnected,
-} from "./watcher-integration";
+} from "./cache-invalidator";
 
 // Parsers
 export type {

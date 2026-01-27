@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useUpdatePersonalTask, useDeletePersonalTask } from "@/stores";
-import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -11,6 +11,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
 import { toast } from "sonner";
 import type { TaskStatus, TaskPriority } from "@/types";
@@ -22,7 +23,7 @@ interface TaskEditorProps {
   onClose: () => void;
 }
 
-export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEditorProps) {
+export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const isPersonal = workspaceId === PERSONAL_SPACE_ID;
   const { data: task, isLoading } = useTask(workspaceId, taskId);
 
@@ -37,30 +38,28 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
   const updatePersonalTask = useUpdatePersonalTask();
   const deletePersonalTask = useDeletePersonalTask();
 
-  // Form state
+  // Metadata state (not in the markdown body)
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [due, setDue] = useState("");
-  const [content, setContent] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [originalProjectId, setOriginalProjectId] = useState("");
 
-  // Sync state when task changes
+  // Initialize metadata from task (only when switching tasks)
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setStatus(task.status);
       setPriority(task.priority || "none");
       setDue(task.due || "");
-      setContent(task.content);
       setCurrentProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
     }
-  }, [task]);
+  }, [task?.id]); // Only reset when switching to a different task
 
   // Defer editor rendering
   useEffect(() => {
@@ -72,60 +71,93 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
     }
   }, [task, isEditorReady]);
 
-  // Auto-save data
-  const autoSaveData = useMemo(
-    () => ({
-      title,
-      status,
-      priority: priority === "none" ? undefined : priority,
-      due: due || undefined,
-      content,
-    }),
-    [title, status, priority, due, content]
-  );
-
-  // Auto-save handler
-  const handleAutoSave = useCallback(
-    async (data: typeof autoSaveData) => {
-      if (!task) return;
-
-      const updates = {
-        title: data.title.trim() || task.title,
-        status: data.status,
-        priority: data.priority,
-        due: data.due,
-        content: data.content,
-      };
-
-      if (isPersonal) {
-        await updatePersonalTask.mutateAsync({
-          taskId: task.id,
-          updates,
-        });
-      } else {
-        await updateTask.mutateAsync({
-          taskId: task.id,
-          workspaceId: task.workspaceId,
-          projectId: task.projectId,
-          updates,
-        });
-      }
-    },
-    [task, updateTask, updatePersonalTask, isPersonal]
-  );
-
-  // Auto-save hook
-  const { status: saveStatus, save: triggerSave, isDirty } = useAutoSave({
-    data: autoSaveData,
-    onSave: handleAutoSave,
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Use editor session for content (markdown body)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const {
+    content,
+    setContent,
+    isDirty: contentDirty,
+    saveStatus: contentSaveStatus,
+    pathChanged,
+    newPath,
+    fileDeleted,
+    acknowledgePathChange,
+    acknowledgeDeleted,
+    forceSave: forceContentSave,
+  } = useEditorSession({
+    type: "task",
+    entityId: taskId,
+    filePath: task?.filePath,
+    initialContent: task?.content ?? "",
     enabled: !!task,
   });
 
+  // Track metadata changes separately
+  const [metadataDirty, setMetadataDirty] = useState(false);
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setMetadataDirty(true);
+  }, []);
+
+  const handleStatusChange = useCallback((newStatus: TaskStatus) => {
+    setStatus(newStatus);
+    setMetadataDirty(true);
+  }, []);
+
+  const handlePriorityChange = useCallback((newPriority: TaskPriority | "none") => {
+    setPriority(newPriority);
+    setMetadataDirty(true);
+  }, []);
+
+  const handleDueChange = useCallback((newDue: string) => {
+    setDue(newDue);
+    setMetadataDirty(true);
+  }, []);
+
+  // Debounced save for metadata changes
+  useEffect(() => {
+    if (!metadataDirty || !task) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        const updates = {
+          title: title.trim() || task.title,
+          status,
+          priority: priority === "none" ? undefined : priority,
+          due: due || undefined,
+          content, // Include current content to avoid overwriting
+        };
+
+        if (isPersonal) {
+          await updatePersonalTask.mutateAsync({
+            taskId: task.id,
+            updates,
+          });
+        } else {
+          await updateTask.mutateAsync({
+            taskId: task.id,
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            updates,
+          });
+        }
+        setMetadataDirty(false);
+      } catch (error) {
+        console.error("[task-editor] Failed to save metadata:", error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [title, status, priority, due, content, metadataDirty, task, updateTask, updatePersonalTask, isPersonal]);
+
   // Manage tab title and dirty state
+  const isDirty = contentDirty || metadataDirty;
   useEditorTab(`task-${taskId}`, title, isDirty);
 
   // Manual save (for project changes)
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!task) return;
 
     try {
@@ -139,14 +171,14 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
         setOriginalProjectId(currentProjectId);
       }
 
-      await triggerSave();
+      await forceContentSave();
       toast.success("Task saved");
     } catch {
       toast.error("Failed to save task");
     }
-  };
+  }, [task, currentProjectId, originalProjectId, moveTaskToProject, forceContentSave]);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!task) return;
 
     try {
@@ -169,7 +201,40 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
     } catch {
       toast.error("Failed to delete task");
     }
-  };
+  }, [task, isPersonal, deletePersonalTask, deleteTask, removeTaskFromOrder, onClose]);
+
+  // Map save status for the header
+  const saveStatus = useMemo(() => {
+    if (contentSaveStatus === "saving") return "saving" as const;
+    if (contentSaveStatus === "error") return "error" as const;
+    return "idle" as const;
+  }, [contentSaveStatus]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Render states
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // File was deleted externally
+  if (fileDeleted) {
+    return (
+      <FileDeletedBanner
+        onClose={() => {
+          acknowledgeDeleted();
+          onClose();
+        }}
+      />
+    );
+  }
+
+  // File was moved/renamed externally
+  if (pathChanged && newPath) {
+    return (
+      <FileMovedBanner
+        newPath={newPath}
+        onAcknowledge={acknowledgePathChange}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -196,11 +261,11 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
 
   const metadataProps = {
     status,
-    onStatusChange: setStatus,
+    onStatusChange: handleStatusChange,
     priority,
-    onPriorityChange: setPriority,
+    onPriorityChange: handlePriorityChange,
     date: due,
-    onDateChange: setDue,
+    onDateChange: handleDueChange,
     dateLabel: "Due" as const,
     ...(isPersonal ? {} : {
       projectId: currentProjectId,
@@ -213,7 +278,7 @@ export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEdit
     <div className="flex flex-col h-full bg-background">
       <EditorHeader
         title={title}
-        onTitleChange={setTitle}
+        onTitleChange={handleTitleChange}
         placeholder="Task title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}

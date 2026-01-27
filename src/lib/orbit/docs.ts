@@ -18,7 +18,9 @@ import {
 } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID, isUnassigned } from "./constants";
-import { getFileTreeService } from "./file-tree";
+import { getFileTreeService } from "./file-cache";
+import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
+import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
 
 interface DocFrontmatter {
   title: string;
@@ -182,6 +184,13 @@ export async function deleteDoc(doc: Doc): Promise<boolean> {
     return false;
   }
 
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(doc.filePath)) {
+    registry.handlePathDeleted(doc.filePath);
+    publishDeleted(doc.filePath);
+  }
+
   await removeFile(doc.filePath);
   return true;
 }
@@ -249,6 +258,13 @@ export async function moveDocToProject(
 
   // Delete original file
   await removeFile(sourceFilePath);
+
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(sourceFilePath)) {
+    registry.handlePathChange(sourceFilePath, targetFilePath);
+    publishPathChange(sourceFilePath, targetFilePath);
+  }
 
   return {
     id: docId,
@@ -600,6 +616,13 @@ export async function moveDoc(
 
   // Delete original file
   await removeFile(sourceFilePath);
+
+  // Notify editor if file was open
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(sourceFilePath)) {
+    registry.handlePathChange(sourceFilePath, targetFilePath);
+    publishPathChange(sourceFilePath, targetFilePath);
+  }
 
   const newRelPath = toPath
     ? `${toPath}/${sourceFilename}`

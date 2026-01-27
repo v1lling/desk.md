@@ -48,6 +48,7 @@ type DocScope = 'personal' | 'workspace' | 'project';
 | Directory | Purpose |
 |-----------|---------|
 | `src/lib/orbit/` | Core CRUD operations |
+| `src/lib/orbit/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
@@ -110,6 +111,17 @@ Use these hooks instead of duplicating logic:
 - `useOpenFromQuery(items, onOpen, path)` - Handle `?open=id` URL params
 - `useGroupedItems(items, getKey)` - Group items by a key function
 - `useEditorTab(tabId, title, isDirty)` - Manage editor tab title/dirty state
+- `useEditorSession(options)` - **Editor state with auto-save** (see Architecture doc)
+
+### File System Integration
+
+Editors use a dual-layer system to avoid cursor loss/flickering:
+- **Open files**: `useEditorSession` owns state, auto-saves with 400ms debounce
+- **Closed files**: TanStack Query + FileTreeService cache
+
+Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "File System Integration" for full details.
 
 ### Form Components
 

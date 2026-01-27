@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
-import { useAutoSave } from "@/hooks/use-auto-save";
+import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -11,6 +11,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 import { toast } from "sonner";
 
 interface MeetingEditorProps {
@@ -20,30 +21,28 @@ interface MeetingEditorProps {
   onClose: () => void;
 }
 
-export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: MeetingEditorProps) {
+export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditorProps) {
   const { data: meeting, isLoading } = useMeeting(workspaceId, meetingId);
 
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
 
-  // Form state
+  // Metadata state
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [attendees, setAttendees] = useState("");
-  const [content, setContent] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
 
-  // Sync state when meeting changes
+  // Initialize metadata from meeting (only when switching meetings)
   useEffect(() => {
     if (meeting) {
       setTitle(meeting.title);
       setDate(meeting.date);
       setAttendees(meeting.attendees?.join(", ") || "");
-      setContent(meeting.content);
       setIsEditorReady(false);
     }
-  }, [meeting]);
+  }, [meeting?.id]); // Only reset when switching to a different meeting
 
   // Defer editor rendering
   useEffect(() => {
@@ -55,48 +54,82 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
     }
   }, [meeting, isEditorReady]);
 
-  // Auto-save data
-  const autoSaveData = useMemo(
-    () => ({ title, date, attendees, content }),
-    [title, date, attendees, content]
-  );
-
-  // Auto-save handler
-  const handleAutoSave = useCallback(
-    async (data: typeof autoSaveData) => {
-      if (!meeting) return;
-
-      const attendeesList = data.attendees
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
-
-      await updateMeeting.mutateAsync({
-        meetingId: meeting.id,
-        workspaceId: meeting.workspaceId,
-        projectId: meeting.projectId,
-        updates: {
-          title: data.title.trim() || meeting.title,
-          date: data.date || meeting.date,
-          attendees: attendeesList.length > 0 ? attendeesList : undefined,
-          content: data.content,
-        },
-      });
-    },
-    [meeting, updateMeeting]
-  );
-
-  // Auto-save hook
-  const { status: saveStatus, isDirty } = useAutoSave({
-    data: autoSaveData,
-    onSave: handleAutoSave,
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Use editor session for content (markdown body)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const {
+    content,
+    setContent,
+    isDirty: contentDirty,
+    saveStatus: contentSaveStatus,
+    pathChanged,
+    newPath,
+    fileDeleted,
+    acknowledgePathChange,
+    acknowledgeDeleted,
+    forceSave: forceContentSave,
+  } = useEditorSession({
+    type: "meeting",
+    entityId: meetingId,
+    filePath: meeting?.filePath,
+    initialContent: meeting?.content ?? "",
     enabled: !!meeting,
   });
 
+  // Track metadata changes separately
+  const [metadataDirty, setMetadataDirty] = useState(false);
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setMetadataDirty(true);
+  }, []);
+
+  const handleDateChange = useCallback((newDate: string) => {
+    setDate(newDate);
+    setMetadataDirty(true);
+  }, []);
+
+  const handleAttendeesChange = useCallback((newAttendees: string) => {
+    setAttendees(newAttendees);
+    setMetadataDirty(true);
+  }, []);
+
+  // Debounced save for metadata changes
+  useEffect(() => {
+    if (!metadataDirty || !meeting) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        const attendeesList = attendees
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean);
+
+        await updateMeeting.mutateAsync({
+          meetingId: meeting.id,
+          workspaceId: meeting.workspaceId,
+          projectId: meeting.projectId,
+          updates: {
+            title: title.trim() || meeting.title,
+            date: date || meeting.date,
+            attendees: attendeesList.length > 0 ? attendeesList : undefined,
+            content, // Include current content to avoid overwriting
+          },
+        });
+        setMetadataDirty(false);
+      } catch (error) {
+        console.error("[meeting-editor] Failed to save metadata:", error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [title, date, attendees, content, metadataDirty, meeting, updateMeeting]);
+
   // Manage tab title and dirty state
+  const isDirty = contentDirty || metadataDirty;
   useEditorTab(`meeting-${meetingId}`, title, isDirty);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!meeting) return;
 
     try {
@@ -110,7 +143,40 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
     } catch {
       toast.error("Failed to delete meeting");
     }
-  };
+  }, [meeting, deleteMeeting, onClose]);
+
+  // Map save status for the header
+  const saveStatus = useMemo(() => {
+    if (contentSaveStatus === "saving") return "saving" as const;
+    if (contentSaveStatus === "error") return "error" as const;
+    return "idle" as const;
+  }, [contentSaveStatus]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Render states
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // File was deleted externally
+  if (fileDeleted) {
+    return (
+      <FileDeletedBanner
+        onClose={() => {
+          acknowledgeDeleted();
+          onClose();
+        }}
+      />
+    );
+  }
+
+  // File was moved/renamed externally
+  if (pathChanged && newPath) {
+    return (
+      <FileMovedBanner
+        newPath={newPath}
+        onAcknowledge={acknowledgePathChange}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -137,7 +203,7 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
     <div className="flex flex-col h-full bg-background">
       <EditorHeader
         title={title}
-        onTitleChange={setTitle}
+        onTitleChange={handleTitleChange}
         placeholder="Meeting title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
@@ -147,10 +213,10 @@ export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: Me
         <div className="max-w-4xl mx-auto px-6 py-6">
           <MetadataToolbar
             date={date}
-            onDateChange={setDate}
+            onDateChange={handleDateChange}
             dateLabel="Date"
             attendees={attendees}
-            onAttendeesChange={setAttendees}
+            onAttendeesChange={handleAttendeesChange}
           />
 
           <div className="mt-6">

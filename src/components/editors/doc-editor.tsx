@@ -1,7 +1,8 @@
 "use client";
 
-import { useDoc } from "@/stores";
-import { useDocForm } from "@/components/docs/use-doc-form";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
+import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -10,7 +11,9 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 import { Folder, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 interface DocEditorProps {
   docId: string;
@@ -40,18 +43,169 @@ function FolderBreadcrumb({ path }: { path?: string }) {
   );
 }
 
-export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorProps) {
+export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
+  // Load doc metadata via TanStack Query (for initial load only)
   const { data: doc, isLoading } = useDoc(workspaceId, docId);
+  const { data: projects = [] } = useProjects(workspaceId);
 
-  const form = useDocForm(doc || null, {
+  // Mutations for project changes and deletion
+  const updateDoc = useUpdateDoc();
+  const deleteDoc = useDeleteDoc();
+  const moveDocToProject = useMoveDocToProject();
+
+  // Local state for title and project (metadata that's not in the file content)
+  const [title, setTitle] = useState("");
+  const [currentProjectId, setCurrentProjectId] = useState("");
+  const [originalProjectId, setOriginalProjectId] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+
+  // Initialize local state from doc
+  useEffect(() => {
+    if (doc) {
+      setTitle(doc.title);
+      setCurrentProjectId(doc.projectId);
+      setOriginalProjectId(doc.projectId);
+      setIsEditorReady(false);
+    }
+  }, [doc?.id]); // Only reset when switching to a different doc
+
+  // Defer editor rendering for smooth tab switches
+  useEffect(() => {
+    if (doc && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [doc, isEditorReady]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: Use editor session for content (file-based auto-save)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const {
+    content,
+    setContent,
+    isDirty: contentDirty,
+    saveStatus,
+    pathChanged,
+    newPath,
+    fileDeleted,
+    acknowledgePathChange,
+    acknowledgeDeleted,
+    forceSave,
+  } = useEditorSession({
+    type: "doc",
+    entityId: docId,
+    filePath: doc?.filePath,
+    initialContent: doc?.content ?? "",
     enabled: !!doc,
-    onDeleted: onClose,
-    onClose,
   });
 
-  // Manage tab title and dirty state
-  useEditorTab(`doc-${docId}`, form.title, form.isDirty);
+  // Track title changes separately (saved via updateDoc mutation)
+  const [titleDirty, setTitleDirty] = useState(false);
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setTitleDirty(true);
+  }, []);
 
+  // Save title when it changes (debounced via effect)
+  useEffect(() => {
+    if (!titleDirty || !doc) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        await updateDoc.mutateAsync({
+          doc,
+          updates: { title: title.trim() || doc.title },
+        });
+        setTitleDirty(false);
+      } catch (error) {
+        console.error("[doc-editor] Failed to save title:", error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [title, titleDirty, doc, updateDoc]);
+
+  // Manage tab title and dirty state
+  const isDirty = contentDirty || titleDirty;
+  useEditorTab(`doc-${docId}`, title, isDirty);
+
+  // Check if project was changed
+  const projectChanged = currentProjectId !== originalProjectId;
+
+  // Handle project move & save
+  const handleSave = useCallback(async () => {
+    if (!doc) return;
+
+    try {
+      if (projectChanged) {
+        await moveDocToProject.mutateAsync({
+          docId: doc.id,
+          workspaceId: doc.workspaceId,
+          fromProjectId: originalProjectId,
+          toProjectId: currentProjectId,
+        });
+        setOriginalProjectId(currentProjectId);
+      }
+
+      await forceSave();
+      toast.success("Doc saved");
+      onClose();
+    } catch {
+      toast.error("Failed to save doc");
+    }
+  }, [doc, projectChanged, moveDocToProject, originalProjectId, currentProjectId, forceSave, onClose]);
+
+  // Handle delete
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!doc) return;
+
+    try {
+      await deleteDoc.mutateAsync(doc);
+      toast.success("Doc deleted");
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch {
+      toast.error("Failed to delete doc");
+    }
+  }, [doc, deleteDoc, onClose]);
+
+  // Map save status for the header
+  const headerSaveStatus = useMemo(() => {
+    if (saveStatus === "saving") return "saving" as const;
+    if (saveStatus === "error") return "error" as const;
+    return "idle" as const;
+  }, [saveStatus]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Render states
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // File was deleted externally
+  if (fileDeleted) {
+    return (
+      <FileDeletedBanner
+        onClose={() => {
+          acknowledgeDeleted();
+          onClose();
+        }}
+      />
+    );
+  }
+
+  // File was moved/renamed externally
+  if (pathChanged && newPath) {
+    return (
+      <FileMovedBanner
+        newPath={newPath}
+        onAcknowledge={acknowledgePathChange}
+      />
+    );
+  }
+
+  // Loading
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -60,6 +214,7 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
     );
   }
 
+  // Not found
   if (!doc) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -76,11 +231,11 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
   return (
     <div className="flex flex-col h-full bg-background">
       <EditorHeader
-        title={form.title}
-        onTitleChange={form.setTitle}
+        title={title}
+        onTitleChange={handleTitleChange}
         placeholder="Doc title"
-        saveStatus={form.saveStatus}
-        onDelete={() => form.setShowDeleteConfirm(true)}
+        saveStatus={headerSaveStatus}
+        onDelete={() => setShowDeleteConfirm(true)}
       />
 
       <ScrollArea className="flex-1 min-h-0">
@@ -88,16 +243,16 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
           <FolderBreadcrumb path={doc.path} />
 
           <MetadataToolbar
-            projectId={form.projectId}
-            onProjectChange={form.setProjectId}
-            projects={form.projects}
+            projectId={currentProjectId}
+            onProjectChange={setCurrentProjectId}
+            projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
           <div className="mt-6">
-            {form.isEditorReady ? (
+            {isEditorReady ? (
               <RichTextEditor
-                value={form.content}
-                onChange={form.setContent}
+                value={content}
+                onChange={setContent}
                 placeholder="Write your doc in markdown..."
                 minHeight="400px"
               />
@@ -108,9 +263,9 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
             )}
           </div>
 
-          {form.projectChanged && (
+          {projectChanged && (
             <div className="mt-6 flex justify-end">
-              <Button onClick={form.handleSave} className="min-w-[140px]">
+              <Button onClick={handleSave} className="min-w-[140px]">
                 Move & Save
               </Button>
             </div>
@@ -119,13 +274,13 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
       </ScrollArea>
 
       <ConfirmDialog
-        open={form.showDeleteConfirm}
-        onOpenChange={form.setShowDeleteConfirm}
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
         title="Delete Doc"
         description="Are you sure you want to delete this doc? This action cannot be undone."
         confirmLabel="Delete"
         variant="destructive"
-        onConfirm={form.handleDeleteConfirm}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );
