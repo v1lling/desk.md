@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,14 @@ export interface DocExplorerScope {
   isWorkspaceLevel?: boolean;
 }
 
+/** Ref handle for DocExplorer - allows parent to trigger actions when toolbar is hidden */
+export interface DocExplorerRef {
+  /** Trigger file import dialog */
+  triggerImport: () => void;
+  /** Trigger new doc modal */
+  triggerNewDoc: (folderPath?: string) => void;
+}
+
 interface DocExplorerProps {
   /** Available scopes to show in dropdown. If only one, no dropdown shown. */
   scopes: DocExplorerScope[];
@@ -46,19 +54,23 @@ interface DocExplorerProps {
   onScopeChange?: (scopeId: string) => void;
   /** Class name for the container */
   className?: string;
+  /** Hide the toolbar (scope selector, doc count, action buttons). Use ref methods to trigger actions externally. */
+  hideToolbar?: boolean;
 }
 
 /**
  * DocExplorer - Full-width doc browser with scope selector
  *
  * Docs open in tabs when clicked. This component is purely for navigation.
+ * Use ref to trigger import/new doc when toolbar is hidden.
  */
-export function DocExplorer({
+export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function DocExplorer({
   scopes,
   defaultScopeId,
   onScopeChange,
   className,
-}: DocExplorerProps) {
+  hideToolbar,
+}, ref) {
   // Selected scope
   const [selectedScopeId, setSelectedScopeId] = useState(
     defaultScopeId || scopes[0]?.id
@@ -221,77 +233,88 @@ export function DocExplorer({
 
   const showDropdown = scopes.length > 1;
 
+  // Expose import/newDoc methods via ref for external controls
+  useImperativeHandle(ref, () => ({
+    triggerImport: handleImportClick,
+    triggerNewDoc: (folderPath?: string) => {
+      setNewDocFolderPath(folderPath);
+      setShowNewDoc(true);
+    },
+  }), [handleImportClick]);
+
   return (
     <DocDropZone
       onFilesDropped={handleFilesDropped}
       className={cn("flex flex-col h-full", className)}
     >
-      {/* Header */}
-      <div className="shrink-0 px-6 py-4 border-b flex items-center gap-3">
-        {/* Scope dropdown or title */}
-        {showDropdown ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <span className="truncate">{selectedScope?.label}</span>
-                <ChevronDown className="size-4 shrink-0 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {scopes.map((scope, index) => {
-                const nextScope = scopes[index + 1];
-                const showSeparator =
-                  scope.isWorkspaceLevel && nextScope && !nextScope.isWorkspaceLevel;
+      {/* Header - hidden when hideToolbar is true */}
+      {!hideToolbar && (
+        <div className="shrink-0 px-6 py-4 border-b flex items-center gap-3">
+          {/* Scope dropdown or title */}
+          {showDropdown ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <span className="truncate">{selectedScope?.label}</span>
+                  <ChevronDown className="size-4 shrink-0 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {scopes.map((scope, index) => {
+                  const nextScope = scopes[index + 1];
+                  const showSeparator =
+                    scope.isWorkspaceLevel && nextScope && !nextScope.isWorkspaceLevel;
 
-                return (
-                  <div key={scope.id}>
-                    <DropdownMenuItem
-                      onClick={() => handleScopeChange(scope.id)}
-                      className={cn(
-                        selectedScopeId === scope.id && "bg-accent",
-                        scope.isWorkspaceLevel && "font-medium"
-                      )}
-                    >
-                      {scope.label}
-                    </DropdownMenuItem>
-                    {showSeparator && <DropdownMenuSeparator />}
-                  </div>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <h2 className="text-sm font-medium">{selectedScope?.label}</h2>
-        )}
+                  return (
+                    <div key={scope.id}>
+                      <DropdownMenuItem
+                        onClick={() => handleScopeChange(scope.id)}
+                        className={cn(
+                          selectedScopeId === scope.id && "bg-accent",
+                          scope.isWorkspaceLevel && "font-medium"
+                        )}
+                      >
+                        {scope.label}
+                      </DropdownMenuItem>
+                      {showSeparator && <DropdownMenuSeparator />}
+                    </div>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <h2 className="text-sm font-medium">{selectedScope?.label}</h2>
+          )}
 
-        {/* Doc count */}
-        <span className="text-xs text-muted-foreground">
-          {docCount} {docCount === 1 ? "doc" : "docs"}
-        </span>
+          {/* Doc count */}
+          <span className="text-xs text-muted-foreground">
+            {docCount} {docCount === 1 ? "doc" : "docs"}
+          </span>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+          {/* Spacer */}
+          <div className="flex-1" />
 
-        {/* Actions */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleImportClick}
-          className="gap-1.5 text-muted-foreground hover:text-foreground"
-        >
-          <Upload className="size-4" />
-          <span className="hidden sm:inline">Import</span>
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => setShowNewDoc(true)}
-          className="gap-1.5"
-        >
-          <Plus className="size-4" />
-          <span>New Doc</span>
-        </Button>
-      </div>
+          {/* Actions */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleImportClick}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Upload className="size-4" />
+            <span className="hidden sm:inline">Import</span>
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowNewDoc(true)}
+            className="gap-1.5"
+          >
+            <Plus className="size-4" />
+            <span>New Doc</span>
+          </Button>
+        </div>
+      )}
 
       {/* Doc tree - full width */}
       <DocTree
@@ -318,4 +341,4 @@ export function DocExplorer({
       />
     </DocDropZone>
   );
-}
+});
