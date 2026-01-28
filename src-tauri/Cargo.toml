@@ -26,4 +26,5 @@ tauri-plugin-log = "2"
 tauri-plugin-fs = { version = "2", features = ["watch"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
+tauri-plugin-deep-link = "2"
 tauri-plugin-mcp = { path = "/Users/sascha/Development/tauri-plugin-mcp" }

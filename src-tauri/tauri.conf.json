@@ -3,6 +3,13 @@
   "productName": "Orbit",
   "version": "0.1.0",
   "identifier": "ch.sascha.orbit",
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["orbit"]
+      }
+    }
+  },
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3001",

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+           xsi:type="MailApp">
+
+  <!-- Basic add-in settings -->
+  <Id>orbit-email-integration</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Orbit</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Orbit"/>
+  <Description DefaultValue="Open emails in Orbit for AI-assisted workflows"/>
+
+  <!-- Icon URLs - replace with your hosted icons -->
+  <IconUrl DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-128.png"/>
+
+  <!-- Support URL -->
+  <SupportUrl DefaultValue="https://github.com/v1lling/orbit-outlook-addin"/>
+
+  <!-- Domains that will be allowed for the add-in -->
+  <AppDomains>
+    <AppDomain>https://v1lling.github.io/orbit-outlook-addin</AppDomain>
+  </AppDomains>
+
+  <!-- Hosts the add-in supports -->
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+
+  <!-- Requirements -->
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+
+  <!-- Form factor settings -->
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://v1lling.github.io/orbit-outlook-addin/taskpane.html"/>
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <!-- Permissions required -->
+  <Permissions>ReadItem</Permissions>
+
+  <!-- Rule: Show on all email items -->
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+  </Rule>
+
+  <!-- Disable activation on protected messages -->
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+  <!-- Version overrides for modern add-in experience -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+
+      <!-- Requirements -->
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.3">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+
+      <!-- Hosts -->
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+
+            <!-- Function file for commands -->
+            <FunctionFile resid="functionFile"/>
+
+            <!-- Extension point: Message Read -->
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="orbitGroup">
+                  <Label resid="groupLabel"/>
+
+                  <!-- Open in Orbit button -->
+                  <Control xsi:type="Button" id="openInOrbitBtn">
+                    <Label resid="openBtnLabel"/>
+                    <Supertip>
+                      <Title resid="openBtnLabel"/>
+                      <Description resid="openBtnDesc"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16"/>
+                      <bt:Image size="32" resid="icon32"/>
+                      <bt:Image size="80" resid="icon80"/>
+                    </Icon>
+                    <Action xsi:type="ExecuteFunction">
+                      <FunctionName>openInOrbit</FunctionName>
+                    </Action>
+                  </Control>
+
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+
+      <!-- Resources -->
+      <Resources>
+        <bt:Images>
+          <bt:Image id="icon16" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-16.png"/>
+          <bt:Image id="icon32" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-32.png"/>
+          <bt:Image id="icon80" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="functionFile" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="groupLabel" DefaultValue="Orbit"/>
+          <bt:String id="openBtnLabel" DefaultValue="Open in Orbit"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="openBtnDesc" DefaultValue="Open this email in Orbit for AI-assisted reply drafting"/>
+        </bt:LongStrings>
+      </Resources>
+
+    </VersionOverrides>
+  </VersionOverrides>
+
+</OfficeApp>

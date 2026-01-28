@@ -73,6 +73,42 @@ Key features:
 - Global search (Cmd+K)
 - Auto-save with file watcher
 
+## Email Integration (Deep Links)
+
+External mail clients can send emails to Orbit via deep links for AI-assisted workflows.
+
+**Protocol:** `orbit://email?data={base64_encoded_json}`
+
+**Email Schema:**
+```typescript
+interface IncomingEmail {
+  subject: string;
+  from: { name?: string; email: string };
+  body: string;
+  to?: { name?: string; email: string }[];
+  cc?: { name?: string; email: string }[];
+  date?: string;  // ISO date
+  messageId?: string;
+  source: 'outlook' | 'thunderbird' | 'apple-mail' | 'other';
+}
+```
+
+**Key Files:**
+| Directory | Purpose |
+|-----------|---------|
+| `src/lib/email/` | Email types and deep link parser |
+| `src/components/email/` | Email viewer and draft reply UI |
+| `src/hooks/use-deep-link.ts` | Deep link initialization |
+| `outlook-addin/` | Outlook Add-in source (separate project) |
+
+**Testing deep links (requires built .app in /Applications):**
+```bash
+# Test email: {"subject":"Test","from":{"email":"test@example.com"},"body":"Hello","source":"other"}
+open "orbit://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0sImJvZHkiOiJIZWxsbyIsInNvdXJjZSI6Im90aGVyIn0="
+```
+
+**Flow:** Email opens in session-only tab → user links to project → AI drafts reply → opens mailto:
+
 ## UI Patterns
 
 ### Scrolling

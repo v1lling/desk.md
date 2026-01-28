@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type TabType = "orbit" | "doc" | "task" | "meeting";
+import type { IncomingEmail } from "@/lib/email/types";
+
+export type TabType = "orbit" | "doc" | "task" | "meeting" | "email";
 
 export interface TabItem {
   id: string;
@@ -12,6 +14,8 @@ export interface TabItem {
   projectId?: string;
   isDirty?: boolean;
   isPinned?: boolean;
+  // Email-specific: session-only data (not persisted)
+  emailData?: IncomingEmail;
 }
 
 interface TabState {
@@ -48,8 +52,8 @@ export const useTabStore = create<TabState>()(
       openTab: (newTab) => {
         const { tabs } = get();
 
-        // Check if tab for this entity already exists
-        if (newTab.type !== "orbit" && newTab.entityId) {
+        // Check if tab for this entity already exists (not for email tabs which are always new)
+        if (newTab.type !== "orbit" && newTab.type !== "email" && newTab.entityId) {
           const existing = tabs.find(
             (t) => t.type === newTab.type && t.entityId === newTab.entityId
           );
@@ -60,7 +64,15 @@ export const useTabStore = create<TabState>()(
         }
 
         // Create new tab
-        const id = newTab.type === "orbit" ? "orbit" : `${newTab.type}-${newTab.entityId}`;
+        let id: string;
+        if (newTab.type === "orbit") {
+          id = "orbit";
+        } else if (newTab.type === "email") {
+          // Email tabs use timestamp for unique ID (session only)
+          id = `email-${Date.now()}`;
+        } else {
+          id = `${newTab.type}-${newTab.entityId}`;
+        }
         const tab: TabItem = { ...newTab, id };
 
         set((state) => ({
@@ -152,8 +164,13 @@ export const useTabStore = create<TabState>()(
     {
       name: "orbit-tabs",
       partialize: (state) => ({
-        tabs: state.tabs,
-        activeTabId: state.activeTabId,
+        // Filter out email tabs (session-only) and strip emailData
+        tabs: state.tabs
+          .filter((t) => t.type !== "email")
+          .map(({ emailData, ...rest }) => rest),
+        activeTabId: state.activeTabId === "orbit" || !state.activeTabId.startsWith("email-")
+          ? state.activeTabId
+          : "orbit",
       }),
     }
   )
@@ -193,6 +210,13 @@ export function useOpenTab() {
     },
     openOrbit: () => {
       useTabStore.getState().setActiveTab("orbit");
+    },
+    openEmail: (email: IncomingEmail) => {
+      openTab({
+        type: "email",
+        title: email.subject || "Email",
+        emailData: email,
+      });
     },
   };
 }

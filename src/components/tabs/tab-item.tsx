@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import { Home, FileText, CheckSquare, Calendar, X } from "lucide-react";
+import { Home, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabItem as TabItemType, TabType } from "@/stores/tabs";
 import { TabContextMenu } from "./tab-context-menu";
@@ -11,6 +11,7 @@ const TAB_ICONS: Record<TabType, React.ElementType> = {
   doc: FileText,
   task: CheckSquare,
   meeting: Calendar,
+  email: Mail,
 };
 
 interface TabItemProps {

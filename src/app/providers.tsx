@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { isTauri, initOrbitDirectory } from "@/lib/orbit";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
+import { useDeepLink } from "@/hooks/use-deep-link";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -45,6 +46,12 @@ function QueryInvalidatorProvider({ children }: { children: React.ReactNode }) {
 // Initialize search index
 function SearchIndexProvider({ children }: { children: React.ReactNode }) {
   useSearchIndex();
+  return <>{children}</>;
+}
+
+// Initialize deep link handler for email integration
+function DeepLinkProvider({ children }: { children: React.ReactNode }) {
+  useDeepLink();
   return <>{children}</>;
 }
 
@@ -91,11 +98,13 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
-        <QueryInvalidatorProvider>
-          <SearchIndexProvider>
-            <ThemeProvider>{children}</ThemeProvider>
-          </SearchIndexProvider>
-        </QueryInvalidatorProvider>
+        <DeepLinkProvider>
+          <QueryInvalidatorProvider>
+            <SearchIndexProvider>
+              <ThemeProvider>{children}</ThemeProvider>
+            </SearchIndexProvider>
+          </QueryInvalidatorProvider>
+        </DeepLinkProvider>
       </TauriInitializer>
     </QueryClientProvider>
   );
