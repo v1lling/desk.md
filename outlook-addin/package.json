@@ -7,7 +7,8 @@
     "start": "npx office-addin-dev-certs install && npx office-addin-debugging start manifest.xml",
     "dev": "npx http-server src -p 3000 -S -C ~/.office-addin-dev-certs/localhost.crt -K ~/.office-addin-dev-certs/localhost.key --cors",
     "certs": "npx office-addin-dev-certs install",
-    "validate": "npx office-addin-manifest validate manifest.xml"
+    "validate": "npx office-addin-manifest validate manifest.xml",
+    "deploy": "cd .. && git subtree split --prefix=outlook-addin/src -b addin-deploy && git push addin-origin addin-deploy:main --force && git branch -D addin-deploy"
   },
   "devDependencies": {
     "office-addin-dev-certs": "^1.13.0",
