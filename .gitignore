@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Playwright MCP screenshots
 .playwright-mcp/
+
+# Outlook add-in
+outlook-addin/node_modules
