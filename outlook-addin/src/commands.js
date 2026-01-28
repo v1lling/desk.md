@@ -29,18 +29,8 @@ function openInOrbit(event) {
       return;
     }
 
-    // Truncate body if too long
-    // URL limit is ~2000-8000 chars depending on browser/OS
-    // Base64 adds ~33% overhead, plus JSON structure ~500 chars
-    // Safe limit: 3000 chars body → ~5000 char URL
-    const MAX_BODY_LENGTH = 3000;
-    let body = bodyResult.value || "";
-    const originalLength = body.length;
-    const wasTruncated = body.length > MAX_BODY_LENGTH;
-    if (wasTruncated) {
-      body = body.substring(0, MAX_BODY_LENGTH) + "\n\n[... Email truncated (" + originalLength + " chars) - view full email in Outlook ...]";
-      console.warn("[Orbit Add-in] Email body truncated from", originalLength, "to", MAX_BODY_LENGTH, "chars");
-    }
+    const body = bodyResult.value || "";
+    console.log("[Orbit Add-in] Email body length:", body.length);
 
     // Build email data object
     const emailData = {
@@ -84,7 +74,6 @@ function openInOrbit(event) {
       subject: emailData.subject,
       from: emailData.from.email,
       bodyLength: emailData.body.length,
-      truncated: wasTruncated,
     });
 
     try {
@@ -100,7 +89,7 @@ function openInOrbit(event) {
       window.open(deepLink, "_blank");
 
       // Show success notification
-      showNotification("Opened in Orbit", wasTruncated ? "Email sent (body truncated)" : "Email sent to Orbit app");
+      showNotification("Opened in Orbit", "Email sent to Orbit app");
     } catch (err) {
       console.error("[Orbit Add-in] Failed to encode email:", err);
       showNotification("Error", "Failed to encode email: " + err.message);
