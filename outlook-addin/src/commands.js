@@ -80,7 +80,8 @@ function openInOrbit(event) {
       // Encode as base64 and build deep link
       const jsonStr = JSON.stringify(emailData);
       const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-      const deepLink = "orbit://email?data=" + base64;
+      // URL-encode the base64 because it can contain + which becomes space in URLs
+      const deepLink = "orbit://email?data=" + encodeURIComponent(base64);
 
       console.log("[Orbit Add-in] Deep link length:", deepLink.length);
       console.log("[Orbit Add-in] Deep link preview:", deepLink.substring(0, 100) + "...");

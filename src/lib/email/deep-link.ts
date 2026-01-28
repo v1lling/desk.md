@@ -12,6 +12,8 @@ import type { IncomingEmail, EmailTabData } from './types';
  * Returns the email data if valid, null otherwise
  */
 export function parseEmailDeepLink(url: string): EmailTabData | null {
+  console.log('[deep-link] Parsing URL, length:', url.length);
+
   try {
     const parsed = new URL(url);
 
@@ -35,13 +37,42 @@ export function parseEmailDeepLink(url: string): EmailTabData | null {
       return null;
     }
 
+    console.log('[deep-link] Base64 data length:', data.length);
+
     // Decode base64 and parse JSON
-    const decoded = atob(data);
-    const email = JSON.parse(decoded) as IncomingEmail;
+    // Fix: URL-encoded + becomes space, convert back for base64 decoding
+    // Also handle base64url variant (- and _ instead of + and /)
+    const fixedData = data.replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/');
+
+    // Must use decodeURIComponent(escape(...)) to properly handle Unicode
+    // (matches the encoding: btoa(unescape(encodeURIComponent(json))))
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(escape(atob(fixedData)));
+    } catch (decodeError) {
+      console.error('[deep-link] Base64/Unicode decode failed:', decodeError);
+      console.log('[deep-link] Data preview (first 100 chars):', data.substring(0, 100));
+      return null;
+    }
+
+    console.log('[deep-link] Decoded JSON length:', decoded.length);
+
+    let email: IncomingEmail;
+    try {
+      email = JSON.parse(decoded) as IncomingEmail;
+    } catch (jsonError) {
+      console.error('[deep-link] JSON parse failed:', jsonError);
+      console.log('[deep-link] Decoded preview (first 200 chars):', decoded.substring(0, 200));
+      return null;
+    }
 
     // Validate required fields
     if (!email.subject || !email.from?.email || !email.body) {
-      console.warn('[deep-link] Missing required email fields');
+      console.warn('[deep-link] Missing required email fields:', {
+        hasSubject: !!email.subject,
+        hasFromEmail: !!email.from?.email,
+        hasBody: !!email.body,
+      });
       return null;
     }
 
@@ -50,9 +81,16 @@ export function parseEmailDeepLink(url: string): EmailTabData | null {
       email.source = 'other';
     }
 
+    console.log('[deep-link] Successfully parsed email:', {
+      subject: email.subject,
+      from: email.from.email,
+      bodyLength: email.body.length,
+      source: email.source,
+    });
+
     return { email };
   } catch (error) {
-    console.error('[deep-link] Failed to parse deep link:', error);
+    console.error('[deep-link] Unexpected error parsing deep link:', error);
     return null;
   }
 }
@@ -63,7 +101,8 @@ export function parseEmailDeepLink(url: string): EmailTabData | null {
  */
 export function createEmailDeepLink(email: IncomingEmail): string {
   const json = JSON.stringify(email);
-  const base64 = btoa(json);
+  // Use unescape(encodeURIComponent(...)) to properly encode Unicode to base64
+  const base64 = btoa(unescape(encodeURIComponent(json)));
   return `orbit://email?data=${base64}`;
 }
 
