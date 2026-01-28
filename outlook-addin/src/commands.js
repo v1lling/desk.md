@@ -18,23 +18,34 @@ Office.onReady(function () {
 function openInOrbit(event) {
   const item = Office.context.mailbox.item;
 
+  console.log("[Orbit Add-in] Starting email extraction...");
+
   // Get email body (async)
   item.body.getAsync(Office.CoercionType.Text, function (bodyResult) {
     if (bodyResult.status !== Office.AsyncResultStatus.Succeeded) {
-      console.error("Failed to get email body:", bodyResult.error);
+      console.error("[Orbit Add-in] Failed to get email body:", bodyResult.error);
       showNotification("Error", "Failed to read email content");
       event.completed();
       return;
+    }
+
+    // Truncate body if too long (URLs have ~2000 char limit, base64 adds ~33%)
+    const MAX_BODY_LENGTH = 10000;
+    let body = bodyResult.value || "";
+    const wasTruncated = body.length > MAX_BODY_LENGTH;
+    if (wasTruncated) {
+      body = body.substring(0, MAX_BODY_LENGTH) + "\n\n[... Email truncated for transfer ...]";
+      console.warn("[Orbit Add-in] Email body truncated from", bodyResult.value.length, "to", MAX_BODY_LENGTH, "chars");
     }
 
     // Build email data object
     const emailData = {
       subject: item.subject || "(No subject)",
       from: {
-        name: item.from ? item.from.displayName : "",
-        email: item.from ? item.from.emailAddress : "",
+        name: item.from ? item.from.displayName || "" : "",
+        email: item.from ? item.from.emailAddress || "" : "",
       },
-      body: bodyResult.value,
+      body: body,
       date: item.dateTimeCreated
         ? item.dateTimeCreated.toISOString()
         : new Date().toISOString(),
@@ -45,8 +56,8 @@ function openInOrbit(event) {
     if (item.to && item.to.length > 0) {
       emailData.to = item.to.map(function (recipient) {
         return {
-          name: recipient.displayName,
-          email: recipient.emailAddress,
+          name: recipient.displayName || "",
+          email: recipient.emailAddress || "",
         };
       });
     }
@@ -54,8 +65,8 @@ function openInOrbit(event) {
     if (item.cc && item.cc.length > 0) {
       emailData.cc = item.cc.map(function (recipient) {
         return {
-          name: recipient.displayName,
-          email: recipient.emailAddress,
+          name: recipient.displayName || "",
+          email: recipient.emailAddress || "",
         };
       });
     }
@@ -65,17 +76,31 @@ function openInOrbit(event) {
       emailData.messageId = item.itemId;
     }
 
-    // Encode as base64 and build deep link
-    const jsonStr = JSON.stringify(emailData);
-    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const deepLink = "orbit://email?data=" + base64;
+    console.log("[Orbit Add-in] Email data:", {
+      subject: emailData.subject,
+      from: emailData.from.email,
+      bodyLength: emailData.body.length,
+      truncated: wasTruncated,
+    });
 
-    // Open deep link
-    // Note: This may require the user to trust the orbit:// protocol
-    window.open(deepLink, "_blank");
+    try {
+      // Encode as base64 and build deep link
+      const jsonStr = JSON.stringify(emailData);
+      const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      const deepLink = "orbit://email?data=" + base64;
 
-    // Show success notification
-    showNotification("Opened in Orbit", "Email sent to Orbit app");
+      console.log("[Orbit Add-in] Deep link length:", deepLink.length);
+      console.log("[Orbit Add-in] Deep link preview:", deepLink.substring(0, 100) + "...");
+
+      // Open deep link
+      window.open(deepLink, "_blank");
+
+      // Show success notification
+      showNotification("Opened in Orbit", wasTruncated ? "Email sent (body truncated)" : "Email sent to Orbit app");
+    } catch (err) {
+      console.error("[Orbit Add-in] Failed to encode email:", err);
+      showNotification("Error", "Failed to encode email: " + err.message);
+    }
 
     // Signal that the function is complete
     event.completed();

@@ -109,15 +109,15 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
               Link to Project (for AI context)
             </div>
             <div className="flex gap-2">
-              <Select value={selectedWorkspaceId} onValueChange={(v) => {
-                setSelectedWorkspaceId(v);
+              <Select value={selectedWorkspaceId || "_none"} onValueChange={(v) => {
+                setSelectedWorkspaceId(v === "_none" ? "" : v);
                 setSelectedProjectId(""); // Reset project when workspace changes
               }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select workspace" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="_none">None</SelectItem>
                   {workspaceOptions.map((w) => (
                     <SelectItem key={w.id} value={w.id}>
                       <div className="flex items-center gap-2">
@@ -133,12 +133,12 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
               </Select>
 
               {selectedWorkspaceId && (
-                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <Select value={selectedProjectId || "_none"} onValueChange={(v) => setSelectedProjectId(v === "_none" ? "" : v)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Workspace level</SelectItem>
+                    <SelectItem value="_none">Workspace level</SelectItem>
                     {projectOptions.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
