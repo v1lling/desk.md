@@ -40,7 +40,8 @@ import {
   useOpenEditorRegistry,
   type EditorSession,
 } from "@/stores/open-editor-registry";
-import { publishContentUpdate } from "@/stores/editor-event-bus";
+import { publishContentUpdate, publishDeleted } from "@/stores/editor-event-bus";
+import { exists } from "@/lib/orbit/tauri-fs";
 import { readTextFile } from "@/lib/orbit/tauri-fs";
 
 /**
@@ -180,10 +181,22 @@ async function handleOpenFileChange(
   session: EditorSession,
   eventKind: WatchEvent["kind"]
 ): Promise<boolean> {
-  // For remove events, the file is gone - mark as deleted
+  // For remove events, the file is gone - mark as deleted and notify editor
   if (eventKind === "remove") {
     useOpenEditorRegistry.getState().handlePathDeleted(path);
+    publishDeleted(path);
     return true;
+  }
+
+  // For "any" events (batched), check if file still exists
+  // This handles cases where remove got merged with other events
+  if (eventKind === "any") {
+    const fileExists = await exists(path);
+    if (!fileExists) {
+      useOpenEditorRegistry.getState().handlePathDeleted(path);
+      publishDeleted(path);
+      return true;
+    }
   }
 
   try {
@@ -206,12 +219,15 @@ async function handleOpenFileChange(
     return true;
   } catch (error) {
     // File might have been deleted or moved
+    // Check error message (Tauri errors may not be instanceof Error)
+    const errorMessage = error instanceof Error ? error.message : String(error);
     if (
-      error instanceof Error &&
-      (error.message.includes("not found") ||
-        error.message.includes("No such file"))
+      errorMessage.includes("not found") ||
+      errorMessage.includes("No such file") ||
+      errorMessage.includes("os error 2")
     ) {
       useOpenEditorRegistry.getState().handlePathDeleted(path);
+      publishDeleted(path);
       return true;
     }
     console.error(`[query-invalidator] Error reading file: ${path}`, error);
