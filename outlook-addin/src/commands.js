@@ -29,13 +29,17 @@ function openInOrbit(event) {
       return;
     }
 
-    // Truncate body if too long (URLs have ~2000 char limit, base64 adds ~33%)
-    const MAX_BODY_LENGTH = 10000;
+    // Truncate body if too long
+    // URL limit is ~2000-8000 chars depending on browser/OS
+    // Base64 adds ~33% overhead, plus JSON structure ~500 chars
+    // Safe limit: 3000 chars body → ~5000 char URL
+    const MAX_BODY_LENGTH = 3000;
     let body = bodyResult.value || "";
+    const originalLength = body.length;
     const wasTruncated = body.length > MAX_BODY_LENGTH;
     if (wasTruncated) {
-      body = body.substring(0, MAX_BODY_LENGTH) + "\n\n[... Email truncated for transfer ...]";
-      console.warn("[Orbit Add-in] Email body truncated from", bodyResult.value.length, "to", MAX_BODY_LENGTH, "chars");
+      body = body.substring(0, MAX_BODY_LENGTH) + "\n\n[... Email truncated (" + originalLength + " chars) - view full email in Outlook ...]";
+      console.warn("[Orbit Add-in] Email body truncated from", originalLength, "to", MAX_BODY_LENGTH, "chars");
     }
 
     // Build email data object
