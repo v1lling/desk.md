@@ -12,7 +12,7 @@
  */
 
 import {
-  getOrbitPath,
+  getDeskPath,
   readTextFile,
   writeTextFile,
   joinPath,
@@ -38,12 +38,12 @@ async function getViewStatePath(
   workspaceId: string,
   projectId: string | null
 ): Promise<string> {
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
 
   // Personal space view state
   if (workspaceId === PERSONAL_SPACE_ID) {
     return await joinPath(
-      orbitPath,
+      deskPath,
       PATH_SEGMENTS.PERSONAL,
       FILE_NAMES.VIEW_STATE
     );
@@ -52,7 +52,7 @@ async function getViewStatePath(
   if (projectId) {
     // Project-level view state
     return await joinPath(
-      orbitPath,
+      deskPath,
       PATH_SEGMENTS.WORKSPACES,
       workspaceId,
       PATH_SEGMENTS.PROJECTS,
@@ -63,7 +63,7 @@ async function getViewStatePath(
 
   // Workspace-level view state (All Tasks)
   return await joinPath(
-    orbitPath,
+    deskPath,
     PATH_SEGMENTS.WORKSPACES,
     workspaceId,
     FILE_NAMES.VIEW_STATE

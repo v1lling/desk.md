@@ -8,7 +8,7 @@
 import type { TreeNode, TraversalOptions } from "./types";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   joinPath,
   exists,
@@ -111,7 +111,7 @@ function buildDirectoryNode(
 /**
  * Build a tree from a directory path
  *
- * @param basePath - Absolute path to start from (usually Orbit root)
+ * @param basePath - Absolute path to start from (usually Desk root)
  * @param relativePath - Relative path from basePath (empty string for root)
  * @param options - Traversal options
  * @param currentDepth - Current recursion depth
@@ -183,7 +183,7 @@ export async function buildNode(
 ): Promise<TreeNode | null> {
   if (!relativePath) {
     // Root node
-    return buildDirectoryNode(basePath, "", "Orbit", undefined);
+    return buildDirectoryNode(basePath, "", "Desk", undefined);
   }
 
   const absolutePath = await joinPath(basePath, relativePath);
@@ -206,10 +206,10 @@ export async function buildNode(
 }
 
 /**
- * Get the Orbit root path (convenience wrapper)
+ * Get the Desk root path (convenience wrapper)
  */
-export async function getOrbitRoot(): Promise<string> {
-  return getOrbitPath();
+export async function getDeskRoot(): Promise<string> {
+  return getDeskPath();
 }
 
 /**

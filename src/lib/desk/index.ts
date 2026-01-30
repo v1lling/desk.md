@@ -1,5 +1,5 @@
 /**
- * Orbit file system library
+ * Desk file system library
  */
 export * from "./workspaces";
 export * from "./projects";

@@ -1,5 +1,5 @@
 /**
- * Orbit Constants
+ * Desk Constants
  *
  * Centralized constants for file paths, special directories, and other magic values.
  * Using these constants ensures consistency and makes future changes easier.

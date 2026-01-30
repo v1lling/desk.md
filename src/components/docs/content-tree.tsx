@@ -17,7 +17,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContentTreeItem } from "./content-tree-item";
 import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
-import { getNodeKey } from "@/lib/orbit/content";
+import { getNodeKey } from "@/lib/desk/content";
 
 interface ContentTreeProps {
   nodes: FileTreeNode[];

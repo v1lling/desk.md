@@ -5,7 +5,7 @@ import type { Meeting } from "@/types";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -96,8 +96,8 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
     return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId);
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
+  const deskPath = await getDeskPath();
+  const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -131,8 +131,8 @@ export async function getMeetingsByProject(
     return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId && meeting.projectId === projectId);
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
+  const deskPath = await getDeskPath();
+  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   return readProjectMeetings(workspaceId, projectId, projectPath);
 }
@@ -178,13 +178,13 @@ export async function createMeeting(data: {
   };
 
   if (!isTauri()) {
-    meeting.filePath = `~/Orbit/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
+    meeting.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
   }
 
-  const orbitPath = await getOrbitPath();
-  const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.MEETINGS);
+  const deskPath = await getDeskPath();
+  const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.MEETINGS);
 
   // Ensure meetings directory exists
   await mkdir(meetingsPath);
@@ -230,8 +230,8 @@ export async function updateMeeting(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const deskPath = await getDeskPath();
+    const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -316,8 +316,8 @@ export async function deleteMeeting(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
-    const meetingsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const deskPath = await getDeskPath();
+    const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);

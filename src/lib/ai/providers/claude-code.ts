@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from '@/lib/orbit/tauri-fs';
+import { isTauri } from '@/lib/desk/tauri-fs';
 import type { AIProvider, AIRequest, AIResponse } from '../types';
 
 interface TauriChatRequest {

@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { isTauri } from "@/lib/orbit/tauri-fs";
+import { isTauri } from "@/lib/desk/tauri-fs";
 
 export type SaveStatus = "idle" | "saving" | "error";
 

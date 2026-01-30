@@ -1,8 +1,8 @@
 import { useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
-import * as viewStateLib from "@/lib/orbit/view-state";
-import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
+import * as viewStateLib from "@/lib/desk/view-state";
+import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 
 // Query keys
 export const viewStateKeys = {
@@ -247,4 +247,4 @@ export function useExpandedFolders(
 }
 
 // Re-export helpers from lib
-export { sortTasksByOrder } from "@/lib/orbit/view-state";
+export { sortTasksByOrder } from "@/lib/desk/view-state";

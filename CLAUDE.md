@@ -1,4 +1,4 @@
-# Orbit - Project-Centric Work Management
+# desk.md - Project-Centric Work Management
 
 > Desktop app for freelancers to manage projects, tasks, and docs across multiple clients.
 
@@ -47,8 +47,8 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/lib/orbit/` | Core CRUD operations |
-| `src/lib/orbit/file-cache/` | File tree cache for list views (LRU cache) |
+| `src/lib/desk/` | Core CRUD operations |
+| `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
@@ -75,9 +75,9 @@ Key features:
 
 ## Email Integration (Deep Links)
 
-External mail clients can send emails to Orbit via deep links for AI-assisted workflows.
+External mail clients can send emails to Desk via deep links for AI-assisted workflows.
 
-**Protocol:** `orbit://email?data={base64_encoded_json}`
+**Protocol:** `desk://email?data={base64_encoded_json}`
 
 **Email Schema:**
 ```typescript
@@ -104,7 +104,7 @@ interface IncomingEmail {
 **Testing deep links (requires built .app in /Applications):**
 ```bash
 # Test email: {"subject":"Test","from":{"email":"test@example.com"},"body":"Hello","source":"other"}
-open "orbit://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0sImJvZHkiOiJIZWxsbyIsInNvdXJjZSI6Im90aGVyIn0="
+open "desk://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0sImJvZHkiOiJIZWxsbyIsInNvdXJjZSI6Im90aGVyIn0="
 ```
 
 **Flow:** Email opens in session-only tab → user links to project → AI drafts reply → opens mailto:
@@ -130,7 +130,7 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 **Tab-Based Editing (Obsidian-style)**:
 - `TabBar` / `TabContent` - Tab system in `src/components/tabs/`
 - `DocEditor` / `TaskEditor` / `MeetingEditor` - Full-width editors in `src/components/editors/`
-- "Orbit" tab is always pinned, showing current app view
+- "Desk" tab is always pinned, showing current app view
 - Clicking docs/tasks/meetings opens them in new tabs
 - Tab state persists in localStorage via `useTabStore`
 - Keyboard shortcuts: Cmd+W close, Cmd+Shift+[ ] switch tabs

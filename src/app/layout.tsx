@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orbit",
+  title: "Desk",
   description: "Project-centric work management for freelancers",
 };
 

@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { Circle, CheckCircle2, Loader2, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
-import type { ActiveTask, WorkspaceSummary } from "@/lib/orbit/dashboard";
+import type { ActiveTask, WorkspaceSummary } from "@/lib/desk/dashboard";
 
 // Default color for workspaces without a color
 const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500

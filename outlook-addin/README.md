@@ -1,19 +1,19 @@
-# Orbit Outlook Add-in
+# Desk Outlook Add-in
 
-Opens emails from Outlook in the Orbit desktop app for AI-assisted workflows.
+Opens emails from Outlook in the Desk desktop app for AI-assisted workflows.
 
 ## How It Works
 
-1. Click "Open in Orbit" button in Outlook ribbon
+1. Click "Open in Desk" button in Outlook ribbon
 2. Add-in extracts email data (subject, from, body, etc.)
-3. Opens `orbit://email?data={base64}` deep link
-4. Orbit app receives the email and opens it in a new tab
+3. Opens `desk://email?data={base64}` deep link
+4. Desk app receives the email and opens it in a new tab
 
 ## Development Setup
 
 ### Prerequisites
 
-- Orbit desktop app installed in `/Applications` (macOS)
+- Desk desktop app installed in `/Applications` (macOS)
 - Node.js 18+
 - Outlook (desktop or web)
 
@@ -55,13 +55,13 @@ npm run dev
 3. Click "+ Add a custom add-in" → "Add from file"
 4. Select the `manifest.xml` file
 
-### Trust the orbit:// Protocol
+### Trust the desk:// Protocol
 
-On first use, you may need to allow the `orbit://` protocol:
+On first use, you may need to allow the `desk://` protocol:
 
-**macOS**: The Orbit app must be built and installed in /Applications for the protocol to work.
+**macOS**: The Desk app must be built and installed in /Applications for the protocol to work.
 
-**Windows**: You may see a security prompt asking to open the Orbit app.
+**Windows**: You may see a security prompt asking to open the Desk app.
 
 ## Files
 
@@ -84,10 +84,10 @@ For production use:
 
 ## Troubleshooting
 
-### "orbit://" link doesn't work
-- Make sure Orbit.app is installed in /Applications (macOS)
-- Try building Orbit with `npm run tauri build -- --debug` first
-- Check if the deep link works manually: `open "orbit://email?data=..."`
+### "desk://" link doesn't work
+- Make sure Desk.app is installed in /Applications (macOS)
+- Try building Desk with `npm run tauri build -- --debug` first
+- Check if the deep link works manually: `open "desk://email?data=..."`
 
 ### Add-in doesn't appear in Outlook
 - Clear Outlook cache and restart

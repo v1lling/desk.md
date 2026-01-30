@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // Pages that are workspace-scoped (show workspace name and color)
 const WORKSPACE_SCOPED_PAGES = ["/tasks", "/docs", "/meetings", "/projects/view"];
 
-// Map pathname to friendly page name for Orbit tab
+// Map pathname to friendly page name for Desk tab
 function getPageName(
   pathname: string,
   workspaceName?: string | null,
@@ -33,7 +33,7 @@ function getPageName(
     "/settings": "Settings",
   };
 
-  const baseName = pageMap[pathname] || "Orbit";
+  const baseName = pageMap[pathname] || "Desk";
   const isWorkspaceScoped = WORKSPACE_SCOPED_PAGES.includes(pathname);
 
   // For workspace-scoped pages, include workspace name
@@ -62,23 +62,23 @@ export function TabBar() {
   // Track previous pathname to detect navigation
   const prevPathnameRef = useRef(pathname);
 
-  // Auto-switch to Orbit tab when navigating via sidebar
+  // Auto-switch to Desk tab when navigating via sidebar
   useEffect(() => {
     if (pathname !== prevPathnameRef.current) {
-      // Navigation happened - switch to Orbit tab
-      setActiveTab("orbit");
+      // Navigation happened - switch to Desk tab
+      setActiveTab("desk");
       prevPathnameRef.current = pathname;
     }
   }, [pathname, setActiveTab]);
 
-  // Update Orbit tab title based on current page
+  // Update Desk tab title based on current page
   useEffect(() => {
     const { title } = getPageName(pathname, currentWorkspace?.name, project?.name);
-    updateTab("orbit", { title });
+    updateTab("desk", { title });
   }, [pathname, currentWorkspace?.name, project?.name, updateTab]);
 
-  // Get workspace color for Orbit tab (when on workspace-scoped page)
-  const orbitWorkspaceColor = WORKSPACE_SCOPED_PAGES.includes(pathname)
+  // Get workspace color for Desk tab (when on workspace-scoped page)
+  const deskWorkspaceColor = WORKSPACE_SCOPED_PAGES.includes(pathname)
     ? currentWorkspace?.color
     : undefined;
 
@@ -140,7 +140,7 @@ export function TabBar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tabs, activeTabId, closeTab, setActiveTab]);
 
-  // Only show tab bar if there are editor tabs open (not just Orbit)
+  // Only show tab bar if there are editor tabs open (not just Desk)
   if (tabs.length <= 1) {
     return null;
   }
@@ -159,7 +159,7 @@ export function TabBar() {
               onMiddleClick={() => handleClose(tab.id)}
               onCloseOthers={() => handleCloseOthers(tab.id)}
               hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
-              workspaceColor={tab.type === "orbit" ? orbitWorkspaceColor : undefined}
+              workspaceColor={tab.type === "desk" ? deskWorkspaceColor : undefined}
             />
           ))}
         </div>

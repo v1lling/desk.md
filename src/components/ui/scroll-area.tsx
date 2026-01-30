@@ -18,7 +18,7 @@ interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
  * Works on all platforms including Tauri/WKWebView on macOS.
  *
  * Usage: Wrap scrollable content. In flex containers, use with flex-1.
- * Theme defined in globals.css (.os-theme-orbit).
+ * Theme defined in globals.css (.os-theme-desk).
  */
 function ScrollArea({
   children,
@@ -37,7 +37,7 @@ function ScrollArea({
       )}
       options={{
         scrollbars: {
-          theme: "os-theme-orbit",
+          theme: "os-theme-desk",
           autoHide: "never",
           clickScroll: true,
         },

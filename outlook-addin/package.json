@@ -1,7 +1,7 @@
 {
-  "name": "orbit-outlook-addin",
+  "name": "desk-outlook-addin",
   "version": "1.0.0",
-  "description": "Outlook add-in for opening emails in Orbit",
+  "description": "Outlook add-in for opening emails in Desk",
   "private": true,
   "scripts": {
     "start": "npx office-addin-dev-certs install && npx office-addin-debugging start manifest.xml",

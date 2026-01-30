@@ -5,7 +5,7 @@ import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -94,8 +94,8 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
     return mockTasks.filter((task) => task.workspaceId === workspaceId);
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
+  const deskPath = await getDeskPath();
+  const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -113,7 +113,7 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
   }
 
   // Also read unassigned tasks
-  const unassignedPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED);
+  const unassignedPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED);
   if (await exists(unassignedPath)) {
     const unassignedTasks = await readProjectTasks(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allTasks.push(...unassignedTasks);
@@ -133,10 +133,10 @@ export async function getTasksByProject(
     return mockTasks.filter((task) => task.workspaceId === workspaceId && task.projectId === projectId);
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const projectPath = isUnassigned(projectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   return readProjectTasks(workspaceId, projectId, projectPath);
 }
@@ -180,15 +180,15 @@ export async function createTask(data: {
   };
 
   if (!isTauri()) {
-    task.filePath = `~/Orbit/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
+    task.filePath = `~/Desk/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
     mockTasks.push(task);
     return task;
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const tasksPath = isUnassigned(data.projectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.TASKS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.TASKS);
 
   // Ensure tasks directory exists
   await mkdir(tasksPath);
@@ -229,10 +229,10 @@ export async function updateTask(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
+    const deskPath = await getDeskPath();
     const tasksPath = isUnassigned(projectId)
-      ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-      : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
+      ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+      : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
 
     // Find the task file by ID
     if (await exists(tasksPath)) {
@@ -321,10 +321,10 @@ export async function deleteTask(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const orbitPath = await getOrbitPath();
+    const deskPath = await getDeskPath();
     const tasksPath = isUnassigned(projectId)
-      ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-      : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
+      ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+      : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
 
     if (await exists(tasksPath)) {
       const entries = await readDir(tasksPath);
@@ -396,12 +396,12 @@ export async function moveTaskToProject(
     return tasks.find((t) => t.id === taskId) || null;
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
 
   // Find the source file
   const fromTasksPath = isUnassigned(fromProjectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.TASKS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.TASKS);
 
   if (!(await exists(fromTasksPath))) return null;
 
@@ -425,8 +425,8 @@ export async function moveTaskToProject(
 
   // Ensure target directory exists
   const toTasksPath = isUnassigned(toProjectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.TASKS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.TASKS);
 
   await mkdir(toTasksPath);
 

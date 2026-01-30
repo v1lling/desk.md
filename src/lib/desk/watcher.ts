@@ -1,11 +1,11 @@
 /**
  * File System Watcher Service
  *
- * Watches the Orbit directory for changes and notifies listeners.
+ * Watches the Desk directory for changes and notifies listeners.
  * Used to keep the UI in sync when files are modified externally.
  */
 
-import { isTauri, getOrbitPath } from "./tauri-fs";
+import { isTauri, getDeskPath } from "./tauri-fs";
 
 // Event types we care about
 export type WatchEventKind = "create" | "modify" | "remove" | "any";
@@ -108,7 +108,7 @@ function queueEvent(event: WatchEvent) {
 }
 
 /**
- * Start watching the Orbit directory
+ * Start watching the Desk directory
  * Safe to call multiple times - will only start once
  */
 export async function startWatching(): Promise<boolean> {
@@ -124,12 +124,12 @@ export async function startWatching(): Promise<boolean> {
 
   try {
     const fs = await import("@tauri-apps/plugin-fs");
-    const orbitPath = await getOrbitPath();
+    const deskPath = await getDeskPath();
 
-    console.log("[watcher] Starting to watch:", orbitPath);
+    console.log("[watcher] Starting to watch:", deskPath);
 
     unwatchFn = await fs.watch(
-      orbitPath,
+      deskPath,
       (event) => {
         const parsed = parseWatchEvent(event);
         if (parsed) {
@@ -157,7 +157,7 @@ export async function startWatching(): Promise<boolean> {
 }
 
 /**
- * Stop watching the Orbit directory
+ * Stop watching the Desk directory
  */
 export async function stopWatching(): Promise<void> {
   if (!isWatching || !unwatchFn) {
@@ -192,7 +192,7 @@ export function isWatcherActive(): boolean {
 
 /**
  * Utility: Extract item type from path
- * e.g., "/Users/x/Orbit/workspaces/foo/projects/bar/tasks/baz.md" → "task"
+ * e.g., "/Users/x/Desk/workspaces/foo/projects/bar/tasks/baz.md" → "task"
  */
 export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | "project" | "workspace" | "config" | "view" | "unknown" {
   if (path.endsWith(".view.json")) return "view";
@@ -214,7 +214,7 @@ export function isPersonalPath(path: string): boolean {
 
 /**
  * Utility: Extract workspace ID from path
- * e.g., "/Users/x/Orbit/workspaces/my-workspace/..." → "my-workspace"
+ * e.g., "/Users/x/Desk/workspaces/my-workspace/..." → "my-workspace"
  */
 export function getWorkspaceIdFromPath(path: string): string | null {
   const match = path.match(/\/workspaces\/([^/]+)/);
@@ -223,7 +223,7 @@ export function getWorkspaceIdFromPath(path: string): string | null {
 
 /**
  * Utility: Extract project ID from path
- * e.g., "/Users/x/Orbit/workspaces/foo/projects/my-project/..." → "my-project"
+ * e.g., "/Users/x/Desk/workspaces/foo/projects/my-project/..." → "my-project"
  */
 export function getProjectIdFromPath(path: string): string | null {
   const match = path.match(/\/projects\/([^/]+)/);

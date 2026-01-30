@@ -7,7 +7,7 @@ import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useSettingsStore } from "@/stores/settings";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
-import { needsTrafficLightPadding } from "@/lib/orbit/tauri-fs";
+import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
 
 interface AppShellProps {
   children: React.ReactNode;

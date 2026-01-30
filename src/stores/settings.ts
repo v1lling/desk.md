@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { OrbitConfig } from "@/types";
+import type { DeskConfig } from "@/types";
 
 // Sidebar width constants
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
@@ -8,17 +8,17 @@ export const SIDEBAR_DEFAULT_WIDTH = 224;
 export const SIDEBAR_MIN_WIDTH = 180;
 export const SIDEBAR_MAX_WIDTH = 400;
 
-interface SettingsState extends OrbitConfig {
+interface SettingsState extends DeskConfig {
   // Actions
   setDataPath: (path: string) => void;
   setCurrentWorkspaceId: (id: string | null) => void;
-  setTheme: (theme: OrbitConfig["theme"]) => void;
+  setTheme: (theme: DeskConfig["theme"]) => void;
   setSidebarWidth: (width: number) => void;
   setSetupCompleted: (completed: boolean) => void;
   reset: () => void;
 }
 
-const defaultSettings: OrbitConfig = {
+const defaultSettings: DeskConfig = {
   dataPath: "",
   currentWorkspaceId: null,
   theme: "system",
@@ -29,9 +29,9 @@ const defaultSettings: OrbitConfig = {
 // Get default data path based on platform
 const getDefaultDataPath = (): string => {
   if (typeof window !== "undefined") {
-    // In browser/Tauri context, we'll use ~/Orbit
+    // In browser/Tauri context, we'll use ~/Desk
     // This will be resolved properly when we integrate with Tauri fs API
-    return "~/Orbit";
+    return "~/Desk";
   }
   return "";
 };
@@ -50,7 +50,7 @@ export const useSettingsStore = create<SettingsState>()(
       reset: () => set(defaultSettings),
     }),
     {
-      name: "orbit-settings",
+      name: "desk-settings",
       // Only persist these fields
       partialize: (state) => ({
         dataPath: state.dataPath,

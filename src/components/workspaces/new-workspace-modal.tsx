@@ -14,7 +14,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Loader2 } from "lucide-react";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { useSettingsStore } from "@/stores/settings";
-import { slugify } from "@/lib/orbit/parser";
+import { slugify } from "@/lib/desk/parser";
 import { toast } from "sonner";
 import { workspaceColorOptions } from "@/lib/design-tokens";
 
@@ -87,7 +87,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
             />
             {name && (
               <p className="text-xs text-muted-foreground mt-1">
-                Folder: ~/Orbit/workspaces/{slugify(name.trim()) || "..."}
+                Folder: ~/Desk/workspaces/{slugify(name.trim()) || "..."}
               </p>
             )}
           </FormField>

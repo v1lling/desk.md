@@ -1,8 +1,8 @@
 /**
- * Orbit Outlook Add-in Commands
+ * Desk Outlook Add-in Commands
  *
  * This file contains the command functions that are called when users
- * click the "Open in Orbit" button in the Outlook ribbon.
+ * click the "Open in Desk" button in the Outlook ribbon.
  */
 
 /* global Office */
@@ -12,25 +12,25 @@ Office.onReady(function () {
 });
 
 /**
- * Opens the current email in Orbit via deep link
+ * Opens the current email in Desk via deep link
  * @param {Office.AddinCommands.Event} event - The event object from Office
  */
-function openInOrbit(event) {
+function openInDesk(event) {
   const item = Office.context.mailbox.item;
 
-  console.log("[Orbit Add-in] Starting email extraction...");
+  console.log("[Desk Add-in] Starting email extraction...");
 
   // Get email body (async)
   item.body.getAsync(Office.CoercionType.Text, function (bodyResult) {
     if (bodyResult.status !== Office.AsyncResultStatus.Succeeded) {
-      console.error("[Orbit Add-in] Failed to get email body:", bodyResult.error);
+      console.error("[Desk Add-in] Failed to get email body:", bodyResult.error);
       showNotification("Error", "Failed to read email content");
       event.completed();
       return;
     }
 
     const body = bodyResult.value || "";
-    console.log("[Orbit Add-in] Email body length:", body.length);
+    console.log("[Desk Add-in] Email body length:", body.length);
 
     // Build email data object
     const emailData = {
@@ -70,7 +70,7 @@ function openInOrbit(event) {
       emailData.messageId = item.itemId;
     }
 
-    console.log("[Orbit Add-in] Email data:", {
+    console.log("[Desk Add-in] Email data:", {
       subject: emailData.subject,
       from: emailData.from.email,
       bodyLength: emailData.body.length,
@@ -81,18 +81,18 @@ function openInOrbit(event) {
       const jsonStr = JSON.stringify(emailData);
       const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
       // URL-encode the base64 because it can contain + which becomes space in URLs
-      const deepLink = "orbit://email?data=" + encodeURIComponent(base64);
+      const deepLink = "desk://email?data=" + encodeURIComponent(base64);
 
-      console.log("[Orbit Add-in] Deep link length:", deepLink.length);
-      console.log("[Orbit Add-in] Deep link preview:", deepLink.substring(0, 100) + "...");
+      console.log("[Desk Add-in] Deep link length:", deepLink.length);
+      console.log("[Desk Add-in] Deep link preview:", deepLink.substring(0, 100) + "...");
 
       // Open deep link
       window.open(deepLink, "_blank");
 
       // Show success notification
-      showNotification("Opened in Orbit", "Email sent to Orbit app");
+      showNotification("Opened in Desk", "Email sent to Desk app");
     } catch (err) {
-      console.error("[Orbit Add-in] Failed to encode email:", err);
+      console.error("[Desk Add-in] Failed to encode email:", err);
       showNotification("Error", "Failed to encode email: " + err.message);
     }
 
@@ -108,7 +108,7 @@ function openInOrbit(event) {
  */
 function showNotification(title, message) {
   Office.context.mailbox.item.notificationMessages.replaceAsync(
-    "orbit-notification",
+    "desk-notification",
     {
       type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
       message: message,
@@ -120,4 +120,4 @@ function showNotification(title, message) {
 
 // Register the function with Office
 Office.actions = Office.actions || {};
-Office.actions.associate("openInOrbit", openInOrbit);
+Office.actions.associate("openInDesk", openInDesk);

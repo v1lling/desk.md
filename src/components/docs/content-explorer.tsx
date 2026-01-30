@@ -29,8 +29,8 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Doc, ContentScope, Asset } from "@/types";
-import { isMarkdownFile } from "@/lib/orbit/file-utils";
-import { extractDocs, extractAssets } from "@/lib/orbit/content";
+import { isMarkdownFile } from "@/lib/desk/file-utils";
+import { extractDocs, extractAssets } from "@/lib/desk/content";
 
 export interface ContentExplorerScope {
   id: string;

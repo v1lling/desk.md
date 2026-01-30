@@ -7,7 +7,7 @@ import type { TabItem as TabItemType, TabType } from "@/stores/tabs";
 import { TabContextMenu } from "./tab-context-menu";
 
 const TAB_ICONS: Record<TabType, React.ElementType> = {
-  orbit: Home,
+  desk: Home,
   doc: FileText,
   task: CheckSquare,
   meeting: Calendar,
@@ -22,7 +22,7 @@ interface TabItemProps {
   onMiddleClick: () => void;
   onCloseOthers: () => void;
   hasOtherClosableTabs: boolean;
-  /** Workspace color indicator (for Orbit tab on workspace-scoped pages) */
+  /** Workspace color indicator (for Desk tab on workspace-scoped pages) */
   workspaceColor?: string;
 }
 
@@ -37,7 +37,7 @@ export const TabItem = memo(function TabItem({
   workspaceColor,
 }: TabItemProps) {
   const Icon = TAB_ICONS[tab.type];
-  const isOrbitTab = tab.type === "orbit";
+  const isDeskTab = tab.type === "desk";
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -72,11 +72,11 @@ export const TabItem = memo(function TabItem({
         className={cn(
         "group relative flex items-center gap-1.5 h-8 text-xs transition-colors",
         // Browser-like sizing: min width, can shrink, max width
-        isOrbitTab
+        isDeskTab
           ? "min-w-[100px] max-w-[180px] px-2.5 shrink-0"
           : "min-w-[80px] max-w-[140px] px-2.5 shrink",
-        // Orbit tab has special styling with thicker separator
-        isOrbitTab
+        // Desk tab has special styling with thicker separator
+        isDeskTab
           ? cn(
               "border-r-2 border-border",
               isActive
@@ -91,8 +91,8 @@ export const TabItem = memo(function TabItem({
             )
       )}
     >
-      {/* Workspace color indicator for Orbit tab */}
-      {isOrbitTab && workspaceColor && (
+      {/* Workspace color indicator for Desk tab */}
+      {isDeskTab && workspaceColor && (
         <span
           className="w-2 h-2 rounded-full shrink-0"
           style={{ backgroundColor: workspaceColor }}
@@ -122,11 +122,11 @@ export const TabItem = memo(function TabItem({
         </span>
       )}
 
-      {/* Active indicator line - uses workspace color for Orbit tab if available */}
+      {/* Active indicator line - uses workspace color for Desk tab if available */}
       {isActive && (
         <span
           className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground/50"
-          style={isOrbitTab && workspaceColor ? { backgroundColor: workspaceColor } : undefined}
+          style={isDeskTab && workspaceColor ? { backgroundColor: workspaceColor } : undefined}
         />
       )}
     </button>

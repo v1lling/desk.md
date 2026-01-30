@@ -5,7 +5,7 @@ import type { Project, ProjectStatus } from "@/types";
 import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -70,8 +70,8 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
     return mockProjects.filter((project) => project.workspaceId === workspaceId);
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectsPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
+  const deskPath = await getDeskPath();
+  const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -125,8 +125,8 @@ export async function getProject(
     );
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
+  const deskPath = await getDeskPath();
+  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
   const projectMdPath = await joinPath(projectPath, "project.md");
 
   try {
@@ -178,8 +178,8 @@ export async function createProject(data: {
     return project;
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, id);
+  const deskPath = await getDeskPath();
+  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, id);
 
   // Create project directory structure
   await mkdir(projectPath);
@@ -226,9 +226,9 @@ export async function updateProject(
     return null;
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const projectMdPath = await joinPath(
-    orbitPath,
+    deskPath,
     PATH_SEGMENTS.WORKSPACES,
     workspaceId,
     PATH_SEGMENTS.PROJECTS,
@@ -281,8 +281,8 @@ export async function deleteProject(projectId: string, workspaceId?: string): Pr
     return false;
   }
 
-  const orbitPath = await getOrbitPath();
-  const projectPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
+  const deskPath = await getDeskPath();
+  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   try {
     await removeDir(projectPath);

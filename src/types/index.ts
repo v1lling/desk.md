@@ -98,7 +98,7 @@ export interface Meeting {
 }
 
 // App configuration
-export interface OrbitConfig {
+export interface DeskConfig {
   dataPath: string;
   currentWorkspaceId: string | null;
   theme: 'light' | 'dark' | 'system';

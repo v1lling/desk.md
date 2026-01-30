@@ -14,7 +14,7 @@ import type {
   TreeChangeCallback,
   IFileTreeService,
 } from "./types";
-import { buildTree, buildNode, getOrbitRoot, isFileSystemAvailable } from "./tree-builder";
+import { buildTree, buildNode, getDeskRoot, isFileSystemAvailable } from "./tree-builder";
 import { ContentCache, getContentCache } from "./content-cache";
 import {
   readTextFile,
@@ -32,7 +32,7 @@ import {
  */
 class FileTreeService implements IFileTreeService {
   private initialized = false;
-  private orbitRoot: string = "";
+  private deskRoot: string = "";
   private cache: ContentCache;
   private subscribers = new Map<string, Set<TreeChangeCallback>>();
 
@@ -57,9 +57,9 @@ class FileTreeService implements IFileTreeService {
       return;
     }
 
-    this.orbitRoot = await getOrbitRoot();
+    this.deskRoot = await getDeskRoot();
     this.initialized = true;
-    console.log("[FileTreeService] Initialized with root:", this.orbitRoot);
+    console.log("[FileTreeService] Initialized with root:", this.deskRoot);
   }
 
   /**
@@ -96,15 +96,15 @@ class FileTreeService implements IFileTreeService {
     }
 
     const absolutePath = relativePath
-      ? await joinPath(this.orbitRoot, relativePath)
-      : this.orbitRoot;
+      ? await joinPath(this.deskRoot, relativePath)
+      : this.deskRoot;
 
     if (!(await exists(absolutePath))) {
       return null;
     }
 
-    const name = relativePath ? relativePath.split("/").pop() || relativePath : "Orbit";
-    const children = await buildTree(this.orbitRoot, relativePath);
+    const name = relativePath ? relativePath.split("/").pop() || relativePath : "Desk";
+    const children = await buildTree(this.deskRoot, relativePath);
 
     const node: TreeNode = {
       path: absolutePath,
@@ -134,7 +134,7 @@ class FileTreeService implements IFileTreeService {
       return [];
     }
 
-    return buildTree(this.orbitRoot, relativePath, options, 0);
+    return buildTree(this.deskRoot, relativePath, options, 0);
   }
 
   /**
@@ -147,7 +147,7 @@ class FileTreeService implements IFileTreeService {
       return null;
     }
 
-    return buildNode(this.orbitRoot, relativePath);
+    return buildNode(this.deskRoot, relativePath);
   }
 
   /**
@@ -160,7 +160,7 @@ class FileTreeService implements IFileTreeService {
       return null;
     }
 
-    const absolutePath = await joinPath(this.orbitRoot, relativePath);
+    const absolutePath = await joinPath(this.deskRoot, relativePath);
 
     if (!(await exists(absolutePath))) {
       return null;
@@ -298,8 +298,8 @@ class FileTreeService implements IFileTreeService {
    * Invalidate cache for a specific path
    */
   invalidateCache(relativePath: string): void {
-    const absolutePath = this.orbitRoot
-      ? `${this.orbitRoot}/${relativePath}`
+    const absolutePath = this.deskRoot
+      ? `${this.deskRoot}/${relativePath}`
       : relativePath;
     this.cache.invalidate(absolutePath);
     this.treeCache = null;
@@ -315,7 +315,7 @@ class FileTreeService implements IFileTreeService {
       throw new Error("File system not available");
     }
 
-    const absolutePath = await joinPath(this.orbitRoot, relativePath);
+    const absolutePath = await joinPath(this.deskRoot, relativePath);
     await writeTextFile(absolutePath, content);
 
     // Invalidate cache
@@ -339,7 +339,7 @@ class FileTreeService implements IFileTreeService {
       throw new Error("File system not available");
     }
 
-    const absolutePath = await joinPath(this.orbitRoot, relativePath);
+    const absolutePath = await joinPath(this.deskRoot, relativePath);
     await mkdir(absolutePath);
 
     // Invalidate tree cache
@@ -362,7 +362,7 @@ class FileTreeService implements IFileTreeService {
       throw new Error("File system not available");
     }
 
-    const absolutePath = await joinPath(this.orbitRoot, relativePath);
+    const absolutePath = await joinPath(this.deskRoot, relativePath);
     const node = await this.getNode(relativePath);
 
     if (!node) {
@@ -397,8 +397,8 @@ class FileTreeService implements IFileTreeService {
       throw new Error("File system not available");
     }
 
-    const oldAbsolutePath = await joinPath(this.orbitRoot, oldRelativePath);
-    const newAbsolutePath = await joinPath(this.orbitRoot, newRelativePath);
+    const oldAbsolutePath = await joinPath(this.deskRoot, oldRelativePath);
+    const newAbsolutePath = await joinPath(this.deskRoot, newRelativePath);
 
     await rename(oldAbsolutePath, newAbsolutePath);
 

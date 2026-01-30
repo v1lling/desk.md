@@ -14,7 +14,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@/stores/editor-event-bus";
-import { writeTextFile } from "@/lib/orbit/tauri-fs";
+import { writeTextFile } from "@/lib/desk/tauri-fs";
 import type { EditorType } from "@/stores/open-editor-registry";
 
 interface UseEditorSessionOptions {

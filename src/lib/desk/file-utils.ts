@@ -2,7 +2,7 @@
  * File type utilities for distinguishing markdown docs from other assets
  */
 
-// Markdown extensions that should be editable in Orbit
+// Markdown extensions that should be editable in Desk
 export const MARKDOWN_EXTENSIONS = ['md', 'markdown'] as const;
 
 // Common file type categories for icon selection
@@ -32,7 +32,7 @@ export function getExtension(filename: string): string | undefined {
 }
 
 /**
- * Check if a file is a markdown file (editable in Orbit)
+ * Check if a file is a markdown file (editable in Desk)
  */
 export function isMarkdownFile(filename: string): boolean {
   const ext = getExtension(filename);

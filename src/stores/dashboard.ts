@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import * as dashboardLib from "@/lib/orbit/dashboard";
+import * as dashboardLib from "@/lib/desk/dashboard";
 
 // Query keys
 export const dashboardKeys = {

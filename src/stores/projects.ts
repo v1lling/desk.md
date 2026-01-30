@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Project, ProjectStatus } from "@/types";
-import * as projectLib from "@/lib/orbit/projects";
+import * as projectLib from "@/lib/desk/projects";
 
 // Query keys
 export const projectKeys = {

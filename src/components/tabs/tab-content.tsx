@@ -26,8 +26,8 @@ export function TabContent({ children }: TabContentProps) {
             tab.id === activeTabId ? "z-10 visible" : "z-0 invisible"
           )}
         >
-          {tab.type === "orbit" ? (
-            // Orbit tab shows the current page content
+          {tab.type === "desk" ? (
+            // Desk tab shows the current page content
             <div className="h-full overflow-hidden">{children}</div>
           ) : tab.type === "doc" && tab.entityId ? (
             <DocEditor

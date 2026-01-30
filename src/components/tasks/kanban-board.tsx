@@ -30,7 +30,7 @@ import {
 } from "@/stores";
 import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@/types";
-import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
+import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";

@@ -6,7 +6,7 @@
  */
 
 import {
-  getOrbitPath,
+  getDeskPath,
   readDir,
   joinPath,
 } from "./tauri-fs";
@@ -33,8 +33,8 @@ export async function findItemInAllWorkspaces<T extends SearchableItem>(
   itemId: string,
   fetcher: (workspaceId: string) => Promise<T[]>
 ): Promise<T | null> {
-  const orbitPath = await getOrbitPath();
-  const workspacesPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES);
+  const deskPath = await getDeskPath();
+  const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
   const workspaceEntries = await readDir(workspacesPath);
 
   for (const workspaceEntry of workspaceEntries) {

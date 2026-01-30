@@ -20,7 +20,7 @@ import {
   getProjectIdFromPath,
   isPersonalPath,
   type WatchEvent,
-} from "@/lib/orbit/watcher";
+} from "@/lib/desk/watcher";
 import {
   taskKeys,
   contentKeys,
@@ -35,14 +35,14 @@ import {
   connectToWatcher,
   disconnectFromWatcher,
   fileTreeKeys,
-} from "@/lib/orbit/file-cache";
+} from "@/lib/desk/file-cache";
 import {
   useOpenEditorRegistry,
   type EditorSession,
 } from "@/stores/open-editor-registry";
 import { publishContentUpdate, publishDeleted } from "@/stores/editor-event-bus";
-import { exists } from "@/lib/orbit/tauri-fs";
-import { readTextFile } from "@/lib/orbit/tauri-fs";
+import { exists } from "@/lib/desk/tauri-fs";
+import { readTextFile } from "@/lib/desk/tauri-fs";
 
 /**
  * Hook to initialize file watching and route events

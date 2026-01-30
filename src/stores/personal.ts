@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
-import * as personalLib from "@/lib/orbit/personal";
-import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
+import * as personalLib from "@/lib/desk/personal";
+import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 
 // Query keys
 export const personalKeys = {

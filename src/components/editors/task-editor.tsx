@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
-import { PERSONAL_SPACE_ID } from "@/lib/orbit/constants";
+import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 import { toast } from "sonner";
 import type { TaskStatus, TaskPriority } from "@/types";
 

@@ -23,7 +23,7 @@ import {
   isIndexReady,
   type SearchResult,
   type SearchItemType,
-} from "@/lib/orbit/search-index";
+} from "@/lib/desk/search-index";
 import { useSettingsStore } from "@/stores/settings";
 import { useOpenTab } from "@/stores/tabs";
 

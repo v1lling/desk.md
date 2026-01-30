@@ -40,20 +40,23 @@ async function getTauriPathModule() {
 }
 
 /**
- * Get the Orbit data directory path
- * In Tauri: ~/Orbit (real path)
+ * Get the Desk data directory path
+ * In Tauri: ~/Desk (real path)
  * In browser: Returns mock path (data comes from mock arrays, not file system)
  */
-export async function getOrbitPath(): Promise<string> {
+export async function getDeskPath(): Promise<string> {
   if (!isTauri()) {
     // Browser mode uses mock data from arrays, this path is only for display purposes
-    return "~/Orbit";
+    return "~/Desk";
   }
 
   const { homeDir, join } = await getTauriPathModule();
   const home = await homeDir();
-  return await join(home, "Orbit");
+  return await join(home, "Desk");
 }
+
+// Alias for backwards compatibility during migration
+export const getOrbitPath = getDeskPath;
 
 /**
  * Check if a file or directory exists
@@ -187,20 +190,20 @@ export async function joinPath(...segments: string[]): Promise<string> {
 }
 
 /**
- * Initialize the Orbit directory structure
+ * Initialize the Desk directory structure
  */
-export async function initOrbitDirectory(): Promise<void> {
-  const orbitPath = await getOrbitPath();
+export async function initDeskDirectory(): Promise<void> {
+  const deskPath = await getDeskPath();
 
   // Create base directory
-  await mkdir(orbitPath);
+  await mkdir(deskPath);
 
   // Create workspaces directory
-  const workspacesPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES);
+  const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
   await mkdir(workspacesPath);
 
   // Create personal directory structure
-  const personalPath = await joinPath(orbitPath, PATH_SEGMENTS.PERSONAL);
+  const personalPath = await joinPath(deskPath, PATH_SEGMENTS.PERSONAL);
   await mkdir(personalPath);
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS));
@@ -208,7 +211,7 @@ export async function initOrbitDirectory(): Promise<void> {
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
 
   // Create config if it doesn't exist
-  const configPath = await joinPath(orbitPath, "config.json");
+  const configPath = await joinPath(deskPath, "config.json");
   if (!(await exists(configPath))) {
     const defaultConfig = {
       currentWorkspaceId: null,
@@ -220,12 +223,15 @@ export async function initOrbitDirectory(): Promise<void> {
   }
 }
 
+// Alias for backwards compatibility during migration
+export const initOrbitDirectory = initDeskDirectory;
+
 /**
- * Read the Orbit config file
+ * Read the Desk config file
  */
 export async function readConfig(): Promise<Record<string, unknown>> {
-  const orbitPath = await getOrbitPath();
-  const configPath = await joinPath(orbitPath, "config.json");
+  const deskPath = await getDeskPath();
+  const configPath = await joinPath(deskPath, "config.json");
 
   try {
     const content = await readTextFile(configPath);
@@ -241,10 +247,10 @@ export async function readConfig(): Promise<Record<string, unknown>> {
 }
 
 /**
- * Write the Orbit config file
+ * Write the Desk config file
  */
 export async function writeConfig(config: Record<string, unknown>): Promise<void> {
-  const orbitPath = await getOrbitPath();
-  const configPath = await joinPath(orbitPath, "config.json");
+  const deskPath = await getDeskPath();
+  const configPath = await joinPath(deskPath, "config.json");
   await writeTextFile(configPath, JSON.stringify(config, null, 2));
 }

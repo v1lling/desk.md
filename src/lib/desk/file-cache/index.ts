@@ -20,7 +20,7 @@ export type {
 export {
   buildTree,
   buildNode,
-  getOrbitRoot,
+  getDeskRoot,
   isFileSystemAvailable,
 } from "./tree-builder";
 

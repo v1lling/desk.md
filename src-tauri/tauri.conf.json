@@ -1,12 +1,12 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Orbit",
+  "productName": "Desk",
   "version": "0.1.0",
-  "identifier": "ch.sascha.orbit",
+  "identifier": "ch.sascha.desk",
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["orbit"]
+        "schemes": ["desk"]
       }
     }
   },
@@ -19,7 +19,7 @@
   "app": {
     "windows": [
       {
-        "title": "Orbit",
+        "title": "Desk",
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "width": 1200,

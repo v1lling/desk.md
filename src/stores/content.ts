@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Doc, ContentScope, Asset } from "@/types";
-import * as contentLib from "@/lib/orbit/content";
+import * as contentLib from "@/lib/desk/content";
 
 // Query keys for content (docs, assets, folders)
 export const contentKeys = {

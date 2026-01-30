@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAIAction, useAISettingsStore } from "@/stores/ai";
-import { isTauri } from "@/lib/orbit";
+import { isTauri } from "@/lib/desk";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress } from "@/lib/email/types";
 

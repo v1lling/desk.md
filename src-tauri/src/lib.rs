@@ -52,9 +52,9 @@ pub fn run() {
     info!("Development build detected, enabling MCP plugin");
     builder = builder.plugin(
       tauri_plugin_mcp::init_with_config(
-        tauri_plugin_mcp::PluginConfig::new("Orbit".to_string())
+        tauri_plugin_mcp::PluginConfig::new("Desk".to_string())
           .start_socket_server(true)
-          .socket_path("/tmp/orbit-mcp.sock".into())
+          .socket_path("/tmp/desk-mcp.sock".into())
       )
     );
   }

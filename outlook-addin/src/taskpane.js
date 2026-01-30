@@ -1,8 +1,8 @@
 /**
- * Orbit Outlook Add-in Taskpane
+ * Desk Outlook Add-in Taskpane
  *
  * Alternative UI for the add-in that shows email info
- * and a button to open in Orbit.
+ * and a button to open in Desk.
  */
 
 /* global Office */
@@ -12,7 +12,7 @@ let emailData = null;
 Office.onReady(function (info) {
   if (info.host === Office.HostType.Outlook) {
     loadEmailInfo();
-    document.getElementById("open-btn").onclick = openInOrbit;
+    document.getElementById("open-btn").onclick = openInDesk;
   }
 });
 
@@ -78,9 +78,9 @@ function loadEmailInfo() {
 }
 
 /**
- * Open email in Orbit via deep link
+ * Open email in Desk via deep link
  */
-function openInOrbit() {
+function openInDesk() {
   if (!emailData) {
     showStatus("Email data not loaded", "error");
     return;
@@ -90,15 +90,15 @@ function openInOrbit() {
     // Encode as base64
     const jsonStr = JSON.stringify(emailData);
     const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const deepLink = "orbit://email?data=" + base64;
+    const deepLink = "desk://email?data=" + base64;
 
     // Open deep link
     window.open(deepLink, "_blank");
 
-    showStatus("Opened in Orbit!", "success");
+    showStatus("Opened in Desk!", "success");
   } catch (error) {
-    console.error("Failed to open in Orbit:", error);
-    showStatus("Failed to open in Orbit", "error");
+    console.error("Failed to open in Desk:", error);
+    showStatus("Failed to open in Desk", "error");
   }
 }
 

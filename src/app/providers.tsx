@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings";
-import { isTauri, initOrbitDirectory } from "@/lib/orbit";
+import { isTauri, initDeskDirectory } from "@/lib/desk";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
 import { useDeepLink } from "@/hooks/use-deep-link";
@@ -20,9 +20,9 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
     async function init() {
       if (isTauri()) {
         try {
-          await initOrbitDirectory();
+          await initDeskDirectory();
         } catch (error) {
-          console.error("[Orbit] Failed to initialize:", error);
+          console.error("[Desk] Failed to initialize:", error);
         }
       }
       setInitialized(true);

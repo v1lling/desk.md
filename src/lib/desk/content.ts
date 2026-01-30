@@ -6,7 +6,7 @@ import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -127,15 +127,15 @@ export async function createDoc(data: {
   };
 
   if (!isTauri()) {
-    doc.filePath = `~/Orbit/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
+    doc.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const docsPath = isUnassigned(data.projectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.DOCS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.DOCS);
 
   // Ensure docs directory exists
   await mkdir(docsPath);
@@ -253,12 +253,12 @@ export async function moveDocToProject(
     return docs.find((d) => d.id === docId) || null;
   }
 
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
 
   // Find the source file
   const fromDocsPath = isUnassigned(fromProjectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.DOCS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.DOCS);
 
   if (!(await exists(fromDocsPath))) return null;
 
@@ -282,8 +282,8 @@ export async function moveDocToProject(
 
   // Ensure target directory exists
   const toDocsPath = isUnassigned(toProjectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.DOCS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.DOCS);
 
   await mkdir(toDocsPath);
 
@@ -326,10 +326,10 @@ export async function getContentBasePath(
   workspaceId?: string,
   projectId?: string
 ): Promise<string> {
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
 
   if (scope === "personal") {
-    return joinPath(orbitPath, PATH_SEGMENTS.PERSONAL, PATH_SEGMENTS.DOCS);
+    return joinPath(deskPath, PATH_SEGMENTS.PERSONAL, PATH_SEGMENTS.DOCS);
   }
 
   if (!workspaceId) {
@@ -338,7 +338,7 @@ export async function getContentBasePath(
 
   if (scope === "workspace") {
     return joinPath(
-      orbitPath,
+      deskPath,
       PATH_SEGMENTS.WORKSPACES,
       workspaceId,
       PATH_SEGMENTS.DOCS
@@ -352,7 +352,7 @@ export async function getContentBasePath(
 
   if (isUnassigned(projectId)) {
     return joinPath(
-      orbitPath,
+      deskPath,
       PATH_SEGMENTS.WORKSPACES,
       workspaceId,
       SPECIAL_DIRS.UNASSIGNED,
@@ -361,7 +361,7 @@ export async function getContentBasePath(
   }
 
   return joinPath(
-    orbitPath,
+    deskPath,
     PATH_SEGMENTS.WORKSPACES,
     workspaceId,
     PATH_SEGMENTS.PROJECTS,
@@ -737,7 +737,7 @@ export async function createDocInFolder(data: {
   };
 
   if (!isTauri()) {
-    doc.filePath = `~/Orbit/${data.scope}/${data.folderPath || ""}/${filename}`;
+    doc.filePath = `~/Desk/${data.scope}/${data.folderPath || ""}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
@@ -920,9 +920,9 @@ export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]
   allDocs.push(...workspaceDocs);
 
   // 2. Get all project docs
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const projectsPath = await joinPath(
-    orbitPath,
+    deskPath,
     PATH_SEGMENTS.WORKSPACES,
     workspaceId,
     PATH_SEGMENTS.PROJECTS

@@ -25,7 +25,7 @@ import type { TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { SPECIAL_DIRS } from "@/lib/orbit/constants";
+import { SPECIAL_DIRS } from "@/lib/desk/constants";
 import { priorityTextColors } from "@/lib/design-tokens";
 
 interface QuickAddTaskProps {

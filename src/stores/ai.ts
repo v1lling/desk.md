@@ -31,7 +31,7 @@ export const useAISettingsStore = create<AISettingsState>()(
       setAnthropicApiKey: (key) => set({ anthropicApiKey: key }),
     }),
     {
-      name: 'orbit-ai-settings',
+      name: 'desk-ai-settings',
     }
   )
 );
@@ -90,7 +90,7 @@ export const useAIUsageStore = create<AIUsageState>()(
       },
     }),
     {
-      name: 'orbit-ai-usage',
+      name: 'desk-ai-usage',
     }
   )
 );

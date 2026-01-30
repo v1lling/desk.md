@@ -5,10 +5,10 @@ import type { AIPurpose, AIContext } from './types';
 // =============================================================================
 
 /**
- * Base context included in ALL prompts - gives AI understanding of Orbit
+ * Base context included in ALL prompts - gives AI understanding of Desk
  */
-const BASE_CONTEXT = `You are an AI assistant for Orbit, a project management app for freelancers.
-Orbit helps users manage multiple client workspaces, each containing projects with tasks, documents, and meetings.
+const BASE_CONTEXT = `You are an AI assistant for Desk, a project management app for freelancers.
+Desk helps users manage multiple client workspaces, each containing projects with tasks, documents, and meetings.
 Be concise, professional, and helpful.`;
 
 /**

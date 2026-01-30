@@ -14,7 +14,7 @@ import { Markdown } from "tiptap-markdown";
 import { useEffect, useCallback, useRef, MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { isTauri } from "@/lib/orbit/tauri-fs";
+import { isTauri } from "@/lib/desk/tauri-fs";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 
 interface RichTextEditorProps {

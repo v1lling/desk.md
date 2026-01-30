@@ -1,5 +1,5 @@
 /**
- * Migration script: Obsidian Projects vault → Orbit
+ * Migration script: Obsidian Projects vault → Desk
  *
  * Transforms:
  * - Projects: title → name, preserves status/created/content
@@ -13,10 +13,10 @@ import * as path from "path";
 import matter from "gray-matter";
 
 const OBSIDIAN_PATH = "/Users/sascha/Obsidian/Projects";
-const ORBIT_PATH = "/Users/sascha/Orbit";
+const DESK_PATH = "/Users/sascha/Desk";
 const TARGET_AREA = "slsp";
 
-// Slugify function matching Orbit's parser.ts
+// Slugify function matching Desk's parser.ts
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -117,7 +117,7 @@ function readObsidianTasks(): Array<{
   return tasks;
 }
 
-// Map Obsidian status to Orbit status (they should be the same, but normalize)
+// Map Obsidian status to Desk status (they should be the same, but normalize)
 function mapStatus(status: string | undefined): "todo" | "doing" | "waiting" | "done" {
   if (!status) return "todo";
   const s = status.toLowerCase();
@@ -127,8 +127,8 @@ function mapStatus(status: string | undefined): "todo" | "doing" | "waiting" | "
   return "todo";
 }
 
-// Create project directory and project.md in Orbit
-function createOrbitProject(
+// Create project directory and project.md in Desk
+function createDeskProject(
   areaPath: string,
   project: { name: string; slug: string; status: string; created: string; content: string }
 ): string {
@@ -139,7 +139,7 @@ function createOrbitProject(
   fs.mkdirSync(projectDir, { recursive: true });
   fs.mkdirSync(tasksDir, { recursive: true });
 
-  // Create project.md with Orbit format
+  // Create project.md with Desk format
   const projectContent = createFrontmatter({
     name: project.name,
     status: project.status,
@@ -168,8 +168,8 @@ function createFrontmatter(data: Record<string, any>): string {
   return lines.join("\n");
 }
 
-// Create task file in Orbit
-function createOrbitTask(
+// Create task file in Desk
+function createDeskTask(
   projectDir: string,
   task: {
     filename: string;
@@ -207,14 +207,14 @@ function createOrbitTask(
 
 // Main migration function
 function migrate() {
-  console.log("=== Obsidian → Orbit Migration ===\n");
+  console.log("=== Obsidian → Desk Migration ===\n");
 
   // Read source data
   const projects = readObsidianProjects();
   const tasks = readObsidianTasks();
 
   // Target area path
-  const areaPath = path.join(ORBIT_PATH, "areas", TARGET_AREA);
+  const areaPath = path.join(DESK_PATH, "areas", TARGET_AREA);
 
   // Ensure area exists
   if (!fs.existsSync(areaPath)) {
@@ -231,7 +231,7 @@ function migrate() {
     // Skip duplicate entries (we stored by both filename and slug)
     if (projectDirs.has(project.slug)) continue;
 
-    const projectDir = createOrbitProject(areaPath, project);
+    const projectDir = createDeskProject(areaPath, project);
     projectDirs.set(project.slug, projectDir);
     // Also map by original filename for task matching
     projectDirs.set(key, projectDir);
@@ -272,7 +272,7 @@ function migrate() {
       assigned++;
     }
 
-    createOrbitTask(targetDir, task);
+    createDeskTask(targetDir, task);
   }
 
   console.log(`  ✓ ${assigned} tasks assigned to projects`);

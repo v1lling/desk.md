@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useProjects } from "@/stores";
-import { isUnassigned } from "@/lib/orbit/constants";
+import { isUnassigned } from "@/lib/desk/constants";
 
 /**
  * Hook for project name lookup. Provides a callback to get project name by ID.

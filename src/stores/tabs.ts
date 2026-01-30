@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 import type { IncomingEmail } from "@/lib/email/types";
 
-export type TabType = "orbit" | "doc" | "task" | "meeting" | "email";
+export type TabType = "desk" | "doc" | "task" | "meeting" | "email";
 
 export interface TabItem {
   id: string;
@@ -36,24 +36,24 @@ interface TabState {
   getTabByEntityId: (type: TabType, entityId: string) => TabItem | undefined;
 }
 
-const ORBIT_TAB: TabItem = {
-  id: "orbit",
-  type: "orbit",
-  title: "Orbit",
+const DESK_TAB: TabItem = {
+  id: "desk",
+  type: "desk",
+  title: "Desk",
   isPinned: true,
 };
 
 export const useTabStore = create<TabState>()(
   persist(
     (set, get) => ({
-      tabs: [ORBIT_TAB],
-      activeTabId: "orbit",
+      tabs: [DESK_TAB],
+      activeTabId: "desk",
 
       openTab: (newTab) => {
         const { tabs } = get();
 
         // Check if tab for this entity already exists (not for email tabs which are always new)
-        if (newTab.type !== "orbit" && newTab.type !== "email" && newTab.entityId) {
+        if (newTab.type !== "desk" && newTab.type !== "email" && newTab.entityId) {
           const existing = tabs.find(
             (t) => t.type === newTab.type && t.entityId === newTab.entityId
           );
@@ -65,8 +65,8 @@ export const useTabStore = create<TabState>()(
 
         // Create new tab
         let id: string;
-        if (newTab.type === "orbit") {
-          id = "orbit";
+        if (newTab.type === "desk") {
+          id = "desk";
         } else if (newTab.type === "email") {
           // Email tabs use timestamp for unique ID (session only)
           id = `email-${Date.now()}`;
@@ -162,15 +162,15 @@ export const useTabStore = create<TabState>()(
       },
     }),
     {
-      name: "orbit-tabs",
+      name: "desk-tabs",
       partialize: (state) => ({
         // Filter out email tabs (session-only) and strip emailData
         tabs: state.tabs
           .filter((t) => t.type !== "email")
           .map(({ emailData, ...rest }) => rest),
-        activeTabId: state.activeTabId === "orbit" || !state.activeTabId.startsWith("email-")
+        activeTabId: state.activeTabId === "desk" || !state.activeTabId.startsWith("email-")
           ? state.activeTabId
-          : "orbit",
+          : "desk",
       }),
     }
   )
@@ -208,8 +208,8 @@ export function useOpenTab() {
         projectId: meeting.projectId,
       });
     },
-    openOrbit: () => {
-      useTabStore.getState().setActiveTab("orbit");
+    openDesk: () => {
+      useTabStore.getState().setActiveTab("desk");
     },
     openEmail: (email: IncomingEmail) => {
       openTab({

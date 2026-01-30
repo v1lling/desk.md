@@ -1,14 +1,14 @@
 /**
  * Deep Link Handler for Email Integration
  *
- * Parses orbit:// deep links and extracts email data.
- * Protocol: orbit://email?data={base64_encoded_json}
+ * Parses desk:// deep links and extracts email data.
+ * Protocol: desk://email?data={base64_encoded_json}
  */
 
 import type { IncomingEmail, EmailTabData } from './types';
 
 /**
- * Parse an orbit:// deep link URL
+ * Parse a desk:// deep link URL
  * Returns the email data if valid, null otherwise
  */
 export function parseEmailDeepLink(url: string): EmailTabData | null {
@@ -18,13 +18,13 @@ export function parseEmailDeepLink(url: string): EmailTabData | null {
     const parsed = new URL(url);
 
     // Check scheme
-    if (parsed.protocol !== 'orbit:') {
+    if (parsed.protocol !== 'desk:') {
       console.warn('[deep-link] Invalid protocol:', parsed.protocol);
       return null;
     }
 
     // Check path (host in custom protocols)
-    // URL parsing treats "orbit://email" as protocol=orbit:, host=email
+    // URL parsing treats "desk://email" as protocol=desk:, host=email
     if (parsed.host !== 'email' && parsed.pathname !== '//email') {
       console.warn('[deep-link] Unknown deep link type:', parsed.host || parsed.pathname);
       return null;
@@ -96,23 +96,23 @@ export function parseEmailDeepLink(url: string): EmailTabData | null {
 }
 
 /**
- * Create an orbit:// deep link URL from email data
+ * Create a desk:// deep link URL from email data
  * Useful for testing and documentation
  */
 export function createEmailDeepLink(email: IncomingEmail): string {
   const json = JSON.stringify(email);
   // Use unescape(encodeURIComponent(...)) to properly encode Unicode to base64
   const base64 = btoa(unescape(encodeURIComponent(json)));
-  return `orbit://email?data=${base64}`;
+  return `desk://email?data=${base64}`;
 }
 
 /**
- * Check if a URL is an orbit:// email deep link
+ * Check if a URL is a desk:// email deep link
  */
 export function isEmailDeepLink(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'orbit:' &&
+    return parsed.protocol === 'desk:' &&
            (parsed.host === 'email' || parsed.pathname === '//email');
   } catch {
     return false;

@@ -1,6 +1,6 @@
 # AI Module Architecture
 
-This module provides a layered, extensible AI integration for Orbit.
+This module provides a layered, extensible AI integration for Desk.
 
 ## Architecture Overview
 

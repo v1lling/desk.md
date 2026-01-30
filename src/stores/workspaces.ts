@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Workspace } from "@/types";
-import * as workspaceLib from "@/lib/orbit/workspaces";
+import * as workspaceLib from "@/lib/desk/workspaces";
 import { useSettingsStore } from "./settings";
 
 // Query keys

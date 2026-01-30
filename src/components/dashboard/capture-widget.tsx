@@ -26,7 +26,7 @@ import {
 } from "@/stores";
 import type { Task, Workspace, Project } from "@/types";
 import { cn } from "@/lib/utils";
-import { SPECIAL_DIRS } from "@/lib/orbit/constants";
+import { SPECIAL_DIRS } from "@/lib/desk/constants";
 
 interface CaptureWidgetProps {
   onTriageComplete?: (task: Task, destination: TriageDestination) => void;

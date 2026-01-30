@@ -1,12 +1,12 @@
 /**
  * Deep Link Hook
  *
- * Initializes deep link listening for Tauri and handles incoming orbit:// URLs.
- * Currently supports email deep links: orbit://email?data={base64}
+ * Initializes deep link listening for Tauri and handles incoming desk:// URLs.
+ * Currently supports email deep links: desk://email?data={base64}
  */
 
 import { useEffect, useRef } from 'react';
-import { isTauri } from '@/lib/orbit/tauri-fs';
+import { isTauri } from '@/lib/desk/tauri-fs';
 import { parseEmailDeepLink, type IncomingEmail } from '@/lib/email';
 import { useTabStore } from '@/stores/tabs';
 

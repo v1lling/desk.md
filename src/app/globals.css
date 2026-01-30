@@ -159,7 +159,7 @@
 }
 
 /* OverlayScrollbars custom theme - works on all platforms including Tauri/WKWebView */
-.os-theme-orbit {
+.os-theme-desk {
   --os-size: 8px;
   --os-padding-perpendicular: 2px;
   --os-padding-axis: 2px;
@@ -170,7 +170,7 @@
   --os-handle-bg-active: oklch(0.55 0.005 260 / 0.7);
 }
 
-.dark .os-theme-orbit {
+.dark .os-theme-desk {
   --os-handle-bg: oklch(0.45 0.01 260 / 0.7);
   --os-handle-bg-hover: oklch(0.55 0.01 260 / 0.85);
   --os-handle-bg-active: oklch(0.6 0.01 260 / 0.95);

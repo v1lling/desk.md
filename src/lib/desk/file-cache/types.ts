@@ -2,7 +2,7 @@
  * File Tree Types
  *
  * Core types for the file tree service that provides
- * cached, efficient access to the Orbit directory structure.
+ * cached, efficient access to the Desk directory structure.
  */
 
 /**
@@ -12,7 +12,7 @@ export interface TreeNode {
   /** Absolute path on disk */
   path: string;
 
-  /** Path relative to Orbit root (e.g., "workspaces/acme/docs/readme.md") */
+  /** Path relative to Desk root (e.g., "workspaces/acme/docs/readme.md") */
   relativePath: string;
 
   /** File or folder name */

@@ -8,21 +8,21 @@
   <!-- Basic add-in settings -->
   <Id>9c166730-69bf-4577-a474-04f41d97d179</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Orbit</ProviderName>
+  <ProviderName>Desk</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Orbit"/>
-  <Description DefaultValue="Open emails in Orbit for AI-assisted workflows"/>
+  <DisplayName DefaultValue="Desk"/>
+  <Description DefaultValue="Open emails in Desk for AI-assisted workflows"/>
 
   <!-- Icon URLs - replace with your hosted icons -->
-  <IconUrl DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-64.png"/>
-  <HighResolutionIconUrl DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-128.png"/>
+  <IconUrl DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-128.png"/>
 
   <!-- Support URL -->
-  <SupportUrl DefaultValue="https://github.com/v1lling/orbit-outlook-addin"/>
+  <SupportUrl DefaultValue="https://github.com/v1lling/desk-outlook-addin"/>
 
   <!-- Domains that will be allowed for the add-in -->
   <AppDomains>
-    <AppDomain>https://v1lling.github.io/orbit-outlook-addin</AppDomain>
+    <AppDomain>https://v1lling.github.io/desk-outlook-addin</AppDomain>
   </AppDomains>
 
   <!-- Hosts the add-in supports -->
@@ -41,7 +41,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://v1lling.github.io/orbit-outlook-addin/taskpane.html"/>
+        <SourceLocation DefaultValue="https://v1lling.github.io/desk-outlook-addin/taskpane.html"/>
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -80,11 +80,11 @@
             <!-- Extension point: Message Read -->
             <ExtensionPoint xsi:type="MessageReadCommandSurface">
               <OfficeTab id="TabDefault">
-                <Group id="orbitGroup">
+                <Group id="deskGroup">
                   <Label resid="groupLabel"/>
 
-                  <!-- Open in Orbit button -->
-                  <Control xsi:type="Button" id="openInOrbitBtn">
+                  <!-- Open in Desk button -->
+                  <Control xsi:type="Button" id="openInDeskBtn">
                     <Label resid="openBtnLabel"/>
                     <Supertip>
                       <Title resid="openBtnLabel"/>
@@ -96,7 +96,7 @@
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
                     <Action xsi:type="ExecuteFunction">
-                      <FunctionName>openInOrbit</FunctionName>
+                      <FunctionName>openInDesk</FunctionName>
                     </Action>
                   </Control>
 
@@ -111,20 +111,20 @@
       <!-- Resources -->
       <Resources>
         <bt:Images>
-          <bt:Image id="icon16" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-16.png"/>
-          <bt:Image id="icon32" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-32.png"/>
-          <bt:Image id="icon80" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/assets/icon-80.png"/>
+          <bt:Image id="icon16" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-16.png"/>
+          <bt:Image id="icon32" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-32.png"/>
+          <bt:Image id="icon80" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="functionFile" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/commands.html"/>
-          <bt:Url id="taskpaneUrl" DefaultValue="https://v1lling.github.io/orbit-outlook-addin/taskpane.html"/>
+          <bt:Url id="functionFile" DefaultValue="https://v1lling.github.io/desk-outlook-addin/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="https://v1lling.github.io/desk-outlook-addin/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="groupLabel" DefaultValue="Orbit"/>
-          <bt:String id="openBtnLabel" DefaultValue="Open in Orbit"/>
+          <bt:String id="groupLabel" DefaultValue="Desk"/>
+          <bt:String id="openBtnLabel" DefaultValue="Open in Desk"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="openBtnDesc" DefaultValue="Open this email in Orbit for AI-assisted reply drafting"/>
+          <bt:String id="openBtnDesc" DefaultValue="Open this email in Desk for AI-assisted reply drafting"/>
         </bt:LongStrings>
       </Resources>
 

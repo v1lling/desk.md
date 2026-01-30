@@ -1,13 +1,13 @@
-# Orbit
+# desk.md
 
 > Project-centric work management for freelancers and consultants.
 
-## What is Orbit?
+## What is desk.md?
 
-Orbit is a desktop app that organizes your work around **projects**, not notes. Built for people who manage multiple clients and need a single place for tasks, notes, and project context.
+desk.md is a desktop app that organizes your work around **projects**, not notes. Built for people who manage multiple clients and need a single place for tasks, notes, and project context.
 
 ```
-Area (Client)
+Workspace (Client)
   └── Project
         ├── Tasks (kanban board)
         ├── Notes (meeting logs, decisions)
@@ -16,7 +16,7 @@ Area (Client)
 ```
 
 **Key ideas:**
-- **Areas** separate your clients/workspaces completely
+- **Workspaces** separate your clients/contexts completely
 - **Projects** contain everything related to that work
 - **Unassigned** items can exist without a project for quick capture
 - **Markdown files** underneath - portable, grep-able, yours forever
@@ -40,19 +40,21 @@ npm run dev           # Web development (mock data)
 npm run tauri dev     # Desktop development (real file system)
 ```
 
-## Current Status: v0.2
+## Current Status: v0.4
 
 Working features:
-- Areas with color coding and switching
+- Workspaces with color coding and switching
 - Projects with status tracking (active/paused/completed/archived)
 - Tasks: Kanban board with drag-drop, quick add, detail panel
-- Notes: WYSIWYG markdown editor (Tiptap)
+- Docs: Tree structure with folders, drag-drop import
 - Meetings: List view with editor
-- Unassigned items: Tasks/notes not linked to any project
-- Project reassignment: Move tasks/notes between projects
+- Unassigned items: Tasks/docs not linked to any project
+- Project reassignment: Move tasks/docs between projects
 - Settings: Theme toggle, data path configuration
 - Setup wizard with existing data detection
 - File system: All data in portable markdown
+- AI Chat: Claude Code CLI or Anthropic API, with doc context
+- Email integration: Deep links from Outlook add-in
 
 ## Documentation
 
@@ -62,24 +64,28 @@ Working features:
 
 ## Data Storage
 
-Orbit stores everything in `~/Orbit/` as markdown files:
+Desk stores everything in `~/Desk/` as markdown files:
 
 ```
-~/Orbit/
-├── areas/
+~/Desk/
+├── workspaces/
 │   ├── client-a/
-│   │   ├── area.md
+│   │   ├── workspace.md
 │   │   └── projects/
 │   │       ├── _unassigned/      # Items not in a project
 │   │       │   ├── tasks/
-│   │       │   └── notes/
+│   │       │   └── docs/
 │   │       ├── project-1/
 │   │       │   ├── project.md
 │   │       │   ├── tasks/
-│   │       │   ├── notes/
+│   │       │   ├── docs/
 │   │       │   └── meetings/
 │   │       └── project-2/
 │   └── client-b/
+├── personal/
+│   ├── capture/tasks/
+│   ├── tasks/
+│   └── docs/
 └── config.json
 ```
 

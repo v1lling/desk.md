@@ -15,72 +15,72 @@
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" },
-        { "path": "$HOME/Orbit/**/.*" }
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" },
+        { "path": "$HOME/Desk/**/.*" }
       ]
     },
     {
       "identifier": "fs:allow-write-text-file",
       "allow": [
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" },
-        { "path": "$HOME/Orbit/**/.*" }
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" },
+        { "path": "$HOME/Desk/**/.*" }
       ]
     },
     {
       "identifier": "fs:allow-exists",
       "allow": [
-        { "path": "$HOME/Orbit" },
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" },
-        { "path": "$HOME/Orbit/**/.*" }
+        { "path": "$HOME/Desk" },
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" },
+        { "path": "$HOME/Desk/**/.*" }
       ]
     },
     {
       "identifier": "fs:allow-mkdir",
       "allow": [
-        { "path": "$HOME/Orbit" },
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" }
+        { "path": "$HOME/Desk" },
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" }
       ]
     },
     {
       "identifier": "fs:allow-remove",
       "allow": [
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" },
-        { "path": "$HOME/Orbit/**/.*" }
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" },
+        { "path": "$HOME/Desk/**/.*" }
       ]
     },
     {
       "identifier": "fs:allow-rename",
       "allow": [
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" },
-        { "path": "$HOME/Orbit/**/.*" }
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" },
+        { "path": "$HOME/Desk/**/.*" }
       ]
     },
     {
       "identifier": "fs:allow-read-dir",
       "allow": [
-        { "path": "$HOME/Orbit" },
-        { "path": "$HOME/Orbit/*" },
-        { "path": "$HOME/Orbit/**/*" }
+        { "path": "$HOME/Desk" },
+        { "path": "$HOME/Desk/*" },
+        { "path": "$HOME/Desk/**/*" }
       ]
     },
     {
       "identifier": "fs:allow-watch",
       "allow": [
-        { "path": "$HOME/Orbit" },
-        { "path": "$HOME/Orbit/**/*" }
+        { "path": "$HOME/Desk" },
+        { "path": "$HOME/Desk/**/*" }
       ]
     },
     {
       "identifier": "fs:allow-unwatch",
       "allow": [
-        { "path": "$HOME/Orbit" },
-        { "path": "$HOME/Orbit/**/*" }
+        { "path": "$HOME/Desk" },
+        { "path": "$HOME/Desk/**/*" }
       ]
     }
   ]

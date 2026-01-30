@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { initOrbitDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/orbit";
+import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/desk";
 import { Rocket, FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
 import type { Workspace } from "@/types";
 
@@ -26,7 +26,7 @@ const COLORS = [
 
 export function SetupWizard() {
   const [step, setStep] = useState<Step>("welcome");
-  const [dataPath, setDataPath] = useState("~/Orbit");
+  const [dataPath, setDataPath] = useState("~/Desk");
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceColor, setWorkspaceColor] = useState(COLORS[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,8 +84,8 @@ export function SetupWizard() {
       // Save settings
       setSettingsDataPath(dataPath);
 
-      // Initialize the Orbit directory structure
-      await initOrbitDirectory();
+      // Initialize the Desk directory structure
+      await initDeskDirectory();
 
       // Create the first workspace
       const workspaceId = slugify(workspaceName);
@@ -122,14 +122,14 @@ export function SetupWizard() {
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <Rocket className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Welcome to Orbit</CardTitle>
+              <CardTitle className="text-2xl">Welcome to Desk</CardTitle>
               <CardDescription>
                 Project-centric work management for freelancers and consultants.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Orbit organizes your work around <strong>projects</strong>, not notes.
+                Desk organizes your work around <strong>projects</strong>, not notes.
                 Everything lives in portable markdown files.
               </p>
               <Button className="w-full" onClick={() => setStep("data-folder")}>
@@ -147,7 +147,7 @@ export function SetupWizard() {
               </div>
               <CardTitle>Choose Data Location</CardTitle>
               <CardDescription>
-                Where should Orbit store your projects and tasks?
+                Where should Desk store your projects and tasks?
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -157,7 +157,7 @@ export function SetupWizard() {
                   id="dataPath"
                   value={dataPath}
                   onChange={(e) => setDataPath(e.target.value)}
-                  placeholder="~/Orbit"
+                  placeholder="~/Desk"
                 />
                 <p className="text-xs text-muted-foreground">
                   Your workspaces, projects, and notes will be stored here as markdown files.

@@ -22,8 +22,8 @@ import {
   FolderPlus,
   ExternalLink,
 } from "lucide-react";
-import { getFileCategory, type FileCategory } from "@/lib/orbit/file-utils";
-import { isTauri } from "@/lib/orbit/tauri-fs";
+import { getFileCategory, type FileCategory } from "@/lib/desk/file-utils";
+import { isTauri } from "@/lib/desk/tauri-fs";
 import { toast } from "sonner";
 import {
   ContextMenu,
@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import type { Doc, FileTreeNode, Asset } from "@/types";
-import { getNodeKey } from "@/lib/orbit/content";
+import { getNodeKey } from "@/lib/desk/content";
 
 // Get icon component based on file category
 function getFileIcon(extension: string) {

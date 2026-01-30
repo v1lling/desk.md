@@ -33,7 +33,7 @@ import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircl
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { useQueryClient } from "@tanstack/react-query";
-import { getWorkspaces, isTauri } from "@/lib/orbit";
+import { getWorkspaces, isTauri } from "@/lib/desk";
 import { checkClaudeCode, type ClaudeCodeStatus } from "@/lib/ai/providers/claude-code";
 import type { Workspace } from "@/types";
 
@@ -242,7 +242,7 @@ export default function SettingsPage() {
                 Appearance
               </CardTitle>
               <CardDescription>
-                Customize how Orbit looks
+                Customize how Desk looks
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -458,7 +458,7 @@ export default function SettingsPage() {
                     id="data-path"
                     value={pendingPath || dataPath}
                     onChange={(e) => setPendingPath(e.target.value)}
-                    placeholder="~/Orbit"
+                    placeholder="~/Desk"
                     className="font-mono text-sm"
                   />
                   <Button
@@ -559,7 +559,7 @@ export default function SettingsPage() {
                 </div>
                 <DialogTitle>Empty Location</DialogTitle>
                 <DialogDescription>
-                  No Orbit data found at this path. You&apos;ll need to create your first workspace.
+                  No Desk data found at this path. You&apos;ll need to create your first workspace.
                 </DialogDescription>
               </>
             )}

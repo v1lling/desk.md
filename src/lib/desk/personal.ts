@@ -7,7 +7,7 @@
  * - Docs: Personal docs (handled by docs.ts)
  *
  * File structure:
- * ~/Orbit/personal/
+ * ~/Desk/personal/
  *   ├── capture/tasks/*.md   # Quick capture
  *   ├── tasks/*.md           # Personal tasks
  *   ├── docs/                 # Personal docs (see docs.ts)
@@ -26,7 +26,7 @@ import {
 } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -46,7 +46,7 @@ export const mockPersonalTasks: Task[] = [
     id: "2024-01-16-book-dentist",
     projectId: "_capture",
     workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/capture/tasks/2024-01-16-book-dentist.md",
+    filePath: "~/Desk/personal/capture/tasks/2024-01-16-book-dentist.md",
     title: "Book dentist appointment",
     status: "todo",
     priority: "low",
@@ -57,7 +57,7 @@ export const mockPersonalTasks: Task[] = [
     id: "2024-01-15-grocery",
     projectId: "_tasks",
     workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/tasks/2024-01-15-grocery.md",
+    filePath: "~/Desk/personal/tasks/2024-01-15-grocery.md",
     title: "Weekly grocery shopping",
     status: "doing",
     created: "2024-01-15",
@@ -67,7 +67,7 @@ export const mockPersonalTasks: Task[] = [
     id: "2024-01-14-gym",
     projectId: "_tasks",
     workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Orbit/personal/tasks/2024-01-14-gym.md",
+    filePath: "~/Desk/personal/tasks/2024-01-14-gym.md",
     title: "Renew gym membership",
     status: "done",
     created: "2024-01-14",
@@ -92,8 +92,8 @@ interface TaskFrontmatter {
 // ============================================================================
 
 async function getPersonalPath(): Promise<string> {
-  const orbitPath = await getOrbitPath();
-  return joinPath(orbitPath, PATH_SEGMENTS.PERSONAL);
+  const deskPath = await getDeskPath();
+  return joinPath(deskPath, PATH_SEGMENTS.PERSONAL);
 }
 
 // ============================================================================
@@ -219,7 +219,7 @@ export async function createPersonalTask(data: {
 
   if (!isTauri()) {
     const dir = data.isCapture ? `${PATH_SEGMENTS.CAPTURE}/${PATH_SEGMENTS.TASKS}` : PATH_SEGMENTS.TASKS;
-    task.filePath = `~/Orbit/${PATH_SEGMENTS.PERSONAL}/${dir}/${filename}`;
+    task.filePath = `~/Desk/${PATH_SEGMENTS.PERSONAL}/${dir}/${filename}`;
     mockPersonalTasks.push(task);
     return task;
   }
@@ -385,10 +385,10 @@ export async function moveCaptureToWorkspace(
   const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
   // Build target path
-  const orbitPath = await getOrbitPath();
+  const deskPath = await getDeskPath();
   const tasksPath = isUnassigned(projectId)
-    ? await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
+    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
+    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
 
   await mkdir(tasksPath);
 

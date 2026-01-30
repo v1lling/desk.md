@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors, taskStatusTextColors } from "@/lib/design-tokens";
-import { calculateTaskStats } from "@/lib/orbit/calculations";
+import { calculateTaskStats } from "@/lib/desk/calculations";
 
 interface ProjectPageClientProps {
   projectId: string;

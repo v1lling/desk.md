@@ -5,7 +5,7 @@ import type { Workspace } from "@/types";
 import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate } from "./parser";
 import {
   isTauri,
-  getOrbitPath,
+  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -32,8 +32,8 @@ export async function getWorkspaces(): Promise<Workspace[]> {
     return mockWorkspaces;
   }
 
-  const orbitPath = await getOrbitPath();
-  const workspacesPath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES);
+  const deskPath = await getDeskPath();
+  const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
 
   // Check if workspaces directory exists
   if (!(await exists(workspacesPath))) {
@@ -74,8 +74,8 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
     return mockWorkspaces.find((w) => w.id === workspaceId) || null;
   }
 
-  const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
+  const deskPath = await getDeskPath();
+  const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
     const content = await readTextFile(workspacePath);
@@ -115,8 +115,8 @@ export async function createWorkspace(data: {
     return workspace;
   }
 
-  const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, data.id);
+  const deskPath = await getDeskPath();
+  const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.id);
 
   // Create workspace directory structure
   await mkdir(workspacePath);
@@ -158,8 +158,8 @@ export async function updateWorkspace(
     return mockWorkspaces[index];
   }
 
-  const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
+  const deskPath = await getDeskPath();
+  const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
     const content = await readTextFile(workspacePath);
@@ -198,8 +198,8 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
     return true;
   }
 
-  const orbitPath = await getOrbitPath();
-  const workspacePath = await joinPath(orbitPath, PATH_SEGMENTS.WORKSPACES, workspaceId);
+  const deskPath = await getDeskPath();
+  const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId);
 
   try {
     await removeDir(workspacePath);

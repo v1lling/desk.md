@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Meeting } from "@/types";
-import * as meetingLib from "@/lib/orbit/meetings";
+import * as meetingLib from "@/lib/desk/meetings";
 
 // Query keys
 export const meetingKeys = {
