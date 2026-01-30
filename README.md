@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" alt="desk.md" width="128" height="128">
+</p>
+
 # desk.md
 
 > Project-centric work management for freelancers and consultants.

@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/desk";
-import { Rocket, FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
+import { FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 import type { Workspace } from "@/types";
 
 type Step = "welcome" | "data-folder" | "existing-detected" | "first-workspace";
@@ -119,8 +120,14 @@ export function SetupWizard() {
         {step === "welcome" && (
           <>
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Rocket className="h-8 w-8 text-primary" />
+              <div className="mx-auto mb-4">
+                <Image
+                  src="/icon.png"
+                  alt="Desk"
+                  width={80}
+                  height={80}
+                  className="rounded-xl"
+                />
               </div>
               <CardTitle className="text-2xl">Welcome to Desk</CardTitle>
               <CardDescription>
