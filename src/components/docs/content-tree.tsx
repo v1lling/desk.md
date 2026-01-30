@@ -15,11 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DocTreeItem } from "./doc-tree-item";
-import type { Doc, DocTreeNode, DocScope } from "@/types";
+import { ContentTreeItem } from "./content-tree-item";
+import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
+import { getNodeKey } from "@/lib/orbit/content";
 
-interface DocTreeProps {
-  nodes: DocTreeNode[];
+interface ContentTreeProps {
+  nodes: FileTreeNode[];
   isLoading?: boolean;
   selectedDocId?: string | null;
   selectedFolderPath?: string | null;
@@ -27,6 +28,7 @@ interface DocTreeProps {
   onSelectFolder?: (folderPath: string) => void;
   onCreateDoc?: (folderPath?: string) => void;
   onDeleteDoc?: (doc: Doc) => void;
+  onDeleteAsset?: (asset: Asset) => void;
   onCreateFolder?: (parentPath: string, name: string) => Promise<void>;
   onRenameFolder?: (path: string, newName: string) => Promise<void>;
   onDeleteFolder?: (path: string) => Promise<void>;
@@ -36,7 +38,7 @@ interface DocTreeProps {
   onExpandedFoldersChange?: (folders: string[]) => void;
 }
 
-export function DocTree({
+export function ContentTree({
   nodes,
   isLoading,
   selectedDocId,
@@ -45,13 +47,14 @@ export function DocTree({
   onSelectFolder,
   onCreateDoc,
   onDeleteDoc,
+  onDeleteAsset,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
   className,
   expandedFolders: controlledExpandedFolders,
   onExpandedFoldersChange,
-}: DocTreeProps) {
+}: ContentTreeProps) {
   // Track expanded folders - use controlled state if provided, otherwise local state
   const [localExpandedFolders, setLocalExpandedFolders] = useState<Set<string>>(
     new Set()
@@ -208,12 +211,8 @@ export function DocTree({
           ) : (
             <div className="py-2 px-1">
               {nodes.map((node) => (
-                <DocTreeItem
-                  key={
-                    node.type === "folder"
-                      ? `folder-${node.folder.path}`
-                      : `doc-${node.doc.id}`
-                  }
+                <ContentTreeItem
+                  key={getNodeKey(node)}
                   node={node}
                   selectedDocId={selectedDocId}
                   selectedFolderPath={selectedFolderPath}
@@ -226,6 +225,7 @@ export function DocTree({
                   onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
                   onNewDocInFolder={onCreateDoc}
                   onDeleteDoc={onDeleteDoc}
+                  onDeleteAsset={onDeleteAsset}
                 />
               ))}
             </div>

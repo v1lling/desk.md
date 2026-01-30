@@ -21,13 +21,13 @@ import {
 import { Loader2, Folder } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace } from "@/stores";
 import { toast } from "sonner";
-import type { DocScope } from "@/types";
+import type { ContentScope } from "@/types";
 
 interface NewDocModalProps {
   open: boolean;
   onClose: () => void;
   defaultProjectId?: string;
-  defaultScope?: DocScope;
+  defaultScope?: ContentScope;
   defaultWorkspaceId?: string;
   defaultFolderPath?: string;
 }

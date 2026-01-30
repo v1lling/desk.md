@@ -4,19 +4,19 @@ import { useState, useCallback, type ReactNode, type DragEvent } from "react";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 
-interface DocDropZoneProps {
+interface ContentDropZoneProps {
   onFilesDropped: (files: File[]) => void;
   children: ReactNode;
   className?: string;
   disabled?: boolean;
 }
 
-export function DocDropZone({
+export function ContentDropZone({
   onFilesDropped,
   children,
   className,
   disabled = false,
-}: DocDropZoneProps) {
+}: ContentDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragEnter = useCallback(
@@ -75,16 +75,9 @@ export function DocDropZone({
 
       const files = Array.from(e.dataTransfer.files);
 
-      // Filter to only .md files
-      const mdFiles = files.filter(
-        (file) =>
-          file.name.endsWith(".md") ||
-          file.name.endsWith(".markdown") ||
-          file.name.endsWith(".txt")
-      );
-
-      if (mdFiles.length > 0) {
-        onFilesDropped(mdFiles);
+      // Accept all files (no filtering)
+      if (files.length > 0) {
+        onFilesDropped(files);
       }
     },
     [disabled, onFilesDropped]
@@ -107,7 +100,7 @@ export function DocDropZone({
             <Upload className="size-8" />
             <p className="text-sm font-medium">Drop files to import</p>
             <p className="text-xs text-muted-foreground">
-              .md, .markdown, or .txt files
+              Any file type supported
             </p>
           </div>
         </div>

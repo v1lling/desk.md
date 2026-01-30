@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
-import { DocExplorer, type DocExplorerScope, type DocExplorerRef } from "@/components/docs";
+import { ContentExplorer, type ContentExplorerScope, type ContentExplorerRef } from "@/components/docs";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { TabbedPage, TabsContent, type TabConfig } from "@/components/patterns";
 import {
@@ -16,7 +16,7 @@ import {
   useProjectMeetings,
   useCurrentWorkspace,
   useViewMode,
-  useDocTree,
+  useContentTree,
   useOpenTab,
 } from "@/stores";
 import type { Task, Meeting } from "@/types";
@@ -49,7 +49,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
     projectId
   );
   const { data: tasks = [] } = useProjectTasks(currentWorkspaceId, projectId);
-  const { data: docTree = [] } = useDocTree("project", currentWorkspaceId, projectId);
+  const { data: docTree = [] } = useContentTree("project", currentWorkspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(currentWorkspaceId, projectId);
   // Count docs in tree
   const docCount = useMemo(() => {
@@ -71,7 +71,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   const [activeTab, setActiveTab] = useState("tasks");
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewMeeting, setShowNewMeeting] = useState(false);
-  const docExplorerRef = useRef<DocExplorerRef>(null);
+  const contentExplorerRef = useRef<ContentExplorerRef>(null);
 
   // Handle ?meeting= query param from search navigation
   useEffect(() => {
@@ -96,8 +96,8 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
   // Calculate task stats using extracted utility
   const taskStats = calculateTaskStats(tasks);
 
-  // DocExplorer scope for this project
-  const docScopes: DocExplorerScope[] = useMemo(() => {
+  // ContentExplorer scope for this project
+  const contentScopes: ContentExplorerScope[] = useMemo(() => {
     if (!currentWorkspaceId) return [];
     return [
       {
@@ -143,13 +143,13 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => docExplorerRef.current?.triggerImport()}
+              onClick={() => contentExplorerRef.current?.triggerImport()}
               className="gap-1.5 text-muted-foreground hover:text-foreground"
             >
               <Upload className="h-4 w-4" />
               Import
             </Button>
-            <Button size="sm" onClick={() => docExplorerRef.current?.triggerNewDoc()}>
+            <Button size="sm" onClick={() => contentExplorerRef.current?.triggerNewDoc()}>
               <Plus className="h-4 w-4" />
               New Doc
             </Button>
@@ -314,7 +314,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
         {/* Docs Tab */}
         <TabsContent value="docs" className="flex-1 mt-0 overflow-hidden">
-          <DocExplorer ref={docExplorerRef} scopes={docScopes} hideToolbar />
+          <ContentExplorer ref={contentExplorerRef} scopes={contentScopes} hideToolbar />
         </TabsContent>
 
         {/* Meetings Tab */}

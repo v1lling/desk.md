@@ -11,45 +11,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DocTree } from "./doc-tree";
+import { ContentTree } from "./content-tree";
 import { NewDocModal } from "./new-doc-modal";
-import { DocDropZone } from "./doc-drop-zone";
+import { ContentDropZone } from "./content-drop-zone";
 import {
-  useDocTree,
-  useCreateDocFolder,
-  useRenameDocFolder,
-  useDeleteDocFolder,
+  useContentTree,
+  useCreateFolder,
+  useRenameFolder,
+  useDeleteFolder,
   useDeleteDoc,
-  useExpandedDocFolders,
-  useImportDocs,
+  useDeleteAsset,
+  useExpandedFolders,
+  useImportFiles,
   useOpenTab,
   PERSONAL_SPACE_ID,
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import type { Doc, DocScope } from "@/types";
+import type { Doc, ContentScope, Asset } from "@/types";
+import { isMarkdownFile } from "@/lib/orbit/file-utils";
+import { extractDocs, extractAssets } from "@/lib/orbit/content";
 
-export interface DocExplorerScope {
+export interface ContentExplorerScope {
   id: string;
   label: string;
-  scope: DocScope;
+  scope: ContentScope;
   workspaceId?: string;
   projectId?: string;
   /** Mark as workspace-level scope (for visual differentiation) */
   isWorkspaceLevel?: boolean;
 }
 
-/** Ref handle for DocExplorer - allows parent to trigger actions when toolbar is hidden */
-export interface DocExplorerRef {
+/** Ref handle for ContentExplorer - allows parent to trigger actions when toolbar is hidden */
+export interface ContentExplorerRef {
   /** Trigger file import dialog */
   triggerImport: () => void;
   /** Trigger new doc modal */
   triggerNewDoc: (folderPath?: string) => void;
 }
 
-interface DocExplorerProps {
+interface ContentExplorerProps {
   /** Available scopes to show in dropdown. If only one, no dropdown shown. */
-  scopes: DocExplorerScope[];
+  scopes: ContentExplorerScope[];
   /** Initially selected scope ID */
   defaultScopeId?: string;
   /** Callback when scope changes */
@@ -61,12 +64,12 @@ interface DocExplorerProps {
 }
 
 /**
- * DocExplorer - Full-width doc browser with scope selector
+ * ContentExplorer - Full-width content browser with scope selector
  *
- * Docs open in tabs when clicked. This component is purely for navigation.
+ * Docs open in tabs when clicked. Assets open externally. This component is purely for navigation.
  * Use ref to trigger import/new doc when toolbar is hidden.
  */
-export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function DocExplorer({
+export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerProps>(function ContentExplorer({
   scopes,
   defaultScopeId,
   onScopeChange,
@@ -83,38 +86,30 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
     [scopes, selectedScopeId]
   );
 
-  // Doc tree data for selected scope
-  const { data: tree = [], isLoading } = useDocTree(
+  // Content tree data for selected scope
+  const { data: tree = [], isLoading } = useContentTree(
     selectedScope?.scope || "personal",
     selectedScope?.workspaceId,
     selectedScope?.projectId
   );
 
-  // Count docs in tree
-  const docCount = useMemo(() => {
-    const count = (nodes: typeof tree): number =>
-      nodes.reduce((acc, node) => {
-        if (node.type === "doc") return acc + 1;
-        if (node.type === "folder" && node.folder.children) {
-          return acc + count(node.folder.children);
-        }
-        return acc;
-      }, 0);
-    return count(tree);
-  }, [tree]);
+  // Count docs and assets in tree (using shared utility functions)
+  const docCount = useMemo(() => extractDocs(tree).length, [tree]);
+  const assetCount = useMemo(() => extractAssets(tree).length, [tree]);
 
   // Expanded folders state - use PERSONAL_SPACE_ID for personal scope
-  const { expandedFolders, setExpandedFolders } = useExpandedDocFolders(
+  const { expandedFolders, setExpandedFolders } = useExpandedFolders(
     selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_SPACE_ID : null),
     selectedScope?.projectId || null
   );
 
   // Mutations
-  const createFolder = useCreateDocFolder();
-  const renameFolder = useRenameDocFolder();
-  const deleteFolder = useDeleteDocFolder();
+  const createFolder = useCreateFolder();
+  const renameFolder = useRenameFolder();
+  const deleteFolder = useDeleteFolder();
   const deleteDoc = useDeleteDoc();
-  const importDocs = useImportDocs();
+  const deleteAsset = useDeleteAsset();
+  const importFiles = useImportFiles();
   const { openDoc } = useOpenTab();
 
   // Local state
@@ -124,6 +119,7 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null);
   const [deleteDocConfirm, setDeleteDocConfirm] = useState<Doc | null>(null);
+  const [deleteAssetConfirm, setDeleteAssetConfirm] = useState<Asset | null>(null);
 
   // Handle scope change
   const handleScopeChange = useCallback(
@@ -211,6 +207,22 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
     setDeleteDocConfirm(null);
   }, [deleteDocConfirm, deleteDoc, selectedDocId]);
 
+  const handleDeleteAsset = useCallback((asset: Asset) => {
+    setDeleteAssetConfirm(asset);
+  }, []);
+
+  const handleDeleteAssetConfirm = useCallback(async () => {
+    if (!deleteAssetConfirm) return;
+    try {
+      await deleteAsset.mutateAsync(deleteAssetConfirm);
+      toast.success("File deleted");
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      toast.error("Failed to delete file");
+    }
+    setDeleteAssetConfirm(null);
+  }, [deleteAssetConfirm, deleteAsset]);
+
   const handleCreateDocInFolder = useCallback((folderPath?: string) => {
     setNewDocFolderPath(folderPath);
     setShowNewDoc(true);
@@ -227,27 +239,39 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
       if (!selectedScope) return;
 
       try {
+        // Read files: markdown as text, others as binary
         const fileContents = await Promise.all(
           files.map(async (file) => ({
             name: file.name,
-            content: await file.text(),
+            content: isMarkdownFile(file.name)
+              ? await file.text()
+              : new Uint8Array(await file.arrayBuffer()),
           }))
         );
 
-        await importDocs.mutateAsync({
+        const result = await importFiles.mutateAsync({
           files: fileContents,
           scope: selectedScope.scope,
           workspaceId: selectedScope.workspaceId,
           projectId: selectedScope.projectId,
         });
 
-        toast.success(`Imported ${files.length} doc${files.length > 1 ? "s" : ""}`);
+        // Show success message with counts
+        const importedDocs = result.docs.length;
+        const importedAssets = result.assets.length;
+        if (importedDocs > 0 && importedAssets > 0) {
+          toast.success(`Imported ${importedDocs} doc${importedDocs > 1 ? "s" : ""} and ${importedAssets} file${importedAssets > 1 ? "s" : ""}`);
+        } else if (importedDocs > 0) {
+          toast.success(`Imported ${importedDocs} doc${importedDocs > 1 ? "s" : ""}`);
+        } else if (importedAssets > 0) {
+          toast.success(`Imported ${importedAssets} file${importedAssets > 1 ? "s" : ""}`);
+        }
       } catch (error) {
-        console.error("Failed to import docs:", error);
-        toast.error("Failed to import docs");
+        console.error("Failed to import files:", error);
+        toast.error("Failed to import files");
       }
     },
-    [selectedScope, importDocs]
+    [selectedScope, importFiles]
   );
 
   // Trigger file input for import
@@ -255,7 +279,7 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.accept = ".md,.txt,.markdown";
+    // Accept all files
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
@@ -277,7 +301,7 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
   }), [handleImportClick]);
 
   return (
-    <DocDropZone
+    <ContentDropZone
       onFilesDropped={handleFilesDropped}
       className={cn("flex flex-col h-full", className)}
     >
@@ -323,6 +347,7 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
           {/* Doc count */}
           <span className="text-xs text-muted-foreground">
             {docCount} {docCount === 1 ? "doc" : "docs"}
+            {assetCount > 0 && `, ${assetCount} ${assetCount === 1 ? "file" : "files"}`}
           </span>
 
           {/* Spacer */}
@@ -350,8 +375,8 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
         </div>
       )}
 
-      {/* Doc tree - full width */}
-      <DocTree
+      {/* Content tree - full width */}
+      <ContentTree
         className="flex-1 min-h-0 px-6 py-4"
         nodes={tree}
         isLoading={isLoading}
@@ -361,6 +386,7 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
         onSelectFolder={handleFolderSelect}
         onCreateDoc={handleCreateDocInFolder}
         onDeleteDoc={handleDeleteDoc}
+        onDeleteAsset={handleDeleteAsset}
         onCreateFolder={handleCreateFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
@@ -388,6 +414,17 @@ export const DocExplorer = forwardRef<DocExplorerRef, DocExplorerProps>(function
         variant="destructive"
         onConfirm={handleDeleteDocConfirm}
       />
-    </DocDropZone>
+
+      {/* Delete asset confirmation */}
+      <ConfirmDialog
+        open={!!deleteAssetConfirm}
+        onOpenChange={(open) => !open && setDeleteAssetConfirm(null)}
+        title="Delete File"
+        description={`Delete "${deleteAssetConfirm?.id}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteAssetConfirm}
+      />
+    </ContentDropZone>
   );
 });

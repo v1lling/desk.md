@@ -1,8 +1,8 @@
 "use client";
 
-import { DocExplorer, type DocExplorerScope } from "@/components/docs";
+import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
 
-const personalScope: DocExplorerScope[] = [
+const personalScope: ContentExplorerScope[] = [
   {
     id: "personal",
     label: "Personal",
@@ -14,7 +14,7 @@ export default function PersonalDocsPage() {
   return (
     <div className="flex flex-col h-full">
       <main className="flex-1 h-full overflow-hidden">
-        <DocExplorer scopes={personalScope} />
+        <ContentExplorer scopes={personalScope} />
       </main>
     </div>
   );

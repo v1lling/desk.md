@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ChatMessage } from "./chat-message";
 import { DocSelector } from "./doc-selector";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
-import { useAllWorkspaceDocs } from "@/stores/docs";
+import { useAllWorkspaceDocs } from "@/stores/content";
 import { useSettingsStore } from "@/stores/settings";
 import type { AIContext } from "@/lib/ai";
 

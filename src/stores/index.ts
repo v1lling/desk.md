@@ -36,17 +36,19 @@ export {
   useCreateDoc,
   useUpdateDoc,
   useDeleteDoc,
+  useDeleteAsset,
   useMoveDocToProject,
-  docKeys,
+  useAllWorkspaceDocs,
+  contentKeys,
   // Tree-based hooks
-  useDocTree,
-  useCreateDocFolder,
-  useRenameDocFolder,
-  useDeleteDocFolder,
+  useContentTree,
+  useCreateFolder,
+  useRenameFolder,
+  useDeleteFolder,
   useMoveDoc,
   useCreateDocInFolder,
-  useImportDocs,
-} from "./docs";
+  useImportFiles,
+} from "./content";
 export {
   useMeetings,
   useProjectMeetings,
@@ -62,7 +64,7 @@ export {
   useRemoveTaskFromOrder,
   useViewMode,
   usePersonalViewMode,
-  useExpandedDocFolders,
+  useExpandedFolders,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";

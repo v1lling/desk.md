@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { DocExplorer, type DocExplorerScope } from "@/components/docs";
+import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
 import { useProjects, useCurrentWorkspace } from "@/stores";
 
 export function DocsPageClient() {
@@ -10,10 +10,10 @@ export function DocsPageClient() {
   const { data: projects = [] } = useProjects(currentWorkspaceId);
 
   // Build scopes: Workspace-level + all projects (sorted alphabetically)
-  const scopes: DocExplorerScope[] = useMemo(() => {
+  const scopes: ContentExplorerScope[] = useMemo(() => {
     if (!currentWorkspaceId || !currentWorkspace) return [];
 
-    const scopeList: DocExplorerScope[] = [
+    const scopeList: ContentExplorerScope[] = [
       {
         id: "_workspace",
         label: `${currentWorkspace.name} (Workspace)`,
@@ -54,7 +54,7 @@ export function DocsPageClient() {
   return (
     <div className="flex flex-col h-full">
       <main className="flex-1 h-full overflow-hidden">
-        <DocExplorer scopes={scopes} defaultScopeId="_shared" />
+        <ContentExplorer scopes={scopes} defaultScopeId="_shared" />
       </main>
     </div>
   );

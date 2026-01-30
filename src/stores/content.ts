@@ -1,18 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Doc, DocScope } from "@/types";
-import * as docLib from "@/lib/orbit/docs";
+import type { Doc, ContentScope, Asset } from "@/types";
+import * as contentLib from "@/lib/orbit/content";
 
-// Query keys
-export const docKeys = {
-  all: ["docs"] as const,
-  byWorkspace: (workspaceId: string) => [...docKeys.all, "workspace", workspaceId] as const,
+// Query keys for content (docs, assets, folders)
+export const contentKeys = {
+  all: ["content"] as const,
+  byWorkspace: (workspaceId: string) => [...contentKeys.all, "workspace", workspaceId] as const,
   byProject: (workspaceId: string, projectId: string) =>
-    [...docKeys.byWorkspace(workspaceId), "project", projectId] as const,
+    [...contentKeys.byWorkspace(workspaceId), "project", projectId] as const,
   detail: (workspaceId: string, docId: string) =>
-    [...docKeys.byWorkspace(workspaceId), "detail", docId] as const,
-  // Tree keys for scoped doc trees
-  tree: (scope: DocScope, workspaceId?: string, projectId?: string) =>
-    [...docKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
+    [...contentKeys.byWorkspace(workspaceId), "detail", docId] as const,
+  // Tree keys for scoped content trees
+  tree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
+    [...contentKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
 };
 
 /**
@@ -20,10 +20,10 @@ export const docKeys = {
  */
 export function useDocs(workspaceId: string | null) {
   return useQuery({
-    queryKey: docKeys.byWorkspace(workspaceId || ""),
+    queryKey: contentKeys.byWorkspace(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return docLib.getDocs(workspaceId);
+      return contentLib.getDocs(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -34,10 +34,10 @@ export function useDocs(workspaceId: string | null) {
  */
 export function useProjectDocs(workspaceId: string | null, projectId: string | null) {
   return useQuery({
-    queryKey: docKeys.byProject(workspaceId || "", projectId || ""),
+    queryKey: contentKeys.byProject(workspaceId || "", projectId || ""),
     queryFn: async () => {
       if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return docLib.getDocsByProject(workspaceId, projectId);
+      return contentLib.getDocsByProject(workspaceId, projectId);
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -48,10 +48,10 @@ export function useProjectDocs(workspaceId: string | null, projectId: string | n
  */
 export function useDoc(workspaceId: string | null, docId: string | null) {
   return useQuery({
-    queryKey: docKeys.detail(workspaceId || "", docId || ""),
+    queryKey: contentKeys.detail(workspaceId || "", docId || ""),
     queryFn: async () => {
       if (!workspaceId || !docId) throw new Error("workspaceId and docId are required");
-      return docLib.getDoc(workspaceId, docId);
+      return contentLib.getDoc(workspaceId, docId);
     },
     enabled: !!workspaceId && !!docId,
   });
@@ -69,10 +69,10 @@ export function useCreateDoc() {
       projectId: string;
       title: string;
       content?: string;
-    }) => docLib.createDoc(data),
+    }) => contentLib.createDoc(data),
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.byWorkspace(newDoc.workspaceId),
+        queryKey: contentKeys.byWorkspace(newDoc.workspaceId),
       });
     },
   });
@@ -92,11 +92,11 @@ export function useUpdateDoc() {
     }: {
       doc: Doc;
       updates: Partial<Pick<Doc, "title" | "content">>;
-    }) => docLib.updateDoc(doc, updates),
+    }) => contentLib.updateDoc(doc, updates),
     onSuccess: (updatedDoc) => {
       if (updatedDoc) {
         // Invalidate all doc queries since we support multiple scopes
-        queryClient.invalidateQueries({ queryKey: docKeys.all });
+        queryClient.invalidateQueries({ queryKey: contentKeys.all });
       }
     },
   });
@@ -110,11 +110,28 @@ export function useDeleteDoc() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (doc: Doc) => docLib.deleteDoc(doc),
+    mutationFn: (doc: Doc) => contentLib.deleteDoc(doc),
     onSuccess: (success) => {
       if (success) {
         // Invalidate all doc queries since we support multiple scopes
-        queryClient.invalidateQueries({ queryKey: docKeys.all });
+        queryClient.invalidateQueries({ queryKey: contentKeys.all });
+      }
+    },
+  });
+}
+
+/**
+ * Hook to delete an asset (non-markdown file)
+ */
+export function useDeleteAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (asset: Asset) => contentLib.deleteAsset(asset),
+    onSuccess: (success) => {
+      if (success) {
+        // Invalidate all doc queries to refresh tree
+        queryClient.invalidateQueries({ queryKey: contentKeys.all });
       }
     },
   });
@@ -137,11 +154,11 @@ export function useMoveDocToProject() {
       workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => docLib.moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
+    }) => contentLib.moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
       // Invalidate workspace docs to refresh the lists
       queryClient.invalidateQueries({
-        queryKey: docKeys.byWorkspace(variables.workspaceId),
+        queryKey: contentKeys.byWorkspace(variables.workspaceId),
       });
     },
   });
@@ -153,24 +170,24 @@ export function useMoveDocToProject() {
  */
 export function useAllWorkspaceDocs(workspaceId: string | null) {
   return useQuery({
-    queryKey: [...docKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
+    queryKey: [...contentKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return docLib.getAllDocsForWorkspace(workspaceId);
+      return contentLib.getAllDocsForWorkspace(workspaceId);
     },
     enabled: !!workspaceId,
   });
 }
 
 // ============================================================================
-// Tree-based hooks for scoped doc trees
+// Tree-based hooks for scoped content trees
 // ============================================================================
 
 /**
- * Hook to fetch a doc tree for a given scope
+ * Hook to fetch a content tree for a given scope
  */
-export function useDocTree(
-  scope: DocScope,
+export function useContentTree(
+  scope: ContentScope,
   workspaceId?: string | null,
   projectId?: string | null
 ) {
@@ -180,9 +197,9 @@ export function useDocTree(
     (scope === "project" && !!workspaceId && !!projectId);
 
   return useQuery({
-    queryKey: docKeys.tree(scope, workspaceId || undefined, projectId || undefined),
+    queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined),
     queryFn: () =>
-      docLib.getDocTree(
+      contentLib.getContentTree(
         scope,
         workspaceId || undefined,
         projectId || undefined
@@ -192,9 +209,9 @@ export function useDocTree(
 }
 
 /**
- * Hook to create a folder in the doc tree
+ * Hook to create a folder in the content tree
  */
-export function useCreateDocFolder() {
+export function useCreateFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -204,14 +221,14 @@ export function useCreateDocFolder() {
       workspaceId,
       projectId,
     }: {
-      scope: DocScope;
+      scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.createDocFolder(scope, folderPath, workspaceId, projectId),
+    }) => contentLib.createFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -222,9 +239,9 @@ export function useCreateDocFolder() {
 }
 
 /**
- * Hook to rename a folder in the doc tree
+ * Hook to rename a folder in the content tree
  */
-export function useRenameDocFolder() {
+export function useRenameFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -235,15 +252,15 @@ export function useRenameDocFolder() {
       workspaceId,
       projectId,
     }: {
-      scope: DocScope;
+      scope: ContentScope;
       oldPath: string;
       newName: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.renameDocFolder(scope, oldPath, newName, workspaceId, projectId),
+    }) => contentLib.renameFolder(scope, oldPath, newName, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -254,9 +271,9 @@ export function useRenameDocFolder() {
 }
 
 /**
- * Hook to delete a folder from the doc tree
+ * Hook to delete a folder from the content tree
  */
-export function useDeleteDocFolder() {
+export function useDeleteFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -266,14 +283,14 @@ export function useDeleteDocFolder() {
       workspaceId,
       projectId,
     }: {
-      scope: DocScope;
+      scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.deleteDocFolder(scope, folderPath, workspaceId, projectId),
+    }) => contentLib.deleteFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -298,16 +315,16 @@ export function useMoveDoc() {
       workspaceId,
       projectId,
     }: {
-      scope: DocScope;
+      scope: ContentScope;
       docId: string;
       fromPath: string;
       toPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.moveDoc(scope, docId, fromPath, toPath, workspaceId, projectId),
+    }) => contentLib.moveDoc(scope, docId, fromPath, toPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -325,16 +342,16 @@ export function useCreateDocInFolder() {
 
   return useMutation({
     mutationFn: (data: {
-      scope: DocScope;
+      scope: ContentScope;
       title: string;
       content?: string;
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.createDocInFolder(data),
+    }) => contentLib.createDocInFolder(data),
     onSuccess: (_newDoc, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -343,7 +360,7 @@ export function useCreateDocInFolder() {
       // Also invalidate the flat list queries for backward compatibility
       if (variables.workspaceId) {
         queryClient.invalidateQueries({
-          queryKey: docKeys.byWorkspace(variables.workspaceId),
+          queryKey: contentKeys.byWorkspace(variables.workspaceId),
         });
       }
     },
@@ -351,9 +368,11 @@ export function useCreateDocInFolder() {
 }
 
 /**
- * Hook to import multiple docs from file contents
+ * Hook to import files (docs and assets)
+ * - Markdown files are imported as editable docs
+ * - Other files are copied as assets (binary)
  */
-export function useImportDocs() {
+export function useImportFiles() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -364,15 +383,15 @@ export function useImportDocs() {
       workspaceId,
       projectId,
     }: {
-      files: Array<{ name: string; content: string }>;
-      scope: DocScope;
+      files: Array<{ name: string; content: string | Uint8Array }>;
+      scope: ContentScope;
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
-    }) => docLib.importDocs(files, scope, folderPath, workspaceId, projectId),
+    }) => contentLib.importFiles(files, scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: docKeys.tree(
+        queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId
@@ -381,7 +400,7 @@ export function useImportDocs() {
       // Also invalidate the flat list queries
       if (variables.workspaceId) {
         queryClient.invalidateQueries({
-          queryKey: docKeys.byWorkspace(variables.workspaceId),
+          queryKey: contentKeys.byWorkspace(variables.workspaceId),
         });
       }
     },

@@ -6,13 +6,25 @@ import {
   ChevronRight,
   ChevronDown,
   FileText,
+  File,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileSpreadsheet,
+  FileArchive,
+  FileCode,
+  FileType,
   Folder,
   FolderOpen,
   MoreHorizontal,
   Pencil,
   Trash2,
   FolderPlus,
+  ExternalLink,
 } from "lucide-react";
+import { getFileCategory, type FileCategory } from "@/lib/orbit/file-utils";
+import { isTauri } from "@/lib/orbit/tauri-fs";
+import { toast } from "sonner";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -28,10 +40,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { Doc, DocTreeNode } from "@/types";
+import type { Doc, FileTreeNode, Asset } from "@/types";
+import { getNodeKey } from "@/lib/orbit/content";
 
-interface DocTreeItemProps {
-  node: DocTreeNode;
+// Get icon component based on file category
+function getFileIcon(extension: string) {
+  const category = getFileCategory(extension);
+  switch (category) {
+    case 'image': return FileImage;
+    case 'video': return FileVideo;
+    case 'audio': return FileAudio;
+    case 'spreadsheet': return FileSpreadsheet;
+    case 'archive': return FileArchive;
+    case 'code': return FileCode;
+    case 'data': return FileCode;
+    case 'document': return FileType;
+    case 'presentation': return FileType;
+    default: return File;
+  }
+}
+
+interface ContentTreeItemProps {
+  node: FileTreeNode;
   depth?: number;
   selectedDocId?: string | null;
   selectedFolderPath?: string | null;
@@ -44,6 +74,7 @@ interface DocTreeItemProps {
   onNewSubfolder?: (parentPath: string) => void;
   onNewDocInFolder?: (folderPath: string) => void;
   onDeleteDoc?: (doc: Doc) => void;
+  onDeleteAsset?: (asset: Asset) => void;
 }
 
 // Indent guide component - renders vertical lines for tree hierarchy
@@ -63,7 +94,7 @@ function IndentGuides({ depth }: { depth: number }) {
   );
 }
 
-export function DocTreeItem({
+export function ContentTreeItem({
   node,
   depth = 0,
   selectedDocId,
@@ -77,7 +108,8 @@ export function DocTreeItem({
   onNewSubfolder,
   onNewDocInFolder,
   onDeleteDoc,
-}: DocTreeItemProps) {
+  onDeleteAsset,
+}: ContentTreeItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const paddingLeft = depth * 16 + 8;
 
@@ -235,12 +267,8 @@ export function DocTreeItem({
         {isExpanded && folder.children.length > 0 && (
           <div>
             {folder.children.map((child) => (
-              <DocTreeItem
-                key={
-                  child.type === "folder"
-                    ? `folder-${child.folder.path}`
-                    : `doc-${child.doc.id}`
-                }
+              <ContentTreeItem
+                key={getNodeKey(child)}
                 node={child}
                 depth={depth + 1}
                 selectedDocId={selectedDocId}
@@ -254,10 +282,107 @@ export function DocTreeItem({
                 onNewSubfolder={onNewSubfolder}
                 onNewDocInFolder={onNewDocInFolder}
                 onDeleteDoc={onDeleteDoc}
+                onDeleteAsset={onDeleteAsset}
               />
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Asset node (non-markdown file)
+  if (node.type === "asset") {
+    const asset = node.asset;
+    const Icon = getFileIcon(asset.extension);
+
+    const handleOpenExternal = async () => {
+      try {
+        if (isTauri()) {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("open_file_with_default_app", { path: asset.filePath });
+        } else {
+          // Browser fallback - can't open local files
+          toast.error("Cannot open files in browser mode");
+        }
+      } catch (error) {
+        console.error("Failed to open file:", error);
+        toast.error("Could not open file");
+      }
+    };
+
+    return (
+      <div className="relative">
+        <IndentGuides depth={depth} />
+
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div
+              className="py-0.5"
+              style={{ paddingLeft: paddingLeft + 20 }}
+            >
+              <div
+                className={cn(
+                  "group inline-flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer",
+                  "hover:bg-accent/50 transition-colors"
+                )}
+                onClick={handleOpenExternal}
+              >
+                <Icon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm truncate max-w-[200px]">{asset.id}</span>
+                {onDeleteAsset && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="size-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={handleOpenExternal}>
+                        <ExternalLink className="size-4 mr-2" />
+                        Open in Default App
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteAsset(asset);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem onClick={handleOpenExternal}>
+              <ExternalLink className="size-4 mr-2" />
+              Open in Default App
+            </ContextMenuItem>
+            {onDeleteAsset && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onClick={() => onDeleteAsset(asset)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="size-4 mr-2" />
+                  Delete
+                </ContextMenuItem>
+              </>
+            )}
+          </ContextMenuContent>
+        </ContextMenu>
       </div>
     );
   }

@@ -178,13 +178,13 @@ export function usePersonalViewMode() {
 }
 
 /**
- * Hook to get/set expanded doc folders for tree view
+ * Hook to get/set expanded folders for content tree view
  * Returns the current expanded folders and a function to update them
  *
  * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal space)
  * @param projectId - The project ID, or null for workspace-level
  */
-export function useExpandedDocFolders(
+export function useExpandedFolders(
   workspaceId: string | null,
   projectId: string | null
 ) {
@@ -193,14 +193,14 @@ export function useExpandedDocFolders(
 
   // Memoize to avoid creating new array reference when viewState is undefined
   const expandedFolders = useMemo(
-    () => viewState?.expandedDocFolders ?? [],
-    [viewState?.expandedDocFolders]
+    () => viewState?.expandedFolders ?? [],
+    [viewState?.expandedFolders]
   );
 
   const mutation = useMutation({
     mutationFn: async (folders: string[]) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.setExpandedDocFolders(workspaceId, projectId, folders);
+      return viewStateLib.setExpandedFolders(workspaceId, projectId, folders);
     },
     onMutate: async (folders) => {
       if (!workspaceId) return;
@@ -217,7 +217,7 @@ export function useExpandedDocFolders(
         viewStateKeys.byScope(workspaceId, projectId),
         (old) => ({
           ...old,
-          expandedDocFolders: folders,
+          expandedFolders: folders,
         })
       );
 

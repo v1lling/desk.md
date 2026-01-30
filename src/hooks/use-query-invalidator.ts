@@ -23,7 +23,7 @@ import {
 } from "@/lib/orbit/watcher";
 import {
   taskKeys,
-  docKeys,
+  contentKeys,
   meetingKeys,
   projectKeys,
   workspaceKeys,
@@ -271,18 +271,18 @@ function invalidateQueriesForChanges(
         for (const workspaceId of affectedWorkspaces) {
           // Flat doc list
           queryClient.invalidateQueries({
-            queryKey: docKeys.byWorkspace(workspaceId),
+            queryKey: contentKeys.byWorkspace(workspaceId),
           });
           // Workspace-level doc tree
           queryClient.invalidateQueries({
-            queryKey: docKeys.tree("workspace", workspaceId, undefined),
+            queryKey: contentKeys.tree("workspace", workspaceId, undefined),
           });
           // Project-level doc trees
           const projects = affectedProjects.get(workspaceId);
           if (projects) {
             for (const projectId of projects) {
               queryClient.invalidateQueries({
-                queryKey: docKeys.tree("project", workspaceId, projectId),
+                queryKey: contentKeys.tree("project", workspaceId, projectId),
               });
             }
           }
@@ -290,7 +290,7 @@ function invalidateQueriesForChanges(
         // Personal docs tree
         if (hasPersonalChanges) {
           queryClient.invalidateQueries({
-            queryKey: docKeys.tree("personal", undefined, undefined),
+            queryKey: contentKeys.tree("personal", undefined, undefined),
           });
         }
         break;
@@ -338,7 +338,7 @@ function invalidateQueriesForChanges(
               queryKey: taskKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: docKeys.byWorkspace(workspaceId),
+              queryKey: contentKeys.byWorkspace(workspaceId),
             });
             queryClient.invalidateQueries({
               queryKey: meetingKeys.byWorkspace(workspaceId),
@@ -353,7 +353,7 @@ function invalidateQueriesForChanges(
             queryKey: personalKeys.all,
           });
           queryClient.invalidateQueries({
-            queryKey: docKeys.tree("personal", undefined, undefined),
+            queryKey: contentKeys.tree("personal", undefined, undefined),
           });
         }
         break;

@@ -40,7 +40,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed structure, file pa
 type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done';
 type TaskPriority = 'low' | 'medium' | 'high';
 type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
-type DocScope = 'personal' | 'workspace' | 'project';
+type ContentScope = 'personal' | 'workspace' | 'project';
 ```
 
 ## Key Directories

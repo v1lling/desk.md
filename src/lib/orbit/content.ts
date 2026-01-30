@@ -1,7 +1,8 @@
 /**
- * Docs library - File system operations for docs
+ * Content library - File system operations for docs, assets, and folders
  */
-import type { Doc, DocFolder, DocTreeNode, DocScope } from "@/types";
+import type { Doc, ContentFolder, FileTreeNode, ContentScope, Asset } from "@/types";
+import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
@@ -25,6 +26,41 @@ import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
 interface DocFrontmatter {
   title: string;
   created: string;
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Generate a unique key for a tree node (for React rendering)
+ */
+export function getNodeKey(node: FileTreeNode): string {
+  switch (node.type) {
+    case 'folder':
+      return `folder-${node.folder.path}`;
+    case 'doc':
+      return `doc-${node.doc.id}`;
+    case 'asset':
+      return `asset-${node.asset.path}`;
+  }
+}
+
+/**
+ * Delete a file at a given path (shared logic for docs and assets)
+ */
+async function deleteFileAtPath(filePath: string): Promise<boolean> {
+  if (!isTauri()) {
+    return true;
+  }
+
+  if (!(await exists(filePath))) {
+    console.error(`File not found: ${filePath}`);
+    return false;
+  }
+
+  await removeFile(filePath);
+  return true;
 }
 
 
@@ -178,12 +214,6 @@ export async function deleteDoc(doc: Doc): Promise<boolean> {
     return true;
   }
 
-  // Use the file path directly
-  if (!(await exists(doc.filePath))) {
-    console.error(`Doc file not found: ${doc.filePath}`);
-    return false;
-  }
-
   // Notify editor if file was open
   const registry = useOpenEditorRegistry.getState();
   if (registry.isOpen(doc.filePath)) {
@@ -191,8 +221,14 @@ export async function deleteDoc(doc: Doc): Promise<boolean> {
     publishDeleted(doc.filePath);
   }
 
-  await removeFile(doc.filePath);
-  return true;
+  return deleteFileAtPath(doc.filePath);
+}
+
+/**
+ * Delete an asset (non-markdown file)
+ */
+export async function deleteAsset(asset: Asset): Promise<boolean> {
+  return deleteFileAtPath(asset.filePath);
 }
 
 /**
@@ -283,10 +319,10 @@ export async function moveDocToProject(
 // ============================================================================
 
 /**
- * Get the base docs path for a given scope
+ * Get the base content path for a given scope
  */
-export async function getDocsBasePath(
-  scope: DocScope,
+export async function getContentBasePath(
+  scope: ContentScope,
   workspaceId?: string,
   projectId?: string
 ): Promise<string> {
@@ -335,15 +371,15 @@ export async function getDocsBasePath(
 }
 
 /**
- * Recursively build a doc tree from a directory
+ * Recursively build a content tree from a directory
  */
-async function buildDocTreeRecursive(
+async function buildContentTreeRecursive(
   basePath: string,
   relativePath: string,
-  scope: DocScope,
+  scope: ContentScope,
   workspaceId: string,
   projectId: string
-): Promise<DocTreeNode[]> {
+): Promise<FileTreeNode[]> {
   const currentPath = relativePath
     ? await joinPath(basePath, relativePath)
     : basePath;
@@ -353,13 +389,17 @@ async function buildDocTreeRecursive(
   }
 
   const entries = await readDir(currentPath);
-  const nodes: DocTreeNode[] = [];
+  const nodes: FileTreeNode[] = [];
 
   // Separate folders and files
   const folders = entries.filter(
     (e) => e.isDirectory && !e.name.startsWith(".")
   );
-  const files = entries.filter((e) => e.isFile && e.name.endsWith(".md"));
+  // All visible files (not starting with .)
+  const allFiles = entries.filter((e) => e.isFile && !e.name.startsWith("."));
+  // Split into markdown (editable) and assets (open externally)
+  const markdownFiles = allFiles.filter((e) => isMarkdownFile(e.name));
+  const assetFiles = allFiles.filter((e) => !isMarkdownFile(e.name));
 
   // Process folders first (sorted alphabetically)
   folders.sort((a, b) => a.name.localeCompare(b.name));
@@ -368,7 +408,7 @@ async function buildDocTreeRecursive(
       ? `${relativePath}/${folder.name}`
       : folder.name;
 
-    const children = await buildDocTreeRecursive(
+    const children = await buildContentTreeRecursive(
       basePath,
       folderRelPath,
       scope,
@@ -386,11 +426,11 @@ async function buildDocTreeRecursive(
     });
   }
 
-  // Process files (sorted by name)
+  // Process markdown files (sorted by name)
   // Use file-tree service for cached content reads
   const fileTreeService = getFileTreeService();
-  files.sort((a, b) => a.name.localeCompare(b.name));
-  for (const file of files) {
+  markdownFiles.sort((a, b) => a.name.localeCompare(b.name));
+  for (const file of markdownFiles) {
     try {
       const filePath = await joinPath(currentPath, file.name);
 
@@ -430,17 +470,39 @@ async function buildDocTreeRecursive(
     }
   }
 
+  // Process asset files (non-markdown, metadata only)
+  assetFiles.sort((a, b) => a.name.localeCompare(b.name));
+  for (const file of assetFiles) {
+    const filePath = await joinPath(currentPath, file.name);
+    const ext = getExtension(file.name);
+    const assetRelPath = relativePath
+      ? `${relativePath}/${file.name}`
+      : file.name;
+
+    nodes.push({
+      type: "asset",
+      asset: {
+        id: file.name,
+        path: assetRelPath,
+        projectId,
+        workspaceId,
+        filePath,
+        extension: ext || '',
+      },
+    });
+  }
+
   return nodes;
 }
 
 /**
- * Get a doc tree for a given scope
+ * Get a content tree for a given scope
  */
-export async function getDocTree(
-  scope: DocScope,
+export async function getContentTree(
+  scope: ContentScope,
   workspaceId?: string,
   projectId?: string
-): Promise<DocTreeNode[]> {
+): Promise<FileTreeNode[]> {
   if (!isTauri()) {
     // Return flat mock data as tree (no folders in mock)
     const filtered = mockDocs.filter((doc) => {
@@ -455,12 +517,12 @@ export async function getDocTree(
     }));
   }
 
-  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
 
   // Ensure docs directory exists
   await mkdir(basePath);
 
-  return buildDocTreeRecursive(
+  return buildContentTreeRecursive(
     basePath,
     "",
     scope,
@@ -470,15 +532,15 @@ export async function getDocTree(
 }
 
 /**
- * Create a new folder in the docs tree
+ * Create a new folder in the content tree
  */
-export async function createDocFolder(
-  scope: DocScope,
+export async function createFolder(
+  scope: ContentScope,
   folderPath: string, // e.g., "tech" or "tech/api"
   workspaceId?: string,
   projectId?: string
-): Promise<DocFolder> {
-  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+): Promise<ContentFolder> {
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   await mkdir(fullPath);
@@ -495,16 +557,16 @@ export async function createDocFolder(
 }
 
 /**
- * Rename a folder in the docs tree
+ * Rename a folder in the content tree
  */
-export async function renameDocFolder(
-  scope: DocScope,
+export async function renameFolder(
+  scope: ContentScope,
   oldPath: string,
   newName: string,
   workspaceId?: string,
   projectId?: string
-): Promise<DocFolder> {
-  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+): Promise<ContentFolder> {
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, oldPath);
 
   // Build new path - replace last segment with new name
@@ -520,7 +582,7 @@ export async function renameDocFolder(
   await rename(oldFullPath, newFullPath);
 
   // Rebuild children after rename
-  const children = await buildDocTreeRecursive(
+  const children = await buildContentTreeRecursive(
     basePath,
     newPath,
     scope,
@@ -538,8 +600,8 @@ export async function renameDocFolder(
 /**
  * Delete a folder and all its contents
  */
-export async function deleteDocFolder(
-  scope: DocScope,
+export async function deleteFolder(
+  scope: ContentScope,
   folderPath: string,
   workspaceId?: string,
   projectId?: string
@@ -548,7 +610,7 @@ export async function deleteDocFolder(
     return true;
   }
 
-  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   if (!(await exists(fullPath))) {
@@ -563,7 +625,7 @@ export async function deleteDocFolder(
  * Move a doc to a different folder (within the same scope)
  */
 export async function moveDoc(
-  scope: DocScope,
+  scope: ContentScope,
   docId: string,
   fromPath: string, // folder path or empty for root
   toPath: string, // folder path or empty for root
@@ -578,7 +640,7 @@ export async function moveDoc(
     return doc || null;
   }
 
-  const basePath = await getDocsBasePath(scope, workspaceId, projectId);
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
 
   // Find the source file
   const fromDir = fromPath
@@ -645,7 +707,7 @@ export async function moveDoc(
  * Create a doc in a specific folder
  */
 export async function createDocInFolder(data: {
-  scope: DocScope;
+  scope: ContentScope;
   title: string;
   content?: string;
   folderPath?: string; // e.g., "tech" or "tech/api" - omit for root
@@ -680,7 +742,7 @@ export async function createDocInFolder(data: {
     return doc;
   }
 
-  const basePath = await getDocsBasePath(data.scope, data.workspaceId, data.projectId);
+  const basePath = await getContentBasePath(data.scope, data.workspaceId, data.projectId);
 
   // Ensure folder exists
   const folderPath = data.folderPath
@@ -706,43 +768,83 @@ export async function createDocInFolder(data: {
 /**
  * Import multiple docs from file contents
  */
+/**
+ * Import files into a doc folder
+ * - Markdown files (.md, .markdown) are imported as editable docs
+ * - Other files are copied as assets (binary)
+ */
+export async function importFiles(
+  files: Array<{ name: string; content: string | Uint8Array }>,
+  scope: ContentScope,
+  folderPath?: string,
+  workspaceId?: string,
+  projectId?: string
+): Promise<{ docs: Doc[]; assets: string[] }> {
+  const importedDocs: Doc[] = [];
+  const importedAssets: string[] = [];
+
+  // Get the target directory
+  const basePath = await getContentBasePath(scope, workspaceId, projectId);
+  const targetDir = folderPath ? await joinPath(basePath, folderPath) : basePath;
+  await mkdir(targetDir);
+
+  for (const file of files) {
+    if (isMarkdownFile(file.name)) {
+      // Markdown file - import as editable doc
+      const textContent = typeof file.content === 'string'
+        ? file.content
+        : new TextDecoder().decode(file.content);
+
+      let title: string;
+      try {
+        const parsed = parseMarkdown<{ title?: string }>(textContent);
+        title = parsed.data.title || file.name.replace(/\.(md|markdown|txt)$/i, "");
+      } catch {
+        title = file.name.replace(/\.(md|markdown|txt)$/i, "");
+      }
+
+      const doc = await createDocInFolder({
+        scope,
+        title,
+        content: textContent,
+        folderPath,
+        workspaceId,
+        projectId,
+      });
+
+      importedDocs.push(doc);
+    } else {
+      // Non-markdown file - copy as binary asset
+      if (isTauri()) {
+        const targetPath = await joinPath(targetDir, file.name);
+        const fs = await import("@tauri-apps/plugin-fs");
+
+        if (typeof file.content === 'string') {
+          await fs.writeTextFile(targetPath, file.content);
+        } else {
+          await fs.writeFile(targetPath, file.content);
+        }
+        importedAssets.push(file.name);
+      }
+    }
+  }
+
+  return { docs: importedDocs, assets: importedAssets };
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use importFiles instead
+ */
 export async function importDocs(
   files: Array<{ name: string; content: string }>,
-  scope: DocScope,
+  scope: ContentScope,
   folderPath?: string,
   workspaceId?: string,
   projectId?: string
 ): Promise<Doc[]> {
-  const importedDocs: Doc[] = [];
-
-  for (const file of files) {
-    // Try to parse frontmatter from file
-    let title: string;
-    let content: string;
-
-    try {
-      const parsed = parseMarkdown<{ title?: string }>(file.content);
-      title = parsed.data.title || file.name.replace(/\.(md|markdown|txt)$/i, "");
-      content = file.content;
-    } catch {
-      // If parsing fails, use filename as title and raw content
-      title = file.name.replace(/\.(md|markdown|txt)$/i, "");
-      content = file.content;
-    }
-
-    const doc = await createDocInFolder({
-      scope,
-      title,
-      content,
-      folderPath,
-      workspaceId,
-      projectId,
-    });
-
-    importedDocs.push(doc);
-  }
-
-  return importedDocs;
+  const result = await importFiles(files, scope, folderPath, workspaceId, projectId);
+  return result.docs;
 }
 
 // ============================================================================
@@ -750,34 +852,51 @@ export async function importDocs(
 // ============================================================================
 
 /**
- * Flatten a doc tree into a flat array of docs
- * Recursively extracts all docs from folders
+ * Extract all docs from a file tree (recursive)
  */
-export function flattenDocTree(nodes: DocTreeNode[]): Doc[] {
+export function extractDocs(nodes: FileTreeNode[]): Doc[] {
   const docs: Doc[] = [];
 
   for (const node of nodes) {
     if (node.type === "doc") {
       docs.push(node.doc);
     } else if (node.type === "folder" && node.folder.children) {
-      docs.push(...flattenDocTree(node.folder.children));
+      docs.push(...extractDocs(node.folder.children));
     }
+    // Skip 'asset' nodes - they are not Docs
   }
 
   return docs;
 }
 
 /**
+ * Extract all assets from a file tree (recursive)
+ */
+export function extractAssets(nodes: FileTreeNode[]): Asset[] {
+  const assets: Asset[] = [];
+
+  for (const node of nodes) {
+    if (node.type === "asset") {
+      assets.push(node.asset);
+    } else if (node.type === "folder" && node.folder.children) {
+      assets.push(...extractAssets(node.folder.children));
+    }
+  }
+
+  return assets;
+}
+
+/**
  * Get all docs for a scope as a flat array (includes nested folders)
- * Uses getDocTree internally for proper recursion
+ * Uses getContentTree internally for proper recursion
  */
 export async function getAllDocs(
-  scope: DocScope,
+  scope: ContentScope,
   workspaceId?: string,
   projectId?: string
 ): Promise<Doc[]> {
-  const tree = await getDocTree(scope, workspaceId, projectId);
-  const docs = flattenDocTree(tree);
+  const tree = await getContentTree(scope, workspaceId, projectId);
+  const docs = extractDocs(tree);
 
   // Sort by created date (newest first)
   docs.sort((a, b) => b.created.localeCompare(a.created));

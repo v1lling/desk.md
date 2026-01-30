@@ -262,24 +262,24 @@ export async function savePersonalViewState(state: ProjectViewState): Promise<vo
 }
 
 // =============================================================================
-// DOC FOLDER EXPANSION HELPERS
+// FOLDER EXPANSION HELPERS
 // =============================================================================
 
 /**
- * Get expanded folder paths for doc tree
+ * Get expanded folder paths for content tree
  */
-export async function getExpandedDocFolders(
+export async function getExpandedFolders(
   workspaceId: string,
   projectId: string | null
 ): Promise<string[]> {
   const state = await getViewState(workspaceId, projectId);
-  return state.expandedDocFolders ?? [];
+  return state.expandedFolders ?? [];
 }
 
 /**
- * Save expanded folder paths for doc tree
+ * Save expanded folder paths for content tree
  */
-export async function setExpandedDocFolders(
+export async function setExpandedFolders(
   workspaceId: string,
   projectId: string | null,
   folders: string[]
@@ -287,6 +287,6 @@ export async function setExpandedDocFolders(
   const existing = await getViewState(workspaceId, projectId);
   await saveViewState(workspaceId, projectId, {
     ...existing,
-    expandedDocFolders: folders,
+    expandedFolders: folders,
   });
 }

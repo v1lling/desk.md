@@ -57,20 +57,31 @@ export interface Doc {
   preview?: string;        // First ~100 chars
 }
 
-// Folder in the doc tree
-export interface DocFolder {
+// Folder in the content tree (can contain docs and assets)
+export interface ContentFolder {
   name: string;
   path: string;            // Relative path (e.g., "tech" or "tech/api")
-  children: DocTreeNode[];
+  children: FileTreeNode[];
 }
 
-// Tree node - either a folder or a doc
-export type DocTreeNode =
-  | { type: 'folder'; folder: DocFolder }
-  | { type: 'doc'; doc: Doc };
+// Asset - non-markdown file (metadata only, opens externally)
+export interface Asset {
+  id: string;              // Filename (with extension), also used as display name
+  path: string;            // Relative path with folders (e.g., "assets/logo.png")
+  projectId: string;
+  workspaceId: string;
+  filePath: string;        // Full absolute path
+  extension: string;       // File extension without dot (e.g., "pdf", "png")
+}
 
-// Doc scope - where the doc lives
-export type DocScope = 'personal' | 'workspace' | 'project';
+// Tree node - folder, doc, or asset
+export type FileTreeNode =
+  | { type: 'folder'; folder: ContentFolder }
+  | { type: 'doc'; doc: Doc }
+  | { type: 'asset'; asset: Asset };
+
+// Content scope - where content (docs/assets) lives
+export type ContentScope = 'personal' | 'workspace' | 'project';
 
 // Meeting - lives under a project
 export interface Meeting {
@@ -111,8 +122,8 @@ export interface ProjectViewState {
   taskOrder?: Record<TaskStatus, string[]>;
   /** View mode for tasks: list or kanban */
   viewMode?: 'list' | 'kanban';
-  /** Expanded folder paths in doc tree */
-  expandedDocFolders?: string[];
+  /** Expanded folder paths in content tree */
+  expandedFolders?: string[];
 }
 
 export type TaskViewMode = 'list' | 'kanban';

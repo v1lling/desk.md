@@ -1,6 +1,37 @@
 use log::info;
+use std::process::Command;
 
 mod ai;
+
+/// Open a file with the system's default application
+#[tauri::command]
+fn open_file_with_default_app(path: String) -> Result<(), String> {
+  #[cfg(target_os = "macos")]
+  {
+    Command::new("open")
+      .arg(&path)
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    Command::new("cmd")
+      .args(["/C", "start", "", &path])
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    Command::new("xdg-open")
+      .arg(&path)
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  Ok(())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -12,6 +43,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       ai::claude_chat,
       ai::claude_check,
+      open_file_with_default_app,
     ]);
 
   // Add MCP plugin in debug builds only
