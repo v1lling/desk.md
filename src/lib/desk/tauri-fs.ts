@@ -41,18 +41,29 @@ async function getTauriPathModule() {
 
 /**
  * Get the Desk data directory path
- * In Tauri: ~/Desk (real path)
+ * Reads from settings store, falls back to ~/Desk
+ * In Tauri: Resolves ~ to actual home directory
  * In browser: Returns mock path (data comes from mock arrays, not file system)
  */
 export async function getDeskPath(): Promise<string> {
+  // Import settings store dynamically to avoid circular dependencies
+  const { useSettingsStore } = await import("@/stores/settings");
+  const dataPath = useSettingsStore.getState().dataPath || "~/Desk";
+
   if (!isTauri()) {
     // Browser mode uses mock data from arrays, this path is only for display purposes
-    return "~/Desk";
+    return dataPath;
   }
 
-  const { homeDir, join } = await getTauriPathModule();
-  const home = await homeDir();
-  return await join(home, "Desk");
+  // Expand ~ to home directory if needed
+  if (dataPath.startsWith("~/") || dataPath === "~") {
+    const { homeDir, join } = await getTauriPathModule();
+    const home = await homeDir();
+    const relativePath = dataPath.slice(2) || ""; // Remove ~/
+    return relativePath ? await join(home, relativePath) : home;
+  }
+
+  return dataPath;
 }
 
 // Alias for backwards compatibility during migration
