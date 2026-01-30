@@ -180,6 +180,39 @@ import { FormGrid } from "@/components/ui/form-grid";
 
 - `FilteredListPage` - Standard layout for pages with Header + FilterBar + ScrollArea + Modal
 
+## App Icon
+
+Source icon: `icon.png` (1024x1024, square with full bleed background)
+
+**Regenerating icons:**
+
+```bash
+# 1. Generate all Tauri icons (Windows, iOS, Android)
+npx @tauri-apps/cli icon icon.png
+
+# 2. Generate macOS icon with Big Sur squircle mask
+~/.local/bin/appicongen --macos --bigsurify -o macos-icon.iconset icon.png
+
+# 3. Fix iconset filenames for iconutil (appicongen uses wrong names)
+cd macos-icon.iconset
+cp icon_16x16@2x.png icon_32x32.png
+cp icon_128x128@2x.png icon_256x256.png
+cp icon_256x256@2x.png icon_512x512.png
+
+# 4. Convert to icns and replace
+iconutil -c icns macos-icon.iconset -o macos-icon.icns
+mv macos-icon.icns src-tauri/icons/icon.icns
+rm -rf macos-icon.iconset
+```
+
+> **Why two steps?** macOS doesn't auto-apply rounded corners to native apps (unlike iOS). The square source works for Windows/iOS/Android, but macOS needs the squircle baked in.
+
+**Install appicongen (first time only):**
+```bash
+brew install pipx
+pipx install appicongen
+```
+
 ## Dev Notes
 
 - Dashboard at `/`, All Tasks at `/tasks`
