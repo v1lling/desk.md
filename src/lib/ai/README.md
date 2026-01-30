@@ -15,9 +15,9 @@ This module provides a layered, extensible AI integration for Orbit.
 │  - useAISettingsStore: Provider config, API keys            │
 │  - useAIUsageStore: Token tracking, usage history           │
 │  - useAIChatStore: Chat messages, selected docs             │
-│  - useAIService(): Get configured service instance          │
-│  - useSendMessage(): Chat mutation hook                     │
-│  - useAIAction(): Quick actions (draftEmail, summarize...)  │
+│  Hooks:                                                     │
+│  - useSendMessage(): Chat with history (for chat panel)     │
+│  - useAIAction(): One-off actions (draftEmail, summarize)   │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
@@ -48,7 +48,7 @@ This module provides a layered, extensible AI integration for Orbit.
 │  (providers/claude-code)  │   │  (providers/anthropic)    │
 │  - Uses Tauri invoke      │   │  - Uses AI SDK            │
 │  - Spawns CLI             │   │  - Direct HTTP            │
-│  - No token tracking      │   │  - Full token tracking    │
+│  - Token tracking (JSON)  │   │  - Token tracking         │
 └───────────────────────────┘   └───────────────────────────┘
 ```
 
@@ -58,18 +58,23 @@ This module provides a layered, extensible AI integration for Orbit.
 
 ```typescript
 import type { AIProvider, AIRequest, AIResponse } from '../types';
-import { buildPrompt } from '../prompts';
 
+/**
+ * Note: Providers are "dumb" transport layers. The service layer handles
+ * prompt building and passes systemPrompt via the request object.
+ */
 export function createYourProvider(config: YourConfig): AIProvider {
   return {
     id: 'your-provider',
     name: 'Your Provider',
 
     async chat(request: AIRequest): Promise<AIResponse> {
-      const { systemPrompt } = buildPrompt('chat', request.message, request.context);
-
-      // Your API call here
-      const response = await yourApiCall({...});
+      // request.systemPrompt is already built by the service layer
+      const response = await yourApiCall({
+        system: request.systemPrompt,
+        message: request.message,
+        history: request.history,
+      });
 
       return {
         message: response.text,
@@ -139,15 +144,18 @@ async yourPurpose(input: string, options?: {...}): Promise<AIServiceResponse> {
 
 ## Usage Examples
 
-### Basic Chat
+### Chat Panel (with conversation history)
 ```typescript
-const service = useAIService();
-const response = await service.chat("What is this about?", {
-  context: { docs: [{ id: '1', title: 'Doc', content: '...' }] }
+// useSendMessage manages chat history in useAIChatStore
+const sendMessage = useSendMessage();
+sendMessage.mutate({
+  message: "What is this about?",
+  context: { docs: selectedDocs },
+  history: previousMessages,
 });
 ```
 
-### Draft Email
+### Draft Email (one-off action)
 ```typescript
 const { draftEmail } = useAIAction();
 const response = await draftEmail(
@@ -156,20 +164,11 @@ const response = await draftEmail(
 );
 ```
 
-### Find Tasks (with structured output)
+### Find Tasks (one-off action)
 ```typescript
 const { findTasks } = useAIAction();
 const response = await findTasks(meetingNotes);
 console.log(response.structured?.tasks); // [{ id, title, status }]
-```
-
-### Custom Purpose
-```typescript
-const service = useAIService();
-const response = await service.custom(
-  'You are a code reviewer. Find bugs and suggest improvements.',
-  codeToReview
-);
 ```
 
 ## Token Tracking

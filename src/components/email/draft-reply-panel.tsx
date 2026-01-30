@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Send, Loader2, Sparkles } from "lucide-react";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { SlidePanel } from "@/components/ui/slide-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSendMessage, useAISettingsStore } from "@/stores/ai";
+import { useAIAction, useAISettingsStore } from "@/stores/ai";
+import { isTauri } from "@/lib/orbit";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress } from "@/lib/email/types";
 
@@ -23,61 +25,94 @@ export function DraftReplyPanel({
   open,
   onOpenChange,
   email,
+  workspaceId: _workspaceId,
+  projectId: _projectId,
 }: DraftReplyPanelProps) {
+  // TODO: Use workspaceId/projectId to fetch project docs as AI context
+  void _workspaceId;
+  void _projectId;
+
+  // Email fields (editable)
+  const [to, setTo] = useState(email.from.email);
+  const [subject, setSubject] = useState(
+    email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`
+  );
+  const [cc, setCc] = useState(
+    email.cc?.map((c) => c.email).join(", ") || ""
+  );
+
+  // Draft state
   const [instructions, setInstructions] = useState("");
   const [draft, setDraft] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const providerType = useAISettingsStore((state) => state.providerType);
-  const sendMessage = useSendMessage();
+  const { draftEmail } = useAIAction();
+
+  // Reset fields when email changes
+  useEffect(() => {
+    setTo(email.from.email);
+    setSubject(email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`);
+    setCc(email.cc?.map((c) => c.email).join(", ") || "");
+    setDraft("");
+    setInstructions("");
+    setError(null);
+  }, [email]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     setDraft("");
+    setError(null);
 
     try {
-      // Build the prompt for drafting a reply
-      const prompt = buildDraftPrompt(email, instructions);
-
-      // Use the AI service to generate the draft
-      const response = await sendMessage.mutateAsync({
-        message: prompt,
-        context: {
-          emails: [{
-            id: email.messageId || `email-${Date.now()}`,
-            subject: email.subject,
-            from: formatEmailAddress(email.from),
-            body: email.body,
-          }],
+      // Use the proper draftEmail method from AIService
+      const response = await draftEmail(
+        {
+          from: formatEmailAddress(email.from),
+          subject: email.subject,
+          body: email.body,
         },
-      });
+        instructions || "Write a professional reply.",
+        // TODO: Add project docs as context when projectId is set
+      );
 
-      // Extract the draft from the response
-      if (response && typeof response === 'object' && 'message' in response) {
-        setDraft(response.message || "Failed to generate draft. Please try again.");
-      } else if (typeof response === 'string') {
-        setDraft(response);
+      if (response?.message) {
+        setDraft(response.message);
       } else {
-        setDraft("Failed to generate draft. Please try again.");
+        setError("No response received from AI.");
       }
-    } catch (error) {
-      console.error("[draft-reply] Generation failed:", error);
-      setDraft("Error: Failed to generate draft. Please check your AI settings.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("[draft-reply] Generation failed:", errorMessage);
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
-  }, [email, instructions, sendMessage]);
+  }, [email, instructions, draftEmail]);
 
-  const handleSendViaMailClient = useCallback(() => {
-    const to = email.from.email;
-    const subject = email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`;
-    const body = draft;
+  const handleSendViaMailClient = useCallback(async () => {
+    // Build mailto URL with proper RFC 6068 encoding
+    // Note: URLSearchParams uses + for spaces, but mailto: needs %20
+    const params: string[] = [];
+    params.push(`subject=${encodeURIComponent(subject)}`);
+    params.push(`body=${encodeURIComponent(draft)}`);
+    if (cc.trim()) {
+      params.push(`cc=${encodeURIComponent(cc)}`);
+    }
 
-    // Build mailto URL
-    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailto = `mailto:${encodeURIComponent(to)}?${params.join("&")}`;
 
     // Open in default mail client
-    window.open(mailto, "_blank");
-  }, [email, draft]);
+    if (isTauri()) {
+      try {
+        await openUrl(mailto);
+      } catch (err) {
+        console.error("[draft-reply] Failed to open mail client:", err);
+      }
+    } else {
+      window.location.href = mailto;
+    }
+  }, [to, subject, cc, draft]);
 
   const hasAIProvider = providerType !== null;
 
@@ -138,18 +173,62 @@ export function DraftReplyPanel({
           </p>
         )}
 
-        {/* Draft textarea */}
+        {/* Error display - keep generic, details in Settings */}
+        {error && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+            <p className="text-sm text-destructive">
+              Failed to generate draft. Check Settings → AI to test your connection.
+            </p>
+          </div>
+        )}
+
+        {/* Email fields and draft - shown after generation */}
         {draft && (
-          <div className="space-y-2">
-            <Label htmlFor="draft">Draft Reply</Label>
-            <Textarea
-              id="draft"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={12}
-              className="font-mono text-sm"
-              placeholder="Your draft will appear here..."
-            />
+          <div className="space-y-4 pt-2 border-t">
+            {/* To */}
+            <div className="space-y-2">
+              <Label htmlFor="to">To</Label>
+              <Input
+                id="to"
+                type="email"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                placeholder="recipient@example.com"
+              />
+            </div>
+
+            {/* CC */}
+            <div className="space-y-2">
+              <Label htmlFor="cc">CC (optional)</Label>
+              <Input
+                id="cc"
+                value={cc}
+                onChange={(e) => setCc(e.target.value)}
+                placeholder="cc1@example.com, cc2@example.com"
+              />
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
+            </div>
+
+            {/* Draft body */}
+            <div className="space-y-2">
+              <Label htmlFor="draft">Message</Label>
+              <Textarea
+                id="draft"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={10}
+                className="font-mono text-sm"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -157,23 +236,3 @@ export function DraftReplyPanel({
   );
 }
 
-function buildDraftPrompt(email: IncomingEmail, instructions: string): string {
-  let prompt = `Draft a reply to this email:
-
-From: ${formatEmailAddress(email.from)}
-Subject: ${email.subject}
-
-${email.body}
-
----
-
-Write a professional reply email.`;
-
-  if (instructions) {
-    prompt += `\n\nAdditional instructions: ${instructions}`;
-  }
-
-  prompt += `\n\nRespond with ONLY the email body text, no subject line or headers.`;
-
-  return prompt;
-}

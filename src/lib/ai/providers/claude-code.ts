@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '@/lib/orbit/tauri-fs';
 import type { AIProvider, AIRequest, AIResponse } from '../types';
-import { buildPrompt } from '../prompts';
 
 interface TauriChatRequest {
   prompt: string;
@@ -26,7 +25,8 @@ interface TauriChatResponse {
  * Creates a Claude Code provider that uses the Claude Code CLI via Tauri.
  * Falls back to mock responses in browser mode.
  *
- * Token usage IS available via --output-format json.
+ * Note: This is a "dumb" transport layer. The service layer handles
+ * prompt building and context injection before calling this provider.
  */
 export function createClaudeCodeProvider(): AIProvider {
   return {
@@ -39,33 +39,22 @@ export function createClaudeCodeProvider(): AIProvider {
         return mockResponse(request);
       }
 
-      // Build prompt with context
-      const { systemPrompt, userMessage } = buildPrompt(
-        'chat',
-        request.message,
-        request.context,
-        request.systemPrompt
-      );
-
-      // Use provided system prompt if available, otherwise use built one
-      const finalSystemPrompt = request.systemPrompt || systemPrompt;
-
       // Build prompt with conversation history
       let prompt = '';
       if (request.history && request.history.length > 0) {
         prompt = request.history
           .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
           .join('\n\n');
-        prompt += `\n\nUser: ${userMessage}`;
+        prompt += `\n\nUser: ${request.message}`;
       } else {
-        prompt = userMessage;
+        prompt = request.message;
       }
 
       try {
         const response = await invoke<TauriChatResponse>('claude_chat', {
           request: {
             prompt,
-            system_prompt: finalSystemPrompt,
+            system_prompt: request.systemPrompt, // Already built by service layer
           } as TauriChatRequest,
         });
 
@@ -85,18 +74,41 @@ export function createClaudeCodeProvider(): AIProvider {
 }
 
 /**
- * Check if Claude Code CLI is available
+ * Detailed status of Claude Code CLI
  */
-export async function isClaudeCodeAvailable(): Promise<boolean> {
+export interface ClaudeCodeStatus {
+  available: boolean;
+  path?: string;
+  error?: string;
+}
+
+/**
+ * Check if Claude Code CLI is available with detailed status
+ */
+export async function checkClaudeCode(): Promise<ClaudeCodeStatus> {
   if (!isTauri()) {
-    return false;
+    return {
+      available: false,
+      error: 'Claude Code requires the desktop app (not available in browser)',
+    };
   }
 
   try {
-    return await invoke<boolean>('claude_check');
-  } catch {
-    return false;
+    return await invoke<ClaudeCodeStatus>('claude_check');
+  } catch (e) {
+    return {
+      available: false,
+      error: `Failed to check: ${e}`,
+    };
   }
+}
+
+/**
+ * Check if Claude Code CLI is available (simple boolean)
+ */
+export async function isClaudeCodeAvailable(): Promise<boolean> {
+  const status = await checkClaudeCode();
+  return status.available;
 }
 
 /**

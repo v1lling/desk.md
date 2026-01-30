@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ChatMessage } from "./chat-message";
 import { DocSelector } from "./doc-selector";
-import { useAIChatStore, useSendMessage } from "@/stores/ai";
+import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
 import { useAllWorkspaceDocs } from "@/stores/docs";
 import { useSettingsStore } from "@/stores/settings";
 import type { AIContext } from "@/lib/ai";
@@ -27,6 +27,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   // Store
   const { messages, selectedDocs, toggleDoc, clearMessages } = useAIChatStore();
   const sendMessage = useSendMessage();
+  const { providerType, anthropicApiKey } = useAISettingsStore();
+
+  // Check if AI is properly configured
+  const isConfigured = providerType === 'claude-code' ||
+    (providerType === 'anthropic-api' && anthropicApiKey);
 
   // Get all docs for the workspace (includes nested folders via recursive tree traversal)
   const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
@@ -46,7 +51,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || sendMessage.isPending) return;
+    if (!input.trim() || sendMessage.isPending || !isConfigured) return;
 
     // Build context from selected docs
     const context: AIContext | undefined =
@@ -115,6 +120,24 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
         </form>
       }
     >
+      {/* Configuration warning */}
+      {!isConfigured && (
+        <div className="p-3 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-md">
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            AI not configured. Go to Settings → AI to set up a provider.
+          </p>
+        </div>
+      )}
+
+      {/* Error display - keep generic, details in Settings */}
+      {sendMessage.error && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-md">
+          <p className="text-sm text-destructive">
+            AI request failed. Check Settings → AI to test your connection.
+          </p>
+        </div>
+      )}
+
       {messages.length === 0 ? (
         <EmptyState
           title="No messages yet"

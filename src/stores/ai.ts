@@ -125,11 +125,17 @@ export const useAIChatStore = create<AIChatState>((set) => ({
 // =============================================================================
 // AI Hooks
 // =============================================================================
+//
+// Three hooks for different use cases:
+// - useAIService(): Internal - returns raw AIService instance
+// - useSendMessage(): For chat panel - manages conversation history in store
+// - useAIAction(): For one-off operations - email drafts, summaries, etc.
+//
 
 /**
- * Hook to get a configured AI service instance
+ * Internal: Get a configured AI service instance
  */
-export function useAIService() {
+function useAIService() {
   const { providerType, anthropicApiKey } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
 

@@ -1,4 +1,4 @@
-import { createProvider, type ProviderConfig } from './provider';
+import { createProvider } from './provider';
 import { buildPrompt } from './prompts';
 import type {
   AIPurpose,
@@ -203,23 +203,8 @@ export class AIService {
 }
 
 // =============================================================================
-// Singleton Instance (optional convenience)
+// Factory
 // =============================================================================
-
-let defaultService: AIService | null = null;
-
-/**
- * Get or create the default AI service instance
- */
-export function getAIService(config?: AIServiceConfig): AIService {
-  if (!defaultService && config) {
-    defaultService = new AIService(config);
-  }
-  if (!defaultService) {
-    throw new Error('AI Service not initialized. Call getAIService with config first.');
-  }
-  return defaultService;
-}
 
 /**
  * Create a new AI service instance

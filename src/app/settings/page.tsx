@@ -29,11 +29,12 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Separator } from "@/components/ui/separator";
-import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircle2, FolderPlus, Bot, Eye, EyeOff } from "lucide-react";
+import { FolderOpen, Palette, Monitor, Sun, Moon, RotateCcw, Loader2, CheckCircle2, FolderPlus, Bot, Eye, EyeOff, AlertCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { useQueryClient } from "@tanstack/react-query";
 import { getWorkspaces, isTauri } from "@/lib/orbit";
+import { checkClaudeCode, type ClaudeCodeStatus } from "@/lib/ai/providers/claude-code";
 import type { Workspace } from "@/types";
 
 function AIUsageStats() {
@@ -121,6 +122,19 @@ export default function SettingsPage() {
     setAnthropicApiKey,
   } = useAISettingsStore();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [claudeStatus, setClaudeStatus] = useState<ClaudeCodeStatus | null>(null);
+  const [isTestingClaude, setIsTestingClaude] = useState(false);
+
+  const handleTestClaudeCode = async () => {
+    setIsTestingClaude(true);
+    setClaudeStatus(null);
+    try {
+      const status = await checkClaudeCode();
+      setClaudeStatus(status);
+    } finally {
+      setIsTestingClaude(false);
+    }
+  };
 
   // State for data path change dialog
   const [pendingPath, setPendingPath] = useState("");
@@ -372,9 +386,51 @@ export default function SettingsPage() {
               )}
 
               {providerType === "claude-code" && (
-                <p className="text-xs text-muted-foreground">
-                  Uses your local Claude Code CLI installation. Make sure Claude Code is installed and authenticated.
-                </p>
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Uses your local Claude Code CLI installation. Make sure Claude Code is installed and authenticated.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestClaudeCode}
+                      disabled={isTestingClaude}
+                    >
+                      {isTestingClaude ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Zap className="mr-2 h-4 w-4" />
+                      )}
+                      Test Connection
+                    </Button>
+                    {claudeStatus && (
+                      <div className="flex items-center gap-2 text-sm">
+                        {claudeStatus.available ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <span className="text-emerald-600 dark:text-emerald-400">Connected</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 text-destructive" />
+                            <span className="text-destructive">Failed</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {claudeStatus && (
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      {claudeStatus.path && (
+                        <p>Path: <code className="bg-muted px-1 rounded">{claudeStatus.path}</code></p>
+                      )}
+                      {claudeStatus.error && (
+                        <p className="text-destructive">{claudeStatus.error}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               <Separator />

@@ -1,34 +1,48 @@
 import type { AIPurpose, AIContext } from './types';
 
 // =============================================================================
-// System Prompts by Purpose
+// System Prompts
 // =============================================================================
 
-const SYSTEM_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
-  chat: `You are a helpful assistant for Orbit, a project management app.
-Be concise and helpful. When context is provided, use it to give relevant answers.`,
+/**
+ * Base context included in ALL prompts - gives AI understanding of Orbit
+ */
+const BASE_CONTEXT = `You are an AI assistant for Orbit, a project management app for freelancers.
+Orbit helps users manage multiple client workspaces, each containing projects with tasks, documents, and meetings.
+Be concise, professional, and helpful.`;
 
-  'draft-email': `You are an email drafting assistant.
-Write professional, clear, and concise email responses.
-Match the tone of the original email when appropriate.
-Output only the email body, no subject line unless asked.`,
+/**
+ * Purpose-specific instructions (combined with BASE_CONTEXT)
+ */
+const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
+  chat: `Answer questions and help with tasks. When context (documents, tasks, emails) is provided, use it to give relevant answers.`,
 
-  summarize: `You are a summarization assistant.
-Provide clear, concise summaries that capture the key points.
-Use bullet points for multiple items.
-Keep summaries to 3-5 sentences unless asked for more detail.`,
+  'draft-email': `Draft a professional email reply.
+- Match the tone of the original email
+- Be clear and concise
+- Output ONLY the email body text, no subject line or headers`,
 
-  'find-tasks': `You are a task extraction assistant.
-Identify actionable tasks from the provided content.
-Format each task on its own line starting with "- [ ] "
-Include relevant context but keep task titles concise.
-Prioritize by importance if possible.`,
+  summarize: `Summarize the provided content.
+- Capture key points clearly
+- Use bullet points for multiple items
+- Keep to 3-5 sentences unless asked for more detail`,
 
-  explain: `You are an explanation assistant.
-Explain concepts clearly and concisely.
-Use examples when helpful.
-Adjust complexity based on the question.`,
+  'find-tasks': `Extract actionable tasks from the content.
+- Format each task on its own line starting with "- [ ] "
+- Keep task titles concise but include relevant context
+- Prioritize by importance if possible`,
+
+  explain: `Explain the concept or content clearly.
+- Use examples when helpful
+- Adjust complexity based on the question`,
 };
+
+/**
+ * Get the full system prompt for a purpose (BASE_CONTEXT + PURPOSE_PROMPT)
+ */
+function getPromptForPurpose(purpose: Exclude<AIPurpose, 'custom'>): string {
+  return `${BASE_CONTEXT}\n\n${PURPOSE_PROMPTS[purpose]}`;
+}
 
 // =============================================================================
 // Context Formatting
@@ -88,15 +102,16 @@ export function buildPrompt(
   context?: AIContext,
   customSystemPrompt?: string
 ): BuiltPrompt {
-  // Get base system prompt
+  // Get system prompt (BASE_CONTEXT + purpose-specific)
   let systemPrompt: string;
   if (purpose === 'custom') {
     if (!customSystemPrompt) {
       throw new Error('customSystemPrompt required for custom purpose');
     }
-    systemPrompt = customSystemPrompt;
+    // For custom, prepend BASE_CONTEXT to user's prompt
+    systemPrompt = `${BASE_CONTEXT}\n\n${customSystemPrompt}`;
   } else {
-    systemPrompt = SYSTEM_PROMPTS[purpose];
+    systemPrompt = getPromptForPurpose(purpose);
   }
 
   // Add context to system prompt if provided
@@ -111,11 +126,4 @@ export function buildPrompt(
     systemPrompt,
     userMessage: message,
   };
-}
-
-/**
- * Get the system prompt for a purpose (without context)
- */
-export function getSystemPrompt(purpose: Exclude<AIPurpose, 'custom'>): string {
-  return SYSTEM_PROMPTS[purpose];
 }

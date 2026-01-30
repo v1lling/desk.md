@@ -1,5 +1,66 @@
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use std::path::PathBuf;
+
+/// Result of finding Claude CLI - includes path and optional bin directory for PATH
+struct ClaudeBinaryInfo {
+    path: PathBuf,
+    bin_dir: Option<PathBuf>, // Directory to add to PATH (needed for nvm/node)
+}
+
+/// Find the Claude CLI binary path
+/// Tries common installation locations since bundled apps don't have shell PATH
+fn find_claude_binary() -> Option<ClaudeBinaryInfo> {
+    let home = std::env::var("HOME").ok()?;
+
+    // Check nvm paths first (most common for npm-installed Claude)
+    let nvm_base = format!("{}/.nvm/versions/node", home);
+    if let Ok(entries) = std::fs::read_dir(&nvm_base) {
+        for entry in entries.flatten() {
+            let bin_dir = entry.path().join("bin");
+            let claude_path = bin_dir.join("claude");
+            if claude_path.exists() {
+                return Some(ClaudeBinaryInfo {
+                    path: claude_path,
+                    bin_dir: Some(bin_dir), // Include bin dir so node is in PATH
+                });
+            }
+        }
+    }
+
+    // Other common locations (don't need special PATH handling)
+    let candidates = [
+        format!("{}/.claude/local/claude", home),
+        "/opt/homebrew/bin/claude".to_string(),
+        "/usr/local/bin/claude".to_string(),
+        format!("{}/.npm/bin/claude", home),
+    ];
+
+    for path in candidates {
+        let p = PathBuf::from(&path);
+        if p.exists() {
+            return Some(ClaudeBinaryInfo {
+                path: p,
+                bin_dir: None,
+            });
+        }
+    }
+
+    // Fallback: try PATH (works in dev mode)
+    if let Ok(output) = Command::new("which").arg("claude").output() {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(ClaudeBinaryInfo {
+                    path: PathBuf::from(path),
+                    bin_dir: None,
+                });
+            }
+        }
+    }
+
+    None
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatRequest {
@@ -45,7 +106,17 @@ struct ClaudeUsage {
 /// Invoke Claude Code CLI in print mode with JSON output for usage tracking
 #[tauri::command]
 pub async fn claude_chat(request: ChatRequest) -> Result<ChatResponse, String> {
-    let mut cmd = Command::new("claude");
+    let claude_info = find_claude_binary()
+        .ok_or_else(|| "Claude Code CLI not found. Please install it from https://claude.ai/code".to_string())?;
+
+    let mut cmd = Command::new(&claude_info.path);
+
+    // If we have a bin_dir (e.g., from nvm), add it to PATH so node can be found
+    if let Some(bin_dir) = &claude_info.bin_dir {
+        let current_path = std::env::var("PATH").unwrap_or_default();
+        let new_path = format!("{}:{}", bin_dir.display(), current_path);
+        cmd.env("PATH", new_path);
+    }
 
     // Use print mode for non-interactive output
     cmd.arg("-p");
@@ -101,10 +172,59 @@ pub async fn claude_chat(request: ChatRequest) -> Result<ChatResponse, String> {
     })
 }
 
-/// Check if Claude Code CLI is available
-#[tauri::command]
-pub async fn claude_check() -> Result<bool, String> {
-    let output = Command::new("claude").arg("--version").output();
+/// Detailed status of Claude Code CLI
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClaudeStatus {
+    pub available: bool,
+    pub path: Option<String>,
+    pub error: Option<String>,
+}
 
-    Ok(output.is_ok() && output.unwrap().status.success())
+/// Check if Claude Code CLI is available with detailed status
+#[tauri::command]
+pub async fn claude_check() -> Result<ClaudeStatus, String> {
+    match find_claude_binary() {
+        Some(info) => {
+            // Test that we can actually run it (checks node availability too)
+            let mut cmd = Command::new(&info.path);
+            cmd.arg("--version");
+
+            if let Some(bin_dir) = &info.bin_dir {
+                let current_path = std::env::var("PATH").unwrap_or_default();
+                cmd.env("PATH", format!("{}:{}", bin_dir.display(), current_path));
+            }
+
+            match cmd.output() {
+                Ok(output) if output.status.success() => {
+                    Ok(ClaudeStatus {
+                        available: true,
+                        path: Some(info.path.display().to_string()),
+                        error: None,
+                    })
+                }
+                Ok(output) => {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    Ok(ClaudeStatus {
+                        available: false,
+                        path: Some(info.path.display().to_string()),
+                        error: Some(format!("CLI found but failed to run: {}", stderr.trim())),
+                    })
+                }
+                Err(e) => {
+                    Ok(ClaudeStatus {
+                        available: false,
+                        path: Some(info.path.display().to_string()),
+                        error: Some(format!("CLI found but cannot execute: {}", e)),
+                    })
+                }
+            }
+        }
+        None => {
+            Ok(ClaudeStatus {
+                available: false,
+                path: None,
+                error: Some("Claude Code CLI not found. Install from https://claude.ai/code".to_string()),
+            })
+        }
+    }
 }

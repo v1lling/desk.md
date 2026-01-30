@@ -6,7 +6,7 @@ export { createProvider, type ProviderConfig } from './provider';
 export { isClaudeCodeAvailable } from './providers/claude-code';
 
 // Prompts
-export { buildPrompt, formatContext, getSystemPrompt } from './prompts';
+export { buildPrompt, formatContext } from './prompts';
 
 // Service layer (high-level API)
-export { AIService, createAIService, getAIService, type AIServiceConfig } from './service';
+export { AIService, createAIService, type AIServiceConfig } from './service';

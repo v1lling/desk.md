@@ -1,11 +1,13 @@
 import { generateText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { AIProvider, AIRequest, AIResponse } from '../types';
-import { buildPrompt } from '../prompts';
 
 /**
  * Creates an Anthropic API provider that uses the Anthropic API directly.
  * Requires an API key to be configured.
+ *
+ * Note: This is a "dumb" transport layer. The service layer handles
+ * prompt building and context injection before calling this provider.
  */
 export function createAnthropicProvider(apiKey: string): AIProvider {
   const anthropic = createAnthropic({ apiKey });
@@ -15,17 +17,6 @@ export function createAnthropicProvider(apiKey: string): AIProvider {
     name: 'Anthropic API',
 
     async chat(request: AIRequest): Promise<AIResponse> {
-      // Build prompt with context
-      const { systemPrompt, userMessage } = buildPrompt(
-        'chat', // Default purpose for raw provider calls
-        request.message,
-        request.context,
-        request.systemPrompt
-      );
-
-      // Use provided system prompt if available, otherwise use built one
-      const finalSystemPrompt = request.systemPrompt || systemPrompt;
-
       // Build messages from history
       const messages = request.history?.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
@@ -33,12 +24,12 @@ export function createAnthropicProvider(apiKey: string): AIProvider {
       })) || [];
 
       // Add current message
-      messages.push({ role: 'user', content: userMessage });
+      messages.push({ role: 'user', content: request.message });
 
       try {
         const { text, usage } = await generateText({
           model: anthropic('claude-sonnet-4-20250514'),
-          system: finalSystemPrompt,
+          system: request.systemPrompt, // Already built by service layer
           messages,
         });
 
