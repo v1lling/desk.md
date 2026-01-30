@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/desk";
-import { FolderOpen, Palette, Loader2, CheckCircle2 } from "lucide-react";
+import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
 import Image from "next/image";
 import type { Workspace } from "@/types";
 
@@ -42,6 +42,25 @@ export function SetupWizard() {
   const setSetupCompleted = useSettingsStore((state) => state.setSetupCompleted);
   const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
   const createWorkspace = useCreateWorkspace();
+
+  const handleBrowseFolder = async () => {
+    if (!isTauri()) return;
+
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Select Data Folder",
+      });
+
+      if (selected && typeof selected === "string") {
+        setDataPath(selected);
+      }
+    } catch (error) {
+      console.error("Error opening folder picker:", error);
+    }
+  };
 
   const handleCheckDataFolder = async () => {
     setIsLoading(true);
@@ -160,12 +179,26 @@ export function SetupWizard() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="dataPath">Data Folder</Label>
-                <Input
-                  id="dataPath"
-                  value={dataPath}
-                  onChange={(e) => setDataPath(e.target.value)}
-                  placeholder="~/Desk"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="dataPath"
+                    value={dataPath}
+                    onChange={(e) => setDataPath(e.target.value)}
+                    placeholder="~/Desk"
+                    className="flex-1"
+                  />
+                  {isTauri() && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleBrowseFolder}
+                      title="Browse for folder"
+                    >
+                      <FolderSearch className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Your workspaces, projects, and notes will be stored here as markdown files.
                 </p>
