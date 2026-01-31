@@ -105,7 +105,8 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const { folderAIStates, toggleFolderAI: toggleFolderAIRaw } = useFolderAIStates(
     folderPaths,
     selectedScope?.workspaceId,
-    selectedScope?.scope || "personal"
+    selectedScope?.scope || "personal",
+    selectedScope?.projectId
   );
 
   // Wrap toggleFolderAI to show toast notifications

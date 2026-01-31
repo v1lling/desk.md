@@ -444,17 +444,41 @@ import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
 import { isTauri } from "@/lib/desk/tauri-fs";
 
 /**
+ * Convert a content-relative folder path to a workspace-relative path.
+ * Content tree uses paths relative to the content base (e.g., "drafts"),
+ * but .aiignore stores paths relative to workspace root (e.g., "projects/website/docs/drafts").
+ */
+function toWorkspaceRelativePath(
+  contentRelativePath: string,
+  scope: ContentScope,
+  projectId?: string
+): string {
+  // Personal and workspace scopes: content is directly under docs/
+  if (scope === "personal" || scope === "workspace") {
+    return `docs/${contentRelativePath}`;
+  }
+  // Project scope: content is under projects/{projectId}/docs/
+  if (projectId) {
+    return `projects/${projectId}/docs/${contentRelativePath}`;
+  }
+  // Fallback (shouldn't happen if used correctly)
+  return contentRelativePath;
+}
+
+/**
  * Hook to manage AI inclusion states for folders in a content tree
  *
- * @param folderPaths - Array of folder paths to track
+ * @param folderPaths - Array of folder paths to track (content-relative)
  * @param workspaceId - The workspace ID (required for non-personal scopes)
  * @param scope - The content scope
+ * @param projectId - The project ID (required for project scope)
  * @returns Object with folderAIStates map and toggleFolderAI function
  */
 export function useFolderAIStates(
   folderPaths: string[],
   workspaceId: string | null | undefined,
-  scope: ContentScope
+  scope: ContentScope,
+  projectId?: string | null
 ) {
   const [folderAIStates, setFolderAIStates] = useState<Map<string, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
@@ -479,15 +503,18 @@ export function useFolderAIStates(
       const states = new Map<string, boolean>();
 
       await Promise.all(
-        folderPaths.map(async (path) => {
+        folderPaths.map(async (contentPath) => {
           try {
-            const isIncluded = await getFolderAIInclusion(path, effectiveWorkspaceId!);
+            // Convert to workspace-relative path for .aiignore lookup
+            const wsRelativePath = toWorkspaceRelativePath(contentPath, scope, projectId || undefined);
+            const isIncluded = await getFolderAIInclusion(wsRelativePath, effectiveWorkspaceId!);
             if (!cancelled) {
-              states.set(path, isIncluded);
+              // Store state keyed by the original content-relative path (for UI)
+              states.set(contentPath, isIncluded);
             }
           } catch (error) {
-            console.error(`Failed to get AI inclusion for folder ${path}:`, error);
-            states.set(path, true); // Default to included on error
+            console.error(`Failed to get AI inclusion for folder ${contentPath}:`, error);
+            states.set(contentPath, true); // Default to included on error
           }
         })
       );
@@ -503,23 +530,26 @@ export function useFolderAIStates(
     return () => {
       cancelled = true;
     };
-  }, [folderPaths.join(","), effectiveWorkspaceId]);
+  }, [folderPaths.join(","), effectiveWorkspaceId, scope, projectId]);
 
   // Toggle AI inclusion for a folder
   const toggleFolderAI = useCallback(
     async (folderPath: string, currentlyIncluded: boolean) => {
       if (!effectiveWorkspaceId) return;
 
+      // Convert to workspace-relative path for .aiignore storage
+      const wsRelativePath = toWorkspaceRelativePath(folderPath, scope, projectId || undefined);
+
       try {
-        // Optimistically update state
+        // Optimistically update state (keyed by original content path)
         setFolderAIStates((prev) => {
           const next = new Map(prev);
           next.set(folderPath, !currentlyIncluded);
           return next;
         });
 
-        // Persist the change
-        await setFolderAIInclusion(folderPath, effectiveWorkspaceId, !currentlyIncluded);
+        // Persist the change using workspace-relative path
+        await setFolderAIInclusion(wsRelativePath, effectiveWorkspaceId, !currentlyIncluded);
       } catch (error) {
         console.error(`Failed to toggle AI inclusion for folder ${folderPath}:`, error);
         // Revert on error
@@ -530,7 +560,7 @@ export function useFolderAIStates(
         });
       }
     },
-    [effectiveWorkspaceId]
+    [effectiveWorkspaceId, scope, projectId]
   );
 
   return {
