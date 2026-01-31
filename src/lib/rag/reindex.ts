@@ -9,6 +9,7 @@ import { isTauri } from "@/lib/desk";
 import * as desk from "@/lib/desk";
 import { chunkDocument } from "./chunker";
 import { initDb, indexChunks, clearIndex } from "./index";
+import { validateSettings } from "./validation";
 import type { EmbeddingSettings, ChunkInput, IndexResult } from "./types";
 
 export interface ReindexProgress {
@@ -26,29 +27,13 @@ export interface ReindexResult {
   skippedChunks: number;
   errorChunks: number;
   workspacesProcessed: number;
+  /** Document paths that failed to chunk */
+  failedPaths: string[];
 }
 
 /**
  * Re-index all documents across all workspaces
  */
-/**
- * Validate that embedding settings are properly configured
- */
-function validateSettings(settings: EmbeddingSettings): void {
-  const provider = settings.provider;
-
-  if (provider === "openai" && !settings.openaiApiKey?.trim()) {
-    throw new Error("OpenAI API key is required. Configure it in Settings → RAG.");
-  }
-
-  if (provider === "voyage" && !settings.voyageApiKey?.trim()) {
-    throw new Error("Voyage API key is required. Configure it in Settings → RAG.");
-  }
-
-  // For 'auto' mode, we allow proceeding - backend will try Ollama first
-  // and fall back to cloud providers if available
-}
-
 export async function reindexAll(
   dataPath: string,
   settings: EmbeddingSettings,
@@ -61,11 +46,15 @@ export async function reindexAll(
       skippedChunks: 0,
       errorChunks: 0,
       workspacesProcessed: 0,
+      failedPaths: [],
     };
   }
 
   // Validate settings before starting
-  validateSettings(settings);
+  const validation = validateSettings(settings);
+  if (!validation.isValid) {
+    throw new Error(validation.error);
+  }
 
   // Initialize database (creates tables if they don't exist)
   await initDb(dataPath, settings.provider);
@@ -82,6 +71,7 @@ export async function reindexAll(
     skippedChunks: 0,
     errorChunks: 0,
     workspacesProcessed: 0,
+    failedPaths: [],
   };
 
   // First pass: count all documents
@@ -141,6 +131,7 @@ export async function reindexAll(
         documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk doc ${doc.id}:`, error);
+        result.failedPaths.push(doc.filePath);
         documentsProcessed++;
       }
     }
@@ -160,6 +151,7 @@ export async function reindexAll(
         documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk task ${task.id}:`, error);
+        result.failedPaths.push(task.filePath);
         documentsProcessed++;
       }
     }
@@ -179,6 +171,7 @@ export async function reindexAll(
         documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk meeting ${meeting.id}:`, error);
+        result.failedPaths.push(meeting.filePath);
         documentsProcessed++;
       }
     }

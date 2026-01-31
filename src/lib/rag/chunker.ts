@@ -96,13 +96,16 @@ function splitBySize(content: string): string[] {
     let end = start + TARGET_CHUNK_SIZE;
 
     // Try to break at a paragraph or sentence boundary
+    // Use CHUNK_OVERLAP as the search window for finding good break points
     if (end < content.length) {
-      const nextParagraph = content.indexOf('\n\n', end - 200);
-      if (nextParagraph > 0 && nextParagraph < end + 200) {
+      const nextParagraph = content.indexOf('\n\n', end - CHUNK_OVERLAP);
+      if (nextParagraph > 0 && nextParagraph < end + CHUNK_OVERLAP) {
         end = nextParagraph;
       } else {
-        const nextSentence = content.indexOf('. ', end - 100);
-        if (nextSentence > 0 && nextSentence < end + 100) {
+        // For sentence boundaries, use half the overlap as search window
+        const sentenceWindow = CHUNK_OVERLAP / 2;
+        const nextSentence = content.indexOf('. ', end - sentenceWindow);
+        if (nextSentence > 0 && nextSentence < end + sentenceWindow) {
           end = nextSentence + 1;
         }
       }

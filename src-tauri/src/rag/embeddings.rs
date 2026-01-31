@@ -185,24 +185,38 @@ pub async fn embed(
         }
         "auto" => {
             // Try Ollama first, fall back to cloud providers
-            match embed_ollama(text, ollama_url, ollama_model).await {
-                Ok(embedding) => Ok(embedding),
-                Err(_) => {
-                    // Try OpenAI if configured
-                    if let Some(key) = openai_api_key {
-                        if !key.is_empty() {
-                            return embed_openai(text, key).await;
-                        }
-                    }
-                    // Try Voyage if configured
-                    if let Some(key) = voyage_api_key {
-                        if !key.is_empty() {
-                            return embed_voyage(text, key).await;
-                        }
-                    }
-                    Err("No embedding provider available. Start Ollama or configure API keys.".to_string())
+            let ollama_err = match embed_ollama(text, ollama_url, ollama_model).await {
+                Ok(embedding) => return Ok(embedding),
+                Err(e) => e,
+            };
+
+            // Try OpenAI if configured
+            if let Some(key) = openai_api_key {
+                if !key.is_empty() {
+                    return embed_openai(text, key).await;
                 }
             }
+            // Try Voyage if configured
+            if let Some(key) = voyage_api_key {
+                if !key.is_empty() {
+                    return embed_voyage(text, key).await;
+                }
+            }
+
+            // All providers failed - build detailed error
+            let mut reasons = Vec::new();
+            reasons.push(format!("Ollama ({}): {}", ollama_model, ollama_err));
+            if openai_api_key.map(|k| k.is_empty()).unwrap_or(true) {
+                reasons.push("OpenAI: no API key configured".to_string());
+            }
+            if voyage_api_key.map(|k| k.is_empty()).unwrap_or(true) {
+                reasons.push("Voyage: no API key configured".to_string());
+            }
+
+            Err(format!(
+                "No embedding provider available. Tried:\n  - {}",
+                reasons.join("\n  - ")
+            ))
         }
         _ => Err(format!("Unknown embedding provider: {}", provider)),
     }

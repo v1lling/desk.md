@@ -182,6 +182,31 @@ export function RAGTab() {
     indexStatus.indexedWithProvider !== embeddingProvider &&
     embeddingProvider !== 'auto';
 
+  // Check if current provider needs configuration
+  const getProviderWarning = (): string | null => {
+    switch (embeddingProvider) {
+      case "openai":
+        if (!openaiApiKey?.trim()) {
+          return "OpenAI API key is required. Enter your key below to enable indexing.";
+        }
+        break;
+      case "voyage":
+        if (!voyageApiKey?.trim()) {
+          return "Voyage API key is required. Enter your key below to enable indexing.";
+        }
+        break;
+      case "auto":
+        // For auto mode, warn if no cloud fallback and Ollama hasn't been tested as working
+        if (!openaiApiKey?.trim() && !voyageApiKey?.trim() && ollamaStatus?.connected === false) {
+          return "Ollama is not running and no cloud API keys configured. Start Ollama or add API keys.";
+        }
+        break;
+    }
+    return null;
+  };
+
+  const providerWarning = getProviderWarning();
+
   return (
     <div className="space-y-4">
       {/* Embedding Provider */}
@@ -227,6 +252,15 @@ export function RAGTab() {
               <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Changing provider requires re-indexing all documents. Current index was created with {indexStatus.indexedWithProvider}.
+              </p>
+            </div>
+          )}
+
+          {providerWarning && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">
+                {providerWarning}
               </p>
             </div>
           )}

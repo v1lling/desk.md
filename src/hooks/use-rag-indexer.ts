@@ -9,6 +9,7 @@ import { useCallback } from "react";
 import { useSettingsStore } from "@/stores/settings";
 import { useRAGStore } from "@/stores/rag";
 import * as rag from "@/lib/rag";
+import { hasProviderConfig } from "@/lib/rag/validation";
 import { isTauri } from "@/lib/desk";
 
 export interface IndexDocOptions {
@@ -39,6 +40,21 @@ export async function indexDocumentOnSave(options: IndexDocOptions): Promise<voi
     return;
   }
 
+  // Build settings early to validate provider config
+  const settings: rag.EmbeddingSettings = {
+    provider: embeddingProvider,
+    ollamaUrl,
+    ollamaModel,
+    openaiApiKey: openaiApiKey || undefined,
+    voyageApiKey: voyageApiKey || undefined,
+  };
+
+  // Skip silently if provider is not properly configured
+  // (e.g., openai selected but no API key)
+  if (!hasProviderConfig(settings)) {
+    return;
+  }
+
   const { path, content, workspaceId, contentType, title } = options;
 
   try {
@@ -58,14 +74,6 @@ export async function indexDocumentOnSave(options: IndexDocOptions): Promise<voi
     }
 
     // Index the chunks
-    const settings: rag.EmbeddingSettings = {
-      provider: embeddingProvider,
-      ollamaUrl,
-      ollamaModel,
-      openaiApiKey: openaiApiKey || undefined,
-      voyageApiKey: voyageApiKey || undefined,
-    };
-
     await rag.indexChunks(dataPath, chunks, settings);
   } catch (error) {
     // Silently fail - indexing shouldn't break the save flow
@@ -95,6 +103,20 @@ export function useRAGIndexer() {
         return;
       }
 
+      // Build settings early to validate provider config
+      const settings: rag.EmbeddingSettings = {
+        provider: embeddingProvider,
+        ollamaUrl,
+        ollamaModel,
+        openaiApiKey: openaiApiKey || undefined,
+        voyageApiKey: voyageApiKey || undefined,
+      };
+
+      // Skip silently if provider is not properly configured
+      if (!hasProviderConfig(settings)) {
+        return;
+      }
+
       try {
         // Chunk the document
         const chunks = await rag.chunkDocument(
@@ -112,14 +134,6 @@ export function useRAGIndexer() {
         }
 
         // Index the chunks
-        const settings: rag.EmbeddingSettings = {
-          provider: embeddingProvider,
-          ollamaUrl,
-          ollamaModel,
-          openaiApiKey: openaiApiKey || undefined,
-          voyageApiKey: voyageApiKey || undefined,
-        };
-
         await rag.indexChunks(dataPath, chunks, settings);
       } catch (error) {
         // Silently fail - indexing shouldn't break the save flow

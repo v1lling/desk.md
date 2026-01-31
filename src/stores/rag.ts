@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { EmbeddingSettings } from "@/lib/rag/types";
 
 export type EmbeddingProvider = 'auto' | 'ollama' | 'openai' | 'voyage';
 
@@ -36,6 +37,24 @@ interface RAGState extends RAGSettings {
   setAutoIndexOnSave: (enabled: boolean) => void;
   setShowSourcesInChat: (enabled: boolean) => void;
   reset: () => void;
+
+  // Helpers
+  /**
+   * Get current settings as EmbeddingSettings object
+   */
+  getEmbeddingSettings: () => EmbeddingSettings;
+  /**
+   * Check if the current provider has valid configuration.
+   * For openai/voyage, checks if API key is set.
+   * For ollama, checks if URL is set.
+   * For auto, always returns true (will try available providers).
+   */
+  isConfigured: () => boolean;
+  /**
+   * Get description of what's missing for the current provider.
+   * Returns null if fully configured.
+   */
+  getConfigWarning: () => string | null;
 }
 
 const defaultSettings: RAGSettings = {
@@ -51,7 +70,7 @@ const defaultSettings: RAGSettings = {
 
 export const useRAGStore = create<RAGState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...defaultSettings,
 
       setEmbeddingProvider: (provider) => set({ embeddingProvider: provider }),
@@ -63,6 +82,57 @@ export const useRAGStore = create<RAGState>()(
       setAutoIndexOnSave: (enabled) => set({ autoIndexOnSave: enabled }),
       setShowSourcesInChat: (enabled) => set({ showSourcesInChat: enabled }),
       reset: () => set(defaultSettings),
+
+      getEmbeddingSettings: () => {
+        const state = get();
+        return {
+          provider: state.embeddingProvider,
+          ollamaUrl: state.ollamaUrl,
+          ollamaModel: state.ollamaModel,
+          openaiApiKey: state.openaiApiKey || undefined,
+          voyageApiKey: state.voyageApiKey || undefined,
+        };
+      },
+
+      isConfigured: () => {
+        const state = get();
+        switch (state.embeddingProvider) {
+          case "ollama":
+            return !!state.ollamaUrl?.trim();
+          case "openai":
+            return !!state.openaiApiKey?.trim();
+          case "voyage":
+            return !!state.voyageApiKey?.trim();
+          case "auto":
+            // Auto mode can always try (Ollama might be available)
+            return true;
+          default:
+            return false;
+        }
+      },
+
+      getConfigWarning: () => {
+        const state = get();
+        switch (state.embeddingProvider) {
+          case "openai":
+            if (!state.openaiApiKey?.trim()) {
+              return "OpenAI API key not configured";
+            }
+            break;
+          case "voyage":
+            if (!state.voyageApiKey?.trim()) {
+              return "Voyage API key not configured";
+            }
+            break;
+          case "auto":
+            // Auto mode: warn if no cloud fallback configured
+            if (!state.openaiApiKey?.trim() && !state.voyageApiKey?.trim()) {
+              return "No cloud API keys configured (will only work if Ollama is running)";
+            }
+            break;
+        }
+        return null;
+      },
     }),
     {
       name: "desk-rag-settings",

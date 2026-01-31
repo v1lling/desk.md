@@ -139,10 +139,13 @@ pub async fn rag_index_chunks(
     let actual_provider = if settings.provider == "auto" {
         // Check if Ollama is available
         let client = create_check_client();
-        let ollama_ok = client
+        let ollama_result = client
             .get(format!("{}/api/tags", settings.ollama_url))
             .send()
-            .await
+            .await;
+
+        let ollama_ok = ollama_result
+            .as_ref()
             .map(|r| r.status().is_success())
             .unwrap_or(false);
 
@@ -153,7 +156,30 @@ pub async fn rag_index_chunks(
         } else if settings.voyage_api_key.as_ref().map(|k| !k.is_empty()).unwrap_or(false) {
             "voyage"
         } else {
-            return Err("No embedding provider available".to_string());
+            // Build detailed error message listing what was tried
+            let mut tried = Vec::new();
+
+            // Describe Ollama failure
+            let ollama_reason = match &ollama_result {
+                Ok(r) => format!("returned status {}", r.status()),
+                Err(e) => {
+                    if e.is_connect() {
+                        "connection refused (is Ollama running?)".to_string()
+                    } else if e.is_timeout() {
+                        "connection timed out".to_string()
+                    } else {
+                        format!("request failed: {}", e)
+                    }
+                }
+            };
+            tried.push(format!("Ollama at {}: {}", settings.ollama_url, ollama_reason));
+            tried.push("OpenAI: no API key configured".to_string());
+            tried.push("Voyage: no API key configured".to_string());
+
+            return Err(format!(
+                "No embedding provider available. Tried:\n  - {}",
+                tried.join("\n  - ")
+            ));
         }
     } else {
         &settings.provider
