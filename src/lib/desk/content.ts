@@ -886,6 +886,24 @@ export function extractAssets(nodes: FileTreeNode[]): Asset[] {
 }
 
 /**
+ * Extract all folder paths from a file tree (recursive)
+ */
+export function extractFolderPaths(nodes: FileTreeNode[]): string[] {
+  const paths: string[] = [];
+
+  for (const node of nodes) {
+    if (node.type === "folder") {
+      paths.push(node.folder.path);
+      if (node.folder.children) {
+        paths.push(...extractFolderPaths(node.folder.children));
+      }
+    }
+  }
+
+  return paths;
+}
+
+/**
  * Get all docs for a scope as a flat array (includes nested folders)
  * Uses getContentTree internally for proper recursion
  */

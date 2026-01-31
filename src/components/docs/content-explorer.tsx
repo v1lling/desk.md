@@ -24,13 +24,14 @@ import {
   useExpandedFolders,
   useImportFiles,
   useOpenTab,
+  useFolderAIStates,
   PERSONAL_WORKSPACE_ID,
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Doc, ContentScope, Asset } from "@/types";
 import { isMarkdownFile } from "@/lib/desk/file-utils";
-import { extractDocs, extractAssets } from "@/lib/desk/content";
+import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
 
 export interface ContentExplorerScope {
   id: string;
@@ -96,6 +97,30 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   // Count docs and assets in tree (using shared utility functions)
   const docCount = useMemo(() => extractDocs(tree).length, [tree]);
   const assetCount = useMemo(() => extractAssets(tree).length, [tree]);
+
+  // Extract folder paths for AI state tracking
+  const folderPaths = useMemo(() => extractFolderPaths(tree), [tree]);
+
+  // Folder AI inclusion states
+  const { folderAIStates, toggleFolderAI: toggleFolderAIRaw } = useFolderAIStates(
+    folderPaths,
+    selectedScope?.workspaceId,
+    selectedScope?.scope || "personal"
+  );
+
+  // Wrap toggleFolderAI to show toast notifications
+  const handleToggleFolderAI = useCallback(
+    async (folderPath: string, currentlyIncluded: boolean) => {
+      await toggleFolderAIRaw(folderPath, currentlyIncluded);
+      const folderName = folderPath.includes("/") ? folderPath.split("/").pop() : folderPath;
+      if (currentlyIncluded) {
+        toast.success(`"${folderName}" excluded from AI`);
+      } else {
+        toast.success(`"${folderName}" included in AI`);
+      }
+    },
+    [toggleFolderAIRaw]
+  );
 
   // Expanded folders state - use PERSONAL_WORKSPACE_ID for personal scope
   const { expandedFolders, setExpandedFolders } = useExpandedFolders(
@@ -392,6 +417,8 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         onDeleteFolder={handleDeleteFolder}
         expandedFolders={expandedFolders}
         onExpandedFoldersChange={setExpandedFolders}
+        onToggleFolderAI={handleToggleFolderAI}
+        folderAIStates={folderAIStates}
       />
 
       {/* New doc modal */}

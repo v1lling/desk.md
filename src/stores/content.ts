@@ -433,3 +433,109 @@ export function useImportFiles() {
     },
   });
 }
+
+// ============================================================================
+// Folder AI Inclusion hooks
+// ============================================================================
+
+import { useState, useEffect, useCallback } from "react";
+import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/rag/frontmatter";
+import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
+import { isTauri } from "@/lib/desk/tauri-fs";
+
+/**
+ * Hook to manage AI inclusion states for folders in a content tree
+ *
+ * @param folderPaths - Array of folder paths to track
+ * @param workspaceId - The workspace ID (required for non-personal scopes)
+ * @param scope - The content scope
+ * @returns Object with folderAIStates map and toggleFolderAI function
+ */
+export function useFolderAIStates(
+  folderPaths: string[],
+  workspaceId: string | null | undefined,
+  scope: ContentScope
+) {
+  const [folderAIStates, setFolderAIStates] = useState<Map<string, boolean>>(new Map());
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Determine the effective workspace ID
+  const effectiveWorkspaceId = workspaceId || (scope === "personal" ? PERSONAL_WORKSPACE_ID : null);
+
+  // Load AI states for all folders when folder paths or workspace changes
+  useEffect(() => {
+    if (!effectiveWorkspaceId || !isTauri() || folderPaths.length === 0) {
+      // In browser mode or without workspace, default all to included
+      const defaultStates = new Map<string, boolean>();
+      folderPaths.forEach(path => defaultStates.set(path, true));
+      setFolderAIStates(defaultStates);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+
+    async function loadStates() {
+      const states = new Map<string, boolean>();
+
+      await Promise.all(
+        folderPaths.map(async (path) => {
+          try {
+            const isIncluded = await getFolderAIInclusion(path, effectiveWorkspaceId!);
+            if (!cancelled) {
+              states.set(path, isIncluded);
+            }
+          } catch (error) {
+            console.error(`Failed to get AI inclusion for folder ${path}:`, error);
+            states.set(path, true); // Default to included on error
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setFolderAIStates(states);
+        setIsLoading(false);
+      }
+    }
+
+    loadStates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [folderPaths.join(","), effectiveWorkspaceId]);
+
+  // Toggle AI inclusion for a folder
+  const toggleFolderAI = useCallback(
+    async (folderPath: string, currentlyIncluded: boolean) => {
+      if (!effectiveWorkspaceId) return;
+
+      try {
+        // Optimistically update state
+        setFolderAIStates((prev) => {
+          const next = new Map(prev);
+          next.set(folderPath, !currentlyIncluded);
+          return next;
+        });
+
+        // Persist the change
+        await setFolderAIInclusion(folderPath, effectiveWorkspaceId, !currentlyIncluded);
+      } catch (error) {
+        console.error(`Failed to toggle AI inclusion for folder ${folderPath}:`, error);
+        // Revert on error
+        setFolderAIStates((prev) => {
+          const next = new Map(prev);
+          next.set(folderPath, currentlyIncluded);
+          return next;
+        });
+      }
+    },
+    [effectiveWorkspaceId]
+  );
+
+  return {
+    folderAIStates,
+    toggleFolderAI,
+    isLoading,
+  };
+}

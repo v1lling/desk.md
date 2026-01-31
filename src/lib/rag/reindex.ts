@@ -3,13 +3,16 @@
  *
  * Collects all documents, tasks, and meetings across workspaces
  * and indexes them with the configured embedding provider.
+ * Respects .aiignore files at workspace level for exclusions.
  */
 
 import { isTauri } from "@/lib/desk";
 import * as desk from "@/lib/desk";
+import { getWorkspacePath } from "@/lib/desk/paths";
 import { chunkDocument } from "./chunker";
 import { initDb, indexChunks, clearIndex } from "./index";
 import { validateSettings } from "./validation";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "./frontmatter";
 import type { EmbeddingSettings, ChunkInput, IndexResult } from "./types";
 
 export interface ReindexProgress {
@@ -106,6 +109,20 @@ export async function reindexAll(
       currentWorkspace: workspace.name,
     });
 
+    // Load .aiignore entries for this workspace
+    const aiignoreEntries = await loadAIIgnoreEntries(workspace.id);
+    const workspacePath = await getWorkspacePath(workspace.id);
+
+    // Helper to convert absolute path to relative and check if excluded
+    const isExcluded = (filePath: string): boolean => {
+      const normalizedFile = filePath.replace(/\\/g, "/");
+      const normalizedWorkspace = workspacePath.replace(/\\/g, "/");
+      const relativePath = normalizedFile.startsWith(normalizedWorkspace)
+        ? normalizedFile.slice(normalizedWorkspace.length).replace(/^\//, "")
+        : normalizedFile;
+      return isPathExcludedByAIIgnore(relativePath, aiignoreEntries);
+    };
+
     // Get all content for this workspace
     const [docs, tasks, meetings] = await Promise.all([
       desk.getAllDocsForWorkspace(workspace.id),
@@ -118,6 +135,11 @@ export async function reindexAll(
 
     // Process docs
     for (const doc of docs) {
+      documentsProcessed++;
+      if (isExcluded(doc.filePath)) {
+        result.skippedChunks++;
+        continue;
+      }
       try {
         const chunks = await chunkDocument(
           doc.content,
@@ -128,16 +150,19 @@ export async function reindexAll(
         );
         allChunks.push(...chunks);
         result.totalDocuments++;
-        documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk doc ${doc.id}:`, error);
         result.failedPaths.push(doc.filePath);
-        documentsProcessed++;
       }
     }
 
     // Process tasks
     for (const task of tasks) {
+      documentsProcessed++;
+      if (isExcluded(task.filePath)) {
+        result.skippedChunks++;
+        continue;
+      }
       try {
         const chunks = await chunkDocument(
           task.content,
@@ -148,16 +173,19 @@ export async function reindexAll(
         );
         allChunks.push(...chunks);
         result.totalDocuments++;
-        documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk task ${task.id}:`, error);
         result.failedPaths.push(task.filePath);
-        documentsProcessed++;
       }
     }
 
     // Process meetings
     for (const meeting of meetings) {
+      documentsProcessed++;
+      if (isExcluded(meeting.filePath)) {
+        result.skippedChunks++;
+        continue;
+      }
       try {
         const chunks = await chunkDocument(
           meeting.content,
@@ -168,11 +196,9 @@ export async function reindexAll(
         );
         allChunks.push(...chunks);
         result.totalDocuments++;
-        documentsProcessed++;
       } catch (error) {
         console.error(`[RAG] Failed to chunk meeting ${meeting.id}:`, error);
         result.failedPaths.push(meeting.filePath);
-        documentsProcessed++;
       }
     }
 

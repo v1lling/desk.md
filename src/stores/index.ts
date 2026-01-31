@@ -48,6 +48,8 @@ export {
   useMoveDoc,
   useCreateDocInFolder,
   useImportFiles,
+  // Folder AI inclusion
+  useFolderAIStates,
 } from "./content";
 export {
   useMeetings,

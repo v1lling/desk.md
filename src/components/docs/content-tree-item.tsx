@@ -21,6 +21,7 @@ import {
   Trash2,
   FolderPlus,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { getFileCategory, type FileCategory } from "@/lib/desk/file-utils";
 import { isTauri } from "@/lib/desk/tauri-fs";
@@ -42,6 +43,18 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Doc, FileTreeNode, Asset } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
+
+// Sparkles icon with a diagonal slash through it (for "AI excluded" state)
+function SparklesOff({ className }: { className?: string }) {
+  return (
+    <span className={cn("relative inline-flex", className)}>
+      <Sparkles className="size-full" />
+      <span className="absolute inset-0 flex items-center justify-center">
+        <span className="w-[130%] h-[2px] bg-current rotate-45 rounded-full" />
+      </span>
+    </span>
+  );
+}
 
 // Get icon component based on file category
 function getFileIcon(extension: string) {
@@ -75,6 +88,12 @@ interface ContentTreeItemProps {
   onNewDocInFolder?: (folderPath: string) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onDeleteAsset?: (asset: Asset) => void;
+  /** Callback to toggle AI inclusion for a folder */
+  onToggleFolderAI?: (folderPath: string, currentlyIncluded: boolean) => void;
+  /** Map of folder paths to their AI inclusion state (true = included) */
+  folderAIStates?: Map<string, boolean>;
+  /** Whether this item inherits AI exclusion from a parent folder */
+  isParentExcluded?: boolean;
 }
 
 // Indent guide component - renders vertical lines for tree hierarchy
@@ -109,6 +128,9 @@ export function ContentTreeItem({
   onNewDocInFolder,
   onDeleteDoc,
   onDeleteAsset,
+  onToggleFolderAI,
+  folderAIStates,
+  isParentExcluded = false,
 }: ContentTreeItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const paddingLeft = depth * 16 + 8;
@@ -117,6 +139,10 @@ export function ContentTreeItem({
     const folder = node.folder;
     const isExpanded = expandedFolders.has(folder.path);
     const isFolderSelected = selectedFolderPath === folder.path;
+    // AI inclusion state - default to true (included) if not in map
+    const isAIIncluded = folderAIStates?.get(folder.path) ?? true;
+    // Check if this folder or a parent is excluded from AI
+    const isExcludedFromAI = !isAIIncluded || isParentExcluded;
 
     const menuContent = (
       <>
@@ -132,8 +158,25 @@ export function ContentTreeItem({
             New Subfolder
           </ContextMenuItem>
         )}
-        {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder) && (
+        {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder || onToggleFolderAI) && (
           <ContextMenuSeparator />
+        )}
+        {onToggleFolderAI && (
+          <ContextMenuItem
+            onClick={() => onToggleFolderAI(folder.path, isAIIncluded)}
+          >
+            {isAIIncluded ? (
+              <>
+                <SparklesOff className="size-4 mr-2" />
+                Exclude from AI
+              </>
+            ) : (
+              <>
+                <Sparkles className="size-4 mr-2" />
+                Include in AI
+              </>
+            )}
+          </ContextMenuItem>
         )}
         {onRenameFolder && (
           <ContextMenuItem onClick={() => onRenameFolder(folder.path)}>
@@ -191,6 +234,12 @@ export function ContentTreeItem({
                 <span className="text-sm font-medium truncate max-w-[200px]">
                   {folder.name}
                 </span>
+                {/* AI exclusion indicator - subtle icon */}
+                {isExcludedFromAI && (
+                  <span title={isParentExcluded ? "Parent folder excluded from AI" : "Excluded from AI"}>
+                    <SparklesOff className="size-3 text-muted-foreground shrink-0" />
+                  </span>
+                )}
                 <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -228,8 +277,28 @@ export function ContentTreeItem({
                         New Subfolder
                       </DropdownMenuItem>
                     )}
-                    {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder) && (
+                    {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder || onToggleFolderAI) && (
                       <DropdownMenuSeparator />
+                    )}
+                    {onToggleFolderAI && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFolderAI(folder.path, isAIIncluded);
+                        }}
+                      >
+                        {isAIIncluded ? (
+                          <>
+                            <SparklesOff className="size-4 mr-2" />
+                            Exclude from AI
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="size-4 mr-2" />
+                            Include in AI
+                          </>
+                        )}
+                      </DropdownMenuItem>
                     )}
                     {onRenameFolder && (
                       <DropdownMenuItem
@@ -283,6 +352,9 @@ export function ContentTreeItem({
                 onNewDocInFolder={onNewDocInFolder}
                 onDeleteDoc={onDeleteDoc}
                 onDeleteAsset={onDeleteAsset}
+                onToggleFolderAI={onToggleFolderAI}
+                folderAIStates={folderAIStates}
+                isParentExcluded={isExcludedFromAI}
               />
             ))}
           </div>
@@ -330,6 +402,12 @@ export function ContentTreeItem({
               >
                 <Icon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm truncate max-w-[200px]">{asset.id}</span>
+                {/* AI exclusion indicator - shown when parent folder is excluded */}
+                {isParentExcluded && (
+                  <span title="Parent folder excluded from AI">
+                    <SparklesOff className="size-3 text-muted-foreground shrink-0" />
+                  </span>
+                )}
                 {onDeleteAsset && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -411,6 +489,12 @@ export function ContentTreeItem({
             >
               <FileText className="size-4 shrink-0 text-muted-foreground" />
               <span className="text-sm truncate max-w-[200px]">{doc.title}</span>
+              {/* AI exclusion indicator - shown when parent folder is excluded */}
+              {isParentExcluded && (
+                <span title="Parent folder excluded from AI">
+                  <SparklesOff className="size-3 text-muted-foreground shrink-0" />
+                </span>
+              )}
               {onDeleteDoc && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

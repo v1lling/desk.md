@@ -5,6 +5,7 @@ import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
+import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -34,6 +35,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const [attendees, setAttendees] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [aiIncluded, setAiIncludedState] = useState(true);
 
   // Initialize metadata from meeting (only when switching meetings)
   useEffect(() => {
@@ -42,8 +44,10 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       setDate(meeting.date);
       setAttendees(meeting.attendees?.join(", ") || "");
       setIsEditorReady(false);
+      // Load AI inclusion state
+      getAIInclusion(meeting.filePath, workspaceId).then(setAiIncludedState);
     }
-  }, [meeting?.id]); // Only reset when switching to a different meeting
+  }, [meeting?.id, workspaceId]); // Only reset when switching to a different meeting
 
   // Defer editor rendering
   useEffect(() => {
@@ -168,6 +172,21 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     return "idle" as const;
   }, [contentSaveStatus]);
 
+  // Handle AI inclusion toggle
+  const handleAIInclusionChange = useCallback(
+    async (included: boolean) => {
+      if (!meeting) return;
+      try {
+        await setAIInclusion(meeting.filePath, workspaceId, included);
+        setAiIncludedState(included);
+      } catch (error) {
+        console.error("[meeting-editor] Failed to update AI inclusion:", error);
+        toast.error("Failed to update AI setting");
+      }
+    },
+    [meeting, workspaceId]
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
@@ -223,6 +242,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         placeholder="Meeting title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
+        aiIncluded={aiIncluded}
+        onAIInclusionChange={handleAIInclusionChange}
       />
 
       <ScrollArea className="flex-1 min-h-0">

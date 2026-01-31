@@ -14,7 +14,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@/stores/editor-event-bus";
-import { writeTextFile } from "@/lib/desk/tauri-fs";
+import { writeTextFile, readTextFile, isTauri } from "@/lib/desk/tauri-fs";
+import { parseMarkdown, serializeMarkdown } from "@/lib/desk/parser";
 import type { EditorType } from "@/stores/open-editor-registry";
 
 interface UseEditorSessionOptions {
@@ -129,7 +130,7 @@ export function useEditorSession({
     };
   }, [enabled, filePath, type, entityId, initialContent, getRegistry]);
 
-  // Save function
+  // Save function - preserves frontmatter when saving body content
   const performSave = useCallback(
     async (contentToSave: string) => {
       const path = currentPathRef.current;
@@ -143,14 +144,30 @@ export function useEditorSession({
 
       setSaveStatus("saving");
       try {
-        await writeTextFile(path, contentToSave);
+        // In Tauri: preserve frontmatter by reading existing file, updating body, and rewriting
+        // This ensures fields like title, status, ai, etc. are not lost
+        let fullContent = contentToSave;
+        if (isTauri()) {
+          try {
+            const existingContent = await readTextFile(path);
+            const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
+            // Recombine existing frontmatter with new body content
+            fullContent = serializeMarkdown(frontmatter, contentToSave);
+          } catch {
+            // File might not exist yet (new file) or read failed - just save body
+            fullContent = contentToSave;
+          }
+        }
+
+        await writeTextFile(path, fullContent);
         lastSavedRef.current = contentToSave;
         getRegistry().updateLastSaved(path, contentToSave);
         setIsDirty(false);
         setSaveStatus("idle");
 
         // Trigger post-save callback (e.g., for RAG indexing)
-        onSaveComplete?.(path, contentToSave);
+        // Pass the full content including frontmatter for proper indexing
+        onSaveComplete?.(path, fullContent);
       } catch (error) {
         console.error("[editor-session] Save failed:", error);
         setSaveStatus("error");

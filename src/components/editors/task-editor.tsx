@@ -5,6 +5,7 @@ import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProject
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
+import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -42,6 +43,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [originalProjectId, setOriginalProjectId] = useState("");
+  const [aiIncluded, setAiIncludedState] = useState(true);
 
   // Initialize metadata from task (only when switching tasks)
   useEffect(() => {
@@ -53,8 +55,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setCurrentProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
+      // Load AI inclusion state
+      getAIInclusion(task.filePath, workspaceId).then(setAiIncludedState);
     }
-  }, [task?.id]); // Only reset when switching to a different task
+  }, [task?.id, workspaceId]); // Only reset when switching to a different task
 
   // Defer editor rendering
   useEffect(() => {
@@ -209,6 +213,21 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     return "idle" as const;
   }, [contentSaveStatus]);
 
+  // Handle AI inclusion toggle
+  const handleAIInclusionChange = useCallback(
+    async (included: boolean) => {
+      if (!task) return;
+      try {
+        await setAIInclusion(task.filePath, workspaceId, included);
+        setAiIncludedState(included);
+      } catch (error) {
+        console.error("[task-editor] Failed to update AI inclusion:", error);
+        toast.error("Failed to update AI setting");
+      }
+    },
+    [task, workspaceId]
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
@@ -279,6 +298,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         placeholder="Task title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
+        aiIncluded={aiIncluded}
+        onAIInclusionChange={handleAIInclusionChange}
       />
 
       <ScrollArea className="flex-1 min-h-0">

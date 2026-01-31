@@ -36,6 +36,10 @@ interface ContentTreeProps {
   // Optional controlled expanded state for persistence
   expandedFolders?: string[];
   onExpandedFoldersChange?: (folders: string[]) => void;
+  /** Callback to toggle AI inclusion for a folder */
+  onToggleFolderAI?: (folderPath: string, currentlyIncluded: boolean) => void;
+  /** Map of folder paths to their AI inclusion state (true = included) */
+  folderAIStates?: Map<string, boolean>;
 }
 
 export function ContentTree({
@@ -54,6 +58,8 @@ export function ContentTree({
   className,
   expandedFolders: controlledExpandedFolders,
   onExpandedFoldersChange,
+  onToggleFolderAI,
+  folderAIStates,
 }: ContentTreeProps) {
   // Track expanded folders - use controlled state if provided, otherwise local state
   const [localExpandedFolders, setLocalExpandedFolders] = useState<Set<string>>(
@@ -226,6 +232,8 @@ export function ContentTree({
                   onNewDocInFolder={onCreateDoc}
                   onDeleteDoc={onDeleteDoc}
                   onDeleteAsset={onDeleteAsset}
+                  onToggleFolderAI={onToggleFolderAI}
+                  folderAIStates={folderAIStates}
                 />
               ))}
             </div>

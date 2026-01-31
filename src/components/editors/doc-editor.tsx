@@ -5,6 +5,7 @@ import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } 
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
+import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -60,6 +61,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const [originalProjectId, setOriginalProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [aiIncluded, setAiIncludedState] = useState(true);
 
   // Initialize local state from doc
   useEffect(() => {
@@ -68,8 +70,10 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       setCurrentProjectId(doc.projectId);
       setOriginalProjectId(doc.projectId);
       setIsEditorReady(false);
+      // Load AI inclusion state
+      getAIInclusion(doc.filePath, workspaceId).then(setAiIncludedState);
     }
-  }, [doc?.id]); // Only reset when switching to a different doc
+  }, [doc?.id, workspaceId]); // Only reset when switching to a different doc
 
   // Defer editor rendering for smooth tab switches
   useEffect(() => {
@@ -195,6 +199,21 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     return "idle" as const;
   }, [saveStatus]);
 
+  // Handle AI inclusion toggle
+  const handleAIInclusionChange = useCallback(
+    async (included: boolean) => {
+      if (!doc) return;
+      try {
+        await setAIInclusion(doc.filePath, workspaceId, included);
+        setAiIncludedState(included);
+      } catch (error) {
+        console.error("[doc-editor] Failed to update AI inclusion:", error);
+        toast.error("Failed to update AI setting");
+      }
+    },
+    [doc, workspaceId]
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
@@ -252,6 +271,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         placeholder="Doc title"
         saveStatus={headerSaveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
+        aiIncluded={aiIncluded}
+        onAIInclusionChange={handleAIInclusionChange}
       />
 
       <ScrollArea className="flex-1 min-h-0">

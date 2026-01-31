@@ -48,40 +48,11 @@ export async function hashContent(content: string): Promise<string> {
 }
 
 /**
- * Extract frontmatter from markdown content
+ * Extract body content from markdown (strips frontmatter if present)
  */
-export function extractFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) {
-    return { frontmatter: {}, body: content };
-  }
-
-  try {
-    // Simple YAML parsing for common fields
-    const frontmatter: Record<string, unknown> = {};
-    const lines = match[1].split('\n');
-    for (const line of lines) {
-      const colonIndex = line.indexOf(':');
-      if (colonIndex > 0) {
-        const key = line.slice(0, colonIndex).trim();
-        let value: unknown = line.slice(colonIndex + 1).trim();
-        // Parse booleans
-        if (value === 'true') value = true;
-        else if (value === 'false') value = false;
-        frontmatter[key] = value;
-      }
-    }
-    return { frontmatter, body: match[2] };
-  } catch {
-    return { frontmatter: {}, body: content };
-  }
-}
-
-/**
- * Check if content should be excluded from AI indexing
- */
-export function shouldExclude(frontmatter: Record<string, unknown>): boolean {
-  return frontmatter.ai === false || frontmatter.ai === 'false';
+export function extractBody(content: string): string {
+  const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
+  return match ? match[1] : content;
 }
 
 /**
@@ -146,7 +117,8 @@ function splitBySize(content: string): string[] {
 }
 
 /**
- * Chunk a document for indexing
+ * Chunk a document for indexing.
+ * Note: Exclusion via .aiignore is checked by the caller (reindex/indexer).
  */
 export async function chunkDocument(
   content: string,
@@ -155,13 +127,7 @@ export async function chunkDocument(
   contentType: 'doc' | 'task' | 'meeting',
   title: string
 ): Promise<ChunkInput[]> {
-  const { frontmatter, body } = extractFrontmatter(content);
-
-  // Check if excluded
-  if (shouldExclude(frontmatter)) {
-    return [];
-  }
-
+  const body = extractBody(content);
   const contentHash = await hashContent(content);
   const chunks: ChunkInput[] = [];
 
