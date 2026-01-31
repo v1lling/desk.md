@@ -28,3 +28,11 @@ tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-mcp = { path = "/Users/sascha/Development/tauri-plugin-mcp" }
+
+# RAG - Vector database and embeddings
+rusqlite = { version = "0.32", features = ["bundled"] }
+sqlite-vec = "0.1"
+zerocopy = { version = "0.8", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+sha2 = "0.10"

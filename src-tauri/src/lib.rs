@@ -2,6 +2,7 @@ use log::info;
 use std::process::Command;
 
 mod ai;
+mod rag;
 
 /// Open a file with the system's default application
 #[tauri::command]
@@ -44,6 +45,11 @@ pub fn run() {
       ai::claude_chat,
       ai::claude_check,
       open_file_with_default_app,
+      rag::rag_init_db,
+      rag::rag_get_status,
+      rag::rag_clear_index,
+      rag::rag_delete_doc,
+      rag::rag_check_ollama,
     ]);
 
   // Add MCP plugin in debug builds only
