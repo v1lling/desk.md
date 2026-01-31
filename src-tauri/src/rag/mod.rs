@@ -123,6 +123,8 @@ pub struct IndexResult {
     pub indexed_count: u32,
     pub skipped_count: u32,
     pub error_count: u32,
+    /// First few error messages for debugging (max 10)
+    pub errors: Vec<String>,
 }
 
 /// Initialize the RAG database
@@ -198,6 +200,7 @@ pub async fn rag_index_chunks(
             indexed_count: 0,
             skipped_count: 0,
             error_count: 0,
+            errors: vec![],
         });
     }
 
@@ -266,6 +269,8 @@ pub async fn rag_index_chunks(
     let mut indexed_count = 0u32;
     let mut skipped_count = 0u32;
     let mut error_count = 0u32;
+    let mut errors: Vec<String> = Vec::new();
+    const MAX_ERRORS_TO_COLLECT: usize = 10;
 
     // Process each chunk
     for chunk in chunks {
@@ -293,7 +298,11 @@ pub async fn rag_index_chunks(
         let embedding = match embedding_result {
             Ok(e) => e,
             Err(e) => {
-                log::error!("Failed to embed chunk {}: {}", chunk.doc_path, e);
+                let error_msg = format!("{}: {}", chunk.doc_path, e);
+                log::error!("Failed to embed chunk: {}", error_msg);
+                if errors.len() < MAX_ERRORS_TO_COLLECT {
+                    errors.push(error_msg);
+                }
                 error_count += 1;
                 continue;
             }
@@ -325,7 +334,11 @@ pub async fn rag_index_chunks(
         let chunk_id = match insert_result {
             Ok(_) => conn.last_insert_rowid(),
             Err(e) => {
-                log::error!("Failed to insert chunk: {}", e);
+                let error_msg = format!("{}: DB insert failed - {}", chunk.doc_path, e);
+                log::error!("{}", error_msg);
+                if errors.len() < MAX_ERRORS_TO_COLLECT {
+                    errors.push(error_msg);
+                }
                 error_count += 1;
                 continue;
             }
@@ -339,7 +352,11 @@ pub async fn rag_index_chunks(
         );
 
         if let Err(e) = vector_result {
-            log::error!("Failed to insert vector: {}", e);
+            let error_msg = format!("{}: Vector insert failed - {}", chunk.doc_path, e);
+            log::error!("{}", error_msg);
+            if errors.len() < MAX_ERRORS_TO_COLLECT {
+                errors.push(error_msg);
+            }
             error_count += 1;
             continue;
         }
@@ -358,6 +375,7 @@ pub async fn rag_index_chunks(
         indexed_count,
         skipped_count,
         error_count,
+        errors,
     })
 }
 
@@ -406,6 +424,7 @@ pub async fn rag_search(
     .await?;
 
     // Search for similar vectors
+    // sqlite-vec requires k=? constraint for KNN queries
     let query_bytes = query_embedding.as_bytes();
     let mut stmt = conn
         .prepare(
@@ -419,9 +438,8 @@ pub async fn rag_search(
                 v.distance
              FROM chunk_vectors v
              JOIN chunks c ON c.id = v.chunk_id
-             WHERE v.embedding MATCH ?1
-             ORDER BY v.distance
-             LIMIT ?2",
+             WHERE v.embedding MATCH ?1 AND k = ?2
+             ORDER BY v.distance",
         )
         .map_err(|e| format!("Failed to prepare search query: {}", e))?;
 

@@ -38,6 +38,8 @@ export interface ReindexResult {
   workspacesProcessed: number;
   /** Document paths that failed to chunk */
   failedPaths: string[];
+  /** First few error messages from embedding/indexing (max 10) */
+  indexErrors: string[];
 }
 
 /**
@@ -57,6 +59,7 @@ export async function reindexAll(
       errorChunks: 0,
       workspacesProcessed: 0,
       failedPaths: [],
+      indexErrors: [],
     };
   }
 
@@ -83,6 +86,7 @@ export async function reindexAll(
     errorChunks: 0,
     workspacesProcessed: 0,
     failedPaths: [],
+    indexErrors: [],
   };
 
   // First pass: count all documents
@@ -217,9 +221,16 @@ export async function reindexAll(
         result.indexedChunks += indexResult.indexedCount;
         result.skippedChunks += indexResult.skippedCount;
         result.errorChunks += indexResult.errorCount;
+        // Collect errors (limit to 10 total)
+        if (indexResult.errors && result.indexErrors.length < 10) {
+          result.indexErrors.push(...indexResult.errors.slice(0, 10 - result.indexErrors.length));
+        }
       } catch (error) {
         console.error(`[RAG] Failed to index workspace ${workspace.id}:`, error);
         result.errorChunks += allChunks.length;
+        if (result.indexErrors.length < 10) {
+          result.indexErrors.push(`Workspace ${workspace.name}: ${String(error)}`);
+        }
       }
     }
 

@@ -97,6 +97,7 @@ export function RAGTab() {
   const [isReindexing, setIsReindexing] = useState(false);
   const [reindexProgress, setReindexProgress] = useState<ReindexProgress | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [lastIndexErrors, setLastIndexErrors] = useState<string[]>([]);
 
   // Fetch index status on mount and when dataPath changes
   const fetchStatus = useCallback(async () => {
@@ -139,6 +140,7 @@ export function RAGTab() {
 
     setIsReindexing(true);
     setReindexProgress(null);
+    setLastIndexErrors([]);
 
     try {
       const settings: rag.EmbeddingSettings = {
@@ -153,6 +155,11 @@ export function RAGTab() {
 
       await fetchStatus();
 
+      // Save errors for display
+      if (result.indexErrors && result.indexErrors.length > 0) {
+        setLastIndexErrors(result.indexErrors);
+      }
+
       if (result.errorChunks > 0) {
         toast.warning(`Indexed ${result.indexedChunks} chunks with ${result.errorChunks} errors`);
       } else {
@@ -161,6 +168,7 @@ export function RAGTab() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast.error(`Re-indexing failed: ${message}`);
+      setLastIndexErrors([message]);
     } finally {
       setIsReindexing(false);
       setReindexProgress(null);
@@ -474,6 +482,32 @@ export function RAGTab() {
                     {reindexProgress.documentsProcessed}/{reindexProgress.totalDocuments} documents
                   </span>
                 )}
+              </div>
+            )}
+
+            {lastIndexErrors.length > 0 && (
+              <div className="mt-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                  <span className="text-sm font-medium text-destructive">
+                    Indexing Errors ({lastIndexErrors.length > 9 ? "10+" : lastIndexErrors.length})
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-6 px-2 text-xs"
+                    onClick={() => setLastIndexErrors([])}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {lastIndexErrors.map((error, idx) => (
+                    <p key={idx} className="text-xs text-destructive/90 font-mono break-all">
+                      {error}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
           </div>

@@ -25,7 +25,7 @@ interface MeetingEditorProps {
 }
 
 export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditorProps) {
-  const { data: meeting, isLoading } = useMeeting(workspaceId, meetingId);
+  const { data: meeting, isLoading: isLoadingMeeting } = useMeeting(workspaceId, meetingId);
 
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
@@ -53,16 +53,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     }
   }, [meeting?.id, workspaceId]); // Only reset when switching to a different meeting
 
-  // Defer editor rendering
-  useEffect(() => {
-    if (meeting && !isEditorReady) {
-      const frameId = requestAnimationFrame(() => {
-        setIsEditorReady(true);
-      });
-      return () => cancelAnimationFrame(frameId);
-    }
-  }, [meeting, isEditorReady]);
-
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -83,6 +73,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const {
     content,
     setContent,
+    isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus: contentSaveStatus,
     pathChanged,
@@ -95,10 +86,20 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     type: "meeting",
     entityId: meetingId,
     filePath: meeting?.filePath,
-    initialContent: meeting?.content ?? "",
+    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
     enabled: !!meeting,
     onSaveComplete: handleSaveComplete,
   });
+
+  // Defer editor rendering (wait for content to load)
+  useEffect(() => {
+    if (meeting && !isLoadingContent && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [meeting, isLoadingContent, isEditorReady]);
 
   // Track metadata changes separately
   const [metadataDirty, setMetadataDirty] = useState(false);
@@ -223,7 +224,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     );
   }
 
-  if (isLoading) {
+  if (isLoadingMeeting) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
         <LoadingState label="meeting" />

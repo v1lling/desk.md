@@ -26,7 +26,7 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
-  const { data: task, isLoading } = useTask(workspaceId, taskId);
+  const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
 
   // Task hooks (Personal workspace uses same hooks as other workspaces)
   const updateTask = useUpdateTask();
@@ -64,16 +64,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [task?.id, workspaceId]); // Only reset when switching to a different task
 
-  // Defer editor rendering
-  useEffect(() => {
-    if (task && !isEditorReady) {
-      const frameId = requestAnimationFrame(() => {
-        setIsEditorReady(true);
-      });
-      return () => cancelAnimationFrame(frameId);
-    }
-  }, [task, isEditorReady]);
-
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -94,6 +84,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const {
     content,
     setContent,
+    isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus: contentSaveStatus,
     pathChanged,
@@ -106,10 +97,20 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     type: "task",
     entityId: taskId,
     filePath: task?.filePath,
-    initialContent: task?.content ?? "",
+    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
     enabled: !!task,
     onSaveComplete: handleSaveComplete,
   });
+
+  // Defer editor rendering (wait for content to load)
+  useEffect(() => {
+    if (task && !isLoadingContent && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [task, isLoadingContent, isEditorReady]);
 
   // Track metadata changes separately
   const [metadataDirty, setMetadataDirty] = useState(false);
@@ -264,7 +265,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     );
   }
 
-  if (isLoading) {
+  if (isLoadingTask) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
         <LoadingState label="task" />

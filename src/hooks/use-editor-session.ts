@@ -22,6 +22,7 @@ interface UseEditorSessionOptions {
   type: EditorType;
   entityId: string;
   filePath: string | undefined;
+  /** Fallback content for mock/browser mode. In Tauri, content is loaded from disk. */
   initialContent: string;
   enabled: boolean;
   /** Called after successful save with the path and content that was saved */
@@ -32,6 +33,9 @@ interface UseEditorSessionReturn {
   // Content
   content: string;
   setContent: (content: string) => void;
+
+  // Loading state (true while loading content from disk)
+  isLoading: boolean;
 
   // Save state
   isDirty: boolean;
@@ -62,6 +66,7 @@ export function useEditorSession({
   const getRegistry = useCallback(() => useOpenEditorRegistry.getState(), []);
 
   const [content, setContentState] = useState(initialContent);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">(
     "idle"
@@ -74,21 +79,86 @@ export function useEditorSession({
   const lastSavedRef = useRef<string>(initialContent);
   const currentPathRef = useRef<string | undefined>(filePath);
 
+  // Refs to access current values in cleanup (can't use state in cleanup)
+  const contentRef = useRef<string>(initialContent);
+  const isDirtyRef = useRef<boolean>(false);
+  const fileDeletedRef = useRef<boolean>(false);
+  const pathChangedRef = useRef<boolean>(false);
+
   // Update path ref when it changes
   useEffect(() => {
     currentPathRef.current = filePath;
   }, [filePath]);
 
-  // Reset state when initial content changes (e.g., switching to different entity)
+  // Keep refs in sync with state (needed for cleanup access)
   useEffect(() => {
-    setContentState(initialContent);
-    lastSavedRef.current = initialContent;
+    contentRef.current = content;
+  }, [content]);
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
+  useEffect(() => {
+    fileDeletedRef.current = fileDeleted;
+  }, [fileDeleted]);
+  useEffect(() => {
+    pathChangedRef.current = pathChanged;
+  }, [pathChanged]);
+
+  // Load content from disk on mount (Tauri) or use fallback (browser/mock)
+  useEffect(() => {
+    if (!enabled || !filePath) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Reset state for new entity
     setIsDirty(false);
     setSaveStatus("idle");
     setPathChanged(false);
     setNewPath(null);
     setFileDeleted(false);
-  }, [initialContent, entityId]);
+
+    if (!isTauri()) {
+      // Mock/browser mode: use initialContent as fallback
+      setContentState(initialContent);
+      lastSavedRef.current = initialContent;
+      contentRef.current = initialContent;
+      setIsLoading(false);
+      return;
+    }
+
+    // Tauri mode: load content fresh from disk
+    let cancelled = false;
+    setIsLoading(true);
+
+    async function loadContent() {
+      try {
+        const fileContent = await readTextFile(filePath!);
+        const { content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
+        if (!cancelled) {
+          setContentState(body);
+          lastSavedRef.current = body;
+          contentRef.current = body;
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("[editor-session] Failed to load content from disk:", error);
+        if (!cancelled) {
+          // Fallback to initialContent on error
+          setContentState(initialContent);
+          lastSavedRef.current = initialContent;
+          contentRef.current = initialContent;
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, filePath, entityId]); // Note: intentionally not depending on initialContent
 
   // Register session on mount
   useEffect(() => {
@@ -121,14 +191,49 @@ export function useEditorSession({
 
     return () => {
       unsubscribe();
+
+      // Clear any pending debounced save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
+      // CRITICAL: Force save if there's unsaved content before unmount
+      // This prevents data loss when user closes tab quickly after typing
+      if (
+        isDirtyRef.current &&
+        filePath &&
+        !fileDeletedRef.current &&
+        !pathChangedRef.current
+      ) {
+        const path = currentPathRef.current || filePath;
+        const contentToSave = contentRef.current;
+
+        // Fire-and-forget save - we can't await in cleanup, but we start the save
+        // The write should complete even if the component unmounts
+        (async () => {
+          try {
+            // Preserve frontmatter when saving
+            let fullContent = contentToSave;
+            try {
+              const existingContent = await readTextFile(path);
+              const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
+              fullContent = serializeMarkdown(frontmatter, contentToSave);
+            } catch {
+              // File read failed - just save body
+            }
+            await writeTextFile(path, fullContent);
+          } catch (error) {
+            console.error("[editor-session] Force save on close failed:", error);
+          }
+        })();
+      }
+
       if (filePath) {
         getRegistry().unregister(filePath);
       }
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
     };
-  }, [enabled, filePath, type, entityId, initialContent, getRegistry]);
+  }, [enabled, filePath, type, entityId, getRegistry]);
 
   // Save function - preserves frontmatter when saving body content
   const performSave = useCallback(
@@ -222,6 +327,7 @@ export function useEditorSession({
   return {
     content,
     setContent,
+    isLoading,
     isDirty,
     saveStatus,
     pathChanged,

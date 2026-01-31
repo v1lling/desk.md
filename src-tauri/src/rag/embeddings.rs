@@ -2,6 +2,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::time::Duration;
+use tokio::time::sleep;
 
 /// HTTP client timeout for embedding requests
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -9,6 +10,11 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 /// Maximum texts per batch request (OpenAI limit is 2048, Voyage is 128)
 /// We use a conservative limit that works for both
 const MAX_BATCH_SIZE: usize = 100;
+
+/// Retry configuration for rate limiting
+const MAX_RETRIES: u32 = 5;
+const INITIAL_BACKOFF_MS: u64 = 1000;  // Start with 1 second
+const MAX_BACKOFF_MS: u64 = 60000;     // Max 60 seconds between retries
 
 /// Shared HTTP client for connection pooling
 static HTTP_CLIENT: OnceLock<Client> = OnceLock::new();
@@ -88,6 +94,7 @@ pub async fn embed_ollama(
 }
 
 /// Embed text using OpenAI API - 1536 dimensions with text-embedding-3-small
+/// Includes retry with exponential backoff for rate limiting (429 errors)
 pub async fn embed_openai(
     text: &str,
     api_key: &str,
@@ -100,38 +107,66 @@ pub async fn embed_openai(
         input: &'a str,
     }
 
-    let response = client
-        .post("https://api.openai.com/v1/embeddings")
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&OpenAIRequest {
-            model: "text-embedding-3-small",
-            input: text,
-        })
-        .send()
-        .await
-        .map_err(|e| format!("OpenAI request failed: {}", e))?;
+    let mut last_error = String::new();
+    let mut backoff_ms = INITIAL_BACKOFF_MS;
 
-    if !response.status().is_success() {
+    for attempt in 0..=MAX_RETRIES {
+        if attempt > 0 {
+            log::info!("OpenAI rate limited, waiting {}ms before retry {}/{}", backoff_ms, attempt, MAX_RETRIES);
+            sleep(Duration::from_millis(backoff_ms)).await;
+            backoff_ms = (backoff_ms * 2).min(MAX_BACKOFF_MS);
+        }
+
+        let response = match client
+            .post("https://api.openai.com/v1/embeddings")
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&OpenAIRequest {
+                model: "text-embedding-3-small",
+                input: text,
+            })
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                last_error = format!("OpenAI request failed: {}", e);
+                continue;
+            }
+        };
+
         let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!("OpenAI error {}: {}", status, body));
+
+        // Rate limited - retry with backoff
+        if status.as_u16() == 429 {
+            let body = response.text().await.unwrap_or_default();
+            last_error = format!("OpenAI rate limited (429): {}", body);
+            continue;
+        }
+
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(format!("OpenAI error {}: {}", status, body));
+        }
+
+        let result: OpenAIEmbeddingResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse OpenAI response: {}", e))?;
+
+        return result
+            .data
+            .into_iter()
+            .next()
+            .map(|d| d.embedding)
+            .ok_or_else(|| "No embedding in OpenAI response".to_string());
     }
 
-    let result: OpenAIEmbeddingResponse = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse OpenAI response: {}", e))?;
-
-    result
-        .data
-        .into_iter()
-        .next()
-        .map(|d| d.embedding)
-        .ok_or_else(|| "No embedding in OpenAI response".to_string())
+    Err(format!("OpenAI failed after {} retries: {}", MAX_RETRIES, last_error))
 }
 
 /// Embed text using Voyage API - 1024 dimensions with voyage-3.5-lite
+/// Includes retry with exponential backoff for rate limiting (429 errors)
 pub async fn embed_voyage(
     text: &str,
     api_key: &str,
@@ -144,35 +179,63 @@ pub async fn embed_voyage(
         input: &'a str,
     }
 
-    let response = client
-        .post("https://api.voyageai.com/v1/embeddings")
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&VoyageRequest {
-            model: "voyage-3.5-lite",
-            input: text,
-        })
-        .send()
-        .await
-        .map_err(|e| format!("Voyage request failed: {}", e))?;
+    let mut last_error = String::new();
+    let mut backoff_ms = INITIAL_BACKOFF_MS;
 
-    if !response.status().is_success() {
+    for attempt in 0..=MAX_RETRIES {
+        if attempt > 0 {
+            log::info!("Voyage rate limited, waiting {}ms before retry {}/{}", backoff_ms, attempt, MAX_RETRIES);
+            sleep(Duration::from_millis(backoff_ms)).await;
+            // Exponential backoff
+            backoff_ms = (backoff_ms * 2).min(MAX_BACKOFF_MS);
+        }
+
+        let response = match client
+            .post("https://api.voyageai.com/v1/embeddings")
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&VoyageRequest {
+                model: "voyage-3.5-lite",
+                input: text,
+            })
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                last_error = format!("Voyage request failed: {}", e);
+                continue;
+            }
+        };
+
         let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!("Voyage error {}: {}", status, body));
+
+        // Rate limited - retry with backoff
+        if status.as_u16() == 429 {
+            let body = response.text().await.unwrap_or_default();
+            last_error = format!("Voyage rate limited (429): {}", body);
+            continue;
+        }
+
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(format!("Voyage error {}: {}", status, body));
+        }
+
+        let result: VoyageEmbeddingResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse Voyage response: {}", e))?;
+
+        return result
+            .data
+            .into_iter()
+            .next()
+            .map(|d| d.embedding)
+            .ok_or_else(|| "No embedding in Voyage response".to_string());
     }
 
-    let result: VoyageEmbeddingResponse = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse Voyage response: {}", e))?;
-
-    result
-        .data
-        .into_iter()
-        .next()
-        .map(|d| d.embedding)
-        .ok_or_else(|| "No embedding in Voyage response".to_string())
+    Err(format!("Voyage failed after {} retries: {}", MAX_RETRIES, last_error))
 }
 
 /// Batch embed texts using OpenAI API (more efficient than individual calls)

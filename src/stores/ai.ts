@@ -108,25 +108,14 @@ export const useAIUsageStore = create<AIUsageState>()(
 
 interface AIChatState {
   messages: AIMessage[];
-  selectedDocs: string[];
   addMessage: (msg: AIMessage) => void;
   clearMessages: () => void;
-  setSelectedDocs: (ids: string[]) => void;
-  toggleDoc: (id: string) => void;
 }
 
 export const useAIChatStore = create<AIChatState>((set) => ({
   messages: [],
-  selectedDocs: [],
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
-  clearMessages: () => set({ messages: [], selectedDocs: [] }),
-  setSelectedDocs: (ids) => set({ selectedDocs: ids }),
-  toggleDoc: (id) =>
-    set((s) => ({
-      selectedDocs: s.selectedDocs.includes(id)
-        ? s.selectedDocs.filter((d) => d !== id)
-        : [...s.selectedDocs, id],
-    })),
+  clearMessages: () => set({ messages: [] }),
 }));
 
 // =============================================================================

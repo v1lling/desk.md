@@ -46,4 +46,6 @@ export interface IndexResult {
   indexedCount: number;
   skippedCount: number;
   errorCount: number;
+  /** First few error messages for debugging (max 10) */
+  errors: string[];
 }

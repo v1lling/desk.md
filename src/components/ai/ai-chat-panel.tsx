@@ -8,11 +8,7 @@ import { SlidePanel } from "@/components/ui/slide-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ChatMessage } from "./chat-message";
-import { DocSelector } from "./doc-selector";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
-import { useAllWorkspaceDocs } from "@/stores/content";
-import { useSettingsStore } from "@/stores/settings";
-import type { AIContext } from "@/lib/ai";
 
 interface AIChatPanelProps {
   open: boolean;
@@ -25,17 +21,13 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Store
-  const { messages, selectedDocs, toggleDoc, clearMessages } = useAIChatStore();
+  const { messages, clearMessages } = useAIChatStore();
   const sendMessage = useSendMessage();
   const { providerType, anthropicApiKey } = useAISettingsStore();
 
   // Check if AI is properly configured
   const isConfigured = providerType === 'claude-code' ||
     (providerType === 'anthropic-api' && anthropicApiKey);
-
-  // Get all docs for the workspace (includes nested folders via recursive tree traversal)
-  const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
-  const { data: allDocs = [] } = useAllWorkspaceDocs(currentWorkspaceId);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -53,19 +45,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     e.preventDefault();
     if (!input.trim() || sendMessage.isPending || !isConfigured) return;
 
-    // Build context from selected docs
-    const context: AIContext | undefined =
-      selectedDocs.length > 0
-        ? {
-            docs: allDocs
-              .filter((d) => selectedDocs.includes(d.id))
-              .map((d) => ({ id: d.id, title: d.title, content: d.content })),
-          }
-        : undefined;
-
     sendMessage.mutate({
       message: input.trim(),
-      context,
       history: messages,
     });
 
@@ -96,12 +77,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       }
       footer={
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <DocSelector
-            docs={allDocs}
-            selectedIds={selectedDocs}
-            onToggle={toggleDoc}
-            disabled={sendMessage.isPending}
-          />
           <Input
             ref={inputRef}
             value={input}
@@ -141,7 +116,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       {messages.length === 0 ? (
         <EmptyState
           title="No messages yet"
-          description="Start a conversation with AI. Select docs for context."
+          description="Start a conversation with AI. Your docs are automatically included as context."
           icon={MessageSquare}
         />
       ) : (

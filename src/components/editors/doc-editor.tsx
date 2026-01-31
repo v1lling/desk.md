@@ -47,8 +47,8 @@ function FolderBreadcrumb({ path }: { path?: string }) {
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
-  // Load doc metadata via TanStack Query (for initial load only)
-  const { data: doc, isLoading } = useDoc(workspaceId, docId);
+  // Load doc metadata via TanStack Query (metadata only - content loaded from disk)
+  const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, docId);
   const { data: projects = [] } = useProjects(workspaceId);
 
   // Mutations for project changes and deletion
@@ -79,16 +79,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [doc?.id, workspaceId]); // Only reset when switching to a different doc
 
-  // Defer editor rendering for smooth tab switches
-  useEffect(() => {
-    if (doc && !isEditorReady) {
-      const frameId = requestAnimationFrame(() => {
-        setIsEditorReady(true);
-      });
-      return () => cancelAnimationFrame(frameId);
-    }
-  }, [doc, isEditorReady]);
-
   const handleSaveComplete = useCallback(
     (path: string, content: string) => {
       if (!doc) return;
@@ -106,6 +96,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const {
     content,
     setContent,
+    isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus,
     pathChanged,
@@ -118,10 +109,20 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     type: "doc",
     entityId: docId,
     filePath: doc?.filePath,
-    initialContent: doc?.content ?? "",
+    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
     enabled: !!doc,
     onSaveComplete: handleSaveComplete,
   });
+
+  // Defer editor rendering for smooth tab switches (wait for content to load)
+  useEffect(() => {
+    if (doc && !isLoadingContent && !isEditorReady) {
+      const frameId = requestAnimationFrame(() => {
+        setIsEditorReady(true);
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [doc, isLoadingContent, isEditorReady]);
 
   // Track title changes separately (saved via updateDoc mutation)
   const [titleDirty, setTitleDirty] = useState(false);
@@ -247,8 +248,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     );
   }
 
-  // Loading
-  if (isLoading) {
+  // Loading doc metadata
+  if (isLoadingDoc) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
         <LoadingState label="doc" />

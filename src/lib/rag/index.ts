@@ -143,7 +143,7 @@ export async function indexChunks(
   settings: EmbeddingSettings
 ): Promise<IndexResult> {
   if (!isTauri()) {
-    return { indexedCount: 0, skippedCount: 0, errorCount: 0 };
+    return { indexedCount: 0, skippedCount: 0, errorCount: 0, errors: [] };
   }
 
   const result = await invoke<Record<string, unknown>>('rag_index_chunks', {
@@ -156,6 +156,7 @@ export async function indexChunks(
     indexedCount: result.indexed_count as number,
     skippedCount: result.skipped_count as number,
     errorCount: result.error_count as number,
+    errors: (result.errors as string[]) || [],
   };
 }
 
