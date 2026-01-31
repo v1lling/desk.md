@@ -12,7 +12,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { useRAGStore } from "@/stores/rag";
 import * as rag from "@/lib/rag";
 import { hasProviderConfig } from "@/lib/rag/validation";
-import { getAIInclusion } from "@/lib/rag/frontmatter";
+import { getAIInclusion } from "@/lib/rag/aiignore";
 import { isTauri } from "@/lib/desk";
 
 /**

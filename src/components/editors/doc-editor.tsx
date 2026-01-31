@@ -5,7 +5,8 @@ import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } 
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
-import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
+import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
+import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -61,7 +62,10 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const [originalProjectId, setOriginalProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [aiIncluded, setAiIncludedState] = useState(true);
+  const [aiExclusionState, setAiExclusionState] = useState<AiExclusionState>({
+    isExcluded: false,
+    isInExcludedFolder: false,
+  });
 
   // Initialize local state from doc
   useEffect(() => {
@@ -70,8 +74,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       setCurrentProjectId(doc.projectId);
       setOriginalProjectId(doc.projectId);
       setIsEditorReady(false);
-      // Load AI inclusion state
-      getAIInclusion(doc.filePath, workspaceId).then(setAiIncludedState);
+      // Load AI exclusion state
+      getAiExclusionState(doc.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [doc?.id, workspaceId]); // Only reset when switching to a different doc
 
@@ -203,9 +207,11 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!doc) return;
+      // Don't allow changes if in excluded folder
+      if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(doc.filePath, workspaceId, included);
-        setAiIncludedState(included);
+        setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
         // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(doc.filePath);
@@ -215,7 +221,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         toast.error("Failed to update AI setting");
       }
     },
-    [doc, workspaceId]
+    [doc, workspaceId, aiExclusionState.isInExcludedFolder]
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -275,8 +281,10 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         placeholder="Doc title"
         saveStatus={headerSaveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
-        aiIncluded={aiIncluded}
+        aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
+        isInExcludedFolder={aiExclusionState.isInExcludedFolder}
+        excludedFolderPath={aiExclusionState.excludedFolderPath}
       />
 
       <ScrollArea className="flex-1 min-h-0">

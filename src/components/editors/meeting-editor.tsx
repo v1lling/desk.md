@@ -5,7 +5,8 @@ import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
-import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
+import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
+import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -35,7 +36,10 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const [attendees, setAttendees] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [aiIncluded, setAiIncludedState] = useState(true);
+  const [aiExclusionState, setAiExclusionState] = useState<AiExclusionState>({
+    isExcluded: false,
+    isInExcludedFolder: false,
+  });
 
   // Initialize metadata from meeting (only when switching meetings)
   useEffect(() => {
@@ -44,8 +48,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       setDate(meeting.date);
       setAttendees(meeting.attendees?.join(", ") || "");
       setIsEditorReady(false);
-      // Load AI inclusion state
-      getAIInclusion(meeting.filePath, workspaceId).then(setAiIncludedState);
+      // Load AI exclusion state
+      getAiExclusionState(meeting.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [meeting?.id, workspaceId]); // Only reset when switching to a different meeting
 
@@ -176,9 +180,11 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!meeting) return;
+      // Don't allow changes if in excluded folder
+      if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(meeting.filePath, workspaceId, included);
-        setAiIncludedState(included);
+        setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
         // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(meeting.filePath);
@@ -188,7 +194,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         toast.error("Failed to update AI setting");
       }
     },
-    [meeting, workspaceId]
+    [meeting, workspaceId, aiExclusionState.isInExcludedFolder]
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -246,8 +252,10 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         placeholder="Meeting title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
-        aiIncluded={aiIncluded}
+        aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
+        isInExcludedFolder={aiExclusionState.isInExcludedFolder}
+        excludedFolderPath={aiExclusionState.excludedFolderPath}
       />
 
       <ScrollArea className="flex-1 min-h-0">

@@ -16,6 +16,10 @@ interface EditorHeaderProps {
   aiIncluded?: boolean;
   /** Callback when AI inclusion is toggled */
   onAIInclusionChange?: (included: boolean) => void;
+  /** Whether the file is in an excluded folder (toggle disabled) */
+  isInExcludedFolder?: boolean;
+  /** Path of the excluded folder (for tooltip) */
+  excludedFolderPath?: string;
 }
 
 export function EditorHeader({
@@ -26,7 +30,23 @@ export function EditorHeader({
   onDelete,
   aiIncluded,
   onAIInclusionChange,
+  isInExcludedFolder,
+  excludedFolderPath,
 }: EditorHeaderProps) {
+  // Determine if toggle should be disabled
+  const isToggleDisabled = isInExcludedFolder;
+
+  // Build tooltip text
+  const getTooltipText = () => {
+    if (isInExcludedFolder && excludedFolderPath) {
+      return `Excluded by folder: ${excludedFolderPath}`;
+    }
+    if (aiIncluded) {
+      return "Included in AI context (click to exclude)";
+    }
+    return "Excluded from AI context (click to include)";
+  };
+
   return (
     <div className="flex items-center gap-3 px-6 py-3 border-b border-border/50 bg-background shrink-0">
       <Input
@@ -40,15 +60,18 @@ export function EditorHeader({
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onAIInclusionChange(!aiIncluded)}
-          title={aiIncluded ? "Included in AI context (click to exclude)" : "Excluded from AI context (click to include)"}
+          onClick={() => !isToggleDisabled && onAIInclusionChange(!aiIncluded)}
+          disabled={isToggleDisabled}
+          title={getTooltipText()}
           className={`h-8 w-8 shrink-0 ${
-            aiIncluded
+            isToggleDisabled
+              ? "text-muted-foreground/50 cursor-not-allowed"
+              : aiIncluded
               ? "text-primary hover:text-primary/80"
               : "text-muted-foreground hover:text-muted-foreground/80"
           }`}
         >
-          {aiIncluded ? (
+          {aiIncluded && !isInExcludedFolder ? (
             <Sparkles className="h-4 w-4" />
           ) : (
             <span className="relative">

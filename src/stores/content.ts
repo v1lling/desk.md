@@ -439,7 +439,7 @@ export function useImportFiles() {
 // ============================================================================
 
 import { useState, useEffect, useCallback } from "react";
-import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/rag/frontmatter";
+import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/rag/aiignore";
 import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
 import { isTauri } from "@/lib/desk/tauri-fs";
 

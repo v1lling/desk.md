@@ -10,10 +10,9 @@ import type {
 
 export * from './types';
 export * from './chunker';
-export * from './aiignore';
 export * from './reindex';
 export * from './validation';
-export * from './frontmatter';
+export * from './aiignore';
 
 /**
  * Convert frontend camelCase to backend snake_case for ChunkInput

@@ -12,7 +12,7 @@ import { getWorkspacePath } from "@/lib/desk/paths";
 import { chunkDocument } from "./chunker";
 import { initDb, indexChunks, clearIndex } from "./index";
 import { validateSettings } from "./validation";
-import { loadAIIgnoreEntries, isPathExcludedByAIIgnore, toRelativePath } from "./frontmatter";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore, toRelativePath } from "./aiignore";
 import type { EmbeddingSettings, ChunkInput, IndexResult } from "./types";
 
 export interface ReindexProgress {

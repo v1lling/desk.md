@@ -5,7 +5,8 @@ import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProject
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
-import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
+import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
+import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -43,7 +44,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [originalProjectId, setOriginalProjectId] = useState("");
-  const [aiIncluded, setAiIncludedState] = useState(true);
+  const [aiExclusionState, setAiExclusionState] = useState<AiExclusionState>({
+    isExcluded: false,
+    isInExcludedFolder: false,
+  });
 
   // Initialize metadata from task (only when switching tasks)
   useEffect(() => {
@@ -55,8 +59,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setCurrentProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
-      // Load AI inclusion state
-      getAIInclusion(task.filePath, workspaceId).then(setAiIncludedState);
+      // Load AI exclusion state
+      getAiExclusionState(task.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [task?.id, workspaceId]); // Only reset when switching to a different task
 
@@ -217,9 +221,11 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!task) return;
+      // Don't allow changes if in excluded folder
+      if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(task.filePath, workspaceId, included);
-        setAiIncludedState(included);
+        setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
         // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(task.filePath);
@@ -229,7 +235,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         toast.error("Failed to update AI setting");
       }
     },
-    [task, workspaceId]
+    [task, workspaceId, aiExclusionState.isInExcludedFolder]
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -302,8 +308,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         placeholder="Task title"
         saveStatus={saveStatus}
         onDelete={() => setShowDeleteConfirm(true)}
-        aiIncluded={aiIncluded}
+        aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
+        isInExcludedFolder={aiExclusionState.isInExcludedFolder}
+        excludedFolderPath={aiExclusionState.excludedFolderPath}
       />
 
       <ScrollArea className="flex-1 min-h-0">
