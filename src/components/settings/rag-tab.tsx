@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Brain,
   Eye,
@@ -31,31 +32,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRAGStore, type EmbeddingProvider } from "@/stores/rag";
-
-// Placeholder for index status - will be implemented with Tauri commands
-interface IndexStatus {
-  documentCount: number;
-  chunkCount: number;
-  lastIndexedAt: Date | null;
-  indexSizeBytes: number;
-  isIndexing: boolean;
-  excludedCount: number;
-  indexedWithProvider: EmbeddingProvider | null;
-  indexedWithModel: string | null;
-  dimensions: number | null;
-}
-
-const defaultIndexStatus: IndexStatus = {
-  documentCount: 0,
-  chunkCount: 0,
-  lastIndexedAt: null,
-  indexSizeBytes: 0,
-  isIndexing: false,
-  excludedCount: 0,
-  indexedWithProvider: null,
-  indexedWithModel: null,
-  dimensions: null,
-};
+import { useSettingsStore } from "@/stores/settings";
+import * as rag from "@/lib/rag";
+import type { IndexStatus } from "@/lib/rag";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -65,8 +44,9 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-function formatRelativeTime(date: Date | null): string {
-  if (!date) return "Never";
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const minutes = Math.floor(diff / 60000);
@@ -80,6 +60,7 @@ function formatRelativeTime(date: Date | null): string {
 }
 
 export function RAGTab() {
+  const { dataPath } = useSettingsStore();
   const {
     embeddingProvider,
     ollamaUrl,
@@ -104,21 +85,43 @@ export function RAGTab() {
   const [isTestingOllama, setIsTestingOllama] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<{ connected: boolean; error?: string } | null>(null);
 
-  // TODO: Replace with actual Tauri command call
-  const [indexStatus] = useState<IndexStatus>(defaultIndexStatus);
+  const [indexStatus, setIndexStatus] = useState<IndexStatus>({
+    documentCount: 0,
+    chunkCount: 0,
+    lastIndexedAt: null,
+    indexSizeBytes: 0,
+    indexedWithProvider: null,
+    indexedWithModel: null,
+    dimensions: null,
+  });
   const [isReindexing, setIsReindexing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Fetch index status on mount and when dataPath changes
+  const fetchStatus = useCallback(async () => {
+    if (!dataPath) return;
+    try {
+      const status = await rag.getStatus(dataPath);
+      setIndexStatus(status);
+    } catch (error) {
+      console.error("Failed to fetch index status:", error);
+    }
+  }, [dataPath]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
 
   const handleTestOllama = async () => {
     setIsTestingOllama(true);
     setOllamaStatus(null);
     try {
-      // TODO: Replace with actual Tauri command: rag_check_ollama
-      const response = await fetch(`${ollamaUrl}/api/tags`);
-      if (response.ok) {
+      const connected = await rag.checkOllama(ollamaUrl);
+      if (connected) {
         setOllamaStatus({ connected: true });
         toast.success("Ollama connected");
       } else {
-        setOllamaStatus({ connected: false, error: "Failed to connect" });
+        setOllamaStatus({ connected: false, error: "Could not reach Ollama server" });
       }
     } catch {
       setOllamaStatus({ connected: false, error: "Could not reach Ollama server" });
@@ -128,19 +131,36 @@ export function RAGTab() {
   };
 
   const handleReindexAll = async () => {
+    if (!dataPath) {
+      toast.error("No data path configured");
+      return;
+    }
+
     setIsReindexing(true);
     try {
-      // TODO: Implement actual reindexing via Tauri commands
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success("Re-indexing started");
+      // TODO: In Phase 5, implement full reindexing by:
+      // 1. Collecting all docs/tasks/meetings from file system
+      // 2. Chunking them
+      // 3. Calling rag.indexChunks()
+      toast.info("Re-indexing not yet implemented - coming in Phase 5");
+      await fetchStatus();
+    } catch (error) {
+      toast.error(`Re-indexing failed: ${error}`);
     } finally {
       setIsReindexing(false);
     }
   };
 
   const handleClearIndex = async () => {
-    // TODO: Implement via Tauri command: rag_clear_index
-    toast.success("Index cleared");
+    if (!dataPath) return;
+    try {
+      await rag.clearIndex(dataPath);
+      await fetchStatus();
+      toast.success("Index cleared");
+    } catch (error) {
+      toast.error(`Failed to clear index: ${error}`);
+    }
+    setShowClearConfirm(false);
   };
 
   const providerChanged = indexStatus.indexedWithProvider &&
@@ -383,7 +403,7 @@ export function RAGTab() {
             </Button>
             <Button
               variant="outline"
-              onClick={handleClearIndex}
+              onClick={() => setShowClearConfirm(true)}
               disabled={indexStatus.documentCount === 0}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -459,6 +479,17 @@ export function RAGTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Clear Index Confirmation */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Clear Index"
+        description="This will delete all indexed documents and vectors. You'll need to re-index to use RAG features. This action cannot be undone."
+        confirmLabel="Clear Index"
+        variant="destructive"
+        onConfirm={handleClearIndex}
+      />
     </div>
   );
 }
