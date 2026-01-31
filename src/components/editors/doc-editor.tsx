@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
+import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -83,6 +84,20 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   // ═══════════════════════════════════════════════════════════════════════════
   // NEW: Use editor session for content (file-based auto-save)
   // ═══════════════════════════════════════════════════════════════════════════
+  const handleSaveComplete = useCallback(
+    (path: string, content: string) => {
+      if (!doc) return;
+      indexDocumentOnSave({
+        path,
+        content,
+        workspaceId,
+        contentType: "doc",
+        title: title || doc.title,
+      });
+    },
+    [doc, workspaceId, title]
+  );
+
   const {
     content,
     setContent,
@@ -100,6 +115,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     filePath: doc?.filePath,
     initialContent: doc?.content ?? "",
     enabled: !!doc,
+    onSaveComplete: handleSaveComplete,
   });
 
   // Track title changes separately (saved via updateDoc mutation)

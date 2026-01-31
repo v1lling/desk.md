@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { useRAGStore, type EmbeddingProvider } from "@/stores/rag";
 import { useSettingsStore } from "@/stores/settings";
 import * as rag from "@/lib/rag";
-import type { IndexStatus } from "@/lib/rag";
+import type { IndexStatus, ReindexProgress } from "@/lib/rag";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -95,6 +95,7 @@ export function RAGTab() {
     dimensions: null,
   });
   const [isReindexing, setIsReindexing] = useState(false);
+  const [reindexProgress, setReindexProgress] = useState<ReindexProgress | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Fetch index status on mount and when dataPath changes
@@ -137,17 +138,31 @@ export function RAGTab() {
     }
 
     setIsReindexing(true);
+    setReindexProgress(null);
+
     try {
-      // TODO: In Phase 5, implement full reindexing by:
-      // 1. Collecting all docs/tasks/meetings from file system
-      // 2. Chunking them
-      // 3. Calling rag.indexChunks()
-      toast.info("Re-indexing not yet implemented - coming in Phase 5");
+      const settings: rag.EmbeddingSettings = {
+        provider: embeddingProvider,
+        ollamaUrl,
+        ollamaModel,
+        openaiApiKey: openaiApiKey || undefined,
+        voyageApiKey: voyageApiKey || undefined,
+      };
+
+      const result = await rag.reindexAll(dataPath, settings, setReindexProgress);
+
       await fetchStatus();
+
+      if (result.errorChunks > 0) {
+        toast.warning(`Indexed ${result.indexedChunks} chunks with ${result.errorChunks} errors`);
+      } else {
+        toast.success(`Indexed ${result.totalDocuments} documents (${result.indexedChunks} chunks)`);
+      }
     } catch (error) {
       toast.error(`Re-indexing failed: ${error}`);
     } finally {
       setIsReindexing(false);
+      setReindexProgress(null);
     }
   };
 
@@ -388,27 +403,43 @@ export function RAGTab() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleReindexAll}
-              disabled={isReindexing}
-            >
-              {isReindexing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Re-index All
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowClearConfirm(true)}
-              disabled={indexStatus.documentCount === 0}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear Index
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleReindexAll}
+                disabled={isReindexing}
+              >
+                {isReindexing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Re-index All
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowClearConfirm(true)}
+                disabled={indexStatus.documentCount === 0 || isReindexing}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear Index
+              </Button>
+            </div>
+
+            {reindexProgress && (
+              <div className="text-sm text-muted-foreground">
+                {reindexProgress.phase === "collecting" && (
+                  <span>Collecting documents...</span>
+                )}
+                {reindexProgress.phase === "indexing" && (
+                  <span>
+                    Indexing {reindexProgress.currentWorkspace}...{" "}
+                    {reindexProgress.documentsProcessed}/{reindexProgress.totalDocuments} documents
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

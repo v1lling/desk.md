@@ -75,6 +75,13 @@ export function formatContext(context: AIContext): string {
     sections.push(`## Emails\n${emailsText}`);
   }
 
+  if (context.ragResults && context.ragResults.length > 0) {
+    const ragText = context.ragResults
+      .map((r) => `### ${r.title} (${r.contentType})\n${r.content}`)
+      .join('\n\n');
+    sections.push(`## Relevant Context (auto-retrieved)\n${ragText}`);
+  }
+
   if (context.custom) {
     for (const [key, value] of Object.entries(context.custom)) {
       sections.push(`## ${key}\n${value}`);

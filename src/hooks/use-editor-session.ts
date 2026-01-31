@@ -23,6 +23,8 @@ interface UseEditorSessionOptions {
   filePath: string | undefined;
   initialContent: string;
   enabled: boolean;
+  /** Called after successful save with the path and content that was saved */
+  onSaveComplete?: (path: string, content: string) => void;
 }
 
 interface UseEditorSessionReturn {
@@ -53,6 +55,7 @@ export function useEditorSession({
   filePath,
   initialContent,
   enabled,
+  onSaveComplete,
 }: UseEditorSessionOptions): UseEditorSessionReturn {
   // Use getState() for imperative operations to avoid re-render loops
   const getRegistry = useCallback(() => useOpenEditorRegistry.getState(), []);
@@ -145,12 +148,15 @@ export function useEditorSession({
         getRegistry().updateLastSaved(path, contentToSave);
         setIsDirty(false);
         setSaveStatus("idle");
+
+        // Trigger post-save callback (e.g., for RAG indexing)
+        onSaveComplete?.(path, contentToSave);
       } catch (error) {
         console.error("[editor-session] Save failed:", error);
         setSaveStatus("error");
       }
     },
-    [getRegistry, fileDeleted, pathChanged]
+    [getRegistry, fileDeleted, pathChanged, onSaveComplete]
   );
 
   // Debounced auto-save on content change

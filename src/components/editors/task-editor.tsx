@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
+import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -68,6 +69,20 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
   // ═══════════════════════════════════════════════════════════════════════════
+  const handleSaveComplete = useCallback(
+    (path: string, content: string) => {
+      if (!task) return;
+      indexDocumentOnSave({
+        path,
+        content,
+        workspaceId,
+        contentType: "task",
+        title: title || task.title,
+      });
+    },
+    [task, workspaceId, title]
+  );
+
   const {
     content,
     setContent,
@@ -85,6 +100,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     filePath: task?.filePath,
     initialContent: task?.content ?? "",
     enabled: !!task,
+    onSaveComplete: handleSaveComplete,
   });
 
   // Track metadata changes separately

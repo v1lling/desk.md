@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
+import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -57,6 +58,20 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
   // ═══════════════════════════════════════════════════════════════════════════
+  const handleSaveComplete = useCallback(
+    (path: string, content: string) => {
+      if (!meeting) return;
+      indexDocumentOnSave({
+        path,
+        content,
+        workspaceId,
+        contentType: "meeting",
+        title: title || meeting.title,
+      });
+    },
+    [meeting, workspaceId, title]
+  );
+
   const {
     content,
     setContent,
@@ -74,6 +89,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     filePath: meeting?.filePath,
     initialContent: meeting?.content ?? "",
     enabled: !!meeting,
+    onSaveComplete: handleSaveComplete,
   });
 
   // Track metadata changes separately

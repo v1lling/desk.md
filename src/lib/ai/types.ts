@@ -2,11 +2,19 @@
 // Core Types
 // =============================================================================
 
+export interface AIMessageSource {
+  docPath: string;
+  title: string;
+  contentType: 'doc' | 'task' | 'meeting';
+}
+
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  /** Sources used for this response (only for assistant messages) */
+  sources?: AIMessageSource[];
 }
 
 export interface AIUsage {
@@ -39,11 +47,21 @@ export interface AIEmail {
   body: string;
 }
 
+export interface AIRAGResult {
+  docPath: string;
+  title: string;
+  content: string;
+  contentType: 'doc' | 'task' | 'meeting';
+  score: number;
+}
+
 export interface AIContext {
   docs?: AIDoc[];
   tasks?: AITask[];
   emails?: AIEmail[];
   custom?: Record<string, string>;
+  /** RAG search results for automatic context retrieval */
+  ragResults?: AIRAGResult[];
 }
 
 // =============================================================================

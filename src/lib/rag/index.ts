@@ -11,6 +11,7 @@ import type {
 export * from './types';
 export * from './chunker';
 export * from './aiignore';
+export * from './reindex';
 
 /**
  * Convert frontend camelCase to backend snake_case for ChunkInput

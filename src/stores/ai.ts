@@ -4,12 +4,19 @@ import { persist } from 'zustand/middleware';
 import {
   createAIService,
   type AIMessage,
+  type AIMessageSource,
   type AIContext,
   type AIProviderType,
   type AIPurpose,
   type AIUsage,
   type AIUsageRecord,
+  type AIRAGResult,
+  type AIServiceResponse,
 } from '@/lib/ai';
+import * as rag from '@/lib/rag';
+import { useRAGStore } from '@/stores/rag';
+import { useSettingsStore } from '@/stores/settings';
+import { isTauri } from '@/lib/desk';
 
 // =============================================================================
 // AI Settings Store (persisted)
@@ -150,11 +157,29 @@ function useAIService() {
 
 /**
  * Hook to send a chat message (for the chat panel)
+ * Automatically includes RAG context if enabled
  */
 export function useSendMessage() {
   const { addMessage } = useAIChatStore();
   const { providerType, anthropicApiKey } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
+
+  // RAG settings - read from store state directly in mutationFn
+  // to avoid stale closures
+  const getRAGSettings = () => {
+    const ragState = useRAGStore.getState();
+    const settingsState = useSettingsStore.getState();
+    return {
+      dataPath: settingsState.dataPath,
+      embeddingProvider: ragState.embeddingProvider,
+      ollamaUrl: ragState.ollamaUrl,
+      ollamaModel: ragState.ollamaModel,
+      openaiApiKey: ragState.openaiApiKey,
+      voyageApiKey: ragState.voyageApiKey,
+      retrievalCount: ragState.retrievalCount,
+      showSourcesInChat: ragState.showSourcesInChat,
+    };
+  };
 
   return useMutation({
     mutationFn: async ({
@@ -165,7 +190,67 @@ export function useSendMessage() {
       message: string;
       context?: AIContext;
       history?: AIMessage[];
-    }) => {
+    }): Promise<{ response: AIServiceResponse; sources?: AIMessageSource[] }> => {
+      // Get RAG settings
+      const ragSettings = getRAGSettings();
+
+      // Perform RAG search if we're in Tauri and have a data path
+      let ragResults: AIRAGResult[] = [];
+      let sources: AIMessageSource[] | undefined;
+
+      if (isTauri() && ragSettings.dataPath) {
+        try {
+          const settings: rag.EmbeddingSettings = {
+            provider: ragSettings.embeddingProvider,
+            ollamaUrl: ragSettings.ollamaUrl,
+            ollamaModel: ragSettings.ollamaModel,
+            openaiApiKey: ragSettings.openaiApiKey || undefined,
+            voyageApiKey: ragSettings.voyageApiKey || undefined,
+          };
+
+          const results = await rag.search(
+            ragSettings.dataPath,
+            message,
+            ragSettings.retrievalCount,
+            settings
+          );
+
+          ragResults = results.map((r) => ({
+            docPath: r.docPath,
+            title: r.title,
+            content: r.content,
+            contentType: r.contentType,
+            score: r.score,
+          }));
+
+          // If showSourcesInChat is enabled, prepare sources for display
+          if (ragSettings.showSourcesInChat && ragResults.length > 0) {
+            // Deduplicate by docPath (same doc may have multiple chunks)
+            const seenPaths = new Set<string>();
+            sources = ragResults
+              .filter((r) => {
+                if (seenPaths.has(r.docPath)) return false;
+                seenPaths.add(r.docPath);
+                return true;
+              })
+              .map((r) => ({
+                docPath: r.docPath,
+                title: r.title,
+                contentType: r.contentType,
+              }));
+          }
+        } catch (error) {
+          // Silently fail - RAG is optional enhancement
+          console.warn('[AI] RAG search failed:', error);
+        }
+      }
+
+      // Merge RAG results with existing context
+      const enrichedContext: AIContext = {
+        ...context,
+        ragResults: ragResults.length > 0 ? ragResults : undefined,
+      };
+
       const service = createAIService({
         providerType,
         apiKey: providerType === 'anthropic-api' ? anthropicApiKey : undefined,
@@ -174,7 +259,8 @@ export function useSendMessage() {
         },
       });
 
-      return service.chat(message, { context, history });
+      const response = await service.chat(message, { context: enrichedContext, history });
+      return { response, sources };
     },
     onMutate: ({ message }) => {
       // Optimistically add user message
@@ -185,12 +271,13 @@ export function useSendMessage() {
         timestamp: new Date().toISOString(),
       });
     },
-    onSuccess: (response) => {
+    onSuccess: ({ response, sources }) => {
       addMessage({
         id: crypto.randomUUID(),
         role: 'assistant',
         content: response.message,
         timestamp: new Date().toISOString(),
+        sources,
       });
     },
   });
