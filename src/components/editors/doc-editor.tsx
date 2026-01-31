@@ -89,9 +89,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [doc, isEditorReady]);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // NEW: Use editor session for content (file-based auto-save)
-  // ═══════════════════════════════════════════════════════════════════════════
   const handleSaveComplete = useCallback(
     (path: string, content: string) => {
       if (!doc) return;

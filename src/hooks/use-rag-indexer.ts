@@ -7,7 +7,6 @@
  * Respects .aiignore exclusions.
  */
 
-import { useCallback, useRef, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings";
 import { useRAGStore } from "@/stores/rag";
 import * as rag from "@/lib/rag";
@@ -154,72 +153,4 @@ export async function removeFromIndex(docPath: string): Promise<void> {
     // Silently fail - shouldn't break the exclusion flow
     console.error("[RAG] Failed to remove document from index:", error);
   }
-}
-
-/**
- * Hook that provides a function to index a single document after save.
- * Use this when you need reactive access to settings.
- */
-export function useRAGIndexer() {
-  const { dataPath } = useSettingsStore();
-  const {
-    autoIndexOnSave,
-    embeddingProvider,
-    ollamaUrl,
-    ollamaModel,
-    openaiApiKey,
-    voyageApiKey,
-  } = useRAGStore();
-
-  // Track pending index path for cleanup
-  const pendingPathRef = useRef<string | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pendingPathRef.current) {
-        cancelPendingIndex(pendingPathRef.current);
-      }
-    };
-  }, []);
-
-  const indexDocument = useCallback(
-    ({ path, content, workspaceId, contentType, title }: IndexDocOptions) => {
-      // Skip if auto-index disabled or not in Tauri
-      if (!autoIndexOnSave || !isTauri() || !dataPath) {
-        return;
-      }
-
-      // Build settings early to validate provider config
-      const settings: rag.EmbeddingSettings = {
-        provider: embeddingProvider,
-        ollamaUrl,
-        ollamaModel,
-        openaiApiKey: openaiApiKey || undefined,
-        voyageApiKey: voyageApiKey || undefined,
-      };
-
-      // Skip silently if provider is not properly configured
-      if (!hasProviderConfig(settings)) {
-        return;
-      }
-
-      // Track for cleanup
-      pendingPathRef.current = path;
-
-      // Use debounced indexing
-      indexDocumentOnSave({ path, content, workspaceId, contentType, title });
-    },
-    [
-      dataPath,
-      autoIndexOnSave,
-      embeddingProvider,
-      ollamaUrl,
-      ollamaModel,
-      openaiApiKey,
-      voyageApiKey,
-    ]
-  );
-
-  return { indexDocument };
 }

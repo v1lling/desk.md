@@ -20,7 +20,7 @@ const AIIGNORE_FILENAME = ".aiignore";
 /**
  * Get the .aiignore file path for a workspace
  */
-export async function getAIIgnorePath(workspaceId: string): Promise<string> {
+async function getAIIgnorePath(workspaceId: string): Promise<string> {
   const workspacePath = await getWorkspacePath(workspaceId);
   return joinPath(workspacePath, AIIGNORE_FILENAME);
 }

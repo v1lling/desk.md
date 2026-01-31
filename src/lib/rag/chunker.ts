@@ -131,7 +131,7 @@ export async function chunkDocument(
   const contentHash = await hashContent(content);
   const chunks: ChunkInput[] = [];
 
-  // Build context prefix (frontmatter + title for each chunk)
+  // Build title prefix to add context to each chunk
   const contextPrefix = `# ${title}\n\n`;
 
   if (body.length <= SINGLE_CHUNK_THRESHOLD) {
