@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
-import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
+import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
@@ -220,6 +220,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       try {
         await setAIInclusion(task.filePath, workspaceId, included);
         setAiIncludedState(included);
+        // If excluding, immediately remove from RAG index
+        if (!included) {
+          await removeFromIndex(task.filePath);
+        }
       } catch (error) {
         console.error("[task-editor] Failed to update AI inclusion:", error);
         toast.error("Failed to update AI setting");

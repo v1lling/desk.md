@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
-import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
+import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
@@ -179,6 +179,10 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       try {
         await setAIInclusion(meeting.filePath, workspaceId, included);
         setAiIncludedState(included);
+        // If excluding, immediately remove from RAG index
+        if (!included) {
+          await removeFromIndex(meeting.filePath);
+        }
       } catch (error) {
         console.error("[meeting-editor] Failed to update AI inclusion:", error);
         toast.error("Failed to update AI setting");

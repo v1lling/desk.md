@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
-import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
+import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { getAIInclusion, setAIInclusion } from "@/lib/rag/frontmatter";
@@ -206,6 +206,10 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       try {
         await setAIInclusion(doc.filePath, workspaceId, included);
         setAiIncludedState(included);
+        // If excluding, immediately remove from RAG index
+        if (!included) {
+          await removeFromIndex(doc.filePath);
+        }
       } catch (error) {
         console.error("[doc-editor] Failed to update AI inclusion:", error);
         toast.error("Failed to update AI setting");

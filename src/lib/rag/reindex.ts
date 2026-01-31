@@ -12,7 +12,7 @@ import { getWorkspacePath } from "@/lib/desk/paths";
 import { chunkDocument } from "./chunker";
 import { initDb, indexChunks, clearIndex } from "./index";
 import { validateSettings } from "./validation";
-import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "./frontmatter";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore, toRelativePath } from "./frontmatter";
 import type { EmbeddingSettings, ChunkInput, IndexResult } from "./types";
 
 export interface ReindexProgress {
@@ -25,9 +25,15 @@ export interface ReindexProgress {
 }
 
 export interface ReindexResult {
+  /** Documents successfully chunked and indexed */
   totalDocuments: number;
+  /** Total chunks indexed */
   indexedChunks: number;
+  /** Documents excluded via .aiignore */
+  excludedDocuments: number;
+  /** Chunks skipped (duplicates, etc.) */
   skippedChunks: number;
+  /** Chunks that failed to index */
   errorChunks: number;
   workspacesProcessed: number;
   /** Document paths that failed to chunk */
@@ -46,6 +52,7 @@ export async function reindexAll(
     return {
       totalDocuments: 0,
       indexedChunks: 0,
+      excludedDocuments: 0,
       skippedChunks: 0,
       errorChunks: 0,
       workspacesProcessed: 0,
@@ -71,6 +78,7 @@ export async function reindexAll(
   const result: ReindexResult = {
     totalDocuments: 0,
     indexedChunks: 0,
+    excludedDocuments: 0,
     skippedChunks: 0,
     errorChunks: 0,
     workspacesProcessed: 0,
@@ -137,7 +145,7 @@ export async function reindexAll(
     for (const doc of docs) {
       documentsProcessed++;
       if (isExcluded(doc.filePath)) {
-        result.skippedChunks++;
+        result.excludedDocuments++;
         continue;
       }
       try {
@@ -160,7 +168,7 @@ export async function reindexAll(
     for (const task of tasks) {
       documentsProcessed++;
       if (isExcluded(task.filePath)) {
-        result.skippedChunks++;
+        result.excludedDocuments++;
         continue;
       }
       try {
@@ -183,7 +191,7 @@ export async function reindexAll(
     for (const meeting of meetings) {
       documentsProcessed++;
       if (isExcluded(meeting.filePath)) {
-        result.skippedChunks++;
+        result.excludedDocuments++;
         continue;
       }
       try {

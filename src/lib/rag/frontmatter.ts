@@ -65,9 +65,10 @@ async function writeAIIgnoreEntries(
 }
 
 /**
- * Convert absolute file path to relative path for .aiignore
+ * Convert absolute file path to relative path within a workspace.
+ * Exported for use by reindex and other RAG modules.
  */
-async function toRelativePath(
+export async function toRelativePath(
   filePath: string,
   workspaceId: string
 ): Promise<string> {

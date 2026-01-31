@@ -135,6 +135,28 @@ export async function indexDocumentImmediate(options: IndexDocOptions): Promise<
 }
 
 /**
+ * Remove a document from the RAG index immediately.
+ * Call this when a document is excluded from AI via the toggle.
+ */
+export async function removeFromIndex(docPath: string): Promise<void> {
+  const { dataPath } = useSettingsStore.getState();
+
+  if (!isTauri() || !dataPath) {
+    return;
+  }
+
+  // Cancel any pending index for this path
+  cancelPendingIndex(docPath);
+
+  try {
+    await rag.deleteDoc(dataPath, docPath);
+  } catch (error) {
+    // Silently fail - shouldn't break the exclusion flow
+    console.error("[RAG] Failed to remove document from index:", error);
+  }
+}
+
+/**
  * Hook that provides a function to index a single document after save.
  * Use this when you need reactive access to settings.
  */
