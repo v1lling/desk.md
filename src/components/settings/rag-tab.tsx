@@ -159,7 +159,8 @@ export function RAGTab() {
         toast.success(`Indexed ${result.totalDocuments} documents (${result.indexedChunks} chunks)`);
       }
     } catch (error) {
-      toast.error(`Re-indexing failed: ${error}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Re-indexing failed: ${message}`);
     } finally {
       setIsReindexing(false);
       setReindexProgress(null);
@@ -173,7 +174,8 @@ export function RAGTab() {
       await fetchStatus();
       toast.success("Index cleared");
     } catch (error) {
-      toast.error(`Failed to clear index: ${error}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to clear index: ${message}`);
     }
     setShowClearConfirm(false);
   };

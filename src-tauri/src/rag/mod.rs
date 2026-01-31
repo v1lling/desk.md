@@ -5,22 +5,82 @@ use reqwest::Client;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::OnceLock;
 use std::time::Duration;
 use zerocopy::IntoBytes;
 
 /// HTTP client timeout for connectivity checks
 const CHECK_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Create HTTP client with timeout
-fn create_check_client() -> Client {
-    Client::builder()
-        .timeout(CHECK_TIMEOUT)
-        .build()
-        .unwrap_or_else(|_| Client::new())
+/// Shared HTTP client for connectivity checks
+static CHECK_CLIENT: OnceLock<Client> = OnceLock::new();
+
+/// Get shared HTTP client for connectivity checks
+fn get_check_client() -> &'static Client {
+    CHECK_CLIENT.get_or_init(|| {
+        Client::builder()
+            .timeout(CHECK_TIMEOUT)
+            .build()
+            .unwrap_or_else(|_| Client::new())
+    })
 }
 
 // Re-export types
 pub use db::IndexStatus;
+
+/// Valid embedding providers
+const VALID_PROVIDERS: &[&str] = &["auto", "ollama", "openai", "voyage"];
+
+/// Validate embedding settings
+fn validate_settings(settings: &EmbeddingSettings) -> Result<(), String> {
+    // Validate provider
+    if !VALID_PROVIDERS.contains(&settings.provider.as_str()) {
+        return Err(format!(
+            "Invalid embedding provider '{}'. Valid options: {}",
+            settings.provider,
+            VALID_PROVIDERS.join(", ")
+        ));
+    }
+
+    // Validate Ollama URL format
+    if !settings.ollama_url.starts_with("http://") && !settings.ollama_url.starts_with("https://") {
+        return Err(format!(
+            "Invalid Ollama URL '{}'. Must start with http:// or https://",
+            settings.ollama_url
+        ));
+    }
+
+    // Validate that required API keys are present for specific providers
+    match settings.provider.as_str() {
+        "openai" => {
+            if settings.openai_api_key.as_ref().map(|k| k.is_empty()).unwrap_or(true) {
+                return Err("OpenAI provider selected but no API key configured".to_string());
+            }
+        }
+        "voyage" => {
+            if settings.voyage_api_key.as_ref().map(|k| k.is_empty()).unwrap_or(true) {
+                return Err("Voyage provider selected but no API key configured".to_string());
+            }
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+/// Validate chunk input
+fn validate_chunk(chunk: &ChunkInput) -> Result<(), String> {
+    if chunk.doc_path.is_empty() {
+        return Err("Chunk doc_path cannot be empty".to_string());
+    }
+    if chunk.content.trim().is_empty() {
+        return Err(format!("Chunk content is empty for: {}", chunk.doc_path));
+    }
+    if chunk.content_hash.is_empty() {
+        return Err(format!("Chunk content_hash is empty for: {}", chunk.doc_path));
+    }
+    Ok(())
+}
 
 /// Chunk input from frontend
 #[derive(Debug, Serialize, Deserialize)]
@@ -113,7 +173,7 @@ pub async fn rag_delete_doc(data_path: String, doc_path: String) -> Result<(), S
 /// Check if Ollama is available
 #[tauri::command]
 pub async fn rag_check_ollama(url: String) -> Result<bool, String> {
-    let client = create_check_client();
+    let client = get_check_client();
     match client.get(format!("{}/api/tags", url)).send().await {
         Ok(response) => Ok(response.status().is_success()),
         Err(_) => Ok(false),
@@ -127,6 +187,12 @@ pub async fn rag_index_chunks(
     chunks: Vec<ChunkInput>,
     settings: EmbeddingSettings,
 ) -> Result<IndexResult, String> {
+    // Validate inputs
+    if data_path.is_empty() {
+        return Err("data_path cannot be empty".to_string());
+    }
+    validate_settings(&settings)?;
+
     if chunks.is_empty() {
         return Ok(IndexResult {
             indexed_count: 0,
@@ -135,10 +201,17 @@ pub async fn rag_index_chunks(
         });
     }
 
+    // Validate chunks (log warnings but don't fail completely)
+    for chunk in &chunks {
+        if let Err(e) = validate_chunk(chunk) {
+            log::warn!("Invalid chunk skipped: {}", e);
+        }
+    }
+
     // Determine actual provider (resolve "auto")
     let actual_provider = if settings.provider == "auto" {
         // Check if Ollama is available
-        let client = create_check_client();
+        let client = get_check_client();
         let ollama_result = client
             .get(format!("{}/api/tags", settings.ollama_url))
             .send()
@@ -296,6 +369,18 @@ pub async fn rag_search(
     limit: usize,
     settings: EmbeddingSettings,
 ) -> Result<Vec<SearchResult>, String> {
+    // Validate inputs
+    if data_path.is_empty() {
+        return Err("data_path cannot be empty".to_string());
+    }
+    if query.trim().is_empty() {
+        return Err("Search query cannot be empty".to_string());
+    }
+    if limit == 0 || limit > 100 {
+        return Err("Search limit must be between 1 and 100".to_string());
+    }
+    validate_settings(&settings)?;
+
     let index_dir = Path::new(&data_path).join(".index");
     let db_path = index_dir.join("vectors.db");
 

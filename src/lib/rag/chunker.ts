@@ -1,13 +1,40 @@
 import type { ChunkInput } from './types';
 
-/** Size threshold for single chunk vs split (2KB) */
+/**
+ * Size threshold for single chunk vs split.
+ * Documents smaller than this are kept as a single chunk.
+ * 2KB chosen because:
+ * - Average doc in this codebase is ~1.4KB
+ * - Single chunks are more efficient for small docs
+ * - Aligns with typical LLM context handling
+ */
 const SINGLE_CHUNK_THRESHOLD = 2048;
 
-/** Target chunk size in characters (~500 tokens) */
+/**
+ * Target chunk size in characters (~500 tokens).
+ * This balances:
+ * - Semantic coherence (enough context per chunk)
+ * - Retrieval precision (not too much irrelevant content)
+ * - Embedding quality (models optimized for this range)
+ */
 const TARGET_CHUNK_SIZE = 2000;
 
-/** Overlap between chunks for context */
+/**
+ * Overlap between consecutive chunks (in characters).
+ * 10% of TARGET_CHUNK_SIZE to:
+ * - Preserve context at chunk boundaries
+ * - Avoid splitting sentences/concepts
+ * - Improve retrieval for queries spanning chunk edges
+ */
 const CHUNK_OVERLAP = 200;
+
+/**
+ * Threshold multiplier for splitting header sections.
+ * Header sections larger than TARGET_CHUNK_SIZE * 1.5 are
+ * further split by size. The 1.5x buffer prevents over-splitting
+ * sections that are only slightly over the target.
+ */
+const HEADER_SECTION_THRESHOLD = 1.5;
 
 /**
  * Generate SHA-256 hash of content
@@ -161,7 +188,7 @@ export async function chunkDocument(
     // If header-split sections are still too large, split by size
     const finalChunks: string[] = [];
     for (const section of sections) {
-      if (section.length > TARGET_CHUNK_SIZE * 1.5) {
+      if (section.length > TARGET_CHUNK_SIZE * HEADER_SECTION_THRESHOLD) {
         finalChunks.push(...splitBySize(section));
       } else {
         finalChunks.push(section);
