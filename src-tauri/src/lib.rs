@@ -50,6 +50,8 @@ pub fn run() {
       rag::rag_clear_index,
       rag::rag_delete_doc,
       rag::rag_check_ollama,
+      rag::rag_index_chunks,
+      rag::rag_search,
     ]);
 
   // Add MCP plugin in debug builds only
