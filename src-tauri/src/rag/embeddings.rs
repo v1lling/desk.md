@@ -1,5 +1,17 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+/// HTTP client timeout for embedding requests
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Create HTTP client with timeout
+fn create_client() -> Result<Client, String> {
+    Client::builder()
+        .timeout(REQUEST_TIMEOUT)
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))
+}
 
 /// Ollama embedding response
 #[derive(Debug, Deserialize)]
@@ -35,7 +47,7 @@ pub async fn embed_ollama(
     url: &str,
     model: &str,
 ) -> Result<Vec<f32>, String> {
-    let client = Client::new();
+    let client = create_client()?;
 
     #[derive(Serialize)]
     struct OllamaRequest<'a> {
@@ -69,7 +81,7 @@ pub async fn embed_openai(
     text: &str,
     api_key: &str,
 ) -> Result<Vec<f32>, String> {
-    let client = Client::new();
+    let client = create_client()?;
 
     #[derive(Serialize)]
     struct OpenAIRequest<'a> {
@@ -113,7 +125,7 @@ pub async fn embed_voyage(
     text: &str,
     api_key: &str,
 ) -> Result<Vec<f32>, String> {
-    let client = Client::new();
+    let client = create_client()?;
 
     #[derive(Serialize)]
     struct VoyageRequest<'a> {

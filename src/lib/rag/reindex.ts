@@ -8,7 +8,7 @@
 import { isTauri } from "@/lib/desk";
 import * as desk from "@/lib/desk";
 import { chunkDocument } from "./chunker";
-import { indexChunks, clearIndex } from "./index";
+import { initDb, indexChunks, clearIndex } from "./index";
 import type { EmbeddingSettings, ChunkInput, IndexResult } from "./types";
 
 export interface ReindexProgress {
@@ -31,6 +31,24 @@ export interface ReindexResult {
 /**
  * Re-index all documents across all workspaces
  */
+/**
+ * Validate that embedding settings are properly configured
+ */
+function validateSettings(settings: EmbeddingSettings): void {
+  const provider = settings.provider;
+
+  if (provider === "openai" && !settings.openaiApiKey?.trim()) {
+    throw new Error("OpenAI API key is required. Configure it in Settings → RAG.");
+  }
+
+  if (provider === "voyage" && !settings.voyageApiKey?.trim()) {
+    throw new Error("Voyage API key is required. Configure it in Settings → RAG.");
+  }
+
+  // For 'auto' mode, we allow proceeding - backend will try Ollama first
+  // and fall back to cloud providers if available
+}
+
 export async function reindexAll(
   dataPath: string,
   settings: EmbeddingSettings,
@@ -46,7 +64,13 @@ export async function reindexAll(
     };
   }
 
-  // Clear existing index first
+  // Validate settings before starting
+  validateSettings(settings);
+
+  // Initialize database (creates tables if they don't exist)
+  await initDb(dataPath, settings.provider);
+
+  // Clear existing index
   await clearIndex(dataPath);
 
   // Get all workspaces

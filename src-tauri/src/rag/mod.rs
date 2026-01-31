@@ -1,10 +1,23 @@
 pub mod db;
 pub mod embeddings;
 
+use reqwest::Client;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::time::Duration;
 use zerocopy::IntoBytes;
+
+/// HTTP client timeout for connectivity checks
+const CHECK_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Create HTTP client with timeout
+fn create_check_client() -> Client {
+    Client::builder()
+        .timeout(CHECK_TIMEOUT)
+        .build()
+        .unwrap_or_else(|_| Client::new())
+}
 
 // Re-export types
 pub use db::IndexStatus;
@@ -100,7 +113,7 @@ pub async fn rag_delete_doc(data_path: String, doc_path: String) -> Result<(), S
 /// Check if Ollama is available
 #[tauri::command]
 pub async fn rag_check_ollama(url: String) -> Result<bool, String> {
-    let client = reqwest::Client::new();
+    let client = create_check_client();
     match client.get(format!("{}/api/tags", url)).send().await {
         Ok(response) => Ok(response.status().is_success()),
         Err(_) => Ok(false),
@@ -125,7 +138,7 @@ pub async fn rag_index_chunks(
     // Determine actual provider (resolve "auto")
     let actual_provider = if settings.provider == "auto" {
         // Check if Ollama is available
-        let client = reqwest::Client::new();
+        let client = create_check_client();
         let ollama_ok = client
             .get(format!("{}/api/tags", settings.ollama_url))
             .send()
