@@ -6,7 +6,6 @@ export const dashboardKeys = {
   all: ["dashboard"] as const,
   activeTasks: () => [...dashboardKeys.all, "activeTasks"] as const,
   workspaceSummaries: () => [...dashboardKeys.all, "workspaceSummaries"] as const,
-  personalSummary: () => [...dashboardKeys.all, "personalSummary"] as const,
 };
 
 /**
@@ -29,12 +28,4 @@ export function useWorkspaceSummaries() {
   });
 }
 
-/**
- * Hook to fetch personal space summary
- */
-export function usePersonalSummary() {
-  return useQuery({
-    queryKey: dashboardKeys.personalSummary(),
-    queryFn: () => dashboardLib.getPersonalSummary(),
-  });
-}
+// Note: Personal summary is now part of workspace summaries

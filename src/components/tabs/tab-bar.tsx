@@ -28,8 +28,6 @@ function getPageName(
     "/tasks": "Tasks",
     "/docs": "Docs",
     "/meetings": "Meetings",
-    "/personal/tasks": "Personal Tasks",
-    "/personal/docs": "Personal Docs",
     "/settings": "Settings",
   };
 

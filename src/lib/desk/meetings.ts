@@ -5,7 +5,6 @@ import type { Meeting } from "@/types";
 import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
 import {
   isTauri,
-  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
@@ -15,7 +14,8 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockMeetings } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { getProjectPath, getMeetingsPath, getProjectsPath, getUnassignedPath } from "./paths";
 import { findItemInAllWorkspaces } from "./search";
 import { getFileTreeService } from "./file-cache";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
@@ -89,15 +89,14 @@ async function readProjectMeetings(
 }
 
 /**
- * Get all meetings for a workspace (across all projects)
+ * Get all meetings for a workspace (across all projects + unassigned)
  */
 export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   if (!isTauri()) {
     return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId);
   }
 
-  const deskPath = await getDeskPath();
-  const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
+  const projectsPath = await getProjectsPath(workspaceId);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -106,12 +105,20 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   const projectEntries = await readDir(projectsPath);
   const allMeetings: Meeting[] = [];
 
+  // Read meetings from all projects
   for (const entry of projectEntries) {
-    if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
+    if (entry.isDirectory && !entry.name.startsWith(".")) {
       const projectPath = await joinPath(projectsPath, entry.name);
       const projectMeetings = await readProjectMeetings(workspaceId, entry.name, projectPath);
       allMeetings.push(...projectMeetings);
     }
+  }
+
+  // Also read unassigned meetings
+  const unassignedPath = await getUnassignedPath(workspaceId);
+  if (await exists(unassignedPath)) {
+    const unassignedMeetings = await readProjectMeetings(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
+    allMeetings.push(...unassignedMeetings);
   }
 
   // Sort all meetings by date (newest first)
@@ -121,7 +128,7 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
 }
 
 /**
- * Get meetings for a specific project
+ * Get meetings for a specific project (or unassigned)
  */
 export async function getMeetingsByProject(
   workspaceId: string,
@@ -131,9 +138,7 @@ export async function getMeetingsByProject(
     return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId && meeting.projectId === projectId);
   }
 
-  const deskPath = await getDeskPath();
-  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
-
+  const projectPath = await getProjectPath(workspaceId, projectId);
   return readProjectMeetings(workspaceId, projectId, projectPath);
 }
 
@@ -178,13 +183,15 @@ export async function createMeeting(data: {
   };
 
   if (!isTauri()) {
-    meeting.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
+    const mockProjectPath = isUnassigned(data.projectId)
+      ? `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
+      : `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
+    meeting.filePath = `${mockProjectPath}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
   }
 
-  const deskPath = await getDeskPath();
-  const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.MEETINGS);
+  const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
 
   // Ensure meetings directory exists
   await mkdir(meetingsPath);
@@ -230,8 +237,7 @@ export async function updateMeeting(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const deskPath = await getDeskPath();
-    const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const meetingsPath = await getMeetingsPath(workspaceId, projectId);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);
@@ -316,8 +322,7 @@ export async function deleteMeeting(
 
   // If we have workspaceId and projectId, we can directly locate the file (fast path)
   if (workspaceId && projectId) {
-    const deskPath = await getDeskPath();
-    const meetingsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.MEETINGS);
+    const meetingsPath = await getMeetingsPath(workspaceId, projectId);
 
     if (await exists(meetingsPath)) {
       const entries = await readDir(meetingsPath);

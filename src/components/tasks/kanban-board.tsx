@@ -22,7 +22,6 @@ import {
   useTasks,
   useProjectTasks,
   useMoveTask,
-  useMovePersonalTask,
   useCurrentWorkspace,
   useViewState,
   useUpdateTaskOrder,
@@ -30,7 +29,6 @@ import {
 } from "@/stores";
 import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@/types";
-import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 import { taskStatusColors } from "@/lib/design-tokens";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,8 +42,6 @@ interface KanbanBoardProps {
   tasks?: Task[];
   /** Whether to show the Done column by default (default: false) */
   showDoneByDefault?: boolean;
-  /** Personal space mode - simpler mutations, no ordering persistence */
-  isPersonal?: boolean;
   /** Loading state (used when tasks are passed externally) */
   isLoading?: boolean;
 }
@@ -56,33 +52,30 @@ export function KanbanBoard({
   showProject,
   tasks: externalTasks,
   showDoneByDefault = false,
-  isPersonal = false,
   isLoading: externalIsLoading,
 }: KanbanBoardProps) {
   const currentWorkspace = useCurrentWorkspace();
-  const currentWorkspaceId = isPersonal ? PERSONAL_SPACE_ID : (currentWorkspace?.id || null);
+  const currentWorkspaceId = currentWorkspace?.id || null;
   const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
-  // Skip these queries in personal mode (tasks are passed externally)
-  const allTasksQuery = useTasks(isPersonal || projectId ? null : currentWorkspaceId);
+  const allTasksQuery = useTasks(projectId ? null : currentWorkspaceId);
   const projectTasksQuery = useProjectTasks(
-    !isPersonal && projectId ? currentWorkspaceId : null,
+    projectId ? currentWorkspaceId : null,
     projectId || null
   );
-  const { getProjectName } = useProjectName(isPersonal ? null : currentWorkspaceId);
+  const { getProjectName } = useProjectName(currentWorkspaceId);
 
-  // Fetch view state for task ordering (skip in personal mode - no ordering persistence)
+  // Fetch view state for task ordering
   // - Project view: uses project-level .view.json
   // - All Tasks view: uses workspace-level .view.json (projectId = null)
   const effectiveProjectId = projectId || null;
   const { data: viewState } = useViewState(
-    isPersonal ? null : currentWorkspaceId,
+    currentWorkspaceId,
     effectiveProjectId
   );
   const updateTaskOrder = useUpdateTaskOrder();
   const moveTask = useMoveTask();
-  const movePersonalTask = useMovePersonalTask();
 
   // Use external tasks if provided (for filtering), otherwise use query results
   const queryResult = projectId ? projectTasksQuery : allTasksQuery;
@@ -192,17 +185,6 @@ export function KanbanBoard({
 
       const statusChanged = task.status !== targetStatus;
 
-      // Personal mode: simple status update only
-      if (isPersonal) {
-        if (statusChanged) {
-          movePersonalTask.mutate({
-            taskId,
-            newStatus: targetStatus,
-          });
-        }
-        return;
-      }
-
       // Need workspaceId for workspace operations
       if (!currentWorkspaceId) return;
 
@@ -275,12 +257,10 @@ export function KanbanBoard({
       tasks,
       groupedTasks,
       moveTask,
-      movePersonalTask,
       updateTaskOrder,
       projectId,
       currentWorkspaceId,
       effectiveProjectId,
-      isPersonal,
     ]
   );
 

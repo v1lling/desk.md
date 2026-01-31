@@ -71,24 +71,17 @@ export {
 export {
   useCaptureTasks,
   useCreateCaptureTask,
-  useMoveFromCapture,
+  useUpdateCaptureTask,
+  useDeleteCaptureTask,
+  useMoveCaptureToPersonal,
   useMoveCaptureToWorkspace,
-  usePersonalTasks,
-  usePersonalTask,
-  useAllPersonalTasks,
-  useCreatePersonalTask,
-  useUpdatePersonalTask,
-  useDeletePersonalTask,
-  useMovePersonalTask,
-  groupPersonalTasksByStatus,
-  isPersonalSpace,
-  personalKeys,
-  PERSONAL_SPACE_ID,
+  isPersonalWorkspace,
+  captureKeys,
+  PERSONAL_WORKSPACE_ID,
 } from "./personal";
 export {
   useActiveTasks,
   useWorkspaceSummaries,
-  usePersonalSummary,
   dashboardKeys,
 } from "./dashboard";
 export {
@@ -97,3 +90,5 @@ export {
   type TabItem,
   type TabType,
 } from "./tabs";
+// Re-export constants for convenience
+export { WORKSPACE_LEVEL_PROJECT_ID } from "@/lib/desk/constants";

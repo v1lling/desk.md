@@ -18,9 +18,9 @@ import {
 import {
   useCaptureTasks,
   useCreateCaptureTask,
-  useMoveFromCapture,
+  useMoveCaptureToPersonal,
   useMoveCaptureToWorkspace,
-  useDeletePersonalTask,
+  useDeleteCaptureTask,
   useWorkspaces,
   useProjects,
 } from "@/stores";
@@ -44,9 +44,9 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
   const { data: tasks = [], isLoading } = useCaptureTasks();
   const { data: workspaces = [] } = useWorkspaces();
   const createTask = useCreateCaptureTask();
-  const moveFromCapture = useMoveFromCapture();
+  const moveToPersonal = useMoveCaptureToPersonal();
   const moveToWorkspace = useMoveCaptureToWorkspace();
-  const deleteTask = useDeletePersonalTask();
+  const deleteTask = useDeleteCaptureTask();
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
@@ -59,7 +59,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
   };
 
   const handleMoveToPersonal = async (task: Task) => {
-    await moveFromCapture.mutateAsync(task.id);
+    await moveToPersonal.mutateAsync(task.id);
     onTriageComplete?.(task, { type: "personal" });
   };
 

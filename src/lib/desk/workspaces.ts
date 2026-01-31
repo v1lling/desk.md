@@ -15,7 +15,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockWorkspaces } from "./mock-data";
-import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
+import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES, isPersonalWorkspace } from "./constants";
 
 interface WorkspaceFrontmatter {
   name: string;
@@ -25,11 +25,25 @@ interface WorkspaceFrontmatter {
 }
 
 /**
- * Get all workspaces
+ * Personal workspace metadata
+ * Personal is a special workspace that always exists
+ */
+export const PERSONAL_WORKSPACE: Workspace = {
+  id: SPECIAL_DIRS.PERSONAL,
+  name: "Personal",
+  description: "Private tasks, docs, and projects",
+  color: "#6366f1", // Indigo - distinct from client workspaces
+  created: "2024-01-01",
+};
+
+/**
+ * Get all workspaces (including Personal)
+ * Personal workspace is always first in the list
  */
 export async function getWorkspaces(): Promise<Workspace[]> {
   if (!isTauri()) {
-    return mockWorkspaces;
+    // Include Personal in mock data
+    return [PERSONAL_WORKSPACE, ...mockWorkspaces];
   }
 
   const deskPath = await getDeskPath();
@@ -37,7 +51,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 
   // Check if workspaces directory exists
   if (!(await exists(workspacesPath))) {
-    return [];
+    return [PERSONAL_WORKSPACE];
   }
 
   const entries = await readDir(workspacesPath);
@@ -45,6 +59,11 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 
   for (const entry of entries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
+      // Skip _personal - we'll add it as PERSONAL_WORKSPACE
+      if (isPersonalWorkspace(entry.name)) {
+        continue;
+      }
+
       try {
         const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
         const content = await readTextFile(workspacePath);
@@ -63,13 +82,19 @@ export async function getWorkspaces(): Promise<Workspace[]> {
     }
   }
 
-  return workspaces;
+  // Personal always first, then client workspaces sorted alphabetically
+  return [PERSONAL_WORKSPACE, ...workspaces.sort((a, b) => a.name.localeCompare(b.name))];
 }
 
 /**
  * Get a single workspace by ID
  */
 export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
+  // Personal workspace is always available
+  if (isPersonalWorkspace(workspaceId)) {
+    return PERSONAL_WORKSPACE;
+  }
+
   if (!isTauri()) {
     return mockWorkspaces.find((w) => w.id === workspaceId) || null;
   }
@@ -189,8 +214,15 @@ export async function updateWorkspace(
 
 /**
  * Delete a workspace (removes entire directory)
+ * Note: Personal workspace cannot be deleted
  */
 export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
+  // Cannot delete Personal workspace
+  if (isPersonalWorkspace(workspaceId)) {
+    console.warn("Cannot delete Personal workspace");
+    return false;
+  }
+
   if (!isTauri()) {
     const index = mockWorkspaces.findIndex((w) => w.id === workspaceId);
     if (index === -1) return false;
@@ -206,5 +238,49 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Initialize the Personal workspace directory structure
+ * Creates: _personal/projects, _personal/_unassigned, _personal/_capture
+ */
+export async function initPersonalWorkspace(): Promise<void> {
+  if (!isTauri()) return;
+
+  const deskPath = await getDeskPath();
+  const personalPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, SPECIAL_DIRS.PERSONAL);
+
+  // Create directory structure
+  await mkdir(personalPath);
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.PROJECTS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
+
+  // Unassigned area
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
+
+  // Capture area (for quick triage)
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
+
+  // Create workspace.md if it doesn't exist
+  const workspaceFilePath = await joinPath(personalPath, FILE_NAMES.WORKSPACE_MD);
+  if (!(await exists(workspaceFilePath))) {
+    const frontmatter: WorkspaceFrontmatter = {
+      name: PERSONAL_WORKSPACE.name,
+      description: PERSONAL_WORKSPACE.description,
+      color: PERSONAL_WORKSPACE.color,
+      created: PERSONAL_WORKSPACE.created,
+    };
+
+    const markdownContent = `# Personal
+
+Private tasks, docs, and projects.
+`;
+
+    const fileContent = serializeMarkdown(frontmatter, markdownContent);
+    await writeTextFile(workspaceFilePath, fileContent);
   }
 }

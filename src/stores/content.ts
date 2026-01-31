@@ -95,8 +95,17 @@ export function useUpdateDoc() {
     }) => contentLib.updateDoc(doc, updates),
     onSuccess: (updatedDoc) => {
       if (updatedDoc) {
-        // Invalidate all doc queries since we support multiple scopes
-        queryClient.invalidateQueries({ queryKey: contentKeys.all });
+        // Invalidate workspace-scoped queries (includes project queries via hierarchy)
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.byWorkspace(updatedDoc.workspaceId),
+        });
+        // Also invalidate relevant tree queries
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("workspace", updatedDoc.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("project", updatedDoc.workspaceId, updatedDoc.projectId),
+        });
       }
     },
   });
@@ -111,10 +120,19 @@ export function useDeleteDoc() {
 
   return useMutation({
     mutationFn: (doc: Doc) => contentLib.deleteDoc(doc),
-    onSuccess: (success) => {
+    onSuccess: (success, doc) => {
       if (success) {
-        // Invalidate all doc queries since we support multiple scopes
-        queryClient.invalidateQueries({ queryKey: contentKeys.all });
+        // Invalidate workspace-scoped queries
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.byWorkspace(doc.workspaceId),
+        });
+        // Also invalidate relevant tree queries
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("workspace", doc.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("project", doc.workspaceId, doc.projectId),
+        });
       }
     },
   });
@@ -128,10 +146,19 @@ export function useDeleteAsset() {
 
   return useMutation({
     mutationFn: (asset: Asset) => contentLib.deleteAsset(asset),
-    onSuccess: (success) => {
+    onSuccess: (success, asset) => {
       if (success) {
-        // Invalidate all doc queries to refresh tree
-        queryClient.invalidateQueries({ queryKey: contentKeys.all });
+        // Invalidate workspace-scoped queries
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.byWorkspace(asset.workspaceId),
+        });
+        // Also invalidate relevant tree queries (assets are in tree)
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("workspace", asset.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree("project", asset.workspaceId, asset.projectId),
+        });
       }
     },
   });

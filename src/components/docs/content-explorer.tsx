@@ -24,7 +24,7 @@ import {
   useExpandedFolders,
   useImportFiles,
   useOpenTab,
-  PERSONAL_SPACE_ID,
+  PERSONAL_WORKSPACE_ID,
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
@@ -97,9 +97,9 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const docCount = useMemo(() => extractDocs(tree).length, [tree]);
   const assetCount = useMemo(() => extractAssets(tree).length, [tree]);
 
-  // Expanded folders state - use PERSONAL_SPACE_ID for personal scope
+  // Expanded folders state - use PERSONAL_WORKSPACE_ID for personal scope
   const { expandedFolders, setExpandedFolders } = useExpandedFolders(
-    selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_SPACE_ID : null),
+    selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_WORKSPACE_ID : null),
     selectedScope?.projectId || null
   );
 

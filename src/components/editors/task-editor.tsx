@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useUpdatePersonalTask, useDeletePersonalTask } from "@/stores";
+import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -12,7 +12,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
-import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 import { toast } from "sonner";
 import type { TaskStatus, TaskPriority } from "@/types";
 
@@ -24,19 +23,14 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
-  const isPersonal = workspaceId === PERSONAL_SPACE_ID;
   const { data: task, isLoading } = useTask(workspaceId, taskId);
 
-  // Workspace task hooks
+  // Task hooks (Personal workspace uses same hooks as other workspaces)
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
   const removeTaskFromOrder = useRemoveTaskFromOrder();
-  const { data: projects = [] } = useProjects(isPersonal ? null : workspaceId);
-
-  // Personal task hooks
-  const updatePersonalTask = useUpdatePersonalTask();
-  const deletePersonalTask = useDeletePersonalTask();
+  const { data: projects = [] } = useProjects(workspaceId);
 
   // Metadata state (not in the markdown body)
   const [title, setTitle] = useState("");
@@ -130,19 +124,12 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
           content, // Include current content to avoid overwriting
         };
 
-        if (isPersonal) {
-          await updatePersonalTask.mutateAsync({
-            taskId: task.id,
-            updates,
-          });
-        } else {
-          await updateTask.mutateAsync({
-            taskId: task.id,
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            updates,
-          });
-        }
+        await updateTask.mutateAsync({
+          taskId: task.id,
+          workspaceId: task.workspaceId,
+          projectId: task.projectId,
+          updates,
+        });
         setMetadataDirty(false);
       } catch (error) {
         console.error("[task-editor] Failed to save metadata:", error);
@@ -150,7 +137,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [title, status, priority, due, content, metadataDirty, task, updateTask, updatePersonalTask, isPersonal]);
+  }, [title, status, priority, due, content, metadataDirty, task, updateTask]);
 
   // Manage tab title and dirty state
   const isDirty = contentDirty || metadataDirty;
@@ -182,26 +169,22 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     if (!task) return;
 
     try {
-      if (isPersonal) {
-        await deletePersonalTask.mutateAsync(task.id);
-      } else {
-        await deleteTask.mutateAsync({
-          taskId: task.id,
-          workspaceId: task.workspaceId,
-          projectId: task.projectId,
-        });
-        removeTaskFromOrder.mutate({
-          workspaceId: task.workspaceId,
-          projectId: task.projectId,
-          taskId: task.id,
-        });
-      }
+      await deleteTask.mutateAsync({
+        taskId: task.id,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+      });
+      removeTaskFromOrder.mutate({
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        taskId: task.id,
+      });
       toast.success("Task deleted");
       onClose();
     } catch {
       toast.error("Failed to delete task");
     }
-  }, [task, isPersonal, deletePersonalTask, deleteTask, removeTaskFromOrder, onClose]);
+  }, [task, deleteTask, removeTaskFromOrder, onClose]);
 
   // Map save status for the header
   const saveStatus = useMemo(() => {
@@ -257,7 +240,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     );
   }
 
-  const projectChanged = !isPersonal && currentProjectId !== originalProjectId;
+  const projectChanged = currentProjectId !== originalProjectId;
 
   const metadataProps = {
     status,
@@ -267,11 +250,9 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     date: due,
     onDateChange: handleDueChange,
     dateLabel: "Due" as const,
-    ...(isPersonal ? {} : {
-      projectId: currentProjectId,
-      onProjectChange: setCurrentProjectId,
-      projects: projects.map((p) => ({ id: p.id, name: p.name })),
-    }),
+    projectId: currentProjectId,
+    onProjectChange: setCurrentProjectId,
+    projects: projects.map((p) => ({ id: p.id, name: p.name })),
   };
 
   return (

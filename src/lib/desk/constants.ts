@@ -13,6 +13,10 @@
 export const SPECIAL_DIRS = {
   /** Directory for tasks/docs not assigned to any project */
   UNASSIGNED: "_unassigned",
+  /** Personal workspace directory (treated as a workspace) */
+  PERSONAL: "_personal",
+  /** Capture project for quick triage (within Personal workspace) */
+  CAPTURE: "_capture",
 } as const;
 
 // =============================================================================
@@ -30,8 +34,17 @@ export const PATH_SEGMENTS = {
   CAPTURE: "capture",
 } as const;
 
-/** Special "workspace ID" used for personal space items */
-export const PERSONAL_SPACE_ID = "__personal__" as const;
+/**
+ * Personal workspace ID - matches the folder name _personal
+ * Personal is treated as a regular workspace in the UI
+ */
+export const PERSONAL_WORKSPACE_ID = "_personal" as const;
+
+/**
+ * Workspace-level project ID - used for docs/content at workspace level (not in any project)
+ * This is a virtual project ID, not an actual directory.
+ */
+export const WORKSPACE_LEVEL_PROJECT_ID = "_workspace" as const;
 
 // =============================================================================
 // FILE NAMES
@@ -56,4 +69,18 @@ export type PathSegment = (typeof PATH_SEGMENTS)[keyof typeof PATH_SEGMENTS];
  */
 export function isUnassigned(projectId: string): boolean {
   return projectId === SPECIAL_DIRS.UNASSIGNED;
+}
+
+/**
+ * Check if a workspace ID is the Personal workspace
+ */
+export function isPersonalWorkspace(workspaceId: string | null): boolean {
+  return workspaceId === SPECIAL_DIRS.PERSONAL;
+}
+
+/**
+ * Check if a project ID is the Capture area
+ */
+export function isCapture(projectId: string): boolean {
+  return projectId === SPECIAL_DIRS.CAPTURE;
 }

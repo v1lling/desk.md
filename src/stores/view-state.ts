@@ -2,14 +2,14 @@ import { useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 import * as viewStateLib from "@/lib/desk/view-state";
-import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
+import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "@/lib/desk/constants";
 
 // Query keys
 export const viewStateKeys = {
   all: ["viewState"] as const,
   // projectId can be null for workspace-level (All Tasks) view state
   byScope: (workspaceId: string, projectId: string | null) =>
-    [...viewStateKeys.all, workspaceId, projectId ?? "_workspace"] as const,
+    [...viewStateKeys.all, workspaceId, projectId ?? WORKSPACE_LEVEL_PROJECT_ID] as const,
 };
 
 /**
@@ -109,9 +109,9 @@ export function useRemoveTaskFromOrder() {
  * Hook to get/set view mode (list or kanban)
  * Returns the current view mode and a function to change it
  *
- * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal space)
+ * @param workspaceId - The workspace ID (including Personal workspace)
  * @param projectId - The project ID, or null for workspace-level
- * @param defaultMode - Default mode if not set (personal=list, projects=kanban)
+ * @param defaultMode - Default mode if not set (Personal=list, projects=kanban)
  */
 export function useViewMode(
   workspaceId: string | null,
@@ -170,18 +170,18 @@ export function useViewMode(
 }
 
 /**
- * Hook for personal space view mode (convenience wrapper)
- * Default is 'list' for personal tasks
+ * Hook for Personal workspace view mode (convenience wrapper)
+ * Default is 'list' for Personal tasks
  */
 export function usePersonalViewMode() {
-  return useViewMode(PERSONAL_SPACE_ID, null, "list");
+  return useViewMode(PERSONAL_WORKSPACE_ID, null, "list");
 }
 
 /**
  * Hook to get/set expanded folders for content tree view
  * Returns the current expanded folders and a function to update them
  *
- * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal space)
+ * @param workspaceId - The workspace ID (including Personal workspace)
  * @param projectId - The project ID, or null for workspace-level
  */
 export function useExpandedFolders(

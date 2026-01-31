@@ -18,7 +18,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_SPACE_ID, isUnassigned } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID, isUnassigned } from "./constants";
 import { getFileTreeService } from "./file-cache";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
@@ -85,19 +85,12 @@ export async function getDocsByProject(
 
 /**
  * Get a single doc by ID
- * Supports both workspace docs and personal docs (when workspaceId is PERSONAL_SPACE_ID)
+ * Works for any workspace including Personal (_personal)
  */
 export async function getDoc(
   workspaceId: string,
   docId: string
 ): Promise<Doc | null> {
-  // Handle personal docs
-  if (workspaceId === PERSONAL_SPACE_ID) {
-    const docs = await getAllDocs("personal");
-    return docs.find((doc) => doc.id === docId) || null;
-  }
-
-  // Handle workspace docs
   const docs = await getDocs(workspaceId);
   return docs.find((doc) => doc.id === docId) || null;
 }
@@ -329,7 +322,13 @@ export async function getContentBasePath(
   const deskPath = await getDeskPath();
 
   if (scope === "personal") {
-    return joinPath(deskPath, PATH_SEGMENTS.PERSONAL, PATH_SEGMENTS.DOCS);
+    // Personal is now a workspace at ~/Desk/workspaces/_personal/
+    return joinPath(
+      deskPath,
+      PATH_SEGMENTS.WORKSPACES,
+      SPECIAL_DIRS.PERSONAL,
+      PATH_SEGMENTS.DOCS
+    );
   }
 
   if (!workspaceId) {
@@ -506,8 +505,8 @@ export async function getContentTree(
   if (!isTauri()) {
     // Return flat mock data as tree (no folders in mock)
     const filtered = mockDocs.filter((doc) => {
-      if (scope === "personal") return doc.workspaceId === PERSONAL_SPACE_ID;
-      if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === "_workspace";
+      if (scope === "personal") return doc.workspaceId === PERSONAL_WORKSPACE_ID;
+      if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
     });
 
@@ -526,8 +525,8 @@ export async function getContentTree(
     basePath,
     "",
     scope,
-    workspaceId || PERSONAL_SPACE_ID,
-    projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID)
+    workspaceId || PERSONAL_WORKSPACE_ID,
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID)
   );
 }
 
@@ -586,8 +585,8 @@ export async function renameFolder(
     basePath,
     newPath,
     scope,
-    workspaceId || PERSONAL_SPACE_ID,
-    projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID)
+    workspaceId || PERSONAL_WORKSPACE_ID,
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID)
   );
 
   return {
@@ -693,8 +692,8 @@ export async function moveDoc(
   return {
     id: docId,
     path: newRelPath,
-    projectId: projectId || (scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID),
-    workspaceId: workspaceId || PERSONAL_SPACE_ID,
+    projectId: projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
+    workspaceId: workspaceId || PERSONAL_WORKSPACE_ID,
     filePath: targetFilePath,
     title: data.title,
     created: normalizeDate(data.created),
@@ -717,8 +716,8 @@ export async function createDocInFolder(data: {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n`;
-  const wsId = data.workspaceId || PERSONAL_SPACE_ID;
-  const projId = data.projectId || (data.scope === "workspace" ? "_workspace" : PERSONAL_SPACE_ID);
+  const wsId = data.workspaceId || PERSONAL_WORKSPACE_ID;
+  const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID);
 
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`

@@ -206,10 +206,18 @@ export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | 
 }
 
 /**
- * Utility: Check if path is in personal space
+ * Utility: Check if path is in Personal workspace
+ * Now checks for _personal workspace under workspaces/
  */
 export function isPersonalPath(path: string): boolean {
-  return path.includes("/personal/");
+  return path.includes("/workspaces/_personal/");
+}
+
+/**
+ * Utility: Check if path is in capture area
+ */
+export function isCapturePath(path: string): boolean {
+  return path.includes("/_capture/");
 }
 
 /**

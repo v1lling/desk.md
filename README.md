@@ -8,23 +8,28 @@
 
 ## What is desk.md?
 
-desk.md is a desktop app that organizes your work around **projects**, not notes. Built for people who manage multiple clients and need a single place for tasks, notes, and project context.
+desk.md is a desktop app that organizes your work around **workspaces** and **projects**. Built for freelancers and consultants who manage multiple clients and need a single place for tasks, docs, and meetings.
 
 ```
-Workspace (Client)
-  └── Project
-        ├── Tasks (kanban board)
-        ├── Notes (meeting logs, decisions)
-        ├── Meetings
-        └── Context (AI knowledge base - future)
+Workspace (Client or Personal)
+├── Tasks           ← Aggregates project tasks + unassigned
+├── Docs            ← Workspace-level docs
+├── Meetings        ← Aggregates project meetings
+├── _unassigned/    ← Items not yet assigned to a project
+└── Projects
+    └── Project X
+        ├── Tasks
+        ├── Docs
+        └── Meetings
 ```
 
 **Key ideas:**
-- **Workspaces** separate your clients/contexts completely
+- **Work Mode** navigation with explicit workspace switching
+- **Workspaces** separate your clients/contexts completely (Personal is also a workspace)
 - **Projects** contain everything related to that work
 - **Unassigned** items can exist without a project for quick capture
 - **Markdown files** underneath - portable, grep-able, yours forever
-- **AI-ready** - each project has context that powers smart assistance
+- **AI-ready** - attach docs as context for smart assistance
 
 ## Tech Stack
 
@@ -47,12 +52,14 @@ npm run tauri dev     # Desktop development (real file system)
 ## Current Status: v0.4
 
 Working features:
-- Workspaces with color coding and switching
-- Projects with status tracking (active/paused/completed/archived)
+- **Work Mode** navigation with workspace selector at sidebar bottom
+- **Personal workspace** - first option in selector, with capture inbox
+- Workspaces with color coding (dot in selector and page headers)
+- Projects listed directly in sidebar (alphabetically sorted)
 - Tasks: Kanban board with drag-drop, quick add, detail panel
-- Docs: Tree structure with folders, drag-drop import
-- Meetings: List view with editor
-- Unassigned items: Tasks/docs not linked to any project
+- Docs: Tree structure with folders, drag-drop import, scope selector
+- Meetings: Aggregated view across workspace projects
+- Unassigned items: Tasks/docs/meetings not linked to any project
 - Project reassignment: Move tasks/docs between projects
 - Settings: Theme toggle, data path configuration
 - Setup wizard with existing data detection
@@ -73,12 +80,22 @@ Desk stores everything in `~/Desk/` as markdown files:
 ```
 ~/Desk/
 ├── workspaces/
+│   ├── _personal/              # Personal workspace (first in selector)
+│   │   ├── workspace.md
+│   │   ├── docs/
+│   │   ├── _capture/tasks/     # Quick capture for triage
+│   │   ├── _unassigned/
+│   │   │   ├── tasks/
+│   │   │   └── docs/
+│   │   └── projects/
 │   ├── client-a/
 │   │   ├── workspace.md
+│   │   ├── docs/               # Workspace-level docs (contracts, etc.)
+│   │   ├── _unassigned/
+│   │   │   ├── tasks/
+│   │   │   ├── docs/
+│   │   │   └── meetings/
 │   │   └── projects/
-│   │       ├── _unassigned/      # Items not in a project
-│   │       │   ├── tasks/
-│   │       │   └── docs/
 │   │       ├── project-1/
 │   │       │   ├── project.md
 │   │       │   ├── tasks/
@@ -86,10 +103,6 @@ Desk stores everything in `~/Desk/` as markdown files:
 │   │       │   └── meetings/
 │   │       └── project-2/
 │   └── client-b/
-├── personal/
-│   ├── capture/tasks/
-│   ├── tasks/
-│   └── docs/
 └── config.json
 ```
 

@@ -25,13 +25,12 @@ const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
 
 function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
   const router = useRouter();
+  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
 
   const handleTaskClick = (task: ActiveTask) => {
-    if (task.workspaceId === "__personal__") {
-      router.push("/personal/tasks");
-    } else {
-      router.push(`/tasks?open=${task.id}`);
-    }
+    // Set the workspace context and navigate to tasks
+    setCurrentWorkspaceId(task.workspaceId);
+    router.push(`/tasks?open=${task.id}`);
   };
 
   return (
@@ -91,12 +90,9 @@ function WorkspacesWidget({
   );
 
   const handleWorkspaceClick = (summary: WorkspaceSummary) => {
-    if (summary.workspaceId === "__personal__") {
-      router.push("/personal/tasks");
-    } else {
-      setCurrentWorkspaceId(summary.workspaceId);
-      router.push("/tasks");
-    }
+    // Set the workspace context and navigate to tasks
+    setCurrentWorkspaceId(summary.workspaceId);
+    router.push("/tasks");
   };
 
   return (

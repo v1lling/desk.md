@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import * as taskLib from "@/lib/desk/tasks";
-import * as personalLib from "@/lib/desk/personal";
-import { PERSONAL_SPACE_ID } from "@/lib/desk/constants";
 
 // Query keys
 export const taskKeys = {
@@ -44,18 +42,14 @@ export function useProjectTasks(workspaceId: string | null, projectId: string | 
 
 /**
  * Hook to fetch a single task
- * Automatically routes to personal task store when workspaceId is PERSONAL_SPACE_ID
+ * Works for all workspaces including Personal (_personal)
  */
 export function useTask(workspaceId: string | null, taskId: string | null) {
-  const isPersonal = workspaceId === PERSONAL_SPACE_ID;
-
   return useQuery({
     queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
     queryFn: async () => {
       if (!workspaceId || !taskId) throw new Error("workspaceId and taskId are required");
-      return isPersonal
-        ? personalLib.getPersonalTask(taskId)
-        : taskLib.getTask(workspaceId, taskId);
+      return taskLib.getTask(workspaceId, taskId);
     },
     enabled: !!workspaceId && !!taskId,
   });

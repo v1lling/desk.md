@@ -2,7 +2,7 @@
  * Tauri File System wrapper
  * Provides a unified API that works in both Tauri and browser environments
  */
-import { PATH_SEGMENTS } from "./constants";
+import { PATH_SEGMENTS, SPECIAL_DIRS } from "./constants";
 
 // Check if running in Tauri
 export function isTauri(): boolean {
@@ -202,6 +202,7 @@ export async function joinPath(...segments: string[]): Promise<string> {
 
 /**
  * Initialize the Desk directory structure
+ * Personal workspace is created under workspaces/_personal/
  */
 export async function initDeskDirectory(): Promise<void> {
   const deskPath = await getDeskPath();
@@ -213,19 +214,43 @@ export async function initDeskDirectory(): Promise<void> {
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
   await mkdir(workspacesPath);
 
-  // Create personal directory structure
-  const personalPath = await joinPath(deskPath, PATH_SEGMENTS.PERSONAL);
+  // Create Personal workspace structure (Personal is a workspace now)
+  const personalPath = await joinPath(workspacesPath, SPECIAL_DIRS.PERSONAL);
   await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.PROJECTS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
+
+  // Personal unassigned area
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
+
+  // Personal capture area (for quick triage)
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE));
+  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
+
+  // Create Personal workspace.md if it doesn't exist
+  const personalWorkspacePath = await joinPath(personalPath, "workspace.md");
+  if (!(await exists(personalWorkspacePath))) {
+    const personalContent = `---
+name: Personal
+description: Private tasks, docs, and projects
+color: "#6366f1"
+created: 2024-01-01
+---
+
+# Personal
+
+Private tasks, docs, and projects.
+`;
+    await writeTextFile(personalWorkspacePath, personalContent);
+  }
 
   // Create config if it doesn't exist
   const configPath = await joinPath(deskPath, "config.json");
   if (!(await exists(configPath))) {
     const defaultConfig = {
-      currentWorkspaceId: null,
+      currentWorkspaceId: SPECIAL_DIRS.PERSONAL, // Default to Personal workspace
       theme: "system",
       sidebarCollapsed: false,
       setupCompleted: false,

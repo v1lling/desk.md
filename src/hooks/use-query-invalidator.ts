@@ -18,7 +18,7 @@ import {
   getItemTypeFromPath,
   getWorkspaceIdFromPath,
   getProjectIdFromPath,
-  isPersonalPath,
+  isCapturePath,
   type WatchEvent,
 } from "@/lib/desk/watcher";
 import {
@@ -28,7 +28,7 @@ import {
   projectKeys,
   workspaceKeys,
   viewStateKeys,
-  personalKeys,
+  captureKeys,
 } from "@/stores";
 import {
   getFileTreeService,
@@ -94,7 +94,7 @@ async function handleFileChange(
   const affectedWorkspaces = new Set<string>();
   const affectedProjects = new Map<string, Set<string>>(); // workspaceId -> Set<projectId>
   const affectedTypes = new Set<string>();
-  let hasPersonalChanges = false;
+  let hasCaptureChanges = false;
 
   // Track which paths were handled by editors (to skip query invalidation)
   const handledByEditor = new Set<string>();
@@ -127,9 +127,8 @@ async function handleFileChange(
 
     affectedTypes.add(itemType);
 
-    if (isPersonalPath(path)) {
-      hasPersonalChanges = true;
-    } else if (workspaceId) {
+    // Add workspace to affected set (including _personal workspace)
+    if (workspaceId) {
       affectedWorkspaces.add(workspaceId);
       if (projectId) {
         if (!affectedProjects.has(workspaceId)) {
@@ -137,6 +136,11 @@ async function handleFileChange(
         }
         affectedProjects.get(workspaceId)!.add(projectId);
       }
+    }
+
+    // Check for capture tasks (separate invalidation)
+    if (isCapturePath(path)) {
+      hasCaptureChanges = true;
     }
   }
 
@@ -152,7 +156,7 @@ async function handleFileChange(
       `[query-invalidator] File change: ${event.kind}`,
       `types: [${Array.from(affectedTypes).join(", ")}]`,
       `workspaces: [${Array.from(affectedWorkspaces).join(", ")}]`,
-      hasPersonalChanges ? "(includes personal)" : ""
+      hasCaptureChanges ? "(includes capture)" : ""
     );
   }
 
@@ -161,7 +165,7 @@ async function handleFileChange(
     affectedTypes,
     affectedWorkspaces,
     affectedProjects,
-    hasPersonalChanges,
+    hasCaptureChanges,
     queryClient
   );
 
@@ -242,7 +246,7 @@ function invalidateQueriesForChanges(
   affectedTypes: Set<string>,
   affectedWorkspaces: Set<string>,
   affectedProjects: Map<string, Set<string>>,
-  hasPersonalChanges: boolean,
+  hasCaptureChanges: boolean,
   queryClient: ReturnType<typeof useQueryClient>
 ) {
   for (const itemType of affectedTypes) {
@@ -255,9 +259,9 @@ function invalidateQueriesForChanges(
           });
         }
         // Personal tasks
-        if (hasPersonalChanges) {
+        if (hasCaptureChanges) {
           queryClient.invalidateQueries({
-            queryKey: personalKeys.all,
+            queryKey: captureKeys.all,
           });
         }
         // Also invalidate view state (task ordering)
@@ -286,12 +290,6 @@ function invalidateQueriesForChanges(
               });
             }
           }
-        }
-        // Personal docs tree
-        if (hasPersonalChanges) {
-          queryClient.invalidateQueries({
-            queryKey: contentKeys.tree("personal", undefined, undefined),
-          });
         }
         break;
 
@@ -348,12 +346,9 @@ function invalidateQueriesForChanges(
             });
           }
         }
-        if (hasPersonalChanges) {
+        if (hasCaptureChanges) {
           queryClient.invalidateQueries({
-            queryKey: personalKeys.all,
-          });
-          queryClient.invalidateQueries({
-            queryKey: contentKeys.tree("personal", undefined, undefined),
+            queryKey: captureKeys.all,
           });
         }
         break;

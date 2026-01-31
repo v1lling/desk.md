@@ -1,6 +1,6 @@
-# desk.md - Project-Centric Work Management
+# desk.md - Work Management for Freelancers
 
-> Desktop app for freelancers to manage projects, tasks, and docs across multiple clients.
+> Desktop app to manage workspaces, projects, tasks, and docs across multiple clients.
 
 ## Quick Start
 
@@ -12,15 +12,18 @@ npm run tauri dev  # Desktop with real file system
 ## Core Concept
 
 ```
-Personal Space (private, no workspace)
-├── Capture, Tasks, Docs
-
-Workspace (Client/Context)
+Workspace (Client or Personal)
 ├── Workspace-level Docs
+├── _unassigned/          (tasks without a project)
+├── _capture/             (Personal only - triage inbox)
 └── Projects
     └── Project
         ├── Tasks, Docs, Meetings
+
+Personal = workspace "_personal" (always first in list)
 ```
+
+**"Work Mode" Navigation**: User selects active workspace via bottom selector. All views (Tasks, Docs, Meetings) filter to that workspace automatically.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed structure, file paths, and design decisions.
 
@@ -64,8 +67,9 @@ See [docs/FEATURES.md](docs/FEATURES.md) for full feature list.
 
 Key features:
 - Dashboard with Focus and Workspaces widgets
-- Personal Space (capture, tasks, docs)
-- Workspaces with color coding
+- **Work Mode**: Workspace selector at bottom, all views filter automatically
+- Personal as workspace (`_personal`) with capture inbox
+- Workspaces with color coding (Personal = indigo)
 - Projects inline in sidebar (alphabetically sorted)
 - Project detail with Tasks, Docs, Meetings tabs
 - **Docs**: Tree structure with folders, drag-drop import
@@ -220,5 +224,7 @@ pipx install appicongen
 - Project detail at `/projects/view?id=xxx` (query params due to static export)
 - Mock data used when `isTauri() === false`
 - `_unassigned` is a special directory for items without a project
+- `_personal` is the Personal workspace (treated like any other workspace)
+- `_capture` is the triage inbox within Personal workspace
 - **Single user**: No migration code or backward compatibility needed
-- All path strings must use `PATH_SEGMENTS.*` from `constants.ts`
+- All path strings must use `PATH_SEGMENTS.*` and `SPECIAL_DIRS.*` from `constants.ts`

@@ -18,7 +18,7 @@ import {
   joinPath,
   exists,
 } from "./tauri-fs";
-import { PATH_SEGMENTS, FILE_NAMES, PERSONAL_SPACE_ID } from "./constants";
+import { PATH_SEGMENTS, FILE_NAMES, PERSONAL_WORKSPACE_ID, SPECIAL_DIRS } from "./constants";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 
 // Re-export type for external use (canonical definition in @/types)
@@ -30,7 +30,7 @@ export type { ProjectViewState } from "@/types";
 
 /**
  * Get the path to a .view.json file
- * - Personal space: personal/.view.json
+ * - Personal: workspaces/_personal/.view.json
  * - If projectId is provided: workspaces/{workspace}/projects/{project}/.view.json
  * - If projectId is null: workspaces/{workspace}/.view.json (for All Tasks view)
  */
@@ -40,11 +40,12 @@ async function getViewStatePath(
 ): Promise<string> {
   const deskPath = await getDeskPath();
 
-  // Personal space view state
-  if (workspaceId === PERSONAL_SPACE_ID) {
+  // Personal workspace view state (now at workspaces/_personal/)
+  if (workspaceId === PERSONAL_WORKSPACE_ID) {
     return await joinPath(
       deskPath,
-      PATH_SEGMENTS.PERSONAL,
+      PATH_SEGMENTS.WORKSPACES,
+      SPECIAL_DIRS.PERSONAL,
       FILE_NAMES.VIEW_STATE
     );
   }
@@ -218,7 +219,7 @@ export async function removeTaskFromOrder(
 
 /**
  * Get the view mode for tasks (list or kanban)
- * @param workspaceId - The workspace ID (or PERSONAL_SPACE_ID for personal)
+ * @param workspaceId - The workspace ID (or PERSONAL_WORKSPACE_ID for personal)
  * @param projectId - The project ID, or null for workspace-level
  * @param defaultMode - Default if not set (personal=list, projects=kanban)
  */
@@ -247,18 +248,18 @@ export async function setViewMode(
 }
 
 /**
- * Get personal space view state
- * Convenience function for personal space operations
+ * Get Personal workspace view state
+ * Convenience function for Personal workspace operations
  */
 export async function getPersonalViewState(): Promise<ProjectViewState> {
-  return getViewState(PERSONAL_SPACE_ID, null);
+  return getViewState(PERSONAL_WORKSPACE_ID, null);
 }
 
 /**
- * Save personal space view state
+ * Save Personal workspace view state
  */
 export async function savePersonalViewState(state: ProjectViewState): Promise<void> {
-  return saveViewState(PERSONAL_SPACE_ID, null, state);
+  return saveViewState(PERSONAL_WORKSPACE_ID, null, state);
 }
 
 // =============================================================================

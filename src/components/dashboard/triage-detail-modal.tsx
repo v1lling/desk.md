@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Check, User, FolderKanban } from "lucide-react";
-import { useUpdateTask, useUpdatePersonalTask } from "@/stores";
+import { useUpdateTask } from "@/stores";
+import { PERSONAL_WORKSPACE_ID, SPECIAL_DIRS } from "@/lib/desk/constants";
 import type { Task, TaskPriority } from "@/types";
 import type { TriageDestination } from "./capture-widget";
 
@@ -38,7 +39,6 @@ export function TriageDetailModal({
   destination,
 }: TriageDetailModalProps) {
   const updateTask = useUpdateTask();
-  const updatePersonalTask = useUpdatePersonalTask();
 
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [content, setContent] = useState("");
@@ -65,16 +65,19 @@ export function TriageDetailModal({
 
     // Only update if there are changes
     if (Object.keys(updates).length > 0) {
-      if (destination.type === "personal") {
-        await updatePersonalTask.mutateAsync({
-          taskId: task.id,
-          updates,
-        });
-      } else if (destination.workspaceId && destination.projectId) {
+      // Determine workspace/project - Personal workspace uses _personal/_unassigned
+      const workspaceId = destination.type === "personal"
+        ? PERSONAL_WORKSPACE_ID
+        : destination.workspaceId;
+      const projectId = destination.type === "personal"
+        ? SPECIAL_DIRS.UNASSIGNED
+        : destination.projectId;
+
+      if (workspaceId && projectId) {
         await updateTask.mutateAsync({
           taskId: task.id,
-          workspaceId: destination.workspaceId,
-          projectId: destination.projectId,
+          workspaceId,
+          projectId,
           updates,
         });
       }
@@ -87,7 +90,7 @@ export function TriageDetailModal({
     onClose();
   };
 
-  const isPending = updateTask.isPending || updatePersonalTask.isPending;
+  const isPending = updateTask.isPending;
 
   if (!task || !destination) return null;
 

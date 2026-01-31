@@ -1,15 +1,15 @@
 /**
  * Dashboard library - Cross-workspace data aggregation
  *
- * Provides functions to fetch data across all workspaces and personal space
+ * Provides functions to fetch data across all workspaces (including Personal)
  * for the dashboard view.
  */
 
 import type { Task } from "@/types";
 import { getWorkspaces } from "./workspaces";
 import { getTasks } from "./tasks";
-import { getAllPersonalTasks } from "./personal";
-import { PERSONAL_SPACE_ID } from "./constants";
+import { getCaptureTasks } from "./personal";
+import { PERSONAL_WORKSPACE_ID, SPECIAL_DIRS } from "./constants";
 
 /**
  * Summary data for a workspace (used in dashboard)
@@ -33,7 +33,7 @@ export interface ActiveTask extends Task {
 }
 
 /**
- * Get all tasks with status="doing" across all workspaces and personal space
+ * Get all tasks with status="doing" across all workspaces (including Personal + capture)
  */
 export async function getActiveTasks(): Promise<ActiveTask[]> {
   const workspaces = await getWorkspaces();
@@ -54,17 +54,18 @@ export async function getActiveTasks(): Promise<ActiveTask[]> {
   const workspaceTasksResults = await Promise.all(workspaceTasksPromises);
   workspaceTasksResults.forEach((tasks) => activeTasks.push(...tasks));
 
-  // Also fetch personal tasks
-  const personalTasks = await getAllPersonalTasks();
-  const activePersonalTasks = personalTasks
+  // Also fetch capture tasks (they're separate from regular Personal workspace tasks)
+  const personalWorkspace = workspaces.find((w) => w.id === PERSONAL_WORKSPACE_ID);
+  const captureTasks = await getCaptureTasks();
+  const activeCaptureTasks = captureTasks
     .filter((task) => task.status === "doing")
     .map((task) => ({
       ...task,
-      workspaceName: "Personal",
-      workspaceColor: undefined,
+      workspaceName: personalWorkspace?.name || "Personal",
+      workspaceColor: personalWorkspace?.color,
     }));
 
-  activeTasks.push(...activePersonalTasks);
+  activeTasks.push(...activeCaptureTasks);
 
   // Sort by created date (most recent first)
   activeTasks.sort((a, b) => b.created.localeCompare(a.created));
@@ -112,24 +113,4 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
   return summaries;
 }
 
-/**
- * Get combined personal space summary
- */
-export async function getPersonalSummary(): Promise<WorkspaceSummary> {
-  const tasks = await getAllPersonalTasks();
-
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "done").length;
-  const doingTasks = tasks.filter((t) => t.status === "doing").length;
-  const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  return {
-    workspaceId: PERSONAL_SPACE_ID,
-    name: "Personal",
-    color: undefined,
-    totalTasks,
-    completedTasks,
-    doingTasks,
-    completionPercent,
-  };
-}
+// Note: Personal summary is now included in workspace summaries since Personal is a workspace

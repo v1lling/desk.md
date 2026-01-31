@@ -1,17 +1,18 @@
 /**
- * Personal Space library - File system operations for personal items
+ * Capture library - File system operations for capture/triage inbox
  *
- * Personal space is a special area outside of workspaces for:
- * - Capture: Quick capture tasks to be triaged later
- * - Tasks: Personal tasks not tied to any workspace
- * - Docs: Personal docs (handled by docs.ts)
+ * Capture is a special triage area in the Personal workspace for:
+ * - Quick capture tasks to be triaged to Personal or client workspaces
  *
- * File structure:
- * ~/Desk/personal/
- *   ├── capture/tasks/*.md   # Quick capture
- *   ├── tasks/*.md           # Personal tasks
- *   ├── docs/                 # Personal docs (see docs.ts)
- *   └── .view.json           # UI state
+ * File structure (Personal is now a workspace):
+ * ~/Desk/workspaces/_personal/
+ *   ├── _capture/tasks/*.md    # Quick capture (triage inbox)
+ *   ├── _unassigned/tasks/*.md # Personal tasks without a project
+ *   ├── projects/              # Personal projects
+ *   └── docs/                  # Personal docs
+ *
+ * Note: Personal tasks/docs/meetings use the regular workspace stores
+ * with workspaceId="_personal". This file only handles capture.
  */
 
 import type { Task, TaskStatus, TaskPriority } from "@/types";
@@ -22,56 +23,35 @@ import {
   filenameToId,
   todayISO,
   normalizeDate,
-  generatePreview,
 } from "./parser";
 import {
   isTauri,
-  getDeskPath,
   readDir,
   readTextFile,
   writeTextFile,
   mkdir,
   removeFile,
-  joinPath,
   exists,
+  joinPath,
 } from "./tauri-fs";
-import { PATH_SEGMENTS, PERSONAL_SPACE_ID } from "./constants";
+import { SPECIAL_DIRS, PERSONAL_WORKSPACE_ID } from "./constants";
+import { getCapturePath, getTasksPath } from "./paths";
 
 // ============================================================================
 // MOCK DATA
 // ============================================================================
 
-export const mockPersonalTasks: Task[] = [
+export const mockCaptureTasks: Task[] = [
   {
     id: "2024-01-16-book-dentist",
-    projectId: "_capture",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Desk/personal/capture/tasks/2024-01-16-book-dentist.md",
+    projectId: SPECIAL_DIRS.CAPTURE,
+    workspaceId: PERSONAL_WORKSPACE_ID,
+    filePath: "~/Desk/workspaces/_personal/_capture/tasks/2024-01-16-book-dentist.md",
     title: "Book dentist appointment",
     status: "todo",
     priority: "low",
     created: "2024-01-16",
     content: "Remember to book the 6-month checkup",
-  },
-  {
-    id: "2024-01-15-grocery",
-    projectId: "_tasks",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Desk/personal/tasks/2024-01-15-grocery.md",
-    title: "Weekly grocery shopping",
-    status: "doing",
-    created: "2024-01-15",
-    content: "- Milk\n- Bread\n- Eggs\n- Vegetables",
-  },
-  {
-    id: "2024-01-14-gym",
-    projectId: "_tasks",
-    workspaceId: PERSONAL_SPACE_ID,
-    filePath: "~/Desk/personal/tasks/2024-01-14-gym.md",
-    title: "Renew gym membership",
-    status: "done",
-    created: "2024-01-14",
-    content: "Annual membership expires end of month",
   },
 ];
 
@@ -88,45 +68,37 @@ interface TaskFrontmatter {
 }
 
 // ============================================================================
-// HELPER: Get personal base path
-// ============================================================================
-
-async function getPersonalPath(): Promise<string> {
-  const deskPath = await getDeskPath();
-  return joinPath(deskPath, PATH_SEGMENTS.PERSONAL);
-}
-
-// ============================================================================
-// TASKS
+// CAPTURE TASKS
 // ============================================================================
 
 /**
- * Read tasks from a specific personal directory (capture or tasks)
+ * Get all capture tasks (quick capture inbox)
  */
-async function readPersonalTasksFromDir(
-  dirPath: string,
-  projectId: string
-): Promise<Task[]> {
-  const tasksPath = await joinPath(dirPath, PATH_SEGMENTS.TASKS);
+export async function getCaptureTasks(): Promise<Task[]> {
+  if (!isTauri()) {
+    return [...mockCaptureTasks];
+  }
 
-  if (!(await exists(tasksPath))) {
+  const capturePath = await getCapturePath();
+
+  if (!(await exists(capturePath))) {
     return [];
   }
 
-  const entries = await readDir(tasksPath);
+  const entries = await readDir(capturePath);
   const tasks: Task[] = [];
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
       try {
-        const taskPath = await joinPath(tasksPath, entry.name);
+        const taskPath = await joinPath(capturePath, entry.name);
         const content = await readTextFile(taskPath);
         const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
         tasks.push({
           id: filenameToId(entry.name),
-          projectId,
-          workspaceId: PERSONAL_SPACE_ID,
+          projectId: SPECIAL_DIRS.CAPTURE,
+          workspaceId: PERSONAL_WORKSPACE_ID,
           filePath: taskPath,
           title: data.title || entry.name,
           status: data.status || "todo",
@@ -136,7 +108,7 @@ async function readPersonalTasksFromDir(
           content: body,
         });
       } catch (e) {
-        console.warn(`Failed to read personal task ${entry.name}:`, e);
+        console.warn(`Failed to read capture task ${entry.name}:`, e);
       }
     }
   }
@@ -145,69 +117,21 @@ async function readPersonalTasksFromDir(
 }
 
 /**
- * Get all capture tasks (quick capture)
+ * Create a capture task (quick capture)
  */
-export async function getCaptureTasks(): Promise<Task[]> {
-  if (!isTauri()) {
-    return mockPersonalTasks.filter((t) => t.projectId === "_capture");
-  }
-
-  const personalPath = await getPersonalPath();
-  const capturePath = await joinPath(personalPath, PATH_SEGMENTS.CAPTURE);
-  return readPersonalTasksFromDir(capturePath, "_capture");
-}
-
-/**
- * Get all personal tasks (not capture)
- */
-export async function getPersonalTasks(): Promise<Task[]> {
-  if (!isTauri()) {
-    return mockPersonalTasks.filter((t) => t.projectId === "_tasks");
-  }
-
-  const personalPath = await getPersonalPath();
-  return readPersonalTasksFromDir(personalPath, "_tasks");
-}
-
-/**
- * Get all personal space tasks (capture + personal)
- */
-export async function getAllPersonalTasks(): Promise<Task[]> {
-  if (!isTauri()) {
-    return [...mockPersonalTasks];
-  }
-
-  const captureTasks = await getCaptureTasks();
-  const personalTasks = await getPersonalTasks();
-  return [...captureTasks, ...personalTasks];
-}
-
-/**
- * Get a single personal task by ID (searches both capture and tasks)
- */
-export async function getPersonalTask(taskId: string): Promise<Task | null> {
-  const allTasks = await getAllPersonalTasks();
-  return allTasks.find((t) => t.id === taskId) || null;
-}
-
-/**
- * Create a personal task
- */
-export async function createPersonalTask(data: {
+export async function createCaptureTask(data: {
   title: string;
-  isCapture?: boolean; // true = capture, false = personal tasks
   priority?: TaskPriority;
   due?: string;
   content?: string;
 }): Promise<Task> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
-  const projectId = data.isCapture ? "_capture" : "_tasks";
 
   const task: Task = {
     id,
-    projectId,
-    workspaceId: PERSONAL_SPACE_ID,
+    projectId: SPECIAL_DIRS.CAPTURE,
+    workspaceId: PERSONAL_WORKSPACE_ID,
     filePath: "",
     title: data.title,
     status: "todo",
@@ -218,20 +142,15 @@ export async function createPersonalTask(data: {
   };
 
   if (!isTauri()) {
-    const dir = data.isCapture ? `${PATH_SEGMENTS.CAPTURE}/${PATH_SEGMENTS.TASKS}` : PATH_SEGMENTS.TASKS;
-    task.filePath = `~/Desk/${PATH_SEGMENTS.PERSONAL}/${dir}/${filename}`;
-    mockPersonalTasks.push(task);
+    task.filePath = `~/Desk/workspaces/_personal/_capture/tasks/${filename}`;
+    mockCaptureTasks.push(task);
     return task;
   }
 
-  const personalPath = await getPersonalPath();
-  const tasksPath = data.isCapture
-    ? await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS)
-    : await joinPath(personalPath, PATH_SEGMENTS.TASKS);
+  const capturePath = await getCapturePath();
+  await mkdir(capturePath);
 
-  await mkdir(tasksPath);
-
-  const filePath = await joinPath(tasksPath, filename);
+  const filePath = await joinPath(capturePath, filename);
   task.filePath = filePath;
 
   const frontmatter: TaskFrontmatter = {
@@ -249,22 +168,21 @@ export async function createPersonalTask(data: {
 }
 
 /**
- * Update a personal task
+ * Update a capture task
  */
-export async function updatePersonalTask(
+export async function updateCaptureTask(
   taskId: string,
   updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content">>
 ): Promise<Task | null> {
   if (!isTauri()) {
-    const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
+    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
-    mockPersonalTasks[index] = { ...mockPersonalTasks[index], ...updates };
-    return mockPersonalTasks[index];
+    mockCaptureTasks[index] = { ...mockCaptureTasks[index], ...updates };
+    return mockCaptureTasks[index];
   }
 
-  // Find the task in capture or tasks
-  const allTasks = await getAllPersonalTasks();
-  const task = allTasks.find((t) => t.id === taskId);
+  const tasks = await getCaptureTasks();
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
   const content = await readTextFile(task.filePath);
@@ -294,18 +212,18 @@ export async function updatePersonalTask(
 }
 
 /**
- * Delete a personal task
+ * Delete a capture task
  */
-export async function deletePersonalTask(taskId: string): Promise<boolean> {
+export async function deleteCaptureTask(taskId: string): Promise<boolean> {
   if (!isTauri()) {
-    const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
+    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return false;
-    mockPersonalTasks.splice(index, 1);
+    mockCaptureTasks.splice(index, 1);
     return true;
   }
 
-  const allTasks = await getAllPersonalTasks();
-  const task = allTasks.find((t) => t.id === taskId);
+  const tasks = await getCaptureTasks();
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return false;
 
   await removeFile(task.filePath);
@@ -313,31 +231,35 @@ export async function deletePersonalTask(taskId: string): Promise<boolean> {
 }
 
 /**
- * Move task from capture to personal tasks (triage)
+ * Move task from capture to Personal workspace (unassigned)
+ * This moves the task to the Personal workspace's _unassigned/tasks/ directory
  */
-export async function moveFromCapture(taskId: string): Promise<Task | null> {
+export async function moveCaptureToPersonal(taskId: string): Promise<Task | null> {
   if (!isTauri()) {
-    const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
+    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
-    mockPersonalTasks[index] = { ...mockPersonalTasks[index], projectId: "_tasks" };
-    return mockPersonalTasks[index];
+
+    const [task] = mockCaptureTasks.splice(index, 1);
+    return {
+      ...task,
+      projectId: SPECIAL_DIRS.UNASSIGNED,
+    };
   }
 
-  const captureTasks = await getCaptureTasks();
-  const task = captureTasks.find((t) => t.id === taskId);
+  const tasks = await getCaptureTasks();
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
   // Read content
   const content = await readTextFile(task.filePath);
   const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
-  // Write to new location
-  const personalPath = await getPersonalPath();
-  const tasksPath = await joinPath(personalPath, PATH_SEGMENTS.TASKS);
-  await mkdir(tasksPath);
+  // Write to Personal workspace's unassigned tasks
+  const unassignedTasksPath = await getTasksPath(PERSONAL_WORKSPACE_ID, SPECIAL_DIRS.UNASSIGNED);
+  await mkdir(unassignedTasksPath);
 
   const filename = task.filePath.split("/").pop()!;
-  const newFilePath = await joinPath(tasksPath, filename);
+  const newFilePath = await joinPath(unassignedTasksPath, filename);
 
   const fileContent = serializeMarkdown(data, body);
   await writeTextFile(newFilePath, fileContent);
@@ -347,7 +269,7 @@ export async function moveFromCapture(taskId: string): Promise<Task | null> {
 
   return {
     ...task,
-    projectId: "_tasks",
+    projectId: SPECIAL_DIRS.UNASSIGNED,
     filePath: newFilePath,
   };
 }
@@ -360,15 +282,12 @@ export async function moveCaptureToWorkspace(
   workspaceId: string,
   projectId: string
 ): Promise<Task | null> {
-  // Import here to avoid circular deps
-  const { SPECIAL_DIRS, isUnassigned } = await import("./constants");
-
   if (!isTauri()) {
-    const index = mockPersonalTasks.findIndex((t) => t.id === taskId);
+    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
 
-    // Remove from mock personal tasks and return as workspace task
-    const [task] = mockPersonalTasks.splice(index, 1);
+    // Remove from mock capture tasks and return as workspace task
+    const [task] = mockCaptureTasks.splice(index, 1);
     return {
       ...task,
       projectId,
@@ -376,24 +295,20 @@ export async function moveCaptureToWorkspace(
     };
   }
 
-  const captureTasks = await getCaptureTasks();
-  const task = captureTasks.find((t) => t.id === taskId);
+  const tasks = await getCaptureTasks();
+  const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
   // Read content
   const content = await readTextFile(task.filePath);
   const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
-  // Build target path
-  const deskPath = await getDeskPath();
-  const tasksPath = isUnassigned(projectId)
-    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
-
-  await mkdir(tasksPath);
+  // Build target path using centralized path builder
+  const targetTasksPath = await getTasksPath(workspaceId, projectId);
+  await mkdir(targetTasksPath);
 
   const filename = task.filePath.split("/").pop()!;
-  const newFilePath = await joinPath(tasksPath, filename);
+  const newFilePath = await joinPath(targetTasksPath, filename);
 
   const fileContent = serializeMarkdown(data, body);
   await writeTextFile(newFilePath, fileContent);
@@ -409,23 +324,3 @@ export async function moveCaptureToWorkspace(
   };
 }
 
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-/**
- * Initialize the personal directory structure
- */
-export async function initPersonalDirectory(): Promise<void> {
-  if (!isTauri()) return;
-
-  const personalPath = await getPersonalPath();
-
-  // Create directory structure
-  await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.CAPTURE, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
-}

@@ -5,12 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
-import { FolderKanban, Plus } from "lucide-react";
+import { FolderKanban, Plus, Circle } from "lucide-react";
 import type { Meeting } from "@/types";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Calendar } from "lucide-react";
@@ -57,8 +57,25 @@ export default function MeetingsPage() {
     [projects]
   );
 
+  const workspaceColor = currentWorkspace?.color || "#64748b";
+
   return (
     <div className="flex flex-col h-full">
+      {/* Page Header with workspace context */}
+      {currentWorkspace && (
+        <div className="shrink-0 h-12 px-4 flex items-center gap-3 border-b">
+          <Circle
+            className="size-3 shrink-0"
+            style={{ color: workspaceColor }}
+            fill={workspaceColor}
+          />
+          <h1 className="text-base font-semibold">Meetings</h1>
+          <Badge variant="outline" className="text-xs font-normal">
+            {currentWorkspace.name}
+          </Badge>
+        </div>
+      )}
+
       <EntityFilterBar
         filters={[
           {
