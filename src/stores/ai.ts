@@ -14,6 +14,7 @@ import {
   type AIServiceResponse,
 } from '@/lib/ai';
 import * as rag from '@/lib/rag';
+import { preprocessQuery, type QueryContext } from '@/lib/rag/query-preprocessor';
 import { useRAGStore } from '@/stores/rag';
 import { useSettingsStore } from '@/stores/settings';
 import { isTauri } from '@/lib/desk';
@@ -108,14 +109,19 @@ export const useAIUsageStore = create<AIUsageState>()(
 
 interface AIChatState {
   messages: AIMessage[];
+  /** Sources found by RAG, shown while waiting for AI response */
+  pendingSources: AIMessageSource[] | null;
   addMessage: (msg: AIMessage) => void;
   clearMessages: () => void;
+  setPendingSources: (sources: AIMessageSource[] | null) => void;
 }
 
 export const useAIChatStore = create<AIChatState>((set) => ({
   messages: [],
+  pendingSources: null,
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], pendingSources: null }),
+  setPendingSources: (sources) => set({ pendingSources: sources }),
 }));
 
 // =============================================================================
@@ -149,7 +155,7 @@ function useAIService() {
  * Automatically includes RAG context if enabled
  */
 export function useSendMessage() {
-  const { addMessage } = useAIChatStore();
+  const { addMessage, setPendingSources } = useAIChatStore();
   const { providerType, anthropicApiKey } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
 
@@ -166,6 +172,7 @@ export function useSendMessage() {
       openaiApiKey: ragState.openaiApiKey,
       voyageApiKey: ragState.voyageApiKey,
       retrievalCount: ragState.retrievalCount,
+      scoreThreshold: ragState.scoreThreshold,
       showSourcesInChat: ragState.showSourcesInChat,
     };
   };
@@ -175,10 +182,13 @@ export function useSendMessage() {
       message,
       context,
       history,
+      queryContext,
     }: {
       message: string;
       context?: AIContext;
       history?: AIMessage[];
+      /** Optional context for RAG query preprocessing (selected project/workspace) */
+      queryContext?: QueryContext;
     }): Promise<{ response: AIServiceResponse; sources?: AIMessageSource[] }> => {
       // Get RAG settings
       const ragSettings = getRAGSettings();
@@ -197,36 +207,50 @@ export function useSendMessage() {
             voyageApiKey: ragSettings.voyageApiKey || undefined,
           };
 
+          // Preprocess query with context for better retrieval
+          const enhancedQuery = preprocessQuery(message, queryContext);
+
           const results = await rag.search(
             ragSettings.dataPath,
-            message,
+            enhancedQuery,
             ragSettings.retrievalCount,
             settings
           );
 
-          ragResults = results.map((r) => ({
-            docPath: r.docPath,
-            title: r.title,
-            content: r.content,
-            contentType: r.contentType,
-            score: r.score,
-          }));
+          // Filter by score threshold and map to AIRAGResult
+          ragResults = results
+            .filter((r) => r.score >= ragSettings.scoreThreshold)
+            .map((r) => ({
+              docPath: r.docPath,
+              title: r.title,
+              content: r.content,
+              contentType: r.contentType,
+              score: r.score,
+            }));
 
           // If showSourcesInChat is enabled, prepare sources for display
           if (ragSettings.showSourcesInChat && ragResults.length > 0) {
             // Deduplicate by docPath (same doc may have multiple chunks)
-            const seenPaths = new Set<string>();
-            sources = ragResults
-              .filter((r) => {
-                if (seenPaths.has(r.docPath)) return false;
-                seenPaths.add(r.docPath);
-                return true;
-              })
+            // Keep the highest score for each doc
+            const bestScoreByPath = new Map<string, typeof ragResults[0]>();
+            for (const r of ragResults) {
+              const existing = bestScoreByPath.get(r.docPath);
+              if (!existing || r.score > existing.score) {
+                bestScoreByPath.set(r.docPath, r);
+              }
+            }
+            // Sort by score (highest first) and map to sources
+            sources = Array.from(bestScoreByPath.values())
+              .sort((a, b) => b.score - a.score)
               .map((r) => ({
                 docPath: r.docPath,
                 title: r.title,
                 contentType: r.contentType,
+                score: r.score,
               }));
+
+            // Show sources immediately while waiting for AI response
+            setPendingSources(sources);
           }
         } catch (error) {
           // Silently fail - RAG is optional enhancement
@@ -261,6 +285,8 @@ export function useSendMessage() {
       });
     },
     onSuccess: ({ response, sources }) => {
+      // Clear pending sources and add assistant message with final sources
+      setPendingSources(null);
       addMessage({
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -268,6 +294,10 @@ export function useSendMessage() {
         timestamp: new Date().toISOString(),
         sources,
       });
+    },
+    onError: () => {
+      // Clear pending sources on error
+      setPendingSources(null);
     },
   });
 }

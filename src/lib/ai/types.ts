@@ -6,6 +6,8 @@ export interface AIMessageSource {
   docPath: string;
   title: string;
   contentType: 'doc' | 'task' | 'meeting';
+  /** Similarity score from RAG retrieval (0-1, higher = more relevant) */
+  score?: number;
 }
 
 export interface AIMessage {

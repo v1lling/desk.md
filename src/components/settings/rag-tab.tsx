@@ -68,6 +68,7 @@ export function RAGTab() {
     openaiApiKey,
     voyageApiKey,
     retrievalCount,
+    scoreThreshold,
     autoIndexOnSave,
     showSourcesInChat,
     setEmbeddingProvider,
@@ -76,6 +77,7 @@ export function RAGTab() {
     setOpenaiApiKey,
     setVoyageApiKey,
     setRetrievalCount,
+    setScoreThreshold,
     setAutoIndexOnSave,
     setShowSourcesInChat,
   } = useRAGStore();
@@ -541,6 +543,34 @@ export function RAGTab() {
                 <SelectItem value="3">3</SelectItem>
                 <SelectItem value="5">5</SelectItem>
                 <SelectItem value="10">10</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Minimum relevance score</Label>
+              <p className="text-sm text-muted-foreground">
+                Filter out low-quality matches below this threshold
+              </p>
+            </div>
+            <Select
+              value={String(Math.round(scoreThreshold * 100))}
+              onValueChange={(value) => {
+                const threshold = Number(value) / 100;
+                setScoreThreshold(threshold);
+                toast.success(`Score threshold set to ${value}%`);
+              }}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue>{Math.round(scoreThreshold * 100)}%</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">0%</SelectItem>
+                <SelectItem value="20">20%</SelectItem>
+                <SelectItem value="30">30%</SelectItem>
+                <SelectItem value="40">40%</SelectItem>
+                <SelectItem value="50">50%</SelectItem>
               </SelectContent>
             </Select>
           </div>

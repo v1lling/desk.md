@@ -1,6 +1,9 @@
 // Types
 export * from './types';
 
+// Utils
+export { parseDocPath } from './utils';
+
 // Provider layer
 export { createProvider, type ProviderConfig } from './provider';
 export { isClaudeCodeAvailable } from './providers/claude-code';

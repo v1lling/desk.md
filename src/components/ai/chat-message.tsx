@@ -2,7 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { Bot, User, FileText, CheckSquare, Calendar } from "lucide-react";
-import type { AIMessage } from "@/lib/ai";
+import { parseDocPath, type AIMessage, type AIMessageSource } from "@/lib/ai";
+import { useTabStore } from "@/stores/tabs";
 
 interface ChatMessageProps {
   message: AIMessage;
@@ -21,6 +22,19 @@ function SourceIcon({ type }: { type: 'doc' | 'task' | 'meeting' }) {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const openTab = useTabStore((state) => state.openTab);
+
+  const handleSourceClick = (source: AIMessageSource) => {
+    const parsed = parseDocPath(source.docPath);
+    if (!parsed) return;
+
+    openTab({
+      type: source.contentType,
+      entityId: parsed.entityId,
+      title: source.title,
+      workspaceId: parsed.workspaceId,
+    });
+  };
 
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -51,14 +65,20 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <div className="flex flex-wrap gap-1.5 px-1">
             <span className="text-xs text-muted-foreground">Sources:</span>
             {message.sources.map((source, idx) => (
-              <div
+              <button
                 key={idx}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5"
-                title={source.docPath}
+                onClick={() => handleSourceClick(source)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
+                title={`Open ${source.title}`}
               >
                 <SourceIcon type={source.contentType} />
                 <span className="max-w-[150px] truncate">{source.title}</span>
-              </div>
+                {source.score !== undefined && (
+                  <span className="text-[10px] opacity-60">
+                    {Math.round(source.score * 100)}%
+                  </span>
+                )}
+              </button>
             ))}
           </div>
         )}

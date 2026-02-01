@@ -37,6 +37,25 @@ const CHUNK_OVERLAP = 200;
 const HEADER_SECTION_THRESHOLD = 1.5;
 
 /**
+ * Extract workspace-relative path from absolute path.
+ * Converts: /Users/.../workspaces/{id}/projects/website/docs/file.md
+ * To: projects/website/docs/file.md
+ */
+function extractRelativePath(absolutePath: string, workspaceId: string): string {
+  // Find the workspace directory in the path
+  const workspaceMarker = `/workspaces/${workspaceId}/`;
+  const markerIndex = absolutePath.indexOf(workspaceMarker);
+
+  if (markerIndex !== -1) {
+    return absolutePath.slice(markerIndex + workspaceMarker.length);
+  }
+
+  // Fallback: just use the filename
+  const lastSlash = absolutePath.lastIndexOf('/');
+  return lastSlash !== -1 ? absolutePath.slice(lastSlash + 1) : absolutePath;
+}
+
+/**
  * Generate SHA-256 hash of content
  */
 export async function hashContent(content: string): Promise<string> {
@@ -131,8 +150,12 @@ export async function chunkDocument(
   const contentHash = await hashContent(content);
   const chunks: ChunkInput[] = [];
 
-  // Build title prefix to add context to each chunk
-  const contextPrefix = `# ${title}\n\n`;
+  // Extract relative path for better semantic search
+  const relativePath = extractRelativePath(docPath, workspaceId);
+
+  // Build context prefix with title and location for better retrieval
+  // This allows searches like "website project docs" to match based on path
+  const contextPrefix = `# ${title}\nLocation: ${relativePath}\nType: ${contentType}\n\n`;
 
   if (body.length <= SINGLE_CHUNK_THRESHOLD) {
     // Small file - single chunk

@@ -20,6 +20,8 @@ interface RAGSettings {
 
   // Retrieval
   retrievalCount: number;
+  /** Minimum similarity score (0-1) to include in results. Default 0.3 */
+  scoreThreshold: number;
 
   // Behavior
   autoIndexOnSave: boolean;
@@ -34,6 +36,7 @@ interface RAGState extends RAGSettings {
   setOpenaiApiKey: (key: string) => void;
   setVoyageApiKey: (key: string) => void;
   setRetrievalCount: (count: number) => void;
+  setScoreThreshold: (threshold: number) => void;
   setAutoIndexOnSave: (enabled: boolean) => void;
   setShowSourcesInChat: (enabled: boolean) => void;
   reset: () => void;
@@ -64,6 +67,7 @@ const defaultSettings: RAGSettings = {
   openaiApiKey: '',
   voyageApiKey: '',
   retrievalCount: 5,
+  scoreThreshold: 0.3,
   autoIndexOnSave: true,
   showSourcesInChat: true,
 };
@@ -79,6 +83,7 @@ export const useRAGStore = create<RAGState>()(
       setOpenaiApiKey: (key) => set({ openaiApiKey: key }),
       setVoyageApiKey: (key) => set({ voyageApiKey: key }),
       setRetrievalCount: (count) => set({ retrievalCount: count }),
+      setScoreThreshold: (threshold) => set({ scoreThreshold: threshold }),
       setAutoIndexOnSave: (enabled) => set({ autoIndexOnSave: enabled }),
       setShowSourcesInChat: (enabled) => set({ showSourcesInChat: enabled }),
       reset: () => set(defaultSettings),
@@ -143,6 +148,7 @@ export const useRAGStore = create<RAGState>()(
         openaiApiKey: state.openaiApiKey,
         voyageApiKey: state.voyageApiKey,
         retrievalCount: state.retrievalCount,
+        scoreThreshold: state.scoreThreshold,
         autoIndexOnSave: state.autoIndexOnSave,
         showSourcesInChat: state.showSourcesInChat,
       }),

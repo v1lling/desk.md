@@ -13,6 +13,7 @@ export * from './chunker';
 export * from './reindex';
 export * from './validation';
 export * from './aiignore';
+export * from './query-preprocessor';
 
 /**
  * Convert frontend camelCase to backend snake_case for ChunkInput
