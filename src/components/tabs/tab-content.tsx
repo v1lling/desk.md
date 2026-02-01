@@ -4,6 +4,7 @@ import { useTabStore } from "@/stores/tabs";
 import { DocEditor } from "@/components/editors/doc-editor";
 import { TaskEditor } from "@/components/editors/task-editor";
 import { MeetingEditor } from "@/components/editors/meeting-editor";
+import { AIChatEditor } from "@/components/editors/ai-chat-editor";
 import { EmailViewer } from "@/components/email";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,8 @@ export function TabContent({ children }: TabContentProps) {
               email={tab.emailData}
               onClose={() => closeTab(tab.id)}
             />
+          ) : tab.type === "ai" ? (
+            <AIChatEditor onClose={() => closeTab(tab.id)} />
           ) : null}
         </div>
       ))}

@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 import type { IncomingEmail } from "@/lib/email/types";
 
-export type TabType = "desk" | "doc" | "task" | "meeting" | "email";
+export type TabType = "desk" | "doc" | "task" | "meeting" | "email" | "ai";
 
 export interface TabItem {
   id: string;
@@ -52,6 +52,15 @@ export const useTabStore = create<TabState>()(
       openTab: (newTab) => {
         const { tabs } = get();
 
+        // AI tab is a singleton - reuse existing
+        if (newTab.type === "ai") {
+          const existing = tabs.find((t) => t.type === "ai");
+          if (existing) {
+            set({ activeTabId: existing.id });
+            return;
+          }
+        }
+
         // Check if tab for this entity already exists (not for email tabs which are always new)
         if (newTab.type !== "desk" && newTab.type !== "email" && newTab.entityId) {
           const existing = tabs.find(
@@ -67,6 +76,8 @@ export const useTabStore = create<TabState>()(
         let id: string;
         if (newTab.type === "desk") {
           id = "desk";
+        } else if (newTab.type === "ai") {
+          id = "ai";
         } else if (newTab.type === "email") {
           // Email tabs use timestamp for unique ID (session only)
           id = `email-${Date.now()}`;
@@ -164,11 +175,12 @@ export const useTabStore = create<TabState>()(
     {
       name: "desk-tabs",
       partialize: (state) => ({
-        // Filter out email tabs (session-only) and strip emailData
+        // Filter out session-only tabs (email, ai) and strip emailData
         tabs: state.tabs
-          .filter((t) => t.type !== "email")
+          .filter((t) => t.type !== "email" && t.type !== "ai")
           .map(({ emailData, ...rest }) => rest),
-        activeTabId: state.activeTabId === "desk" || !state.activeTabId.startsWith("email-")
+        activeTabId: state.activeTabId === "desk" ||
+          (!state.activeTabId.startsWith("email-") && state.activeTabId !== "ai")
           ? state.activeTabId
           : "desk",
       }),
@@ -216,6 +228,12 @@ export function useOpenTab() {
         type: "email",
         title: email.subject || "Email",
         emailData: email,
+      });
+    },
+    openAI: () => {
+      openTab({
+        type: "ai",
+        title: "AI Chat",
       });
     },
   };

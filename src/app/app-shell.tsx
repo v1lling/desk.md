@@ -6,6 +6,7 @@ import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useSettingsStore } from "@/stores/settings";
+import { useOpenTab } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
 
@@ -27,6 +28,22 @@ export function AppShell({ children }: AppShellProps) {
     handleDoubleClick,
     toggleCollapsed,
   } = useSidebarResize();
+
+  const { openAI } = useOpenTab();
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+Shift+A: Open AI Chat
+      if (e.key === "a" && e.metaKey && e.shiftKey) {
+        e.preventDefault();
+        openAI();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openAI]);
 
   // Wait for hydration to avoid flash of wrong content
   useEffect(() => {

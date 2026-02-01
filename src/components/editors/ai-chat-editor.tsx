@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Trash2, MessageSquare, FolderOpen, FileText, CheckSquare, Calendar } from "lucide-react";
+import { Send, Trash2, MessageSquare, FolderOpen, FileText, CheckSquare, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SlidePanel } from "@/components/ui/slide-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChatMessage } from "./chat-message";
+import { ChatMessage } from "@/components/ai/chat-message";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
 import { useSettingsStore } from "@/stores/settings";
 import { useProjects } from "@/stores/projects";
@@ -23,14 +23,13 @@ import { useTabStore } from "@/stores/tabs";
 import type { QueryContext } from "@/lib/rag/query-preprocessor";
 import { parseDocPath, type AIMessageSource } from "@/lib/ai";
 
-interface AIChatPanelProps {
-  open: boolean;
+interface AIChatEditorProps {
   onClose: () => void;
 }
 
 const ALL_CONTENT = "__all__";
 
-export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
+export function AIChatEditor({ onClose }: AIChatEditorProps) {
   const [input, setInput] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_CONTENT);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,12 +66,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when panel opens
+  // Focus input on mount
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [open]);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,25 +107,109 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   };
 
   return (
-    <SlidePanel
-      open={open}
-      onClose={onClose}
-      title="AI Chat"
-      headerActions={
-        messages.length > 0 ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClear}
-            className="h-8 w-8"
-            title="Clear conversation"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        ) : undefined
-      }
-      footer={
-        <div className="space-y-2">
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">AI Chat</h2>
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="h-7 px-2 text-muted-foreground"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-8 w-8"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Messages area - centered narrow layout */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="max-w-2xl mx-auto px-6 py-6">
+          {/* Configuration warning */}
+          {!isConfigured && (
+            <div className="p-3 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-md">
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                AI not configured. Go to Settings → AI to set up a provider.
+              </p>
+            </div>
+          )}
+
+          {/* Error display */}
+          {sendMessage.error && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">
+                AI request failed. Check Settings → AI to test your connection.
+              </p>
+            </div>
+          )}
+
+          {messages.length === 0 ? (
+            <div className="py-12">
+              <EmptyState
+                title="No messages yet"
+                description="Start a conversation with AI. Your docs are automatically included as context."
+                icon={MessageSquare}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {messages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+              {sendMessage.isPending && (
+                <div className="space-y-2">
+                  {/* Show pending sources while waiting */}
+                  {pendingSources && pendingSources.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-1">
+                      <span className="text-xs text-muted-foreground">Using context:</span>
+                      {pendingSources.map((source, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleSourceClick(source)}
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
+                          title={`Open ${source.title}`}
+                        >
+                          {source.contentType === 'task' ? (
+                            <CheckSquare className="h-3 w-3" />
+                          ) : source.contentType === 'meeting' ? (
+                            <Calendar className="h-3 w-3" />
+                          ) : (
+                            <FileText className="h-3 w-3" />
+                          )}
+                          <span className="max-w-[150px] truncate">{source.title}</span>
+                          {source.score !== undefined && (
+                            <span className="text-[10px] opacity-60">
+                              {Math.round(source.score * 100)}%
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <LoadingState label="AI response" height="h-16" spinner />
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Input area - fixed at bottom, centered */}
+      <div className="border-t shrink-0">
+        <div className="max-w-2xl mx-auto px-6 py-4 space-y-2">
           {/* Project context selector */}
           {projects && projects.length > 0 && (
             <div className="flex items-center gap-2">
@@ -137,7 +218,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 value={selectedProjectId}
                 onValueChange={setSelectedProjectId}
               >
-                <SelectTrigger className="h-7 text-xs">
+                <SelectTrigger className="h-7 text-xs w-[200px]">
                   <SelectValue placeholder="All content" />
                 </SelectTrigger>
                 <SelectContent>
@@ -170,73 +251,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             </Button>
           </form>
         </div>
-      }
-    >
-      {/* Configuration warning */}
-      {!isConfigured && (
-        <div className="p-3 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-md">
-          <p className="text-sm text-amber-600 dark:text-amber-400">
-            AI not configured. Go to Settings → AI to set up a provider.
-          </p>
-        </div>
-      )}
-
-      {/* Error display - keep generic, details in Settings */}
-      {sendMessage.error && (
-        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-md">
-          <p className="text-sm text-destructive">
-            AI request failed. Check Settings → AI to test your connection.
-          </p>
-        </div>
-      )}
-
-      {messages.length === 0 ? (
-        <EmptyState
-          title="No messages yet"
-          description="Start a conversation with AI. Your docs are automatically included as context."
-          icon={MessageSquare}
-        />
-      ) : (
-        <div className="flex flex-col gap-4">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
-          {sendMessage.isPending && (
-            <div className="space-y-2">
-              {/* Show pending sources while waiting */}
-              {pendingSources && pendingSources.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-1">
-                  <span className="text-xs text-muted-foreground">Using context:</span>
-                  {pendingSources.map((source, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSourceClick(source)}
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                      title={`Open ${source.title}`}
-                    >
-                      {source.contentType === 'task' ? (
-                        <CheckSquare className="h-3 w-3" />
-                      ) : source.contentType === 'meeting' ? (
-                        <Calendar className="h-3 w-3" />
-                      ) : (
-                        <FileText className="h-3 w-3" />
-                      )}
-                      <span className="max-w-[150px] truncate">{source.title}</span>
-                      {source.score !== undefined && (
-                        <span className="text-[10px] opacity-60">
-                          {Math.round(source.score * 100)}%
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <LoadingState label="AI response" height="h-16" spinner />
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      )}
-    </SlidePanel>
+      </div>
+    </div>
   );
 }

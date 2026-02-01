@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import { Home, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
+import { Home, FileText, CheckSquare, Calendar, Mail, Bot, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabItem as TabItemType, TabType } from "@/stores/tabs";
 import { TabContextMenu } from "./tab-context-menu";
@@ -12,6 +12,7 @@ const TAB_ICONS: Record<TabType, React.ElementType> = {
   task: CheckSquare,
   meeting: Calendar,
   email: Mail,
+  ai: Bot,
 };
 
 interface TabItemProps {
@@ -38,6 +39,8 @@ export const TabItem = memo(function TabItem({
 }: TabItemProps) {
   const Icon = TAB_ICONS[tab.type];
   const isDeskTab = tab.type === "desk";
+  const isAITab = tab.type === "ai";
+  const isSystemTab = isDeskTab || isAITab;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -72,11 +75,11 @@ export const TabItem = memo(function TabItem({
         className={cn(
         "group relative flex items-center gap-1.5 h-8 text-xs transition-colors",
         // Browser-like sizing: min width, can shrink, max width
-        isDeskTab
+        isSystemTab
           ? "min-w-[100px] max-w-[180px] px-2.5 shrink-0"
           : "min-w-[80px] max-w-[140px] px-2.5 shrink",
-        // Desk tab has special styling with thicker separator
-        isDeskTab
+        // System tabs (Desk, AI) have special styling
+        isSystemTab
           ? cn(
               "border-r-2 border-border",
               isActive
@@ -98,7 +101,7 @@ export const TabItem = memo(function TabItem({
           style={{ backgroundColor: workspaceColor }}
         />
       )}
-      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <Icon className={cn("h-3.5 w-3.5 shrink-0", isAITab && "text-violet-500")} />
       <span className="truncate flex-1">{tab.title}</span>
 
       {/* Dirty indicator */}
@@ -122,10 +125,13 @@ export const TabItem = memo(function TabItem({
         </span>
       )}
 
-      {/* Active indicator line - uses workspace color for Desk tab if available */}
+      {/* Active indicator line - uses workspace color for Desk tab, purple for AI tab */}
       {isActive && (
         <span
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground/50"
+          className={cn(
+            "absolute bottom-0 left-0 right-0 h-0.5",
+            isAITab ? "bg-violet-500" : "bg-foreground/50"
+          )}
           style={isDeskTab && workspaceColor ? { backgroundColor: workspaceColor } : undefined}
         />
       )}
