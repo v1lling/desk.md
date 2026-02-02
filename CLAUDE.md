@@ -141,7 +141,7 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 
 **Core UI Components**:
 - `RichTextEditor` - Tiptap WYSIWYG markdown editor
-- `SlidePanel` - Slide-in panel (used by AI chat)
+- `AIChatEditor` - AI Chat tab (⌘⇧A to open)
 - `DocExplorer` - Doc tree browser with scope dropdown
 
 ### Reusable Hooks (`src/hooks/`)
