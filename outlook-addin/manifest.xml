@@ -14,15 +14,15 @@
   <Description DefaultValue="Open emails in Desk for AI-assisted workflows"/>
 
   <!-- Icon URLs - replace with your hosted icons -->
-  <IconUrl DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-64.png"/>
-  <HighResolutionIconUrl DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-128.png"/>
+  <IconUrl DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/assets/icon-128.png"/>
 
   <!-- Support URL -->
-  <SupportUrl DefaultValue="https://github.com/v1lling/desk-outlook-addin"/>
+  <SupportUrl DefaultValue="https://github.com/v1lling/deskmd-outlook-addin"/>
 
   <!-- Domains that will be allowed for the add-in -->
   <AppDomains>
-    <AppDomain>https://v1lling.github.io/desk-outlook-addin</AppDomain>
+    <AppDomain>https://v1lling.github.io/deskmd-outlook-addin</AppDomain>
   </AppDomains>
 
   <!-- Hosts the add-in supports -->
@@ -41,7 +41,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://v1lling.github.io/desk-outlook-addin/taskpane.html"/>
+        <SourceLocation DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/taskpane.html"/>
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -111,13 +111,13 @@
       <!-- Resources -->
       <Resources>
         <bt:Images>
-          <bt:Image id="icon16" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-16.png"/>
-          <bt:Image id="icon32" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-32.png"/>
-          <bt:Image id="icon80" DefaultValue="https://v1lling.github.io/desk-outlook-addin/assets/icon-80.png"/>
+          <bt:Image id="icon16" DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/assets/icon-16.png"/>
+          <bt:Image id="icon32" DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/assets/icon-32.png"/>
+          <bt:Image id="icon80" DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/assets/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="functionFile" DefaultValue="https://v1lling.github.io/desk-outlook-addin/commands.html"/>
-          <bt:Url id="taskpaneUrl" DefaultValue="https://v1lling.github.io/desk-outlook-addin/taskpane.html"/>
+          <bt:Url id="functionFile" DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="https://v1lling.github.io/deskmd-outlook-addin/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="Desk"/>
