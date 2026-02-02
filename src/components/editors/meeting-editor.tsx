@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
@@ -41,6 +41,15 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     isInExcludedFolder: false,
   });
 
+  // Track metadata changes separately (declared early for use in sync effect)
+  const [metadataDirty, setMetadataDirty] = useState(false);
+  const metadataDirtyRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    metadataDirtyRef.current = metadataDirty;
+  }, [metadataDirty]);
+
   // Initialize metadata from meeting (only when switching meetings)
   useEffect(() => {
     if (meeting) {
@@ -52,6 +61,17 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       getAiExclusionState(meeting.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [meeting?.id, workspaceId]); // Only reset when switching to a different meeting
+
+  // Sync metadata from query when refetch completes (but only when not dirty)
+  // This ensures editor picks up changes from disk after saves complete
+  // Uses ref to access current dirty state without adding it to dependencies
+  useEffect(() => {
+    if (meeting && !metadataDirtyRef.current) {
+      setTitle(meeting.title);
+      setDate(meeting.date);
+      setAttendees(meeting.attendees?.join(", ") || "");
+    }
+  }, [meeting?.title, meeting?.date, meeting?.attendees]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
@@ -101,9 +121,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     }
   }, [meeting, isLoadingContent, isEditorReady]);
 
-  // Track metadata changes separately
-  const [metadataDirty, setMetadataDirty] = useState(false);
-
   const handleTitleChange = useCallback((newTitle: string) => {
     setTitle(newTitle);
     setMetadataDirty(true);
@@ -119,7 +136,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     setMetadataDirty(true);
   }, []);
 
-  // Debounced save for metadata changes
+  // Debounced save for metadata changes (frontmatter only, not content)
+  // Content is saved separately by useEditorSession to avoid race conditions
   useEffect(() => {
     if (!metadataDirty || !meeting) return;
 
@@ -138,7 +156,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
             title: title.trim() || meeting.title,
             date: date || meeting.date,
             attendees: attendeesList.length > 0 ? attendeesList : undefined,
-            content, // Include current content to avoid overwriting
+            // Note: content is NOT included - useEditorSession handles body saves
+            // Domain function (updateMeeting) preserves body from disk when content is undefined
           },
         });
         setMetadataDirty(false);
@@ -148,7 +167,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [title, date, attendees, content, metadataDirty, meeting, updateMeeting]);
+  }, [title, date, attendees, metadataDirty, meeting, updateMeeting]);
 
   // Manage tab title and dirty state
   const isDirty = contentDirty || metadataDirty;

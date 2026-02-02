@@ -78,18 +78,18 @@ export const TabItem = memo(function TabItem({
         isSystemTab
           ? "min-w-[100px] max-w-[180px] px-2.5 shrink-0"
           : "min-w-[80px] max-w-[140px] px-2.5 shrink",
-        // System tabs (Desk, AI) have special styling
+        // System tabs (Desk, AI) have special styling - always medium weight, with separator gap
         isSystemTab
           ? cn(
-              "border-r-2 border-border",
+              "border-r-2 border-border mr-1 font-medium",
               isActive
-                ? "bg-accent text-accent-foreground font-medium"
+                ? "bg-accent text-accent-foreground"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent/50"
             )
           : cn(
               "border-r border-border/50",
               isActive
-                ? "bg-background text-foreground"
+                ? "bg-background text-foreground font-medium"
                 : "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-accent/50"
             )
       )}

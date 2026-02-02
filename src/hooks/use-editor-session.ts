@@ -173,10 +173,19 @@ export function useEditorSession({
 
     // Subscribe to events
     const unsubscribe = subscribeToEditorEvents(filePath, {
-      onContentUpdate: (newContent) => {
-        // External change - update editor
-        setContentState(newContent);
-        lastSavedRef.current = newContent;
+      onContentUpdate: (newRawContent) => {
+        // External change - parse to extract body only (editor stores body, not raw file)
+        try {
+          const { content: newBody } =
+            parseMarkdown<Record<string, unknown>>(newRawContent);
+          setContentState(newBody);
+          lastSavedRef.current = newBody;
+        } catch (e) {
+          console.error("[editor-session] Failed to parse external update:", e);
+          // Fallback: treat as body (shouldn't happen for valid .md files)
+          setContentState(newRawContent);
+          lastSavedRef.current = newRawContent;
+        }
         setIsDirty(false);
         setSaveStatus("idle");
       },

@@ -32,6 +32,7 @@ import {
 } from "@/stores";
 import {
   getFileTreeService,
+  getContentCache,
   connectToWatcher,
   disconnectFromWatcher,
   fileTreeKeys,
@@ -41,8 +42,8 @@ import {
   type EditorSession,
 } from "@/stores/open-editor-registry";
 import { publishContentUpdate, publishDeleted } from "@/stores/editor-event-bus";
-import { exists } from "@/lib/desk/tauri-fs";
-import { readTextFile } from "@/lib/desk/tauri-fs";
+import { exists, readTextFile } from "@/lib/desk/tauri-fs";
+import { parseMarkdown } from "@/lib/desk/parser";
 
 /**
  * Hook to initialize file watching and route events
@@ -98,6 +99,19 @@ async function handleFileChange(
 
   // Track which paths were handled by editors (to skip query invalidation)
   const handledByEditor = new Set<string>();
+
+  // CRITICAL: Invalidate FileTreeService cache FIRST, before any TanStack Query refetch
+  // This prevents race condition where query refetches stale cached content
+  // (cache-invalidator.ts also invalidates, but runs as separate subscriber - timing not guaranteed)
+  const contentCache = getContentCache();
+  const fileTreeService = getFileTreeService();
+  for (const path of event.paths) {
+    contentCache.invalidate(path);
+    // Also invalidate prefix for directory-level changes
+    contentCache.invalidatePrefix(path + "/");
+  }
+  // Clear the tree cache as well to force fresh directory listings
+  fileTreeService.clearCache();
 
   // First pass: check each path for open editors
   for (const path of event.paths) {
@@ -206,8 +220,11 @@ async function handleOpenFileChange(
   try {
     const fileContent = await readTextFile(path);
 
-    // File matches what we last saved → our save event, ignore
-    if (fileContent === session.lastSavedContent) {
+    // Parse to extract body for comparison (registry stores body only, not full file with frontmatter)
+    const { content: fileBody } = parseMarkdown<Record<string, unknown>>(fileContent);
+
+    // Body matches what we last saved → our save event, ignore
+    if (fileBody === session.lastSavedContent) {
       return true; // Handled (it was our own save)
     }
 
@@ -215,10 +232,10 @@ async function handleOpenFileChange(
     console.log(
       `[query-invalidator] External change detected: ${path.split("/").pop()}`
     );
-    publishContentUpdate(path, fileContent);
+    publishContentUpdate(path, fileContent); // Publish full file (handler parses it)
 
-    // Update lastSavedContent in registry to prevent re-triggering
-    useOpenEditorRegistry.getState().updateLastSaved(path, fileContent);
+    // Update lastSavedContent in registry with body (not full file) to maintain consistency
+    useOpenEditorRegistry.getState().updateLastSaved(path, fileBody);
 
     return true;
   } catch (error) {

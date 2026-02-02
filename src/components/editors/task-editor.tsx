@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
@@ -49,6 +49,15 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     isInExcludedFolder: false,
   });
 
+  // Track metadata changes separately (declared early for use in sync effect)
+  const [metadataDirty, setMetadataDirty] = useState(false);
+  const metadataDirtyRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    metadataDirtyRef.current = metadataDirty;
+  }, [metadataDirty]);
+
   // Initialize metadata from task (only when switching tasks)
   useEffect(() => {
     if (task) {
@@ -63,6 +72,18 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       getAiExclusionState(task.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [task?.id, workspaceId]); // Only reset when switching to a different task
+
+  // Sync metadata from query when refetch completes (but only when not dirty)
+  // This ensures editor picks up changes from disk after saves complete
+  // Uses ref to access current dirty state without adding it to dependencies
+  useEffect(() => {
+    if (task && !metadataDirtyRef.current) {
+      setStatus(task.status);
+      setPriority(task.priority || "none");
+      setDue(task.due || "");
+      setTitle(task.title);
+    }
+  }, [task?.status, task?.priority, task?.due, task?.title]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Use editor session for content (markdown body)
@@ -112,9 +133,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [task, isLoadingContent, isEditorReady]);
 
-  // Track metadata changes separately
-  const [metadataDirty, setMetadataDirty] = useState(false);
-
   const handleTitleChange = useCallback((newTitle: string) => {
     setTitle(newTitle);
     setMetadataDirty(true);
@@ -135,7 +153,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     setMetadataDirty(true);
   }, []);
 
-  // Debounced save for metadata changes
+  // Debounced save for metadata changes (frontmatter only, not content)
+  // Content is saved separately by useEditorSession to avoid race conditions
   useEffect(() => {
     if (!metadataDirty || !task) return;
 
@@ -146,7 +165,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
           status,
           priority: priority === "none" ? undefined : priority,
           due: due || undefined,
-          content, // Include current content to avoid overwriting
+          // Note: content is NOT included - useEditorSession handles body saves
+          // Domain function (updateTask) preserves body from disk when content is undefined
         };
 
         await updateTask.mutateAsync({
@@ -162,7 +182,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [title, status, priority, due, content, metadataDirty, task, updateTask]);
+  }, [title, status, priority, due, metadataDirty, task, updateTask]);
 
   // Manage tab title and dirty state
   const isDirty = contentDirty || metadataDirty;

@@ -20,15 +20,19 @@ const GRAY_MATTER_RESERVED = ["engine", "engines", "language", "delimiters", "ex
  * Serialize data and content back to markdown with frontmatter
  * Automatically removes undefined values and gray-matter reserved keys
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function serializeMarkdown(
-  data: any,
-  content: string
-): string {
+export function serializeMarkdown(data: unknown, content: string): string {
+  // Guard against non-object data - Object.entries() on a string produces { '0': 'c', '1': 'h', ... }
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error(
+      `[parser] serializeMarkdown received invalid data type: ${typeof data}${Array.isArray(data) ? " (array)" : ""}`
+    );
+  }
+
   // Filter out undefined values and gray-matter reserved keys
   const cleanedData = Object.fromEntries(
-    Object.entries(data).filter(
-      ([key, value]) => value !== undefined && !GRAY_MATTER_RESERVED.includes(key)
+    Object.entries(data as Record<string, unknown>).filter(
+      ([key, value]) =>
+        value !== undefined && !GRAY_MATTER_RESERVED.includes(key)
     )
   );
   return matter.stringify(content, cleanedData);

@@ -99,6 +99,10 @@ export function useUpdateDoc() {
         queryClient.invalidateQueries({
           queryKey: contentKeys.byWorkspace(updatedDoc.workspaceId),
         });
+        // Invalidate detail query to keep editor in sync
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.detail(updatedDoc.workspaceId, updatedDoc.id),
+        });
         // Also invalidate relevant tree queries
         queryClient.invalidateQueries({
           queryKey: contentKeys.tree("workspace", updatedDoc.workspaceId),

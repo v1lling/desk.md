@@ -99,13 +99,20 @@ export function useUpdateTask() {
     }) => taskLib.updateTask(taskId, updates, workspaceId, projectId),
     onSuccess: (updatedTask, variables) => {
       if (updatedTask) {
+        // Invalidate both list and detail queries to keep editor in sync
         queryClient.invalidateQueries({
           queryKey: taskKeys.byWorkspace(updatedTask.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.detail(updatedTask.workspaceId, updatedTask.id),
         });
       } else {
         // Fallback invalidation using passed workspaceId
         queryClient.invalidateQueries({
           queryKey: taskKeys.byWorkspace(variables.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.detail(variables.workspaceId, variables.taskId),
         });
       }
     },

@@ -97,12 +97,19 @@ export function useUpdateMeeting() {
     }) => meetingLib.updateMeeting(meetingId, updates, workspaceId, projectId),
     onSuccess: (updatedMeeting, variables) => {
       if (updatedMeeting) {
+        // Invalidate both list and detail queries to keep editor in sync
         queryClient.invalidateQueries({
           queryKey: meetingKeys.byWorkspace(updatedMeeting.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.detail(updatedMeeting.workspaceId, updatedMeeting.id),
         });
       } else {
         queryClient.invalidateQueries({
           queryKey: meetingKeys.byWorkspace(variables.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.detail(variables.workspaceId, variables.meetingId),
         });
       }
     },
