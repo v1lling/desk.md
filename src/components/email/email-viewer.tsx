@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Mail, User, Users, Calendar, Building2, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Mail, User, Users, Calendar, Building2, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronDown, ChevronUp, X, Clipboard, Check } from "lucide-react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const [draft, setDraft] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const providerType = useAISettingsStore((state) => state.providerType);
   const { draftEmail } = useAIAction();
@@ -126,6 +127,24 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
       window.location.href = mailto;
     }
   }, [to, subject, cc, draft]);
+
+  const handleCopyForOutlook = useCallback(async (isReplyAll: boolean = false) => {
+    if (!draft) return;
+
+    try {
+      // Add marker for Outlook add-in to detect reply type
+      const marker = `<!-- DESK_REPLY:${isReplyAll ? "replyall" : "reply"} -->\n`;
+      const textToCopy = marker + draft;
+
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+
+      // Reset copied state after 3 seconds
+      setTimeout(() => setCopied(false), 3000);
+    } catch (err) {
+      console.error("[email-viewer] Failed to copy to clipboard:", err);
+    }
+  }, [draft]);
 
   const hasAIProvider = providerType !== null;
 
@@ -378,13 +397,59 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
                     />
                   </div>
 
-                  <Button onClick={handleSendViaMailClient} className="w-full">
-                    <Send className="h-4 w-4 mr-2" />
-                    Open in Mail Client
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Opens your default mail app with the draft pre-filled
-                  </p>
+                  {/* Action buttons */}
+                  <div className="space-y-2">
+                    {/* Copy for Outlook - primary action for threading */}
+                    <Button
+                      onClick={() => handleCopyForOutlook(false)}
+                      className="w-full"
+                      variant={copied ? "outline" : "default"}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied! Return to Outlook
+                        </>
+                      ) : (
+                        <>
+                          <Clipboard className="h-4 w-4 mr-2" />
+                          Copy Draft for Outlook
+                        </>
+                      )}
+                    </Button>
+
+                    {/* Reply All option when CC recipients exist */}
+                    {email.cc && email.cc.length > 0 && !copied && (
+                      <Button
+                        onClick={() => handleCopyForOutlook(true)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Clipboard className="h-4 w-4 mr-2" />
+                        Copy Draft (Reply All)
+                      </Button>
+                    )}
+
+                    {/* Fallback mailto option */}
+                    <Button
+                      onClick={handleSendViaMailClient}
+                      variant="ghost"
+                      className="w-full text-muted-foreground"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Open in Default Mail Client
+                    </Button>
+                  </div>
+
+                  {/* Instructions for Outlook threading */}
+                  <div className="p-3 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium">To insert as a threaded reply:</p>
+                    <ol className="list-decimal list-inside space-y-0.5 ml-1">
+                      <li>Click "Copy Draft for Outlook" above</li>
+                      <li>Return to Outlook</li>
+                      <li>Click "Insert Reply from Desk" in the ribbon</li>
+                    </ol>
+                  </div>
                 </div>
               )}
             </div>

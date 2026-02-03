@@ -102,6 +102,82 @@ function openInDesk(event) {
 }
 
 /**
+ * Insert reply from Desk via clipboard
+ * Reads the clipboard and opens a reply form with the content
+ * @param {Office.AddinCommands.Event} event - The event object from Office
+ */
+async function insertReplyFromDesk(event) {
+  console.log("[Desk Add-in] Starting reply insertion...");
+
+  try {
+    // Request clipboard permission and read text
+    const clipboardText = await navigator.clipboard.readText();
+
+    if (!clipboardText || clipboardText.trim() === "") {
+      showNotification(
+        "No Draft Found",
+        "Copy a draft from Desk first, then try again."
+      );
+      event.completed();
+      return;
+    }
+
+    console.log("[Desk Add-in] Clipboard content length:", clipboardText.length);
+
+    // Try to parse as Desk draft format (with metadata)
+    let replyBody = clipboardText;
+    let replyAll = false;
+
+    // Check for Desk draft format: <!-- DESK_REPLY:reply|replyall -->
+    const deskMarkerMatch = clipboardText.match(
+      /<!--\s*DESK_REPLY:(reply|replyall)\s*-->\n?/
+    );
+    if (deskMarkerMatch) {
+      replyAll = deskMarkerMatch[1] === "replyall";
+      replyBody = clipboardText.replace(deskMarkerMatch[0], "").trim();
+      console.log("[Desk Add-in] Detected Desk draft, replyAll:", replyAll);
+    }
+
+    // Convert plain text to HTML for Outlook
+    // Preserve line breaks and escape HTML entities
+    const htmlBody = replyBody
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>");
+
+    // Open reply form with the draft content
+    const item = Office.context.mailbox.item;
+
+    if (replyAll) {
+      item.displayReplyAllForm({
+        htmlBody: htmlBody,
+      });
+    } else {
+      item.displayReplyForm({
+        htmlBody: htmlBody,
+      });
+    }
+
+    showNotification("Draft Inserted", "Reply form opened with your draft.");
+  } catch (err) {
+    console.error("[Desk Add-in] Failed to insert reply:", err);
+
+    // Handle clipboard permission denied
+    if (err.name === "NotAllowedError") {
+      showNotification(
+        "Permission Denied",
+        "Please allow clipboard access to insert the draft."
+      );
+    } else {
+      showNotification("Error", "Failed to insert reply: " + err.message);
+    }
+  }
+
+  event.completed();
+}
+
+/**
  * Shows a notification message to the user
  * @param {string} title - Notification title
  * @param {string} message - Notification message
@@ -118,6 +194,7 @@ function showNotification(title, message) {
   );
 }
 
-// Register the function with Office
+// Register functions with Office
 Office.actions = Office.actions || {};
 Office.actions.associate("openInDesk", openInDesk);
+Office.actions.associate("insertReplyFromDesk", insertReplyFromDesk);

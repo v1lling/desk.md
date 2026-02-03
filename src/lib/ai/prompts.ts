@@ -20,7 +20,10 @@ const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
   'draft-email': `Draft a professional email reply.
 - Match the tone of the original email
 - Be clear and concise
-- Output ONLY the email body text, no subject line or headers`,
+- Output ONLY the email body text, no subject line or headers
+- No markdown formatting (no **bold**, *italic*, or headers)
+- Bullet points (-) and numbered lists (1. 2. 3.) are fine when appropriate
+- Use regular hyphens (-) only, never em dashes (—) or en dashes (–)`,
 
   summarize: `Summarize the provided content.
 - Capture key points clearly
