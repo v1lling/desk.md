@@ -83,29 +83,12 @@
                 <Group id="deskGroup">
                   <Label resid="groupLabel"/>
 
-                  <!-- Open in Desk button -->
-                  <Control xsi:type="Button" id="openInDeskBtn">
-                    <Label resid="openBtnLabel"/>
+                  <!-- Single Desk button - opens taskpane with all features -->
+                  <Control xsi:type="Button" id="deskBtn">
+                    <Label resid="deskBtnLabel"/>
                     <Supertip>
-                      <Title resid="openBtnLabel"/>
-                      <Description resid="openBtnDesc"/>
-                    </Supertip>
-                    <Icon>
-                      <bt:Image size="16" resid="icon16"/>
-                      <bt:Image size="32" resid="icon32"/>
-                      <bt:Image size="80" resid="icon80"/>
-                    </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                      <FunctionName>openInDesk</FunctionName>
-                    </Action>
-                  </Control>
-
-                  <!-- Insert Reply from Desk button - opens taskpane for paste -->
-                  <Control xsi:type="Button" id="insertReplyBtn">
-                    <Label resid="insertBtnLabel"/>
-                    <Supertip>
-                      <Title resid="insertBtnLabel"/>
-                      <Description resid="insertBtnDesc"/>
+                      <Title resid="deskBtnLabel"/>
+                      <Description resid="deskBtnDesc"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="icon16"/>
@@ -138,12 +121,10 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="Desk"/>
-          <bt:String id="openBtnLabel" DefaultValue="Open in Desk"/>
-          <bt:String id="insertBtnLabel" DefaultValue="Insert Reply from Desk"/>
+          <bt:String id="deskBtnLabel" DefaultValue="Desk"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="openBtnDesc" DefaultValue="Open this email in Desk for AI-assisted reply drafting"/>
-          <bt:String id="insertBtnDesc" DefaultValue="Paste AI-drafted reply from Desk into a threaded reply"/>
+          <bt:String id="deskBtnDesc" DefaultValue="Open Desk panel to send emails or insert AI-drafted replies"/>
         </bt:LongStrings>
       </Resources>
 

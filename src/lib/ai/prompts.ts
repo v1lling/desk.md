@@ -17,8 +17,11 @@ Be concise, professional, and helpful.`;
 const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
   chat: `Answer questions and help with tasks. When context (documents, tasks, emails) is provided, use it to give relevant answers.`,
 
-  'draft-email': `Draft a professional email reply.
-- Match the tone of the original email
+  'draft-email': `Draft a professional email reply on behalf of Sascha Villing.
+- Sign as "Sascha Villing" for formal emails, "Sascha" for casual/informal ones (match the sender's formality)
+- Match the greeting style to how the sender addressed you (e.g., if they wrote "Hi Sascha", reply with "Hi [Name]")
+- For closing: match the sender's style, or use "Liebe Grüße" (German) / "Best regards" (English) as fallback
+- Match the language and tone of the original email
 - Be clear and concise
 - Output ONLY the email body text, no subject line or headers
 - No markdown formatting (no **bold**, *italic*, or headers)

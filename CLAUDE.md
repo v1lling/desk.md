@@ -103,7 +103,21 @@ interface IncomingEmail {
 | `src/lib/email/` | Email types and deep link parser |
 | `src/components/email/` | Email viewer and draft reply UI |
 | `src/hooks/use-deep-link.ts` | Deep link initialization |
-| `outlook-addin/` | Outlook Add-in source (separate project) |
+| `outlook-addin/` | Outlook Add-in source |
+
+### Outlook Add-in Deployment
+
+The add-in files live in `outlook-addin/` but are deployed to a **separate public repo** for GitHub Pages hosting (this repo is private).
+
+**After modifying `outlook-addin/` files, deploy with:**
+```bash
+git subtree push --prefix=outlook-addin outlook-public main
+```
+
+This pushes only the `outlook-addin/` folder to `github.com/v1lling/deskmd-outlook-addin`, which serves the files via GitHub Pages.
+
+**Remotes:**
+- `outlook-public` → `git@github.com:v1lling/deskmd-outlook-addin.git` (for subtree push)
 
 **Testing deep links (requires built .app in /Applications):**
 ```bash
@@ -111,7 +125,7 @@ interface IncomingEmail {
 open "desk://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0sImJvZHkiOiJIZWxsbyIsInNvdXJjZSI6Im90aGVyIn0="
 ```
 
-**Flow:** Email opens in session-only tab → user links to project → AI drafts reply → opens mailto:
+**Flow:** Email opens in session-only tab → user links to project → AI drafts reply → copy to clipboard → return to Outlook → "Insert Reply from Desk" button opens threaded reply form
 
 ## UI Patterns
 
