@@ -12,7 +12,7 @@ Office.onReady(function () {
 });
 
 /**
- * Opens the current email in Desk via deep link
+ * Opens the current email in Desk via deep links
  * @param {Office.AddinCommands.Event} event - The event object from Office
  */
 function openInDesk(event) {
