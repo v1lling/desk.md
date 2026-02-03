@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Trash2, MessageSquare, FolderOpen, FileText, CheckSquare, Calendar, X } from "lucide-react";
+import { Send, Trash2, MessageSquare, FolderOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,13 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChatMessage } from "@/components/ai/chat-message";
+import { SourcesDisplay } from "@/components/ai/sources-display";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
 import { useSettingsStore } from "@/stores/settings";
 import { useProjects } from "@/stores/projects";
 import { useWorkspace } from "@/stores/workspaces";
-import { useTabStore } from "@/stores/tabs";
 import type { QueryContext } from "@/lib/rag/query-preprocessor";
-import { parseDocPath, type AIMessageSource } from "@/lib/ai";
 
 interface AIChatEditorProps {
   onClose: () => void;
@@ -44,18 +43,6 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
   const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
   const { data: workspace } = useWorkspace(currentWorkspaceId);
   const { data: projects } = useProjects(currentWorkspaceId);
-  const openTab = useTabStore((state) => state.openTab);
-
-  const handleSourceClick = (source: AIMessageSource) => {
-    const parsed = parseDocPath(source.docPath);
-    if (!parsed) return;
-    openTab({
-      type: source.contentType,
-      entityId: parsed.entityId,
-      title: source.title,
-      workspaceId: parsed.workspaceId,
-    });
-  };
 
   // Check if AI is properly configured
   const isConfigured = providerType === 'claude-code' ||
@@ -172,31 +159,11 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
                 <div className="space-y-2">
                   {/* Show pending sources while waiting */}
                   {pendingSources && pendingSources.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 px-1">
-                      <span className="text-xs text-muted-foreground">Using context:</span>
-                      {pendingSources.map((source, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSourceClick(source)}
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                          title={`Open ${source.title}`}
-                        >
-                          {source.contentType === 'task' ? (
-                            <CheckSquare className="h-3 w-3" />
-                          ) : source.contentType === 'meeting' ? (
-                            <Calendar className="h-3 w-3" />
-                          ) : (
-                            <FileText className="h-3 w-3" />
-                          )}
-                          <span className="max-w-[150px] truncate">{source.title}</span>
-                          {source.score !== undefined && (
-                            <span className="text-[10px] opacity-60">
-                              {Math.round(source.score * 100)}%
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <SourcesDisplay
+                      sources={pendingSources}
+                      label="Using context:"
+                      className="px-1"
+                    />
                   )}
                   <LoadingState label="AI response" height="h-16" spinner />
                 </div>

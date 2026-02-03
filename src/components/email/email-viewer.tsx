@@ -15,11 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWorkspaces, useProjects } from "@/stores";
-import { useAIAction, useAISettingsStore } from "@/stores/ai";
+import { useWorkspaces, useProjects, useWorkspace } from "@/stores";
+import { useEmailDraft, useAISettingsStore } from "@/stores/ai";
+import type { AIMessageSource } from "@/lib/ai/types";
 import { isTauri } from "@/lib/desk";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress, formatEmailDate } from "@/lib/email/types";
+import { SourcesDisplay } from "@/components/ai/sources-display";
 
 interface EmailViewerProps {
   email: IncomingEmail;
@@ -43,11 +45,13 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sources, setSources] = useState<AIMessageSource[]>([]);
 
   const providerType = useAISettingsStore((state) => state.providerType);
-  const { draftEmail } = useAIAction();
+  const emailDraft = useEmailDraft();
 
-  // Get projects for selected workspace
+  // Get workspace and projects for selected workspace
+  const { data: selectedWorkspace } = useWorkspace(selectedWorkspaceId || null);
   const { data: projects = [] } = useProjects(selectedWorkspaceId || null);
 
   // Build workspace options
@@ -76,25 +80,33 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     setInstructions("");
     setError(null);
     setShowDraft(false);
+    setSources([]);
   }, [email]);
+
+  // Find the selected project for context
+  const selectedProject = useMemo(() => {
+    return projects.find((p) => p.id === selectedProjectId);
+  }, [projects, selectedProjectId]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     setDraft("");
     setError(null);
+    setSources([]);
 
     try {
-      const response = await draftEmail(
-        {
-          from: formatEmailAddress(email.from),
-          subject: email.subject,
-          body: email.body,
-        },
-        instructions || "Write a professional reply."
-      );
+      const result = await emailDraft.mutateAsync({
+        email,
+        instructions: instructions || "Write a professional reply.",
+        projectId: selectedProjectId || undefined,
+        workspaceId: selectedWorkspaceId || undefined,
+        projectName: selectedProject?.name,
+        workspaceName: selectedWorkspace?.name,
+      });
 
-      if (response?.message) {
-        setDraft(response.message);
+      if (result.draft) {
+        setDraft(result.draft);
+        setSources(result.sources);
       } else {
         setError("No response received from AI.");
       }
@@ -105,7 +117,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [email, instructions, draftEmail]);
+  }, [email, instructions, selectedProjectId, selectedWorkspaceId, selectedProject, selectedWorkspace, emailDraft]);
 
   const handleSendViaMailClient = useCallback(async () => {
     const params: string[] = [];
@@ -207,8 +219,11 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
           <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Building2 className="h-4 w-4" />
-              Link to Project (for AI context)
+              Link to Project
             </div>
+            <p className="text-xs text-muted-foreground">
+              Linking to a project lets AI use relevant docs and meeting notes for context when drafting replies. This is optional.
+            </p>
             <div className="flex gap-2">
               <Select value={selectedWorkspaceId || "_none"} onValueChange={(v) => {
                 setSelectedWorkspaceId(v === "_none" ? "" : v);
@@ -354,6 +369,15 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
               {/* Email fields and draft - shown after generation */}
               {draft && (
                 <div className="space-y-3 pt-3 border-t">
+                  {/* Sources display */}
+                  {sources.length > 0 && (
+                    <SourcesDisplay
+                      sources={sources}
+                      label="Context used:"
+                      className="px-1"
+                    />
+                  )}
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="to" className="text-xs">To</Label>

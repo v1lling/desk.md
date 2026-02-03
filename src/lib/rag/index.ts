@@ -14,6 +14,7 @@ export * from './reindex';
 export * from './validation';
 export * from './aiignore';
 export * from './query-preprocessor';
+export * from './utils';
 
 /**
  * Convert frontend camelCase to backend snake_case for ChunkInput

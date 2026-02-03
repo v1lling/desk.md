@@ -96,3 +96,98 @@ export function preprocessQuery(query: string, context?: QueryContext): string {
 
   return parts.join('\n');
 }
+
+// =============================================================================
+// Email-Specific Preprocessing
+// =============================================================================
+
+export interface EmailQueryOptions {
+  /** Email subject line */
+  subject: string;
+  /** Email body text */
+  body: string;
+  /** Sender's name (optional) */
+  fromName?: string;
+  /** User's reply instructions (optional) */
+  instructions?: string;
+  /** Project/workspace context for scoping */
+  queryContext?: QueryContext;
+}
+
+/**
+ * Extract key phrases from email body for RAG query.
+ * Avoids overwhelming the query with full email text.
+ */
+function extractEmailKeyPhrases(body: string, maxLength: number = 200): string {
+  // Clean up the body
+  const cleaned = body
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // If short enough, use as-is
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+
+  // Take first paragraph or first N characters
+  const firstParagraph = cleaned.split('\n\n')[0];
+  if (firstParagraph.length <= maxLength) {
+    return firstParagraph;
+  }
+
+  // Truncate at word boundary
+  const truncated = cleaned.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return lastSpace > 0 ? truncated.slice(0, lastSpace) + '...' : truncated + '...';
+}
+
+/**
+ * Build a prequery optimized for finding context relevant to email drafting.
+ * Emphasizes finding meeting notes, project docs, and prior communications.
+ *
+ * The query is structured to guide RAG toward:
+ * - Meeting notes (prior discussions with client)
+ * - Project docs (specs, requirements, agreements)
+ * - Scoped to the selected project
+ *
+ * @param options - Email details and context
+ * @returns Enhanced query string for RAG search
+ */
+export function buildEmailPrequery(options: EmailQueryOptions): string {
+  const parts: string[] = [];
+
+  // 1. Project/workspace context (most important for scope)
+  if (options.queryContext?.projectName) {
+    parts.push(`Project: ${options.queryContext.projectName}`);
+  } else if (options.queryContext?.workspaceName) {
+    parts.push(`Client: ${options.queryContext.workspaceName}`);
+  }
+
+  // 2. Prefer meeting notes and docs for email context
+  parts.push('Type: meeting doc');
+
+  // 3. Add email subject as topic (often contains project/topic info)
+  if (options.subject) {
+    // Remove Re: Fwd: prefixes
+    const cleanSubject = options.subject
+      .replace(/^(Re:|Fwd:|Fw:|AW:|WG:)\s*/gi, '')
+      .trim();
+    if (cleanSubject) {
+      parts.push(`Topic: ${cleanSubject}`);
+    }
+  }
+
+  // 4. Add user's instructions if they mention specific topics
+  if (options.instructions) {
+    parts.push(`Looking for: ${options.instructions}`);
+  }
+
+  // 5. Add key phrases from email body (truncated)
+  const bodyContext = extractEmailKeyPhrases(options.body);
+  if (bodyContext) {
+    parts.push(`Email context: ${bodyContext}`);
+  }
+
+  return parts.join('\n');
+}

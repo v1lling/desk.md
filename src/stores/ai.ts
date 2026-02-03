@@ -13,11 +13,18 @@ import {
   type AIRAGResult,
   type AIServiceResponse,
 } from '@/lib/ai';
+import { formatEmailAddress, type IncomingEmail } from '@/lib/email/types';
 import * as rag from '@/lib/rag';
-import { preprocessQuery, type QueryContext } from '@/lib/rag/query-preprocessor';
+import {
+  preprocessQuery,
+  buildEmailPrequery,
+  type QueryContext,
+} from '@/lib/rag/query-preprocessor';
+import { deduplicateByDocPath } from '@/lib/rag/utils';
 import { useRAGStore } from '@/stores/rag';
 import { useSettingsStore } from '@/stores/settings';
 import { isTauri } from '@/lib/desk';
+import { useRAGSearch } from '@/hooks/use-rag-search';
 
 // =============================================================================
 // AI Settings Store (persisted)
@@ -230,17 +237,8 @@ export function useSendMessage() {
 
           // If showSourcesInChat is enabled, prepare sources for display
           if (ragSettings.showSourcesInChat && ragResults.length > 0) {
-            // Deduplicate by docPath (same doc may have multiple chunks)
-            // Keep the highest score for each doc
-            const bestScoreByPath = new Map<string, typeof ragResults[0]>();
-            for (const r of ragResults) {
-              const existing = bestScoreByPath.get(r.docPath);
-              if (!existing || r.score > existing.score) {
-                bestScoreByPath.set(r.docPath, r);
-              }
-            }
-            // Sort by score (highest first) and map to sources
-            sources = Array.from(bestScoreByPath.values())
+            // Deduplicate by docPath and sort by score (highest first)
+            sources = deduplicateByDocPath(ragResults)
               .sort((a, b) => b.score - a.score)
               .map((r) => ({
                 docPath: r.docPath,
@@ -315,4 +313,103 @@ export function useAIAction() {
     explain: service.explain.bind(service),
     custom: service.custom.bind(service),
   };
+}
+
+// =============================================================================
+// Email Draft Hook (with RAG)
+// =============================================================================
+
+export interface EmailDraftOptions {
+  /** The incoming email to reply to */
+  email: IncomingEmail;
+  /** User's instructions for the reply */
+  instructions: string;
+  /** Selected project ID (RAG only runs if provided) */
+  projectId?: string;
+  /** Selected workspace ID */
+  workspaceId?: string;
+  /** Project name for RAG query context */
+  projectName?: string;
+  /** Workspace name for RAG query context */
+  workspaceName?: string;
+}
+
+export interface EmailDraftResult {
+  /** Generated draft text */
+  draft: string;
+  /** Sources used for context (if RAG was performed) */
+  sources: AIMessageSource[];
+}
+
+/**
+ * Hook for drafting email replies with optional RAG context.
+ * Only performs RAG search when a project is selected.
+ *
+ * Usage:
+ * ```tsx
+ * const emailDraft = useEmailDraft();
+ *
+ * const result = await emailDraft.mutateAsync({
+ *   email,
+ *   instructions: 'be brief',
+ *   projectId: 'proj-123',
+ *   projectName: 'Client Project',
+ * });
+ * ```
+ */
+export function useEmailDraft() {
+  const service = useAIService();
+  const { search: ragSearch, isAvailable: ragAvailable } = useRAGSearch();
+
+  return useMutation({
+    mutationFn: async (options: EmailDraftOptions): Promise<EmailDraftResult> => {
+      let sources: AIMessageSource[] = [];
+      let ragResults: AIRAGResult[] = [];
+
+      // Only perform RAG if project is selected and RAG is available
+      if (options.projectId && ragAvailable) {
+        try {
+          // Build email-specific prequery
+          const queryContext: QueryContext = {
+            projectId: options.projectId,
+            projectName: options.projectName,
+            workspaceId: options.workspaceId,
+            workspaceName: options.workspaceName,
+          };
+
+          const prequery = buildEmailPrequery({
+            subject: options.email.subject,
+            body: options.email.body,
+            fromName: options.email.from.name,
+            instructions: options.instructions,
+            queryContext,
+          });
+
+          // Perform RAG search
+          const result = await ragSearch({ query: prequery, queryContext });
+          sources = result.sources;
+          ragResults = result.ragResults;
+        } catch (error) {
+          // Silently fail - RAG is optional enhancement
+          console.warn('[useEmailDraft] RAG search failed:', error);
+        }
+      }
+
+      // Call draftEmail with RAG context (if any)
+      const response = await service.draftEmail(
+        {
+          from: formatEmailAddress(options.email.from),
+          subject: options.email.subject,
+          body: options.email.body,
+        },
+        options.instructions || 'Write a professional reply.',
+        { context: ragResults.length > 0 ? { ragResults } : undefined }
+      );
+
+      return {
+        draft: response.message,
+        sources,
+      };
+    },
+  });
 }
