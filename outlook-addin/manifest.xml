@@ -100,7 +100,7 @@
                     </Action>
                   </Control>
 
-                  <!-- Insert Reply from Desk button -->
+                  <!-- Insert Reply from Desk button - opens taskpane for paste -->
                   <Control xsi:type="Button" id="insertReplyBtn">
                     <Label resid="insertBtnLabel"/>
                     <Supertip>
@@ -112,8 +112,8 @@
                       <bt:Image size="32" resid="icon32"/>
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                      <FunctionName>insertReplyFromDesk</FunctionName>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
                     </Action>
                   </Control>
 

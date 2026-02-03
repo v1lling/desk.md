@@ -446,8 +446,8 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
                     <p className="font-medium">To insert as a threaded reply:</p>
                     <ol className="list-decimal list-inside space-y-0.5 ml-1">
                       <li>Click "Copy Draft for Outlook" above</li>
-                      <li>Return to Outlook</li>
-                      <li>Click "Insert Reply from Desk" in the ribbon</li>
+                      <li>In Outlook, click "Insert Reply from Desk"</li>
+                      <li>Paste (Ctrl+V) and click Reply</li>
                     </ol>
                   </div>
                 </div>

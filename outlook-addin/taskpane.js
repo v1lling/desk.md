@@ -1,8 +1,9 @@
 /**
  * Desk Outlook Add-in Taskpane
  *
- * Alternative UI for the add-in that shows email info
- * and a button to open in Desk.
+ * UI for the add-in that allows:
+ * 1. Opening emails in Desk
+ * 2. Inserting AI-drafted replies as threaded replies
  */
 
 /* global Office */
@@ -13,6 +14,12 @@ Office.onReady(function (info) {
   if (info.host === Office.HostType.Outlook) {
     loadEmailInfo();
     document.getElementById("open-btn").onclick = openInDesk;
+    document.getElementById("reply-btn").onclick = function () {
+      insertReply(false);
+    };
+    document.getElementById("reply-all-btn").onclick = function () {
+      insertReply(true);
+    };
   }
 });
 
@@ -26,7 +33,7 @@ function loadEmailInfo() {
   const fromEl = document.getElementById("email-from");
   if (item.from) {
     fromEl.textContent = item.from.displayName
-      ? `${item.from.displayName} <${item.from.emailAddress}>`
+      ? item.from.displayName + " <" + item.from.emailAddress + ">"
       : item.from.emailAddress;
   } else {
     fromEl.textContent = "(Unknown sender)";
@@ -72,7 +79,7 @@ function loadEmailInfo() {
       // Enable button
       document.getElementById("open-btn").disabled = false;
     } else {
-      showStatus("Failed to load email content", "error");
+      showStatus("open-status", "Failed to load email content", "error");
     }
   });
 }
@@ -82,31 +89,83 @@ function loadEmailInfo() {
  */
 function openInDesk() {
   if (!emailData) {
-    showStatus("Email data not loaded", "error");
+    showStatus("open-status", "Email data not loaded", "error");
     return;
   }
 
   try {
     // Encode as base64
-    const jsonStr = JSON.stringify(emailData);
-    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const deepLink = "desk://email?data=" + base64;
+    var jsonStr = JSON.stringify(emailData);
+    var base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    var deepLink = "desk://email?data=" + encodeURIComponent(base64);
 
     // Open deep link
     window.open(deepLink, "_blank");
 
-    showStatus("Opened in Desk!", "success");
+    showStatus("open-status", "Opened in Desk!", "success");
   } catch (error) {
     console.error("Failed to open in Desk:", error);
-    showStatus("Failed to open in Desk", "error");
+    showStatus("open-status", "Failed to open in Desk", "error");
+  }
+}
+
+/**
+ * Insert reply from pasted draft
+ */
+function insertReply(replyAll) {
+  var draftInput = document.getElementById("draft-input");
+  var draftText = draftInput.value.trim();
+
+  if (!draftText) {
+    showStatus("reply-status", "Please paste your draft first", "error");
+    return;
+  }
+
+  // Remove Desk marker if present
+  var replyBody = draftText.replace(/<!--\s*DESK_REPLY:\w+\s*-->\n?/, "").trim();
+
+  // Convert plain text to HTML for Outlook
+  var htmlBody = replyBody
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+
+  try {
+    var item = Office.context.mailbox.item;
+
+    if (replyAll) {
+      item.displayReplyAllForm({
+        htmlBody: htmlBody,
+      });
+    } else {
+      item.displayReplyForm({
+        htmlBody: htmlBody,
+      });
+    }
+
+    showStatus("reply-status", "Reply form opened!", "success");
+
+    // Clear the textarea after successful insert
+    draftInput.value = "";
+  } catch (error) {
+    console.error("Failed to insert reply:", error);
+    showStatus("reply-status", "Failed to open reply form", "error");
   }
 }
 
 /**
  * Show status message
  */
-function showStatus(message, type) {
-  const statusEl = document.getElementById("status");
+function showStatus(elementId, message, type) {
+  var statusEl = document.getElementById(elementId);
   statusEl.textContent = message;
   statusEl.className = "status " + type;
+
+  // Auto-hide success messages after 3 seconds
+  if (type === "success") {
+    setTimeout(function () {
+      statusEl.className = "status";
+    }, 3000);
+  }
 }
