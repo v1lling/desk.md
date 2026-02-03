@@ -255,6 +255,12 @@ export async function updateTask(
           const fileContent = serializeMarkdown(updatedData, updatedContent);
           await writeTextFile(filePath, fileContent);
 
+          // Notify registry if file is open (prevents false "external change" detection)
+          const registry = useOpenEditorRegistry.getState();
+          if (registry.isOpen(filePath)) {
+            registry.updateLastSaved(filePath, updatedContent);
+          }
+
           return {
             id: taskId,
             projectId,
@@ -292,6 +298,12 @@ export async function updateTask(
   const updatedContent = updates.content !== undefined ? updates.content : body;
   const fileContent = serializeMarkdown(updatedData, updatedContent);
   await writeTextFile(task.filePath, fileContent);
+
+  // Notify registry if file is open (prevents false "external change" detection)
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(task.filePath)) {
+    registry.updateLastSaved(task.filePath, updatedContent);
+  }
 
   return {
     ...task,

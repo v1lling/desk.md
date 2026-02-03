@@ -139,6 +139,8 @@ export function useEditorSession({
           setContentState(body);
           lastSavedRef.current = body;
           contentRef.current = body;
+          // Update registry so file watcher knows our baseline content
+          getRegistry().updateLastSaved(filePath!, body);
           setIsLoading(false);
         }
       } catch (error) {

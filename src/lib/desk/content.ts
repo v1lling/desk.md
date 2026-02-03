@@ -177,16 +177,23 @@ export async function updateDoc(
 
   // Read existing file and update
   const content = await readTextFile(doc.filePath);
-  const { data } = parseMarkdown<DocFrontmatter>(content);
+  const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
 
   const updatedData: DocFrontmatter = {
     ...data,
     ...(updates.title && { title: updates.title }),
   };
 
-  const updatedContent = updates.content !== undefined ? updates.content : doc.content;
+  // Use body from disk (not doc.content from TanStack Query which may be stale)
+  const updatedContent = updates.content !== undefined ? updates.content : body;
   const fileContent = serializeMarkdown(updatedData, updatedContent);
   await writeTextFile(doc.filePath, fileContent);
+
+  // Notify registry if file is open (prevents false "external change" detection)
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(doc.filePath)) {
+    registry.updateLastSaved(doc.filePath, updatedContent);
+  }
 
   return {
     ...doc,

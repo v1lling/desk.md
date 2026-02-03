@@ -154,7 +154,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   }, []);
 
   // Debounced save for metadata changes (frontmatter only, not content)
-  // Content is saved separately by useEditorSession to avoid race conditions
+  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
+  // to ensure content saves complete before metadata saves read from disk
   useEffect(() => {
     if (!metadataDirty || !task) return;
 
@@ -179,7 +180,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       } catch (error) {
         console.error("[task-editor] Failed to save metadata:", error);
       }
-    }, 500);
+    }, 600);
 
     return () => clearTimeout(timeout);
   }, [title, status, priority, due, metadataDirty, task, updateTask]);

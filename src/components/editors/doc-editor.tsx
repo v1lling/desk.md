@@ -132,6 +132,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   }, []);
 
   // Save title when it changes (debounced via effect)
+  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
+  // to ensure content saves complete before metadata saves read from disk
   useEffect(() => {
     if (!titleDirty || !doc) return;
 
@@ -145,7 +147,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       } catch (error) {
         console.error("[doc-editor] Failed to save title:", error);
       }
-    }, 500);
+    }, 600);
 
     return () => clearTimeout(timeout);
   }, [title, titleDirty, doc, updateDoc]);

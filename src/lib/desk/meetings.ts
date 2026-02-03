@@ -258,6 +258,12 @@ export async function updateMeeting(
           const fileContent = serializeMarkdown(updatedData, updatedContent);
           await writeTextFile(filePath, fileContent);
 
+          // Notify registry if file is open (prevents false "external change" detection)
+          const registry = useOpenEditorRegistry.getState();
+          if (registry.isOpen(filePath)) {
+            registry.updateLastSaved(filePath, updatedContent);
+          }
+
           return {
             id: meetingId,
             projectId,
@@ -282,7 +288,7 @@ export async function updateMeeting(
 
   // Read existing file and update
   const content = await readTextFile(meeting.filePath);
-  const { data } = parseMarkdown<MeetingFrontmatter>(content);
+  const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
 
   const updatedData: MeetingFrontmatter = {
     ...data,
@@ -291,9 +297,16 @@ export async function updateMeeting(
     ...(updates.attendees !== undefined && { attendees: updates.attendees }),
   };
 
-  const updatedContent = updates.content !== undefined ? updates.content : meeting.content;
+  // Use body from disk (not meeting.content from TanStack Query which may be stale)
+  const updatedContent = updates.content !== undefined ? updates.content : body;
   const fileContent = serializeMarkdown(updatedData, updatedContent);
   await writeTextFile(meeting.filePath, fileContent);
+
+  // Notify registry if file is open (prevents false "external change" detection)
+  const registry = useOpenEditorRegistry.getState();
+  if (registry.isOpen(meeting.filePath)) {
+    registry.updateLastSaved(meeting.filePath, updatedContent);
+  }
 
   return {
     ...meeting,

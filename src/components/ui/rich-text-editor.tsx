@@ -43,6 +43,8 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   // Track if we're currently syncing to avoid loops
   const isSyncing = useRef(false);
+  // Track programmatic updates to prevent onChange from firing
+  const isProgrammaticUpdate = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -102,6 +104,11 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor }) => {
+      // Skip onChange for programmatic updates (e.g., external value sync)
+      // This prevents tiptap-markdown's getMarkdown() from overwriting the original
+      // value with normalized content (which may trim whitespace)
+      if (isProgrammaticUpdate.current) return;
+
       // Get markdown content
       const storage = editor.storage as unknown as Record<string, { getMarkdown: () => string }>;
       const markdown = storage.markdown.getMarkdown();
@@ -124,6 +131,10 @@ export function RichTextEditor({
     const currentMarkdown = storage.markdown.getMarkdown();
 
     if (value !== currentMarkdown) {
+      // Mark as programmatic update to prevent onUpdate from calling onChange
+      // This preserves the original value (including whitespace) instead of
+      // letting tiptap-markdown normalize it
+      isProgrammaticUpdate.current = true;
       // Save selection
       const { from, to } = editor.state.selection;
       editor.commands.setContent(value);
@@ -131,6 +142,10 @@ export function RichTextEditor({
       if (from <= editor.state.doc.content.size) {
         editor.commands.setTextSelection({ from, to });
       }
+      // Reset flag after a microtask to ensure onUpdate has fired
+      queueMicrotask(() => {
+        isProgrammaticUpdate.current = false;
+      });
     }
   }, [value, editor]);
 

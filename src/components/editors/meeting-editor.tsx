@@ -137,7 +137,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   }, []);
 
   // Debounced save for metadata changes (frontmatter only, not content)
-  // Content is saved separately by useEditorSession to avoid race conditions
+  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
+  // to ensure content saves complete before metadata saves read from disk
   useEffect(() => {
     if (!metadataDirty || !meeting) return;
 
@@ -164,7 +165,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       } catch (error) {
         console.error("[meeting-editor] Failed to save metadata:", error);
       }
-    }, 500);
+    }, 600);
 
     return () => clearTimeout(timeout);
   }, [title, date, attendees, metadataDirty, meeting, updateMeeting]);

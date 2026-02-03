@@ -9,7 +9,7 @@ export function parseMarkdown<T>(
   const { data, content: body } = matter(content);
   return {
     data: data as T,
-    content: body.trim(),
+    content: body,
   };
 }
 
