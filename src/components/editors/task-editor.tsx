@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
@@ -28,14 +28,14 @@ interface TaskEditorProps {
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
 
-  // Task hooks (Personal workspace uses same hooks as other workspaces)
+  // Mutations
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
   const removeTaskFromOrder = useRemoveTaskFromOrder();
   const { data: projects = [] } = useProjects(workspaceId);
 
-  // Metadata state (not in the markdown body)
+  // Metadata state
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
@@ -49,16 +49,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     isInExcludedFolder: false,
   });
 
-  // Track metadata changes separately (declared early for use in sync effect)
-  const [metadataDirty, setMetadataDirty] = useState(false);
-  const metadataDirtyRef = useRef(false);
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    metadataDirtyRef.current = metadataDirty;
-  }, [metadataDirty]);
-
-  // Initialize metadata from task (only when switching tasks)
+  // Initialize metadata from task
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -68,26 +59,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setCurrentProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
-      // Load AI exclusion state
       getAiExclusionState(task.filePath, workspaceId).then(setAiExclusionState);
     }
-  }, [task?.id, workspaceId]); // Only reset when switching to a different task
+  }, [task?.id, workspaceId]);
 
-  // Sync metadata from query when refetch completes (but only when not dirty)
-  // This ensures editor picks up changes from disk after saves complete
-  // Uses ref to access current dirty state without adding it to dependencies
-  useEffect(() => {
-    if (task && !metadataDirtyRef.current) {
-      setStatus(task.status);
-      setPriority(task.priority || "none");
-      setDue(task.due || "");
-      setTitle(task.title);
-    }
-  }, [task?.status, task?.priority, task?.due, task?.title]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Use editor session for content (markdown body)
-  // ═══════════════════════════════════════════════════════════════════════════
   const handleSaveComplete = useCallback(
     (path: string, content: string) => {
       if (!task) return;
@@ -105,6 +80,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const {
     content,
     setContent,
+    getCurrentContent,
     isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus: contentSaveStatus,
@@ -113,17 +89,17 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     fileDeleted,
     acknowledgePathChange,
     acknowledgeDeleted,
-    forceSave: forceContentSave,
+    save,
   } = useEditorSession({
     type: "task",
     entityId: taskId,
     filePath: task?.filePath,
-    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
+    initialContent: "",
     enabled: !!task,
     onSaveComplete: handleSaveComplete,
   });
 
-  // Defer editor rendering (wait for content to load)
+  // Defer editor rendering
   useEffect(() => {
     if (task && !isLoadingContent && !isEditorReady) {
       const frameId = requestAnimationFrame(() => {
@@ -133,64 +109,135 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [task, isLoadingContent, isEditorReady]);
 
-  const handleTitleChange = useCallback((newTitle: string) => {
-    setTitle(newTitle);
-    setMetadataDirty(true);
-  }, []);
-
-  const handleStatusChange = useCallback((newStatus: TaskStatus) => {
-    setStatus(newStatus);
-    setMetadataDirty(true);
-  }, []);
-
-  const handlePriorityChange = useCallback((newPriority: TaskPriority | "none") => {
-    setPriority(newPriority);
-    setMetadataDirty(true);
-  }, []);
-
-  const handleDueChange = useCallback((newDue: string) => {
-    setDue(newDue);
-    setMetadataDirty(true);
-  }, []);
-
-  // Debounced save for metadata changes (frontmatter only, not content)
-  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
-  // to ensure content saves complete before metadata saves read from disk
-  useEffect(() => {
-    if (!metadataDirty || !task) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        const updates = {
-          title: title.trim() || task.title,
-          status,
-          priority: priority === "none" ? undefined : priority,
-          due: due || undefined,
-          // Note: content is NOT included - useEditorSession handles body saves
-          // Domain function (updateTask) preserves body from disk when content is undefined
-        };
-
-        await updateTask.mutateAsync({
-          taskId: task.id,
-          workspaceId: task.workspaceId,
-          projectId: task.projectId,
-          updates,
-        });
-        setMetadataDirty(false);
-      } catch (error) {
-        console.error("[task-editor] Failed to save metadata:", error);
+  // Metadata change handlers - save immediately with current body
+  const handleTitleChange = useCallback(
+    async (newTitle: string) => {
+      setTitle(newTitle);
+      if (task) {
+        try {
+          await updateTask.mutateAsync({
+            taskId: task.id,
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            updates: { title: newTitle.trim() || task.title, content: getCurrentContent() },
+          });
+        } catch (error) {
+          console.error("[task-editor] Failed to save title:", error);
+        }
       }
-    }, 600);
+    },
+    [task, updateTask, getCurrentContent]
+  );
 
-    return () => clearTimeout(timeout);
-  }, [title, status, priority, due, metadataDirty, task, updateTask]);
+  const handleStatusChange = useCallback(
+    async (newStatus: TaskStatus) => {
+      setStatus(newStatus);
+      if (task) {
+        try {
+          await updateTask.mutateAsync({
+            taskId: task.id,
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            updates: { status: newStatus, content: getCurrentContent() },
+          });
+        } catch (error) {
+          console.error("[task-editor] Failed to save status:", error);
+        }
+      }
+    },
+    [task, updateTask, getCurrentContent]
+  );
+
+  const handlePriorityChange = useCallback(
+    async (newPriority: TaskPriority | "none") => {
+      setPriority(newPriority);
+      if (task) {
+        try {
+          await updateTask.mutateAsync({
+            taskId: task.id,
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            updates: {
+              priority: newPriority === "none" ? undefined : newPriority,
+              content: getCurrentContent(),
+            },
+          });
+        } catch (error) {
+          console.error("[task-editor] Failed to save priority:", error);
+        }
+      }
+    },
+    [task, updateTask, getCurrentContent]
+  );
+
+  const handleDueChange = useCallback(
+    async (newDue: string) => {
+      setDue(newDue);
+      if (task) {
+        try {
+          await updateTask.mutateAsync({
+            taskId: task.id,
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            updates: { due: newDue || undefined, content: getCurrentContent() },
+          });
+        } catch (error) {
+          console.error("[task-editor] Failed to save due date:", error);
+        }
+      }
+    },
+    [task, updateTask, getCurrentContent]
+  );
 
   // Manage tab title and dirty state
-  const isDirty = contentDirty || metadataDirty;
+  const isDirty = contentDirty;
   useEditorTab(`task-${taskId}`, title, isDirty);
 
-  // Manual save (for project changes)
-  const handleSave = useCallback(async () => {
+  // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        save();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Also listen for menu save event from Tauri native menu
+    let unlistenMenu: (() => void) | undefined;
+    import("@tauri-apps/api/event").then(({ listen }) => {
+      listen("menu-save", () => {
+        save();
+      }).then((unlisten) => {
+        unlistenMenu = unlisten;
+      });
+    }).catch(() => {
+      // Not in Tauri environment
+    });
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      unlistenMenu?.();
+    };
+  }, [save]);
+
+  // Handle save-and-close request from tab bar
+  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
+  const clearPendingSaveAndClose = useTabStore((state) => state.clearPendingSaveAndClose);
+  const closeTab = useTabStore((state) => state.closeTab);
+
+  useEffect(() => {
+    if (pendingSaveAndClose === `task-${taskId}`) {
+      (async () => {
+        await save();
+        clearPendingSaveAndClose();
+        closeTab(`task-${taskId}`);
+      })();
+    }
+  }, [pendingSaveAndClose, taskId, save, clearPendingSaveAndClose, closeTab]);
+
+  // Project move & save
+  const handleProjectMove = useCallback(async () => {
     if (!task) return;
 
     try {
@@ -204,12 +251,12 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         setOriginalProjectId(currentProjectId);
       }
 
-      await forceContentSave();
+      await save();
       toast.success("Task saved");
     } catch {
       toast.error("Failed to save task");
     }
-  }, [task, currentProjectId, originalProjectId, moveTaskToProject, forceContentSave]);
+  }, [task, currentProjectId, originalProjectId, moveTaskToProject, save]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!task) return;
@@ -243,12 +290,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!task) return;
-      // Don't allow changes if in excluded folder
       if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(task.filePath, workspaceId, included);
         setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
-        // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(task.filePath);
         }
@@ -264,7 +309,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // File was deleted externally
   if (fileDeleted) {
     return (
       <FileDeletedBanner
@@ -276,7 +320,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     );
   }
 
-  // File was moved/renamed externally
   if (pathChanged && newPath) {
     return (
       <FileMovedBanner
@@ -329,6 +372,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         onTitleChange={handleTitleChange}
         placeholder="Task title"
         saveStatus={saveStatus}
+        onSave={save}
+        isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
@@ -357,7 +402,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
 
           {projectChanged && (
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleSave} className="min-w-[140px]">
+              <Button onClick={handleProjectMove} className="min-w-[140px]">
                 Move & Save
               </Button>
             </div>

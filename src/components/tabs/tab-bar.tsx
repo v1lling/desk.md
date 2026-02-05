@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
 import { TabItem } from "./tab-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 
 // Pages that are workspace-scoped (show workspace name and color)
 const WORKSPACE_SCOPED_PAGES = ["/tasks", "/docs", "/meetings", "/projects/view"];
@@ -51,7 +52,15 @@ export function TabBar() {
   const closeTab = useTabStore((state) => state.closeTab);
   const closeOtherTabs = useTabStore((state) => state.closeOtherTabs);
   const updateTab = useTabStore((state) => state.updateTab);
+  const requestSaveAndClose = useTabStore((state) => state.requestSaveAndClose);
   const currentWorkspace = useCurrentWorkspace();
+
+  // State for unsaved changes dialog
+  const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{
+    open: boolean;
+    tabId: string | null;
+    tabTitle: string;
+  }>({ open: false, tabId: null, tabTitle: "" });
 
   // Get project ID from URL for project pages
   const projectId = pathname === "/projects/view" ? searchParams.get("id") : null;
@@ -87,18 +96,66 @@ export function TabBar() {
     [setActiveTab]
   );
 
+  // Close tab with dirty check
   const handleClose = useCallback(
     (tabId: string) => {
+      const tab = tabs.find((t) => t.id === tabId);
+      if (!tab) return;
+
+      // Check if tab has unsaved changes
+      if (tab.isDirty) {
+        setDirtyCloseDialog({ open: true, tabId, tabTitle: tab.title });
+        return;
+      }
+
       closeTab(tabId);
     },
-    [closeTab]
+    [tabs, closeTab]
   );
+
+  // Handle save and close from dialog
+  const handleDialogSave = useCallback(() => {
+    if (dirtyCloseDialog.tabId) {
+      // Request save, then close
+      requestSaveAndClose(dirtyCloseDialog.tabId);
+    }
+    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+  }, [dirtyCloseDialog.tabId, requestSaveAndClose]);
+
+  // Handle discard and close from dialog
+  const handleDialogDontSave = useCallback(() => {
+    if (dirtyCloseDialog.tabId) {
+      closeTab(dirtyCloseDialog.tabId);
+    }
+    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+  }, [dirtyCloseDialog.tabId, closeTab]);
+
+  // Handle cancel from dialog
+  const handleDialogCancel = useCallback(() => {
+    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+  }, []);
 
   const handleCloseOthers = useCallback(
     (tabId: string) => {
+      // Check if any other tabs are dirty
+      const otherDirtyTabs = tabs.filter(
+        (t) => !t.isPinned && t.id !== tabId && t.isDirty
+      );
+
+      if (otherDirtyTabs.length > 0) {
+        // For simplicity, show dialog for first dirty tab
+        // In a more complex implementation, we could batch these
+        setDirtyCloseDialog({
+          open: true,
+          tabId: otherDirtyTabs[0].id,
+          tabTitle: otherDirtyTabs[0].title,
+        });
+        return;
+      }
+
       closeOtherTabs(tabId);
     },
-    [closeOtherTabs]
+    [tabs, closeOtherTabs]
   );
 
   // Check if there are other closable (non-pinned) tabs besides a given tab
@@ -117,7 +174,7 @@ export function TabBar() {
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (activeTab && !activeTab.isPinned) {
           e.preventDefault();
-          closeTab(activeTabId);
+          handleClose(activeTabId);
         }
       }
 
@@ -136,7 +193,7 @@ export function TabBar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [tabs, activeTabId, closeTab, setActiveTab]);
+  }, [tabs, activeTabId, handleClose, setActiveTab]);
 
   // Only show tab bar if there are editor tabs open (not just Desk)
   if (tabs.length <= 1) {
@@ -144,24 +201,40 @@ export function TabBar() {
   }
 
   return (
-    <div className="h-9 bg-muted/50 border-b border-border flex items-center shrink-0">
-      <ScrollArea orientation="horizontal" className="w-full h-full">
-        <div className="flex items-center h-full">
-          {tabs.map((tab) => (
-            <TabItem
-              key={tab.id}
-              tab={tab}
-              isActive={tab.id === activeTabId}
-              onActivate={() => handleActivate(tab.id)}
-              onClose={() => handleClose(tab.id)}
-              onMiddleClick={() => handleClose(tab.id)}
-              onCloseOthers={() => handleCloseOthers(tab.id)}
-              hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
-              workspaceColor={tab.type === "desk" ? deskWorkspaceColor : undefined}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
+    <>
+      <div className="h-9 bg-muted/50 border-b border-border flex items-center shrink-0">
+        <ScrollArea orientation="horizontal" className="w-full h-full">
+          <div className="flex items-center h-full">
+            {tabs.map((tab) => (
+              <TabItem
+                key={tab.id}
+                tab={tab}
+                isActive={tab.id === activeTabId}
+                onActivate={() => handleActivate(tab.id)}
+                onClose={() => handleClose(tab.id)}
+                onMiddleClick={() => handleClose(tab.id)}
+                onCloseOthers={() => handleCloseOthers(tab.id)}
+                hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
+                workspaceColor={tab.type === "desk" ? deskWorkspaceColor : undefined}
+              />
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <SaveChangesDialog
+        open={dirtyCloseDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+          }
+        }}
+        title="Unsaved Changes"
+        description={`"${dirtyCloseDialog.tabTitle}" has unsaved changes. Do you want to save before closing?`}
+        onSave={handleDialogSave}
+        onDontSave={handleDialogDontSave}
+        onCancel={handleDialogCancel}
+      />
+    </>
   );
 }

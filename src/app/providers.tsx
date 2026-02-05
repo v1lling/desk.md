@@ -1,12 +1,14 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSettingsStore } from "@/stores/settings";
 import { isTauri, initDeskDirectory } from "@/lib/desk";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
 import { useDeepLink } from "@/hooks/use-deep-link";
+import { useWindowClose } from "@/hooks/use-window-close";
+import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -55,6 +57,63 @@ function DeepLinkProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Handle window close with unsaved changes check
+function WindowCloseProvider({ children }: { children: React.ReactNode }) {
+  const [dialogState, setDialogState] = useState<{
+    open: boolean;
+    dirtyTabs: string[];
+  }>({ open: false, dirtyTabs: [] });
+
+  const handleCloseRequested = useCallback((dirtyTabs: string[]) => {
+    setDialogState({ open: true, dirtyTabs });
+  }, []);
+
+  const { confirmClose, cancelClose } = useWindowClose(handleCloseRequested);
+
+  const handleSave = useCallback(() => {
+    // For window close, we don't have a way to save all tabs automatically,
+    // so we treat "Save" same as cancel - let user save manually
+    // This matches the behavior of most apps where Cmd+Q with unsaved changes
+    // shows a dialog but "Save" just cancels the quit
+    setDialogState({ open: false, dirtyTabs: [] });
+    cancelClose();
+  }, [cancelClose]);
+
+  const handleDontSave = useCallback(() => {
+    setDialogState({ open: false, dirtyTabs: [] });
+    confirmClose();
+  }, [confirmClose]);
+
+  const handleCancel = useCallback(() => {
+    setDialogState({ open: false, dirtyTabs: [] });
+    cancelClose();
+  }, [cancelClose]);
+
+  const tabCount = dialogState.dirtyTabs.length;
+  const tabNames = dialogState.dirtyTabs.slice(0, 3).join(", ");
+  const moreCount = tabCount > 3 ? ` and ${tabCount - 3} more` : "";
+
+  return (
+    <>
+      {children}
+      <SaveChangesDialog
+        open={dialogState.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialogState({ open: false, dirtyTabs: [] });
+            cancelClose();
+          }
+        }}
+        title="Unsaved Changes"
+        description={`You have unsaved changes in: ${tabNames}${moreCount}. Do you want to save before quitting?`}
+        onSave={handleSave}
+        onDontSave={handleDontSave}
+        onCancel={handleCancel}
+      />
+    </>
+  );
+}
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSettingsStore((state) => state.theme);
 
@@ -101,7 +160,9 @@ export function Providers({ children }: ProvidersProps) {
         <DeepLinkProvider>
           <QueryInvalidatorProvider>
             <SearchIndexProvider>
-              <ThemeProvider>{children}</ThemeProvider>
+              <WindowCloseProvider>
+                <ThemeProvider>{children}</ThemeProvider>
+              </WindowCloseProvider>
             </SearchIndexProvider>
           </QueryInvalidatorProvider>
         </DeepLinkProvider>

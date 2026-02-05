@@ -373,7 +373,4 @@ function invalidateQueriesForChanges(
   }
 }
 
-// Keep the old export name as an alias for backwards compatibility
-export const useFileWatcher = useQueryInvalidator;
-
 export default useQueryInvalidator;

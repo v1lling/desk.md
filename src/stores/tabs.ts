@@ -21,6 +21,8 @@ export interface TabItem {
 interface TabState {
   tabs: TabItem[];
   activeTabId: string;
+  /** Tab ID that needs to save before closing */
+  pendingSaveAndClose: string | null;
 
   // Actions
   openTab: (tab: Omit<TabItem, "id">) => void;
@@ -31,6 +33,10 @@ interface TabState {
   closeAllExcept: (tabId: string) => void;
   closeOtherTabs: (tabId: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
+  /** Request save and close for a tab (editor will handle) */
+  requestSaveAndClose: (tabId: string) => void;
+  /** Clear pending save request (after save completes) */
+  clearPendingSaveAndClose: () => void;
 
   // Queries
   getTabByEntityId: (type: TabType, entityId: string) => TabItem | undefined;
@@ -48,6 +54,7 @@ export const useTabStore = create<TabState>()(
     (set, get) => ({
       tabs: [DESK_TAB],
       activeTabId: "desk",
+      pendingSaveAndClose: null,
 
       openTab: (newTab) => {
         const { tabs } = get();
@@ -170,6 +177,14 @@ export const useTabStore = create<TabState>()(
 
       getTabByEntityId: (type, entityId) => {
         return get().tabs.find((t) => t.type === type && t.entityId === entityId);
+      },
+
+      requestSaveAndClose: (tabId) => {
+        set({ pendingSaveAndClose: tabId });
+      },
+
+      clearPendingSaveAndClose: () => {
+        set({ pendingSaveAndClose: null });
       },
     }),
     {

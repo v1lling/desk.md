@@ -2,15 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SaveStatusIndicator } from "@/components/ui/save-status";
-import { Trash2, Sparkles } from "lucide-react";
-import type { SaveStatus as SaveStatusType } from "@/hooks/use-auto-save";
+import { SaveStatusIndicator, type SaveStatus } from "@/components/ui/save-status";
+import { Trash2, Sparkles, Save } from "lucide-react";
 
 interface EditorHeaderProps {
   title: string;
   onTitleChange: (title: string) => void;
   placeholder?: string;
-  saveStatus: SaveStatusType;
+  saveStatus: SaveStatus;
+  onSave?: () => void;
+  isDirty?: boolean;
   onDelete: () => void;
   /** Whether the document is included in AI indexing */
   aiIncluded?: boolean;
@@ -27,6 +28,8 @@ export function EditorHeader({
   onTitleChange,
   placeholder = "Untitled",
   saveStatus,
+  onSave,
+  isDirty,
   onDelete,
   aiIncluded,
   onAIInclusionChange,
@@ -56,6 +59,22 @@ export function EditorHeader({
         className="text-lg font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent flex-1"
       />
       <SaveStatusIndicator status={saveStatus} />
+      {onSave && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onSave}
+          disabled={!isDirty || saveStatus === "saving"}
+          title={isDirty ? "Save (⌘S)" : "No changes to save"}
+          className={`h-8 w-8 shrink-0 ${
+            isDirty
+              ? "text-primary hover:text-primary/80"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Save className="h-4 w-4" />
+        </Button>
+      )}
       {onAIInclusionChange && (
         <Button
           variant="ghost"

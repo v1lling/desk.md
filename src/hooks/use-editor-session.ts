@@ -1,13 +1,15 @@
 /**
  * useEditorSession Hook
  *
- * Manages editor state for docs, tasks, and meetings.
- * Provides:
- * - Local content state with auto-save
+ * Manages editor state for docs, tasks, and meetings with manual save (Cmd+S).
+ *
+ * Features:
+ * - Local content state (editor owns the body while open)
+ * - Manual save via save() function
+ * - getCurrentContent() for metadata operations
  * - External change detection via event bus
  * - Path change and deletion handling
  *
- * This hook owns the editor state while the file is open.
  * TanStack Query is NOT used for editing - it's used for list views only.
  */
 
@@ -33,6 +35,8 @@ interface UseEditorSessionReturn {
   // Content
   content: string;
   setContent: (content: string) => void;
+  /** Get current editor content (for metadata saves that need body) */
+  getCurrentContent: () => string;
 
   // Loading state (true while loading content from disk)
   isLoading: boolean;
@@ -47,12 +51,10 @@ interface UseEditorSessionReturn {
   fileDeleted: boolean;
 
   // Actions
+  save: () => Promise<void>;
   acknowledgePathChange: () => void;
   acknowledgeDeleted: () => void;
-  forceSave: () => Promise<void>;
 }
-
-const SAVE_DEBOUNCE_MS = 400; // Obsidian-like fast saves
 
 export function useEditorSession({
   type,
@@ -68,41 +70,24 @@ export function useEditorSession({
   const [content, setContentState] = useState(initialContent);
   const [isLoading, setIsLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">(
-    "idle"
-  );
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [pathChanged, setPathChanged] = useState(false);
   const [newPath, setNewPath] = useState<string | null>(null);
   const [fileDeleted, setFileDeleted] = useState(false);
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>(initialContent);
   const currentPathRef = useRef<string | undefined>(filePath);
-
-  // Refs to access current values in cleanup (can't use state in cleanup)
   const contentRef = useRef<string>(initialContent);
-  const isDirtyRef = useRef<boolean>(false);
-  const fileDeletedRef = useRef<boolean>(false);
-  const pathChangedRef = useRef<boolean>(false);
 
   // Update path ref when it changes
   useEffect(() => {
     currentPathRef.current = filePath;
   }, [filePath]);
 
-  // Keep refs in sync with state (needed for cleanup access)
+  // Keep content ref in sync with state
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
-  useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
-  useEffect(() => {
-    fileDeletedRef.current = fileDeleted;
-  }, [fileDeleted]);
-  useEffect(() => {
-    pathChangedRef.current = pathChanged;
-  }, [pathChanged]);
 
   // Load content from disk on mount (Tauri) or use fallback (browser/mock)
   useEffect(() => {
@@ -162,34 +147,28 @@ export function useEditorSession({
     };
   }, [enabled, filePath, entityId]); // Note: intentionally not depending on initialContent
 
-  // Register session on mount
+  // Register session on mount and subscribe to external changes
   useEffect(() => {
     if (!enabled || !filePath) return;
 
-    getRegistry().register(filePath, {
-      type,
-      entityId,
-      lastSavedContent: initialContent,
-    });
-    lastSavedRef.current = initialContent;
+    getRegistry().register(filePath, { type, entityId });
 
-    // Subscribe to events
+    // Subscribe to external file change events
     const unsubscribe = subscribeToEditorEvents(filePath, {
       onContentUpdate: (newRawContent) => {
-        // External change - parse to extract body only (editor stores body, not raw file)
+        // External change - parse to extract body only
         try {
-          const { content: newBody } =
-            parseMarkdown<Record<string, unknown>>(newRawContent);
+          const { content: newBody } = parseMarkdown<Record<string, unknown>>(newRawContent);
           setContentState(newBody);
           lastSavedRef.current = newBody;
+          contentRef.current = newBody;
+          // Update registry with external content (now our baseline)
+          getRegistry().updateLastSaved(filePath!, newBody);
+          setIsDirty(false);
+          setSaveStatus("idle");
         } catch (e) {
           console.error("[editor-session] Failed to parse external update:", e);
-          // Fallback: treat as body (shouldn't happen for valid .md files)
-          setContentState(newRawContent);
-          lastSavedRef.current = newRawContent;
         }
-        setIsDirty(false);
-        setSaveStatus("idle");
       },
       onPathChange: (path) => {
         setPathChanged(true);
@@ -202,121 +181,64 @@ export function useEditorSession({
 
     return () => {
       unsubscribe();
-
-      // Clear any pending debounced save
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-
-      // CRITICAL: Force save if there's unsaved content before unmount
-      // This prevents data loss when user closes tab quickly after typing
-      if (
-        isDirtyRef.current &&
-        filePath &&
-        !fileDeletedRef.current &&
-        !pathChangedRef.current
-      ) {
-        const path = currentPathRef.current || filePath;
-        const contentToSave = contentRef.current;
-
-        // Fire-and-forget save - we can't await in cleanup, but we start the save
-        // The write should complete even if the component unmounts
-        (async () => {
-          try {
-            // Preserve frontmatter when saving
-            let fullContent = contentToSave;
-            try {
-              const existingContent = await readTextFile(path);
-              const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
-              fullContent = serializeMarkdown(frontmatter, contentToSave);
-            } catch {
-              // File read failed - just save body
-            }
-            await writeTextFile(path, fullContent);
-          } catch (error) {
-            console.error("[editor-session] Force save on close failed:", error);
-          }
-        })();
-      }
-
       if (filePath) {
         getRegistry().unregister(filePath);
       }
     };
   }, [enabled, filePath, type, entityId, getRegistry]);
 
+  // Get current content (for metadata saves)
+  const getCurrentContent = useCallback(() => contentRef.current, []);
+
+  // Update content (marks dirty, does NOT auto-save)
+  const setContent = useCallback((newContent: string) => {
+    setContentState(newContent);
+    contentRef.current = newContent;
+    setIsDirty(true);
+  }, []);
+
   // Save function - preserves frontmatter when saving body content
-  const performSave = useCallback(
-    async (contentToSave: string) => {
-      const path = currentPathRef.current;
-      if (!path || fileDeleted || pathChanged) return;
+  const save = useCallback(async () => {
+    const path = currentPathRef.current;
+    if (!path || fileDeleted || pathChanged) return;
 
-      // No need to save if content hasn't changed
-      if (contentToSave === lastSavedRef.current) {
-        setIsDirty(false);
-        return;
-      }
+    const contentToSave = contentRef.current;
 
-      setSaveStatus("saving");
-      try {
-        // In Tauri: preserve frontmatter by reading existing file, updating body, and rewriting
-        // This ensures fields like title, status, ai, etc. are not lost
-        let fullContent = contentToSave;
-        if (isTauri()) {
-          try {
-            const existingContent = await readTextFile(path);
-            const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
-            // Recombine existing frontmatter with new body content
-            fullContent = serializeMarkdown(frontmatter, contentToSave);
-          } catch {
-            // File might not exist yet (new file) or read failed - just save body
-            fullContent = contentToSave;
-          }
-        }
-
-        await writeTextFile(path, fullContent);
-        lastSavedRef.current = contentToSave;
-        getRegistry().updateLastSaved(path, contentToSave);
-        setIsDirty(false);
-        setSaveStatus("idle");
-
-        // Trigger post-save callback (e.g., for RAG indexing)
-        // Pass the full content including frontmatter for proper indexing
-        onSaveComplete?.(path, fullContent);
-      } catch (error) {
-        console.error("[editor-session] Save failed:", error);
-        setSaveStatus("error");
-      }
-    },
-    [getRegistry, fileDeleted, pathChanged, onSaveComplete]
-  );
-
-  // Debounced auto-save on content change
-  const setContent = useCallback(
-    (newContent: string) => {
-      setContentState(newContent);
-      setIsDirty(true);
-
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-
-      saveTimeoutRef.current = setTimeout(() => {
-        performSave(newContent);
-      }, SAVE_DEBOUNCE_MS);
-    },
-    [performSave]
-  );
-
-  // Force save (for manual save or before close)
-  const forceSave = useCallback(async () => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+    // No need to save if content hasn't changed
+    if (contentToSave === lastSavedRef.current) {
+      setIsDirty(false);
+      return;
     }
-    await performSave(content);
-  }, [performSave, content]);
+
+    setSaveStatus("saving");
+    try {
+      // Preserve frontmatter by reading existing file, updating body, and rewriting
+      let fullContent = contentToSave;
+      if (isTauri()) {
+        try {
+          const existingContent = await readTextFile(path);
+          const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
+          fullContent = serializeMarkdown(frontmatter, contentToSave);
+        } catch {
+          // File might not exist yet or read failed - just save body
+          fullContent = contentToSave;
+        }
+      }
+
+      await writeTextFile(path, fullContent);
+      lastSavedRef.current = contentToSave;
+      // Update registry so file watcher knows this was our save
+      getRegistry().updateLastSaved(path, contentToSave);
+      setIsDirty(false);
+      setSaveStatus("idle");
+
+      // Trigger post-save callback (e.g., for RAG indexing)
+      onSaveComplete?.(path, fullContent);
+    } catch (error) {
+      console.error("[editor-session] Save failed:", error);
+      setSaveStatus("error");
+    }
+  }, [getRegistry, fileDeleted, pathChanged, onSaveComplete]);
 
   // Acknowledge path change
   const acknowledgePathChange = useCallback(() => {
@@ -338,14 +260,15 @@ export function useEditorSession({
   return {
     content,
     setContent,
+    getCurrentContent,
     isLoading,
     isDirty,
     saveStatus,
     pathChanged,
     newPath,
     fileDeleted,
+    save,
     acknowledgePathChange,
     acknowledgeDeleted,
-    forceSave,
   };
 }

@@ -19,6 +19,12 @@ interface KanbanColumnProps {
   hideHeader?: boolean;
   /** Whether this column is currently a drop target (for visual feedback) */
   isDropTarget?: boolean;
+  /** Set of highlighted task IDs */
+  highlightedTasks?: Set<string>;
+  /** Callback to toggle highlight for a task */
+  onToggleHighlight?: (taskId: string) => void;
+  /** Workspace color for highlight background */
+  workspaceColor?: string;
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
@@ -36,6 +42,9 @@ export function KanbanColumn({
   getProjectName,
   hideHeader,
   isDropTarget,
+  highlightedTasks,
+  onToggleHighlight,
+  workspaceColor,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -79,6 +88,13 @@ export function KanbanColumn({
                 onClick={() => onTaskClick?.(task)}
                 showProject={showProject}
                 projectName={getProjectName?.(task.projectId)}
+                isHighlighted={highlightedTasks?.has(task.id)}
+                onToggleHighlight={
+                  onToggleHighlight
+                    ? () => onToggleHighlight(task.id)
+                    : undefined
+                }
+                workspaceColor={workspaceColor}
               />
             ))}
           </div>

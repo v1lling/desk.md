@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMeeting, useUpdateMeeting, useDeleteMeeting, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
@@ -41,41 +41,17 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     isInExcludedFolder: false,
   });
 
-  // Track metadata changes separately (declared early for use in sync effect)
-  const [metadataDirty, setMetadataDirty] = useState(false);
-  const metadataDirtyRef = useRef(false);
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    metadataDirtyRef.current = metadataDirty;
-  }, [metadataDirty]);
-
-  // Initialize metadata from meeting (only when switching meetings)
+  // Initialize metadata from meeting
   useEffect(() => {
     if (meeting) {
       setTitle(meeting.title);
       setDate(meeting.date);
       setAttendees(meeting.attendees?.join(", ") || "");
       setIsEditorReady(false);
-      // Load AI exclusion state
       getAiExclusionState(meeting.filePath, workspaceId).then(setAiExclusionState);
     }
-  }, [meeting?.id, workspaceId]); // Only reset when switching to a different meeting
+  }, [meeting?.id, workspaceId]);
 
-  // Sync metadata from query when refetch completes (but only when not dirty)
-  // This ensures editor picks up changes from disk after saves complete
-  // Uses ref to access current dirty state without adding it to dependencies
-  useEffect(() => {
-    if (meeting && !metadataDirtyRef.current) {
-      setTitle(meeting.title);
-      setDate(meeting.date);
-      setAttendees(meeting.attendees?.join(", ") || "");
-    }
-  }, [meeting?.title, meeting?.date, meeting?.attendees]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Use editor session for content (markdown body)
-  // ═══════════════════════════════════════════════════════════════════════════
   const handleSaveComplete = useCallback(
     (path: string, content: string) => {
       if (!meeting) return;
@@ -93,6 +69,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const {
     content,
     setContent,
+    getCurrentContent,
     isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus: contentSaveStatus,
@@ -101,17 +78,17 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     fileDeleted,
     acknowledgePathChange,
     acknowledgeDeleted,
-    forceSave: forceContentSave,
+    save,
   } = useEditorSession({
     type: "meeting",
     entityId: meetingId,
     filePath: meeting?.filePath,
-    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
+    initialContent: "",
     enabled: !!meeting,
     onSaveComplete: handleSaveComplete,
   });
 
-  // Defer editor rendering (wait for content to load)
+  // Defer editor rendering
   useEffect(() => {
     if (meeting && !isLoadingContent && !isEditorReady) {
       const frameId = requestAnimationFrame(() => {
@@ -121,58 +98,117 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     }
   }, [meeting, isLoadingContent, isEditorReady]);
 
-  const handleTitleChange = useCallback((newTitle: string) => {
-    setTitle(newTitle);
-    setMetadataDirty(true);
-  }, []);
-
-  const handleDateChange = useCallback((newDate: string) => {
-    setDate(newDate);
-    setMetadataDirty(true);
-  }, []);
-
-  const handleAttendeesChange = useCallback((newAttendees: string) => {
-    setAttendees(newAttendees);
-    setMetadataDirty(true);
-  }, []);
-
-  // Debounced save for metadata changes (frontmatter only, not content)
-  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
-  // to ensure content saves complete before metadata saves read from disk
-  useEffect(() => {
-    if (!metadataDirty || !meeting) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        const attendeesList = attendees
-          .split(",")
-          .map((a) => a.trim())
-          .filter(Boolean);
-
-        await updateMeeting.mutateAsync({
-          meetingId: meeting.id,
-          workspaceId: meeting.workspaceId,
-          projectId: meeting.projectId,
-          updates: {
-            title: title.trim() || meeting.title,
-            date: date || meeting.date,
-            attendees: attendeesList.length > 0 ? attendeesList : undefined,
-            // Note: content is NOT included - useEditorSession handles body saves
-            // Domain function (updateMeeting) preserves body from disk when content is undefined
-          },
-        });
-        setMetadataDirty(false);
-      } catch (error) {
-        console.error("[meeting-editor] Failed to save metadata:", error);
+  // Metadata change handlers - save immediately with current body
+  const handleTitleChange = useCallback(
+    async (newTitle: string) => {
+      setTitle(newTitle);
+      if (meeting) {
+        try {
+          await updateMeeting.mutateAsync({
+            meetingId: meeting.id,
+            workspaceId: meeting.workspaceId,
+            projectId: meeting.projectId,
+            updates: { title: newTitle.trim() || meeting.title, content: getCurrentContent() },
+          });
+        } catch (error) {
+          console.error("[meeting-editor] Failed to save title:", error);
+        }
       }
-    }, 600);
+    },
+    [meeting, updateMeeting, getCurrentContent]
+  );
 
-    return () => clearTimeout(timeout);
-  }, [title, date, attendees, metadataDirty, meeting, updateMeeting]);
+  const handleDateChange = useCallback(
+    async (newDate: string) => {
+      setDate(newDate);
+      if (meeting) {
+        try {
+          await updateMeeting.mutateAsync({
+            meetingId: meeting.id,
+            workspaceId: meeting.workspaceId,
+            projectId: meeting.projectId,
+            updates: { date: newDate || meeting.date, content: getCurrentContent() },
+          });
+        } catch (error) {
+          console.error("[meeting-editor] Failed to save date:", error);
+        }
+      }
+    },
+    [meeting, updateMeeting, getCurrentContent]
+  );
+
+  const handleAttendeesChange = useCallback(
+    async (newAttendees: string) => {
+      setAttendees(newAttendees);
+      if (meeting) {
+        try {
+          const attendeesList = newAttendees
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean);
+          await updateMeeting.mutateAsync({
+            meetingId: meeting.id,
+            workspaceId: meeting.workspaceId,
+            projectId: meeting.projectId,
+            updates: {
+              attendees: attendeesList.length > 0 ? attendeesList : undefined,
+              content: getCurrentContent(),
+            },
+          });
+        } catch (error) {
+          console.error("[meeting-editor] Failed to save attendees:", error);
+        }
+      }
+    },
+    [meeting, updateMeeting, getCurrentContent]
+  );
 
   // Manage tab title and dirty state
-  const isDirty = contentDirty || metadataDirty;
+  const isDirty = contentDirty;
   useEditorTab(`meeting-${meetingId}`, title, isDirty);
+
+  // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        save();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Also listen for menu save event from Tauri native menu
+    let unlistenMenu: (() => void) | undefined;
+    import("@tauri-apps/api/event").then(({ listen }) => {
+      listen("menu-save", () => {
+        save();
+      }).then((unlisten) => {
+        unlistenMenu = unlisten;
+      });
+    }).catch(() => {
+      // Not in Tauri environment
+    });
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      unlistenMenu?.();
+    };
+  }, [save]);
+
+  // Handle save-and-close request from tab bar
+  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
+  const clearPendingSaveAndClose = useTabStore((state) => state.clearPendingSaveAndClose);
+  const closeTab = useTabStore((state) => state.closeTab);
+
+  useEffect(() => {
+    if (pendingSaveAndClose === `meeting-${meetingId}`) {
+      (async () => {
+        await save();
+        clearPendingSaveAndClose();
+        closeTab(`meeting-${meetingId}`);
+      })();
+    }
+  }, [pendingSaveAndClose, meetingId, save, clearPendingSaveAndClose, closeTab]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!meeting) return;
@@ -201,12 +237,10 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!meeting) return;
-      // Don't allow changes if in excluded folder
       if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(meeting.filePath, workspaceId, included);
         setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
-        // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(meeting.filePath);
         }
@@ -222,7 +256,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // File was deleted externally
   if (fileDeleted) {
     return (
       <FileDeletedBanner
@@ -234,7 +267,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     );
   }
 
-  // File was moved/renamed externally
   if (pathChanged && newPath) {
     return (
       <FileMovedBanner
@@ -272,6 +304,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         onTitleChange={handleTitleChange}
         placeholder="Meeting title"
         saveStatus={saveStatus}
+        onSave={save}
+        isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}

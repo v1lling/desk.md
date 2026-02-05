@@ -67,6 +67,7 @@ export {
   useViewMode,
   usePersonalViewMode,
   useExpandedFolders,
+  useHighlightedTasks,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";

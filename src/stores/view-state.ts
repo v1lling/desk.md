@@ -246,5 +246,78 @@ export function useExpandedFolders(
   };
 }
 
+/**
+ * Hook to get highlighted tasks and toggle highlight
+ * Returns set of highlighted task IDs and a toggle function
+ *
+ * @param workspaceId - The workspace ID
+ * @param projectId - The project ID, or null for workspace-level
+ */
+export function useHighlightedTasks(
+  workspaceId: string | null,
+  projectId: string | null
+) {
+  const queryClient = useQueryClient();
+  const { data: viewState } = useViewState(workspaceId, projectId);
+
+  const highlightedTasks = useMemo(
+    () => new Set(viewState?.highlightedTasks ?? []),
+    [viewState?.highlightedTasks]
+  );
+
+  const toggleMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return viewStateLib.toggleTaskHighlight(workspaceId, projectId, taskId);
+    },
+    onMutate: async (taskId) => {
+      if (!workspaceId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: viewStateKeys.byScope(workspaceId, projectId),
+      });
+
+      const previousState = queryClient.getQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId)
+      );
+
+      const currentHighlighted = previousState?.highlightedTasks ?? [];
+      const isHighlighted = currentHighlighted.includes(taskId);
+      const newHighlighted = isHighlighted
+        ? currentHighlighted.filter(id => id !== taskId)
+        : [...currentHighlighted, taskId];
+
+      queryClient.setQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId),
+        (old) => ({
+          ...old,
+          highlightedTasks: newHighlighted,
+        })
+      );
+
+      return { previousState };
+    },
+    onError: (_err, _taskId, context) => {
+      if (context?.previousState && workspaceId) {
+        queryClient.setQueryData(
+          viewStateKeys.byScope(workspaceId, projectId),
+          context.previousState
+        );
+      }
+    },
+  });
+
+  const toggleHighlight = useCallback(
+    (taskId: string) => toggleMutation.mutate(taskId),
+    [toggleMutation.mutate]
+  );
+
+  return {
+    highlightedTasks,
+    toggleHighlight,
+    isLoading: toggleMutation.isPending,
+  };
+}
+
 // Re-export helpers from lib
 export { sortTasksByOrder } from "@/lib/desk/view-state";

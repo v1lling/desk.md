@@ -263,6 +263,45 @@ export async function savePersonalViewState(state: ProjectViewState): Promise<vo
 }
 
 // =============================================================================
+// TASK HIGHLIGHT HELPERS
+// =============================================================================
+
+/**
+ * Toggle highlight status for a task (for focus/today's work)
+ */
+export async function toggleTaskHighlight(
+  workspaceId: string,
+  projectId: string | null,
+  taskId: string
+): Promise<boolean> {
+  const existing = await getViewState(workspaceId, projectId);
+  const highlighted = existing.highlightedTasks ?? [];
+
+  const isHighlighted = highlighted.includes(taskId);
+  const newHighlighted = isHighlighted
+    ? highlighted.filter(id => id !== taskId)
+    : [...highlighted, taskId];
+
+  await saveViewState(workspaceId, projectId, {
+    ...existing,
+    highlightedTasks: newHighlighted,
+  });
+
+  return !isHighlighted; // Return new state
+}
+
+/**
+ * Get highlighted tasks for a project/workspace
+ */
+export async function getHighlightedTasks(
+  workspaceId: string,
+  projectId: string | null
+): Promise<string[]> {
+  const state = await getViewState(workspaceId, projectId);
+  return state.highlightedTasks ?? [];
+}
+
+// =============================================================================
 // FOLDER EXPANSION HELPERS
 // =============================================================================
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
+import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab } from "@/hooks";
@@ -47,16 +47,16 @@ function FolderBreadcrumb({ path }: { path?: string }) {
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
-  // Load doc metadata via TanStack Query (metadata only - content loaded from disk)
+  // Load doc metadata via TanStack Query
   const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, docId);
   const { data: projects = [] } = useProjects(workspaceId);
 
-  // Mutations for project changes and deletion
+  // Mutations
   const updateDoc = useUpdateDoc();
   const deleteDoc = useDeleteDoc();
   const moveDocToProject = useMoveDocToProject();
 
-  // Local state for title and project (metadata that's not in the file content)
+  // Local state for title and project
   const [title, setTitle] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [originalProjectId, setOriginalProjectId] = useState("");
@@ -74,10 +74,9 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       setCurrentProjectId(doc.projectId);
       setOriginalProjectId(doc.projectId);
       setIsEditorReady(false);
-      // Load AI exclusion state
       getAiExclusionState(doc.filePath, workspaceId).then(setAiExclusionState);
     }
-  }, [doc?.id, workspaceId]); // Only reset when switching to a different doc
+  }, [doc?.id, workspaceId]);
 
   const handleSaveComplete = useCallback(
     (path: string, content: string) => {
@@ -96,6 +95,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const {
     content,
     setContent,
+    getCurrentContent,
     isLoading: isLoadingContent,
     isDirty: contentDirty,
     saveStatus,
@@ -104,17 +104,17 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     fileDeleted,
     acknowledgePathChange,
     acknowledgeDeleted,
-    forceSave,
+    save,
   } = useEditorSession({
     type: "doc",
     entityId: docId,
     filePath: doc?.filePath,
-    initialContent: "", // Fallback for mock mode; real content loaded from disk by useEditorSession
+    initialContent: "",
     enabled: !!doc,
     onSaveComplete: handleSaveComplete,
   });
 
-  // Defer editor rendering for smooth tab switches (wait for content to load)
+  // Defer editor rendering for smooth tab switches
   useEffect(() => {
     if (doc && !isLoadingContent && !isEditorReady) {
       const frameId = requestAnimationFrame(() => {
@@ -124,43 +124,81 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [doc, isLoadingContent, isEditorReady]);
 
-  // Track title changes separately (saved via updateDoc mutation)
+  // Track title changes (saved immediately with content)
   const [titleDirty, setTitleDirty] = useState(false);
-  const handleTitleChange = useCallback((newTitle: string) => {
-    setTitle(newTitle);
-    setTitleDirty(true);
-  }, []);
 
-  // Save title when it changes (debounced via effect)
-  // Content is saved separately by useEditorSession (400ms) - we use 600ms here
-  // to ensure content saves complete before metadata saves read from disk
-  useEffect(() => {
-    if (!titleDirty || !doc) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        await updateDoc.mutateAsync({
-          doc,
-          updates: { title: title.trim() || doc.title },
-        });
-        setTitleDirty(false);
-      } catch (error) {
-        console.error("[doc-editor] Failed to save title:", error);
+  const handleTitleChange = useCallback(
+    async (newTitle: string) => {
+      setTitle(newTitle);
+      setTitleDirty(true);
+      // Save title immediately with current body content
+      if (doc) {
+        try {
+          await updateDoc.mutateAsync({
+            doc,
+            updates: { title: newTitle.trim() || doc.title, content: getCurrentContent() },
+          });
+          setTitleDirty(false);
+        } catch (error) {
+          console.error("[doc-editor] Failed to save title:", error);
+        }
       }
-    }, 600);
-
-    return () => clearTimeout(timeout);
-  }, [title, titleDirty, doc, updateDoc]);
+    },
+    [doc, updateDoc, getCurrentContent]
+  );
 
   // Manage tab title and dirty state
   const isDirty = contentDirty || titleDirty;
   useEditorTab(`doc-${docId}`, title, isDirty);
 
+  // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        save();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Also listen for menu save event from Tauri native menu
+    let unlistenMenu: (() => void) | undefined;
+    import("@tauri-apps/api/event").then(({ listen }) => {
+      listen("menu-save", () => {
+        save();
+      }).then((unlisten) => {
+        unlistenMenu = unlisten;
+      });
+    }).catch(() => {
+      // Not in Tauri environment
+    });
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      unlistenMenu?.();
+    };
+  }, [save]);
+
+  // Handle save-and-close request from tab bar
+  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
+  const clearPendingSaveAndClose = useTabStore((state) => state.clearPendingSaveAndClose);
+  const closeTab = useTabStore((state) => state.closeTab);
+
+  useEffect(() => {
+    if (pendingSaveAndClose === `doc-${docId}`) {
+      (async () => {
+        await save();
+        clearPendingSaveAndClose();
+        closeTab(`doc-${docId}`);
+      })();
+    }
+  }, [pendingSaveAndClose, docId, save, clearPendingSaveAndClose, closeTab]);
+
   // Check if project was changed
   const projectChanged = currentProjectId !== originalProjectId;
 
   // Handle project move & save
-  const handleSave = useCallback(async () => {
+  const handleProjectMove = useCallback(async () => {
     if (!doc) return;
 
     try {
@@ -174,13 +212,13 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         setOriginalProjectId(currentProjectId);
       }
 
-      await forceSave();
+      await save();
       toast.success("Doc saved");
       onClose();
     } catch {
       toast.error("Failed to save doc");
     }
-  }, [doc, projectChanged, moveDocToProject, originalProjectId, currentProjectId, forceSave, onClose]);
+  }, [doc, projectChanged, moveDocToProject, originalProjectId, currentProjectId, save, onClose]);
 
   // Handle delete
   const handleDeleteConfirm = useCallback(async () => {
@@ -207,12 +245,10 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const handleAIInclusionChange = useCallback(
     async (included: boolean) => {
       if (!doc) return;
-      // Don't allow changes if in excluded folder
       if (aiExclusionState.isInExcludedFolder) return;
       try {
         await setAIInclusion(doc.filePath, workspaceId, included);
         setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
-        // If excluding, immediately remove from RAG index
         if (!included) {
           await removeFromIndex(doc.filePath);
         }
@@ -228,7 +264,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   // Render states
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // File was deleted externally
   if (fileDeleted) {
     return (
       <FileDeletedBanner
@@ -240,7 +275,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     );
   }
 
-  // File was moved/renamed externally
   if (pathChanged && newPath) {
     return (
       <FileMovedBanner
@@ -250,7 +284,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     );
   }
 
-  // Loading doc metadata
   if (isLoadingDoc) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -259,7 +292,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     );
   }
 
-  // Not found
   if (!doc) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -280,6 +312,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         onTitleChange={handleTitleChange}
         placeholder="Doc title"
         saveStatus={headerSaveStatus}
+        onSave={save}
+        isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
@@ -314,7 +348,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
           {projectChanged && (
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleSave} className="min-w-[140px]">
+              <Button onClick={handleProjectMove} className="min-w-[140px]">
                 Move & Save
               </Button>
             </div>

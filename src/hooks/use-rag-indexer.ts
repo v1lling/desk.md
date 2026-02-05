@@ -1,9 +1,8 @@
 /**
  * RAG Indexer
  *
- * Handles automatic RAG indexing after document saves.
- * Uses a longer debounce (5s) than auto-save to avoid excessive API calls
- * while the user is actively typing.
+ * Handles RAG indexing after document saves.
+ * Called via onSaveComplete callback from useEditorSession.
  * Respects .aiignore exclusions.
  */
 
@@ -15,8 +14,8 @@ import { getAIInclusion } from "@/lib/rag/aiignore";
 import { isTauri } from "@/lib/desk";
 
 /**
- * Longer debounce for RAG indexing to avoid expensive API calls
- * while the user is actively typing. 5 seconds after last change.
+ * Debounce for RAG indexing to avoid excessive API calls
+ * if user saves multiple times in quick succession.
  */
 const RAG_INDEX_DEBOUNCE_MS = 5000;
 

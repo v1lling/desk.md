@@ -124,6 +124,8 @@ export interface ProjectViewState {
   viewMode?: 'list' | 'kanban';
   /** Expanded folder paths in content tree */
   expandedFolders?: string[];
+  /** Task IDs highlighted for focus (e.g., today's work) */
+  highlightedTasks?: string[];
 }
 
 export type TaskViewMode = 'list' | 'kanban';

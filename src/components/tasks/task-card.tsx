@@ -4,7 +4,13 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical, FolderKanban } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from "@/components/ui/context-menu";
+import { Calendar, GripVertical, FolderKanban, Star } from "lucide-react";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { priorityColors } from "@/lib/design-tokens";
@@ -14,9 +20,23 @@ interface TaskCardProps {
   onClick?: () => void;
   showProject?: boolean;
   projectName?: string | null;
+  /** Whether this task is highlighted for focus */
+  isHighlighted?: boolean;
+  /** Callback to toggle highlight status */
+  onToggleHighlight?: () => void;
+  /** Workspace color for highlight background */
+  workspaceColor?: string;
 }
 
-export function TaskCard({ task, onClick, showProject, projectName }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onClick,
+  showProject,
+  projectName,
+  isHighlighted,
+  onToggleHighlight,
+  workspaceColor,
+}: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -29,9 +49,17 @@ export function TaskCard({ task, onClick, showProject, projectName }: TaskCardPr
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // Apply highlight styling with workspace color
+    ...(isHighlighted && workspaceColor
+      ? {
+          backgroundColor: `color-mix(in srgb, ${workspaceColor} 12%, transparent)`,
+          // Use CSS variable for ring color
+          "--tw-ring-color": workspaceColor,
+        } as React.CSSProperties
+      : {}),
   };
 
-  return (
+  const card = (
     <Card
       ref={setNodeRef}
       style={style}
@@ -39,7 +67,8 @@ export function TaskCard({ task, onClick, showProject, projectName }: TaskCardPr
         "cursor-grab group touch-none border-border/60 bg-card",
         "shadow-sm hover:shadow-md hover:border-border",
         "transition-all duration-150",
-        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1"
+        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1",
+        isHighlighted && "ring-1 ring-offset-1"
       )}
       {...attributes}
       {...listeners}
@@ -85,4 +114,23 @@ export function TaskCard({ task, onClick, showProject, projectName }: TaskCardPr
       </CardContent>
     </Card>
   );
+
+  // Wrap with context menu if highlight toggle is available
+  if (onToggleHighlight) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={onToggleHighlight}>
+            <Star
+              className={cn("h-4 w-4", isHighlighted && "fill-current")}
+            />
+            {isHighlighted ? "Remove highlight" : "Highlight for focus"}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  return card;
 }

@@ -2,7 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { CloudOff } from "lucide-react";
-import type { SaveStatus } from "@/hooks/use-auto-save";
+
+/** Save status for editors */
+export type SaveStatus = "idle" | "saving" | "error";
 
 interface SaveStatusIndicatorProps {
   status: SaveStatus;
@@ -12,12 +14,12 @@ interface SaveStatusIndicatorProps {
 }
 
 /**
- * Visual indicator for auto-save status
+ * Visual indicator for save status
  *
  * Design philosophy:
- * - Trust auto-save completely - no spinner, no "Saved" text
+ * - Trust saves completely - no spinner, no "Saved" text
  * - Only show errors (critical feedback user needs to know)
- * - Obsidian-like: silent success, loud failure
+ * - Silent success, loud failure
  */
 export function SaveStatusIndicator({
   status,

@@ -75,7 +75,7 @@ Key features:
 - **Docs**: Tree structure with folders, drag-drop import
 - **AI Chat**: Claude Code CLI or Anthropic API, with doc context
 - Global search (Cmd+K)
-- Auto-save with file watcher
+- Manual save with Cmd+S, unsaved changes protection
 
 ## Email Integration (Deep Links)
 
@@ -165,13 +165,20 @@ Use these hooks instead of duplicating logic:
 - `useOpenFromQuery(items, onOpen, path)` - Handle `?open=id` URL params
 - `useGroupedItems(items, getKey)` - Group items by a key function
 - `useEditorTab(tabId, title, isDirty)` - Manage editor tab title/dirty state
-- `useEditorSession(options)` - **Editor state with auto-save** (see Architecture doc)
+- `useEditorSession(options)` - **Editor state with manual save** (Cmd+S)
 
 ### File System Integration
 
-Editors use a dual-layer system to avoid cursor loss/flickering:
-- **Open files**: `useEditorSession` owns state, auto-saves with 400ms debounce
+Editors use a dual-layer system:
+- **Open files**: `useEditorSession` owns state, saves on Cmd+S
 - **Closed files**: TanStack Query + FileTreeService cache
+
+**Save behavior:**
+- Content saves only on explicit Cmd+S (or clicking save button in header)
+- Metadata changes (status, priority, title, etc.) save immediately with body from editor
+- Tab shows dirty indicator when unsaved
+- Closing dirty tab shows Save/Don't Save/Cancel dialog
+- Quitting app with dirty tabs shows confirmation dialog
 
 Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
 

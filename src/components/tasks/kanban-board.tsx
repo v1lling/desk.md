@@ -25,6 +25,7 @@ import {
   useCurrentWorkspace,
   useViewState,
   useUpdateTaskOrder,
+  useHighlightedTasks,
   sortTasksByOrder,
 } from "@/stores";
 import { useProjectName } from "@/hooks";
@@ -71,6 +72,10 @@ export function KanbanBoard({
   // - All Tasks view: uses workspace-level .view.json (projectId = null)
   const effectiveProjectId = projectId || null;
   const { data: viewState } = useViewState(
+    currentWorkspaceId,
+    effectiveProjectId
+  );
+  const { highlightedTasks, toggleHighlight } = useHighlightedTasks(
     currentWorkspaceId,
     effectiveProjectId
   );
@@ -285,6 +290,9 @@ export function KanbanBoard({
           showProject={showProject}
           getProjectName={getProjectName}
           isDropTarget={activeColumn === "todo"}
+          highlightedTasks={highlightedTasks}
+          onToggleHighlight={toggleHighlight}
+          workspaceColor={currentWorkspace?.color}
         />
         <KanbanColumn
           status="doing"
@@ -293,6 +301,9 @@ export function KanbanBoard({
           showProject={showProject}
           getProjectName={getProjectName}
           isDropTarget={activeColumn === "doing"}
+          highlightedTasks={highlightedTasks}
+          onToggleHighlight={toggleHighlight}
+          workspaceColor={currentWorkspace?.color}
         />
         <KanbanColumn
           status="waiting"
@@ -301,6 +312,9 @@ export function KanbanBoard({
           showProject={showProject}
           getProjectName={getProjectName}
           isDropTarget={activeColumn === "waiting"}
+          highlightedTasks={highlightedTasks}
+          onToggleHighlight={toggleHighlight}
+          workspaceColor={currentWorkspace?.color}
         />
         {showDone ? (
           <div className="flex flex-col min-w-[280px] w-[280px]">
@@ -332,6 +346,9 @@ export function KanbanBoard({
               getProjectName={getProjectName}
               hideHeader
               isDropTarget={activeColumn === "done"}
+              highlightedTasks={highlightedTasks}
+              onToggleHighlight={toggleHighlight}
+              workspaceColor={currentWorkspace?.color}
             />
           </div>
         ) : (
@@ -357,6 +374,8 @@ export function KanbanBoard({
             projectName={
               showProject ? getProjectName(activeTask.projectId) : undefined
             }
+            isHighlighted={highlightedTasks.has(activeTask.id)}
+            workspaceColor={currentWorkspace?.color}
           />
         ) : null}
       </DragOverlay>
