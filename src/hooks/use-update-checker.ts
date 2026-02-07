@@ -16,7 +16,7 @@ export function useUpdateChecker() {
   const [error, setError] = useState<string | null>(null);
   const updateRef = useRef<Awaited<ReturnType<typeof import("@tauri-apps/plugin-updater").check>> | null>(null);
 
-  const checkForUpdate = useCallback(async () => {
+  const checkForUpdate = useCallback(async (manual = false) => {
     if (!isTauri()) return;
 
     setStatus("checking");
@@ -40,8 +40,13 @@ export function useUpdateChecker() {
       }
     } catch (err) {
       console.error("[Update] Check failed:", err);
-      setError(err instanceof Error ? err.message : "Update check failed");
-      setStatus("error");
+      // Only show error in UI when manually triggered
+      if (manual) {
+        setError(err instanceof Error ? err.message : "Update check failed");
+        setStatus("error");
+      } else {
+        setStatus("idle");
+      }
       return false;
     }
   }, []);

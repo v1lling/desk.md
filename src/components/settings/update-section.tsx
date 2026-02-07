@@ -30,7 +30,7 @@ export function UpdateSection() {
               <p className="text-sm">No updates available</p>
               <p className="text-xs text-muted-foreground">You're on the latest version</p>
             </div>
-            <Button variant="outline" size="sm" onClick={checkForUpdate}>
+            <Button variant="outline" size="sm" onClick={() => checkForUpdate(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Check
             </Button>
@@ -76,7 +76,7 @@ export function UpdateSection() {
               <AlertCircle className="h-4 w-4" />
               {error || "Update check failed"}
             </div>
-            <Button variant="outline" size="sm" onClick={checkForUpdate}>
+            <Button variant="outline" size="sm" onClick={() => checkForUpdate(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
