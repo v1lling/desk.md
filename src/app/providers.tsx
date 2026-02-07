@@ -8,7 +8,9 @@ import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
 import { useDeepLink } from "@/hooks/use-deep-link";
 import { useWindowClose } from "@/hooks/use-window-close";
+import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
+import { toast } from "sonner";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -54,6 +56,26 @@ function SearchIndexProvider({ children }: { children: React.ReactNode }) {
 // Initialize deep link handler for email integration
 function DeepLinkProvider({ children }: { children: React.ReactNode }) {
   useDeepLink();
+  return <>{children}</>;
+}
+
+// Check for updates on launch and show toast if available
+function UpdateProvider({ children }: { children: React.ReactNode }) {
+  const { status, updateInfo, downloadAndInstall } = useUpdateChecker();
+
+  useEffect(() => {
+    if (status === "available" && updateInfo) {
+      toast(`Update available: v${updateInfo.version}`, {
+        description: "A new version of Desk is ready to install.",
+        action: {
+          label: "Update & Restart",
+          onClick: () => downloadAndInstall(),
+        },
+        duration: 15000,
+      });
+    }
+  }, [status, updateInfo, downloadAndInstall]);
+
   return <>{children}</>;
 }
 
@@ -158,13 +180,15 @@ export function Providers({ children }: ProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
         <DeepLinkProvider>
-          <QueryInvalidatorProvider>
-            <SearchIndexProvider>
-              <WindowCloseProvider>
-                <ThemeProvider>{children}</ThemeProvider>
-              </WindowCloseProvider>
-            </SearchIndexProvider>
-          </QueryInvalidatorProvider>
+          <UpdateProvider>
+            <QueryInvalidatorProvider>
+              <SearchIndexProvider>
+                <WindowCloseProvider>
+                  <ThemeProvider>{children}</ThemeProvider>
+                </WindowCloseProvider>
+              </SearchIndexProvider>
+            </QueryInvalidatorProvider>
+          </UpdateProvider>
         </DeepLinkProvider>
       </TauriInitializer>
     </QueryClientProvider>

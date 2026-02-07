@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Palette, Monitor, Sun, Moon, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { UpdateSection } from "./update-section";
 import {
   useSettingsStore,
   SIDEBAR_COLLAPSED_WIDTH,
@@ -67,6 +68,9 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-4">
+      {/* Updates */}
+      <UpdateSection />
+
       {/* Appearance */}
       <Card>
         <CardHeader>

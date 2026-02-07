@@ -1,13 +1,19 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Desk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "ch.sascha.desk",
   "plugins": {
     "deep-link": {
       "desktop": {
         "schemes": ["desk"]
       }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/v1lling/deskmd-releases/releases/latest/download/latest.json"
+      ],
+      "pubkey": "RWRYMY0WmYIJV/Rv8uNBhZZDPF9aC4KoFxcFVdDoZTADPzjQBf837EtF"
     }
   },
   "build": {
@@ -36,7 +42,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["dmg", "updater"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

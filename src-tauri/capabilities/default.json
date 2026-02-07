@@ -12,6 +12,8 @@
     "fs:default",
     "shell:allow-open",
     "deep-link:default",
+    "updater:default",
+    "process:allow-restart",
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [

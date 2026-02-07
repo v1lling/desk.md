@@ -1,6 +1,6 @@
 {
   "name": "desk-md",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "tauri dev -- --features mcp",
     "tauri:build": "tauri build"
   },
   "dependencies": {
@@ -31,7 +31,9 @@
     "@tauri-apps/plugin-deep-link": "^2.4.6",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": "^2.3.4",
+    "@tauri-apps/plugin-updater": "^2.10.0",
     "@tiptap/extension-link": "^3.16.0",
     "@tiptap/extension-placeholder": "^3.15.3",
     "@tiptap/extension-table": "^3.16.0",

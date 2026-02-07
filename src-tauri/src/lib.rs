@@ -56,6 +56,8 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_deep_link::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .plugin(tauri_plugin_process::init())
     .invoke_handler(tauri::generate_handler![
       ai::claude_chat,
       ai::claude_check,
@@ -70,10 +72,10 @@ pub fn run() {
       rag::rag_search,
     ]);
 
-  // Add MCP plugin in debug builds only
-  #[cfg(debug_assertions)]
+  // Add MCP plugin when feature is enabled
+  #[cfg(feature = "mcp")]
   {
-    info!("Development build detected, enabling MCP plugin");
+    info!("MCP feature enabled, loading MCP plugin");
     builder = builder.plugin(
       tauri_plugin_mcp::init_with_config(
         tauri_plugin_mcp::PluginConfig::new("Desk".to_string())

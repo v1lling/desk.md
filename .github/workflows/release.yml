@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify version matches tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          TAURI_VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          PKG_VERSION=$(jq -r '.version' package.json)
+          if [ "$TAG" != "$TAURI_VERSION" ] || [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "Version mismatch! Tag: $TAG, tauri.conf.json: $TAURI_VERSION, package.json: $PKG_VERSION"
+            exit 1
+          fi
+          echo "VERSION=$TAG" >> $GITHUB_ENV
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Prepare release artifacts
+        run: |
+          # Find the built artifacts
+          DMG=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -1)
+          UPDATER=$(find src-tauri/target/release/bundle/macos -name "*.tar.gz" | head -1)
+          SIGNATURE=$(find src-tauri/target/release/bundle/macos -name "*.tar.gz.sig" | head -1)
+
+          if [ -z "$DMG" ] || [ -z "$UPDATER" ] || [ -z "$SIGNATURE" ]; then
+            echo "Missing artifacts!"
+            echo "DMG: $DMG"
+            echo "UPDATER: $UPDATER"
+            echo "SIGNATURE: $SIGNATURE"
+            exit 1
+          fi
+
+          # Copy to workspace root with predictable names
+          cp "$DMG" "Desk_${VERSION}_aarch64.dmg"
+          cp "$UPDATER" "Desk.app.tar.gz"
+          cp "$SIGNATURE" "Desk.app.tar.gz.sig"
+
+          # Generate latest.json for Tauri updater
+          SIG_CONTENT=$(cat "$SIGNATURE")
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          URL="https://github.com/v1lling/deskmd-releases/releases/download/v${VERSION}/Desk.app.tar.gz"
+
+          jq -n \
+            --arg version "v${VERSION}" \
+            --arg notes "Release v${VERSION}" \
+            --arg pub_date "$PUB_DATE" \
+            --arg sig "$SIG_CONTENT" \
+            --arg url "$URL" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {"darwin-aarch64": {signature: $sig, url: $url}}}' \
+            > latest.json
+
+      - name: Upload to public releases repo
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: v1lling/deskmd-releases
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: v${{ env.VERSION }}
+          name: Desk v${{ env.VERSION }}
+          files: |
+            Desk_${{ env.VERSION }}_aarch64.dmg
+            Desk.app.tar.gz
+            Desk.app.tar.gz.sig
+            latest.json

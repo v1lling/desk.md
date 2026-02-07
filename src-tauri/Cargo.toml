@@ -10,6 +10,10 @@ rust-version = "1.77.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+mcp = ["dep:tauri-plugin-mcp"]
+
 [lib]
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -27,7 +31,9 @@ tauri-plugin-fs = { version = "2", features = ["watch"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-deep-link = "2"
-tauri-plugin-mcp = { path = "/Users/sascha/Development/tauri-plugin-mcp" }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-mcp = { path = "/Users/sascha/Development/tauri-plugin-mcp", optional = true }
 
 # RAG - Vector database and embeddings
 rusqlite = { version = "0.32", features = ["bundled"] }
