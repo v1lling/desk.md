@@ -95,13 +95,17 @@ jobs:
           cat latest.json
 
       - name: Upload to public releases repo
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: v1lling/deskmd-releases
-          token: ${{ secrets.RELEASES_TOKEN }}
-          tag_name: v${{ env.VERSION }}
-          name: Desk v${{ env.VERSION }}
-          files: |
-            Desk_${{ env.VERSION }}_aarch64.dmg
-            Desk.app.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          # Delete existing release if present
+          gh release delete "v${VERSION}" --repo v1lling/deskmd-releases --yes 2>/dev/null || true
+
+          # Create release and upload assets
+          gh release create "v${VERSION}" \
+            --repo v1lling/deskmd-releases \
+            --title "Desk v${VERSION}" \
+            --notes "Release v${VERSION}" \
+            "Desk_${VERSION}_aarch64.dmg" \
+            Desk.app.tar.gz \
             latest.json
