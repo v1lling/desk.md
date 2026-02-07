@@ -51,10 +51,14 @@ jobs:
 
       - name: Prepare release artifacts
         run: |
+          # Debug: show all bundle output
+          echo "=== Bundle contents ==="
+          find src-tauri/target/release/bundle -type f 2>/dev/null || true
+
           # Find the built artifacts
-          DMG=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -1)
-          UPDATER=$(find src-tauri/target/release/bundle/macos -name "*.tar.gz" | head -1)
-          SIGNATURE=$(find src-tauri/target/release/bundle/macos -name "*.tar.gz.sig" | head -1)
+          DMG=$(find src-tauri/target/release/bundle -name "*.dmg" | head -1)
+          UPDATER=$(find src-tauri/target/release/bundle -name "*.tar.gz" | head -1)
+          SIGNATURE=$(find src-tauri/target/release/bundle -name "*.tar.gz.sig" | head -1)
 
           if [ -z "$DMG" ] || [ -z "$UPDATER" ] || [ -z "$SIGNATURE" ]; then
             echo "Missing artifacts!"
