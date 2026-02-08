@@ -3,7 +3,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Settings, Bot, Brain, FolderOpen } from "lucide-react";
-import { GeneralTab, AITab, RAGTab, DataTab } from "@/components/settings";
+import { GeneralTab, AITab, ContextTab, DataTab } from "@/components/settings";
 
 export default function SettingsPage() {
   return (
@@ -21,9 +21,9 @@ export default function SettingsPage() {
                   <Bot className="h-4 w-4" />
                   AI
                 </TabsTrigger>
-                <TabsTrigger value="rag" className="gap-1.5">
+                <TabsTrigger value="context" className="gap-1.5">
                   <Brain className="h-4 w-4" />
-                  RAG
+                  Context
                 </TabsTrigger>
                 <TabsTrigger value="data" className="gap-1.5">
                   <FolderOpen className="h-4 w-4" />
@@ -39,8 +39,8 @@ export default function SettingsPage() {
                 <AITab />
               </TabsContent>
 
-              <TabsContent value="rag">
-                <RAGTab />
+              <TabsContent value="context">
+                <ContextTab />
               </TabsContent>
 
               <TabsContent value="data">

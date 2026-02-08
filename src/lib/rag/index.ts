@@ -13,7 +13,6 @@ export * from './chunker';
 export * from './reindex';
 export * from './validation';
 export * from './aiignore';
-export * from './query-preprocessor';
 export * from './utils';
 
 /**

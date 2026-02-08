@@ -1,21 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Mail, User, Users, Calendar, Building2, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronDown, ChevronUp, X, Clipboard, Check } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Mail, User, Users, Calendar, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronUp, X, Clipboard, Check } from "lucide-react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useWorkspaces, useProjects, useWorkspace } from "@/stores";
 import { useEmailDraft, useAISettingsStore } from "@/stores/ai";
 import type { AIMessageSource } from "@/lib/ai/types";
 import { isTauri } from "@/lib/desk";
@@ -29,10 +21,6 @@ interface EmailViewerProps {
 }
 
 export function EmailViewer({ email, onClose }: EmailViewerProps) {
-  const { data: workspaces = [] } = useWorkspaces();
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-
   // Draft reply state
   const [showDraft, setShowDraft] = useState(false);
   const [to, setTo] = useState(email.from.email);
@@ -50,27 +38,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const providerType = useAISettingsStore((state) => state.providerType);
   const emailDraft = useEmailDraft();
 
-  // Get workspace and projects for selected workspace
-  const { data: selectedWorkspace } = useWorkspace(selectedWorkspaceId || null);
-  const { data: projects = [] } = useProjects(selectedWorkspaceId || null);
-
-  // Build workspace options
-  const workspaceOptions = useMemo(() => {
-    return workspaces.map((w) => ({
-      id: w.id,
-      name: w.name,
-      color: w.color,
-    }));
-  }, [workspaces]);
-
-  // Build project options
-  const projectOptions = useMemo(() => {
-    return projects.map((p) => ({
-      id: p.id,
-      name: p.name,
-    }));
-  }, [projects]);
-
   // Reset draft fields when email changes
   useEffect(() => {
     setTo(email.from.email);
@@ -83,11 +50,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     setSources([]);
   }, [email]);
 
-  // Find the selected project for context
-  const selectedProject = useMemo(() => {
-    return projects.find((p) => p.id === selectedProjectId);
-  }, [projects, selectedProjectId]);
-
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     setDraft("");
@@ -98,10 +60,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
       const result = await emailDraft.mutateAsync({
         email,
         instructions: instructions || "Write a professional reply.",
-        projectId: selectedProjectId || undefined,
-        workspaceId: selectedWorkspaceId || undefined,
-        projectName: selectedProject?.name,
-        workspaceName: selectedWorkspace?.name,
       });
 
       if (result.draft) {
@@ -117,7 +75,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [email, instructions, selectedProjectId, selectedWorkspaceId, selectedProject, selectedWorkspace, emailDraft]);
+  }, [email, instructions, emailDraft]);
 
   const handleSendViaMailClient = useCallback(async () => {
     const params: string[] = [];
@@ -213,57 +171,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
                 <span>{formatEmailDate(email.date)}</span>
               </div>
             )}
-          </div>
-
-          {/* Project linking */}
-          <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Building2 className="h-4 w-4" />
-              Link to Project
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Linking to a project lets AI use relevant docs and meeting notes for context when drafting replies. This is optional.
-            </p>
-            <div className="flex gap-2">
-              <Select value={selectedWorkspaceId || "_none"} onValueChange={(v) => {
-                setSelectedWorkspaceId(v === "_none" ? "" : v);
-                setSelectedProjectId("");
-              }}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select workspace" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">None</SelectItem>
-                  {workspaceOptions.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: w.color }}
-                        />
-                        {w.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedWorkspaceId && (
-                <Select value={selectedProjectId || "_none"} onValueChange={(v) => setSelectedProjectId(v === "_none" ? "" : v)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">Workspace level</SelectItem>
-                    {projectOptions.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
           </div>
 
           {/* Email body */}

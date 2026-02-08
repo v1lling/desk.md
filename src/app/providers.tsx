@@ -9,6 +9,7 @@ import { useSearchIndex } from "@/hooks/use-search-index";
 import { useDeepLink } from "@/hooks/use-deep-link";
 import { useWindowClose } from "@/hooks/use-window-close";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
+import { useContextIndexSync } from "@/hooks/use-context-index-sync";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { toast } from "sonner";
 
@@ -50,6 +51,12 @@ function QueryInvalidatorProvider({ children }: { children: React.ReactNode }) {
 // Initialize search index
 function SearchIndexProvider({ children }: { children: React.ReactNode }) {
   useSearchIndex();
+  return <>{children}</>;
+}
+
+// Initialize context index sync
+function ContextIndexProvider({ children }: { children: React.ReactNode }) {
+  useContextIndexSync();
   return <>{children}</>;
 }
 
@@ -183,9 +190,11 @@ export function Providers({ children }: ProvidersProps) {
           <UpdateProvider>
             <QueryInvalidatorProvider>
               <SearchIndexProvider>
-                <WindowCloseProvider>
-                  <ThemeProvider>{children}</ThemeProvider>
-                </WindowCloseProvider>
+                <ContextIndexProvider>
+                  <WindowCloseProvider>
+                    <ThemeProvider>{children}</ThemeProvider>
+                  </WindowCloseProvider>
+                </ContextIndexProvider>
               </SearchIndexProvider>
             </QueryInvalidatorProvider>
           </UpdateProvider>

@@ -10,21 +10,12 @@ import {
   type AIPurpose,
   type AIUsage,
   type AIUsageRecord,
-  type AIRAGResult,
+  type AIContextResult,
   type AIServiceResponse,
 } from '@/lib/ai';
 import { formatEmailAddress, type IncomingEmail } from '@/lib/email/types';
-import * as rag from '@/lib/rag';
-import {
-  preprocessQuery,
-  buildEmailPrequery,
-  type QueryContext,
-} from '@/lib/rag/query-preprocessor';
-import { deduplicateByDocPath } from '@/lib/rag/utils';
-import { useRAGStore } from '@/stores/rag';
 import { useSettingsStore } from '@/stores/settings';
-import { isTauri } from '@/lib/desk';
-import { useRAGSearch } from '@/hooks/use-rag-search';
+import { useContextSearch } from '@/hooks/use-context-search';
 
 // =============================================================================
 // AI Settings Store (persisted)
@@ -116,7 +107,7 @@ export const useAIUsageStore = create<AIUsageState>()(
 
 interface AIChatState {
   messages: AIMessage[];
-  /** Sources found by RAG, shown while waiting for AI response */
+  /** Sources found by context search, shown while waiting for AI response */
   pendingSources: AIMessageSource[] | null;
   addMessage: (msg: AIMessage) => void;
   clearMessages: () => void;
@@ -159,107 +150,48 @@ function useAIService() {
 
 /**
  * Hook to send a chat message (for the chat panel)
- * Automatically includes RAG context if enabled
+ * Automatically includes context based on the selected strategy (index, rag, or none)
  */
 export function useSendMessage() {
   const { addMessage, setPendingSources } = useAIChatStore();
   const { providerType, anthropicApiKey } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
-
-  // RAG settings - read from store state directly in mutationFn
-  // to avoid stale closures
-  const getRAGSettings = () => {
-    const ragState = useRAGStore.getState();
-    const settingsState = useSettingsStore.getState();
-    return {
-      dataPath: settingsState.dataPath,
-      embeddingProvider: ragState.embeddingProvider,
-      ollamaUrl: ragState.ollamaUrl,
-      ollamaModel: ragState.ollamaModel,
-      openaiApiKey: ragState.openaiApiKey,
-      voyageApiKey: ragState.voyageApiKey,
-      retrievalCount: ragState.retrievalCount,
-      scoreThreshold: ragState.scoreThreshold,
-      showSourcesInChat: ragState.showSourcesInChat,
-    };
-  };
+  const { search: contextSearch } = useContextSearch();
 
   return useMutation({
     mutationFn: async ({
       message,
       context,
       history,
-      queryContext,
     }: {
       message: string;
       context?: AIContext;
       history?: AIMessage[];
-      /** Optional context for RAG query preprocessing (selected project/workspace) */
-      queryContext?: QueryContext;
     }): Promise<{ response: AIServiceResponse; sources?: AIMessageSource[] }> => {
-      // Get RAG settings
-      const ragSettings = getRAGSettings();
-
-      // Perform RAG search if we're in Tauri and have a data path
-      let ragResults: AIRAGResult[] = [];
+      // Perform context search (strategy-aware: index, rag, or none)
+      let contextResults: AIContextResult[] = [];
       let sources: AIMessageSource[] | undefined;
 
-      if (isTauri() && ragSettings.dataPath) {
-        try {
-          const settings: rag.EmbeddingSettings = {
-            provider: ragSettings.embeddingProvider,
-            ollamaUrl: ragSettings.ollamaUrl,
-            ollamaModel: ragSettings.ollamaModel,
-            openaiApiKey: ragSettings.openaiApiKey || undefined,
-            voyageApiKey: ragSettings.voyageApiKey || undefined,
-          };
+      const currentWorkspaceId = useSettingsStore.getState().currentWorkspaceId;
 
-          // Preprocess query with context for better retrieval
-          const enhancedQuery = preprocessQuery(message, queryContext);
-
-          const results = await rag.search(
-            ragSettings.dataPath,
-            enhancedQuery,
-            ragSettings.retrievalCount,
-            settings
-          );
-
-          // Filter by score threshold and map to AIRAGResult
-          ragResults = results
-            .filter((r) => r.score >= ragSettings.scoreThreshold)
-            .map((r) => ({
-              docPath: r.docPath,
-              title: r.title,
-              content: r.content,
-              contentType: r.contentType,
-              score: r.score,
-            }));
-
-          // If showSourcesInChat is enabled, prepare sources for display
-          if (ragSettings.showSourcesInChat && ragResults.length > 0) {
-            // Deduplicate by docPath and sort by score (highest first)
-            sources = deduplicateByDocPath(ragResults)
-              .sort((a, b) => b.score - a.score)
-              .map((r) => ({
-                docPath: r.docPath,
-                title: r.title,
-                contentType: r.contentType,
-                score: r.score,
-              }));
-
-            // Show sources immediately while waiting for AI response
-            setPendingSources(sources);
-          }
-        } catch (error) {
-          // Silently fail - RAG is optional enhancement
-          console.warn('[AI] RAG search failed:', error);
+      try {
+        const result = await contextSearch({
+          query: message,
+          workspaceId: currentWorkspaceId ?? undefined,
+        });
+        contextResults = result.contextResults;
+        if (result.sources.length > 0) {
+          sources = result.sources;
+          setPendingSources(sources);
         }
+      } catch (error) {
+        console.warn('[AI] Context search failed:', error);
       }
 
-      // Merge RAG results with existing context
+      // Merge results with existing context
       const enrichedContext: AIContext = {
         ...context,
-        ragResults: ragResults.length > 0 ? ragResults : undefined,
+        contextResults: contextResults.length > 0 ? contextResults : undefined,
       };
 
       const service = createAIService({
@@ -274,7 +206,6 @@ export function useSendMessage() {
       return { response, sources };
     },
     onMutate: ({ message }) => {
-      // Optimistically add user message
       addMessage({
         id: crypto.randomUUID(),
         role: 'user',
@@ -283,7 +214,6 @@ export function useSendMessage() {
       });
     },
     onSuccess: ({ response, sources }) => {
-      // Clear pending sources and add assistant message with final sources
       setPendingSources(null);
       addMessage({
         id: crypto.randomUUID(),
@@ -294,7 +224,6 @@ export function useSendMessage() {
       });
     },
     onError: () => {
-      // Clear pending sources on error
       setPendingSources(null);
     },
   });
@@ -316,7 +245,7 @@ export function useAIAction() {
 }
 
 // =============================================================================
-// Email Draft Hook (with RAG)
+// Email Draft Hook (with Context Retrieval)
 // =============================================================================
 
 export interface EmailDraftOptions {
@@ -324,78 +253,42 @@ export interface EmailDraftOptions {
   email: IncomingEmail;
   /** User's instructions for the reply */
   instructions: string;
-  /** Selected project ID (RAG only runs if provided) */
-  projectId?: string;
-  /** Selected workspace ID */
+  /** Workspace ID for context retrieval */
   workspaceId?: string;
-  /** Project name for RAG query context */
-  projectName?: string;
-  /** Workspace name for RAG query context */
-  workspaceName?: string;
 }
 
 export interface EmailDraftResult {
   /** Generated draft text */
   draft: string;
-  /** Sources used for context (if RAG was performed) */
+  /** Sources used for context */
   sources: AIMessageSource[];
 }
 
 /**
- * Hook for drafting email replies with optional RAG context.
- * Only performs RAG search when a project is selected.
- *
- * Usage:
- * ```tsx
- * const emailDraft = useEmailDraft();
- *
- * const result = await emailDraft.mutateAsync({
- *   email,
- *   instructions: 'be brief',
- *   projectId: 'proj-123',
- *   projectName: 'Client Project',
- * });
- * ```
+ * Hook for drafting email replies with automatic context retrieval.
+ * Uses the active context strategy (index, rag, or none) to find relevant docs.
  */
 export function useEmailDraft() {
   const service = useAIService();
-  const { search: ragSearch, isAvailable: ragAvailable } = useRAGSearch();
+  const { search: contextSearch } = useContextSearch();
 
   return useMutation({
     mutationFn: async (options: EmailDraftOptions): Promise<EmailDraftResult> => {
       let sources: AIMessageSource[] = [];
-      let ragResults: AIRAGResult[] = [];
+      let contextResults: AIContextResult[] = [];
 
-      // Only perform RAG if project is selected and RAG is available
-      if (options.projectId && ragAvailable) {
-        try {
-          // Build email-specific prequery
-          const queryContext: QueryContext = {
-            projectId: options.projectId,
-            projectName: options.projectName,
-            workspaceId: options.workspaceId,
-            workspaceName: options.workspaceName,
-          };
+      // Build a query from the email content
+      const query = `${options.email.subject} ${options.email.body.slice(0, 300)}`;
+      const workspaceId = options.workspaceId ?? useSettingsStore.getState().currentWorkspaceId ?? undefined;
 
-          const prequery = buildEmailPrequery({
-            subject: options.email.subject,
-            body: options.email.body,
-            fromName: options.email.from.name,
-            instructions: options.instructions,
-            queryContext,
-          });
-
-          // Perform RAG search
-          const result = await ragSearch({ query: prequery, queryContext });
-          sources = result.sources;
-          ragResults = result.ragResults;
-        } catch (error) {
-          // Silently fail - RAG is optional enhancement
-          console.warn('[useEmailDraft] RAG search failed:', error);
-        }
+      try {
+        const result = await contextSearch({ query, workspaceId });
+        sources = result.sources;
+        contextResults = result.contextResults;
+      } catch (error) {
+        console.warn('[useEmailDraft] Context search failed:', error);
       }
 
-      // Call draftEmail with RAG context (if any)
       const response = await service.draftEmail(
         {
           from: formatEmailAddress(options.email.from),
@@ -403,7 +296,7 @@ export function useEmailDraft() {
           body: options.email.body,
         },
         options.instructions || 'Write a professional reply.',
-        { context: ragResults.length > 0 ? { ragResults } : undefined }
+        { context: contextResults.length > 0 ? { contextResults } : undefined }
       );
 
       return {
