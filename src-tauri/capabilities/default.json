@@ -19,7 +19,9 @@
       "allow": [
         { "path": "$HOME/*" },
         { "path": "$HOME/**/*" },
-        { "path": "$HOME/**/.*" }
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
@@ -27,7 +29,9 @@
       "allow": [
         { "path": "$HOME/*" },
         { "path": "$HOME/**/*" },
-        { "path": "$HOME/**/.*" }
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
@@ -37,7 +41,9 @@
         { "path": "$HOME/*" },
         { "path": "$HOME/**" },
         { "path": "$HOME/**/*" },
-        { "path": "$HOME/**/.*" }
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
@@ -45,7 +51,9 @@
       "allow": [
         { "path": "$HOME/*" },
         { "path": "$HOME/**" },
-        { "path": "$HOME/**/*" }
+        { "path": "$HOME/**/*" },
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" }
       ]
     },
     {
@@ -53,7 +61,9 @@
       "allow": [
         { "path": "$HOME/*" },
         { "path": "$HOME/**/*" },
-        { "path": "$HOME/**/.*" }
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
@@ -61,7 +71,9 @@
       "allow": [
         { "path": "$HOME/*" },
         { "path": "$HOME/**/*" },
-        { "path": "$HOME/**/.*" }
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
@@ -70,21 +82,25 @@
         { "path": "$HOME" },
         { "path": "$HOME/*" },
         { "path": "$HOME/**" },
-        { "path": "$HOME/**/*" }
+        { "path": "$HOME/**/*" },
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" }
       ]
     },
     {
       "identifier": "fs:allow-watch",
       "allow": [
         { "path": "$HOME/**" },
-        { "path": "$HOME/**/*" }
+        { "path": "$HOME/**/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     },
     {
       "identifier": "fs:allow-unwatch",
       "allow": [
         { "path": "$HOME/**" },
-        { "path": "$HOME/**/*" }
+        { "path": "$HOME/**/*" },
+        { "path": "$HOME/**/.*/**/*" }
       ]
     }
   ]
