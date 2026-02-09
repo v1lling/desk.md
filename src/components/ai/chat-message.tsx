@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
 import type { AIMessage } from "@/lib/ai";
 import { SourcesDisplay } from "./sources-display";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   message: AIMessage;
@@ -33,7 +34,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
             isUser ? "bg-primary text-primary-foreground" : "bg-muted"
           )}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-background/50">
+              {message.content}
+            </ReactMarkdown>
+          )}
         </div>
 
         {/* Sources display for assistant messages */}

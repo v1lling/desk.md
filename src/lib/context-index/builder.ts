@@ -14,6 +14,7 @@ import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/rag/aiignor
 import { generatePreview } from "@/lib/desk/parser";
 import { createAIService } from "@/lib/ai/service";
 import { useAISettingsStore } from "@/stores/ai";
+import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 import type {
   IndexEntry,
   WorkspaceIndex,
@@ -86,12 +87,8 @@ async function summarizeBatch(
     return `${i + 1}. [${entry.path}] Title: ${entry.title} | Type: ${entry.type}\n${preview}`;
   });
 
-  const systemPrompt =
-    "Summarize each document in 1-2 sentences. Focus on what information it contains. " +
-    "Return ONLY a JSON array of summary strings in the same order as the documents. No other text.";
-
   try {
-    const response = await service.custom(systemPrompt, `Documents:\n${docs.join("\n\n")}`);
+    const response = await service.custom(SYSTEM_PROMPTS.batchSummarize, `Documents:\n${docs.join("\n\n")}`);
 
     // Parse JSON array from response
     const text = response.message.trim();

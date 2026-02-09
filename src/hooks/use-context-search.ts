@@ -95,20 +95,20 @@ async function indexSearch(options: ContextSearchOptions): Promise<ContextSearch
         title: entry.title,
         content: body,
         contentType: entry.type,
-        score: 1.0, // Index-based selection doesn't have numeric scores
+        score: 1.0, // Kept for internal use, but not shown in UI (see sources below)
       });
     } catch (error) {
       console.warn(`[context-search] Failed to read ${entry.filePath}:`, error);
     }
   }
 
-  // Build sources for UI
+  // Build sources for UI (no score for Smart Index - it's binary selection, not similarity)
   const sources: AIMessageSource[] = showSourcesInChat
     ? contextResults.map((r) => ({
         docPath: r.docPath,
         title: r.title,
         contentType: r.contentType,
-        score: r.score,
+        // Omit score for Smart Index - showing 100% is misleading
       }))
     : [];
 

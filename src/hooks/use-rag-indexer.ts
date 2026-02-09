@@ -18,6 +18,7 @@ import * as rag from "@/lib/rag";
 import { hasProviderConfig } from "@/lib/rag/validation";
 import { getAIInclusion } from "@/lib/rag/aiignore";
 import { isTauri } from "@/lib/desk";
+import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 
 /**
  * Debounce for RAG indexing to avoid excessive API calls
@@ -99,8 +100,7 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
 
             const body = extractBody(content);
             const preview = body.slice(0, 500);
-            const systemPrompt = "Summarize this document in 1-2 sentences. Focus on what information it contains. Return ONLY the summary text, no other formatting.";
-            const response = await service.custom(systemPrompt, `Title: ${title}\nType: ${contentType}\n\n${preview}`);
+            const response = await service.custom(SYSTEM_PROMPTS.autoSummarize, `Title: ${title}\nType: ${contentType}\n\n${preview}`);
             const summary = response.message.trim();
 
             useContextIndexStore.getState().updateEntry(workspaceId, {

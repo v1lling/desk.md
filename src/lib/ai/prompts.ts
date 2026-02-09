@@ -44,6 +44,39 @@ const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
 };
 
 /**
+ * System prompts for internal operations (indexing, context search, etc.)
+ * These are used directly with AI service, not through buildPrompt()
+ */
+export const SYSTEM_PROMPTS = {
+  /**
+   * Auto-summarize document on save
+   * Used by: use-rag-indexer.ts
+   */
+  autoSummarize: `Summarize this document in 1-2 sentences. Focus on what information it contains. Return ONLY the summary text, no other formatting.`,
+
+  /**
+   * Batch summarize multiple documents during index build
+   * Used by: context-index/builder.ts
+   */
+  batchSummarize: `Summarize each document in 1-2 sentences. Focus on what information it contains. Return ONLY a JSON array of summary strings in the same order as the documents. No other text.`,
+
+  /**
+   * Select relevant files from context index
+   * Used by: context-index/selector.ts
+   * @param maxFiles - Maximum number of files to select
+   */
+  fileSelector: (maxFiles: number) => `You are a file selector for a work management app. Given a query and a file catalog, return the most relevant file paths as a JSON array.
+
+Rules:
+- Return ONLY a JSON array of file paths, nothing else
+- Select at most ${maxFiles} files
+- Consider the file path hierarchy (workspace/project structure)
+- For tasks, prefer active (doing > todo > waiting > done) and high priority
+- For meetings, prefer recent dates
+- If no files are relevant, return an empty array []`,
+} as const;
+
+/**
  * Get the full system prompt for a purpose (BASE_CONTEXT + PURPOSE_PROMPT)
  */
 function getPromptForPurpose(purpose: Exclude<AIPurpose, 'custom'>): string {

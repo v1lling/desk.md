@@ -9,6 +9,7 @@
 import type { AIService } from "@/lib/ai/service";
 import type { WorkspaceIndex } from "./types";
 import { formatIndexForPrompt } from "./builder";
+import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 
 /**
  * Select the most relevant files from a workspace index for a given query.
@@ -29,16 +30,7 @@ export async function selectFiles(
   const catalog = formatIndexForPrompt(index);
   const knownPaths = new Set(index.entries.map((e) => e.path));
 
-  const systemPrompt = `You are a file selector for a work management app. Given a query and a file catalog, return the most relevant file paths as a JSON array.
-
-Rules:
-- Return ONLY a JSON array of file paths, nothing else
-- Select at most ${options.maxFiles} files
-- Consider the file path hierarchy (workspace/project structure)
-- For tasks, prefer active (doing > todo > waiting > done) and high priority
-- For meetings, prefer recent dates
-- If no files are relevant, return an empty array []`;
-
+  const systemPrompt = SYSTEM_PROMPTS.fileSelector(options.maxFiles);
   const message = `Query: ${query}\n\nFile Catalog:\n${catalog}`;
 
   try {
