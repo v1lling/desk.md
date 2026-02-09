@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Workspace Selector ("Work Mode")
+ * Workspace Selector
  *
  * Bottom-of-sidebar component for switching workspace context.
  * All workspace-filtered views (Tasks, Docs, Meetings, Projects) adapt
@@ -17,7 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { ChevronsUpDown, Plus, Circle, Check } from "lucide-react";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
@@ -70,7 +69,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
 
   return (
     <>
-      <div className={cn("px-2 py-3 border-t border-sidebar-border", isCollapsed && "px-1")}>
+      <div className={cn("px-2 py-3.5 border-t border-sidebar-border", isCollapsed && "px-1")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {isCollapsed ? (
@@ -78,11 +77,11 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-full h-10 hover:bg-sidebar-accent"
+                className="w-full h-11 hover:bg-sidebar-accent rounded-lg transition-all"
                 title={currentWorkspace?.name || "Select Workspace"}
               >
                 <Circle
-                  className="size-5"
+                  className="size-5 transition-transform hover:scale-110"
                   style={{ color: fillColor }}
                   fill={fillColor}
                 />
@@ -91,19 +90,19 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               // Expanded: show full selector
               <Button
                 variant="ghost"
-                className="w-full justify-between px-3 h-10 hover:bg-sidebar-accent"
+                className="w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Circle
-                    className="size-3 shrink-0"
+                    className="size-3.5 shrink-0 transition-transform group-hover:scale-110"
                     style={{ color: fillColor }}
                     fill={fillColor}
                   />
-                  <span className="font-medium truncate">
+                  <span className="font-medium truncate text-sidebar-foreground">
                     {currentWorkspace?.name || "Select Workspace"}
                   </span>
                 </div>
-                <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
+                <ChevronsUpDown className="size-4 opacity-50 shrink-0 transition-opacity hover:opacity-100" />
               </Button>
             )}
           </DropdownMenuTrigger>
@@ -111,13 +110,8 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
           <DropdownMenuContent
             align="start"
             side="top"
-            className="w-56"
+            className="w-60 p-1.5"
           >
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Work Mode
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-
             {workspaces.map((workspace) => {
               const isSelected = workspace.id === currentWorkspace?.id;
               const wsColor = workspace.color || DEFAULT_WORKSPACE_COLOR;
@@ -125,37 +119,33 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               return (
                 <DropdownMenuItem
                   key={workspace.id}
-                  className="gap-2 cursor-pointer"
+                  className={cn(
+                    "gap-2.5 cursor-pointer rounded-md px-2.5 py-2 transition-colors",
+                    isSelected && "bg-accent"
+                  )}
                   onClick={() => setCurrentWorkspaceId(workspace.id)}
                 >
                   <Circle
-                    className="size-3 shrink-0"
+                    className="size-3.5 shrink-0"
                     style={{ color: wsColor }}
                     fill={wsColor}
                   />
-                  <span className="flex-1 truncate">{workspace.name}</span>
+                  <span className="flex-1 truncate font-medium">{workspace.name}</span>
                   {isSelected && <Check className="size-4 text-primary" />}
                 </DropdownMenuItem>
               );
             })}
 
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1.5" />
             <DropdownMenuItem
-              className="gap-2 cursor-pointer"
+              className="gap-2.5 cursor-pointer rounded-md px-2.5 py-2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowNewWorkspaceModal(true)}
             >
-              <Plus className="size-3" />
-              New Workspace
+              <Plus className="size-3.5" />
+              <span className="font-medium">New Workspace</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Work Mode label - only when expanded */}
-        {!isCollapsed && (
-          <p className="text-[10px] text-muted-foreground text-center mt-1">
-            Work Mode
-          </p>
-        )}
       </div>
 
       <NewWorkspaceModal

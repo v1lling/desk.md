@@ -270,6 +270,16 @@ Key files: `src-tauri/Cargo.toml` (`[features]`), `src-tauri/src/lib.rs` (`#[cfg
 
 **Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds macOS app, uploads to public repo `v1lling/deskmd-releases`.
 
+**Versioning (Semantic Versioning)**:
+- **MAJOR (x.0.0)**: Breaking changes, major architecture shifts
+- **MINOR (0.x.0)**: New features, significant functionality additions
+- **PATCH (0.0.x)**: Bug fixes, UI polish, performance tweaks, dependency updates
+
+Examples:
+- New tab system, email integration → MINOR
+- Removed label, improved styling → PATCH
+- Fixed crash, performance optimization → PATCH
+
 **Release steps**:
 ```bash
 # 1. Bump version in both files
