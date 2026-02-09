@@ -5,8 +5,9 @@
 ## Quick Start
 
 ```bash
-npm run dev        # Browser with mock data (port 3001)
-npm run tauri dev  # Desktop with real file system
+npm run dev          # Browser with mock data (port 3001)
+npm run tauri:dev    # Desktop with real file system + MCP plugin
+npm run tauri:build  # Production build (no MCP)
 ```
 
 ## Core Concept
@@ -249,3 +250,43 @@ pipx install appicongen
 - `_capture` is the triage inbox within Personal workspace
 - **Single user**: No migration code or backward compatibility needed
 - All path strings must use `PATH_SEGMENTS.*` and `SPECIAL_DIRS.*` from `constants.ts`
+
+## MCP Plugin
+
+The `tauri-plugin-mcp` dependency uses a **local path** outside the repo. To make CI work, a no-op stub is committed at `tauri-plugin-mcp/`. It's behind a Cargo feature flag:
+
+- **`npm run tauri:dev`** → passes `--features mcp` → MCP enabled (stub or real plugin)
+- **`npm run tauri:build`** / CI → no `--features mcp` → MCP skipped, stub just satisfies Cargo resolution
+
+**For full MCP locally**, replace the stub with a symlink to the real plugin:
+```bash
+rm -rf tauri-plugin-mcp
+ln -s /Users/sascha/Development/tauri-plugin-mcp tauri-plugin-mcp
+```
+
+Key files: `src-tauri/Cargo.toml` (`[features]`), `src-tauri/src/lib.rs` (`#[cfg(feature = "mcp")]`)
+
+## CI/CD & Releases
+
+**Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds macOS app, uploads to public repo `v1lling/deskmd-releases`.
+
+**Release steps**:
+```bash
+# 1. Bump version in both files
+# tauri.conf.json → "version": "X.Y.Z"
+# package.json → "version": "X.Y.Z"
+# 2. Commit, tag, push
+git add src-tauri/tauri.conf.json package.json
+git commit -m "vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+# 3. CI builds (~7 min) → uploads .dmg + updater to deskmd-releases
+# 4. Running app detects update on next launch
+```
+
+**Auto-updater**: App checks `deskmd-releases/releases/latest/download/latest.json` on launch. Settings > General has manual check button. Signing key pair required (see GitHub Secrets).
+
+**GitHub Secrets** (on `v1lling/desk.md`):
+- `TAURI_SIGNING_PRIVATE_KEY` — Tauri signing private key
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — its password
+- `RELEASES_TOKEN` — PAT scoped to `deskmd-releases` with Contents: write

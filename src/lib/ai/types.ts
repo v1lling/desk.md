@@ -49,7 +49,7 @@ export interface AIEmail {
   body: string;
 }
 
-export interface AIRAGResult {
+export interface AIContextResult {
   docPath: string;
   title: string;
   content: string;
@@ -62,8 +62,8 @@ export interface AIContext {
   tasks?: AITask[];
   emails?: AIEmail[];
   custom?: Record<string, string>;
-  /** RAG search results for automatic context retrieval */
-  ragResults?: AIRAGResult[];
+  /** Auto-retrieved context results (from index or RAG strategy) */
+  contextResults?: AIContextResult[];
 }
 
 // =============================================================================

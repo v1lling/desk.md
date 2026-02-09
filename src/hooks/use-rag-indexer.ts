@@ -1,13 +1,19 @@
 /**
- * RAG Indexer
+ * RAG / Context Indexer
  *
- * Handles RAG indexing after document saves.
+ * Handles on-save indexing based on the active context strategy.
+ * - 'index': Updates content hash in the context index store (no AI call)
+ * - 'rag': Chunks and embeds the document (existing RAG flow)
+ * - 'none': Skips indexing
+ *
  * Called via onSaveComplete callback from useEditorSession.
  * Respects .aiignore exclusions.
  */
 
 import { useSettingsStore } from "@/stores/settings";
-import { useRAGStore } from "@/stores/rag";
+import { useContextStore } from "@/stores/context";
+import { useContextIndexStore } from "@/stores/context-index";
+import { hashContent } from "@/lib/rag/chunker";
 import * as rag from "@/lib/rag";
 import { hasProviderConfig } from "@/lib/rag/validation";
 import { getAIInclusion } from "@/lib/rag/aiignore";
@@ -43,25 +49,62 @@ export function cancelPendingIndex(path: string): void {
 }
 
 /**
- * Core indexing logic - actually performs the indexing.
+ * Core indexing logic - branches on context strategy.
  */
 async function performIndex(options: IndexDocOptions): Promise<void> {
   const { dataPath } = useSettingsStore.getState();
-  const {
-    autoIndexOnSave,
-    embeddingProvider,
-    ollamaUrl,
-    ollamaModel,
-    openaiApiKey,
-    voyageApiKey,
-  } = useRAGStore.getState();
+  const contextState = useContextStore.getState();
+  const { contextStrategy, autoIndexOnSave } = contextState;
 
   // Skip if auto-index disabled or not in Tauri
   if (!autoIndexOnSave || !isTauri() || !dataPath) {
     return;
   }
 
-  // Build settings early to validate provider config
+  // Skip if strategy is 'none'
+  if (contextStrategy === "none") {
+    return;
+  }
+
+  const { path, content, workspaceId, contentType, title } = options;
+
+  // Strategy: index — update content hash in context index store (no AI call)
+  if (contextStrategy === "index") {
+    try {
+      const isIncluded = await getAIInclusion(path, workspaceId);
+      if (!isIncluded) {
+        useContextIndexStore.getState().removeEntry(workspaceId, path);
+        return;
+      }
+
+      const contentHash = await hashContent(content);
+      const existingIndex = useContextIndexStore.getState().getIndex(workspaceId);
+      const existingEntry = existingIndex?.entries.find((e) => e.filePath === path);
+
+      if (existingEntry) {
+        // Update hash (summary stays stale until next Build Index)
+        useContextIndexStore.getState().updateEntry(workspaceId, {
+          ...existingEntry,
+          contentHash,
+          title,
+        });
+      }
+      // If no existing entry, it will be added on next Build Index
+    } catch (error) {
+      console.error("[context-index] Failed to update entry hash:", error);
+    }
+    return;
+  }
+
+  // Strategy: rag — existing embedding flow
+  const {
+    embeddingProvider,
+    ollamaUrl,
+    ollamaModel,
+    openaiApiKey,
+    voyageApiKey,
+  } = contextState;
+
   const settings: rag.EmbeddingSettings = {
     provider: embeddingProvider,
     ollamaUrl,
@@ -70,35 +113,20 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
     voyageApiKey: voyageApiKey || undefined,
   };
 
-  // Skip silently if provider is not properly configured
   if (!hasProviderConfig(settings)) {
     return;
   }
 
-  const { path, content, workspaceId, contentType, title } = options;
-
   try {
-    // Check if document is excluded via .aiignore
     const isIncluded = await getAIInclusion(path, workspaceId);
     if (!isIncluded) {
-      // Document is excluded - remove from index if it exists
       await rag.deleteDoc(dataPath, path);
       return;
     }
 
-    // Chunk the document
-    const chunks = await rag.chunkDocument(
-      content,
-      path,
-      workspaceId,
-      contentType,
-      title
-    );
-
-    // Index the chunks
+    const chunks = await rag.chunkDocument(content, path, workspaceId, contentType, title);
     await rag.indexChunks(dataPath, chunks, settings);
   } catch (error) {
-    // Silently fail - indexing shouldn't break the save flow
     console.error("[RAG] Failed to index document:", error);
   }
 }

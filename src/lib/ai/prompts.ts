@@ -81,11 +81,11 @@ export function formatContext(context: AIContext): string {
     sections.push(`## Emails\n${emailsText}`);
   }
 
-  if (context.ragResults && context.ragResults.length > 0) {
-    const ragText = context.ragResults
+  if (context.contextResults && context.contextResults.length > 0) {
+    const contextText = context.contextResults
       .map((r) => `### ${r.title} (${r.contentType})\n${r.content}`)
       .join('\n\n');
-    sections.push(`## Relevant Context (auto-retrieved)\n${ragText}`);
+    sections.push(`## Relevant Context (auto-retrieved)\n${contextText}`);
   }
 
   if (context.custom) {

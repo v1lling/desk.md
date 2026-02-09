@@ -2,34 +2,34 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { EmbeddingSettings } from "@/lib/rag/types";
 
+export type ContextStrategy = 'index' | 'rag' | 'none';
 export type EmbeddingProvider = 'auto' | 'ollama' | 'openai' | 'voyage';
 
-interface RAGSettings {
-  // Provider (user's choice)
-  embeddingProvider: EmbeddingProvider;
+interface ContextSettings {
+  // Strategy
+  contextStrategy: ContextStrategy;
 
-  // Ollama (local)
+  // Shared
+  showSourcesInChat: boolean;
+
+  // Index-specific
+  maxFilesPerQuery: number;
+
+  // RAG-specific
+  embeddingProvider: EmbeddingProvider;
   ollamaUrl: string;
   ollamaModel: string;
-
-  // OpenAI (cloud)
   openaiApiKey: string;
-
-  // Voyage (cloud)
   voyageApiKey: string;
-
-  // Retrieval
   retrievalCount: number;
-  /** Minimum similarity score (0-1) to include in results. Default 0.3 */
   scoreThreshold: number;
-
-  // Behavior
   autoIndexOnSave: boolean;
-  showSourcesInChat: boolean;
 }
 
-interface RAGState extends RAGSettings {
+interface ContextState extends ContextSettings {
   // Actions
+  setContextStrategy: (strategy: ContextStrategy) => void;
+  setMaxFilesPerQuery: (count: number) => void;
   setEmbeddingProvider: (provider: EmbeddingProvider) => void;
   setOllamaUrl: (url: string) => void;
   setOllamaModel: (model: string) => void;
@@ -42,25 +42,14 @@ interface RAGState extends RAGSettings {
   reset: () => void;
 
   // Helpers
-  /**
-   * Get current settings as EmbeddingSettings object
-   */
   getEmbeddingSettings: () => EmbeddingSettings;
-  /**
-   * Check if the current provider has valid configuration.
-   * For openai/voyage, checks if API key is set.
-   * For ollama, checks if URL is set.
-   * For auto, always returns true (will try available providers).
-   */
   isConfigured: () => boolean;
-  /**
-   * Get description of what's missing for the current provider.
-   * Returns null if fully configured.
-   */
   getConfigWarning: () => string | null;
 }
 
-const defaultSettings: RAGSettings = {
+const defaultSettings: ContextSettings = {
+  contextStrategy: 'index',
+  maxFilesPerQuery: 8,
   embeddingProvider: 'auto',
   ollamaUrl: 'http://localhost:11434',
   ollamaModel: 'nomic-embed-text',
@@ -72,11 +61,13 @@ const defaultSettings: RAGSettings = {
   showSourcesInChat: true,
 };
 
-export const useRAGStore = create<RAGState>()(
+export const useContextStore = create<ContextState>()(
   persist(
     (set, get) => ({
       ...defaultSettings,
 
+      setContextStrategy: (strategy) => set({ contextStrategy: strategy }),
+      setMaxFilesPerQuery: (count) => set({ maxFilesPerQuery: count }),
       setEmbeddingProvider: (provider) => set({ embeddingProvider: provider }),
       setOllamaUrl: (url) => set({ ollamaUrl: url }),
       setOllamaModel: (model) => set({ ollamaModel: model }),
@@ -109,7 +100,6 @@ export const useRAGStore = create<RAGState>()(
           case "voyage":
             return !!state.voyageApiKey?.trim();
           case "auto":
-            // Auto mode can always try (Ollama might be available)
             return true;
           default:
             return false;
@@ -130,7 +120,6 @@ export const useRAGStore = create<RAGState>()(
             }
             break;
           case "auto":
-            // Auto mode: warn if no cloud fallback configured
             if (!state.openaiApiKey?.trim() && !state.voyageApiKey?.trim()) {
               return "No cloud API keys configured (will only work if Ollama is running)";
             }
@@ -140,8 +129,10 @@ export const useRAGStore = create<RAGState>()(
       },
     }),
     {
-      name: "desk-rag-settings",
+      name: "desk-rag-settings", // Keep same key for backward compatibility
       partialize: (state) => ({
+        contextStrategy: state.contextStrategy,
+        maxFilesPerQuery: state.maxFilesPerQuery,
         embeddingProvider: state.embeddingProvider,
         ollamaUrl: state.ollamaUrl,
         ollamaModel: state.ollamaModel,

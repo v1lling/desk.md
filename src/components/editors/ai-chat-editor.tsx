@@ -1,36 +1,22 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Trash2, MessageSquare, FolderOpen, X } from "lucide-react";
+import { Send, Trash2, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ChatMessage } from "@/components/ai/chat-message";
 import { SourcesDisplay } from "@/components/ai/sources-display";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
-import { useSettingsStore } from "@/stores/settings";
-import { useProjects } from "@/stores/projects";
-import { useWorkspace } from "@/stores/workspaces";
-import type { QueryContext } from "@/lib/rag/query-preprocessor";
 
 interface AIChatEditorProps {
   onClose: () => void;
 }
 
-const ALL_CONTENT = "__all__";
-
 export function AIChatEditor({ onClose }: AIChatEditorProps) {
   const [input, setInput] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_CONTENT);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -38,11 +24,6 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
   const { messages, clearMessages, pendingSources } = useAIChatStore();
   const sendMessage = useSendMessage();
   const { providerType, anthropicApiKey } = useAISettingsStore();
-
-  // Workspace and projects for context selector
-  const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
-  const { data: workspace } = useWorkspace(currentWorkspaceId);
-  const { data: projects } = useProjects(currentWorkspaceId);
 
   // Check if AI is properly configured
   const isConfigured = providerType === 'claude-code' ||
@@ -62,28 +43,9 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
     e.preventDefault();
     if (!input.trim() || sendMessage.isPending || !isConfigured) return;
 
-    // Build query context from selected project
-    const actualProjectId = selectedProjectId === ALL_CONTENT ? null : selectedProjectId;
-    const selectedProject = actualProjectId ? projects?.find((p) => p.id === actualProjectId) : null;
-    const queryContext: QueryContext | undefined =
-      actualProjectId && selectedProject
-        ? {
-            projectId: actualProjectId,
-            projectName: selectedProject.name,
-            workspaceId: currentWorkspaceId ?? undefined,
-            workspaceName: workspace?.name,
-          }
-        : currentWorkspaceId && workspace
-          ? {
-              workspaceId: currentWorkspaceId,
-              workspaceName: workspace.name,
-            }
-          : undefined;
-
     sendMessage.mutate({
       message: input.trim(),
       history: messages,
-      queryContext,
     });
 
     setInput("");
@@ -176,30 +138,7 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
 
       {/* Input area - fixed at bottom, centered */}
       <div className="border-t shrink-0">
-        <div className="max-w-2xl mx-auto px-6 py-4 space-y-2">
-          {/* Project context selector */}
-          {projects && projects.length > 0 && (
-            <div className="flex items-center gap-2">
-              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <Select
-                value={selectedProjectId}
-                onValueChange={setSelectedProjectId}
-              >
-                <SelectTrigger className="h-7 text-xs w-[200px]">
-                  <SelectValue placeholder="All content" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_CONTENT}>All content</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {/* Input form */}
+        <div className="max-w-2xl mx-auto px-6 py-4">
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
               ref={inputRef}
