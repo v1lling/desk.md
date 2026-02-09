@@ -36,6 +36,7 @@ import { useContextStore, type ContextStrategy, type EmbeddingProvider } from "@
 import { useContextIndexStore } from "@/stores/context-index";
 import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaces } from "@/stores";
+import { useAISettingsStore } from "@/stores/ai";
 import * as rag from "@/lib/rag";
 import type { IndexStatus, ReindexProgress } from "@/lib/rag";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
@@ -67,7 +68,7 @@ function formatRelativeTime(dateStr: string | null): string {
 const STRATEGY_INFO: Record<ContextStrategy, { label: string; description: string }> = {
   index: {
     label: "Smart Index",
-    description: "AI picks relevant files from a catalog of summaries. Works out of the box, no external setup needed.",
+    description: "AI picks relevant files from a catalog of summaries. Requires AI provider configuration.",
   },
   rag: {
     label: "Embeddings",
@@ -79,11 +80,30 @@ const STRATEGY_INFO: Record<ContextStrategy, { label: string; description: strin
   },
 };
 
+/**
+ * Check if AI provider is configured for Smart Index.
+ * Claude Code CLI works without API key, Anthropic API requires key.
+ */
+function isAIProviderConfigured(): boolean {
+  const { providerType, anthropicApiKey } = useAISettingsStore.getState();
+
+  if (providerType === "claude-code") {
+    return true; // CLI doesn't need API key
+  }
+
+  if (providerType === "anthropic-api") {
+    return !!anthropicApiKey?.trim();
+  }
+
+  return false;
+}
+
 export function ContextTab() {
   const { dataPath } = useSettingsStore();
   const {
     contextStrategy,
     maxFilesPerQuery,
+    autoSummarizeOnSave,
     embeddingProvider,
     ollamaUrl,
     ollamaModel,
@@ -95,6 +115,7 @@ export function ContextTab() {
     showSourcesInChat,
     setContextStrategy,
     setMaxFilesPerQuery,
+    setAutoSummarizeOnSave,
     setEmbeddingProvider,
     setOllamaUrl,
     setOllamaModel,
@@ -156,6 +177,10 @@ export function ContextTab() {
     fetchRagStatus();
   }, [fetchRagStatus]);
 
+  // Check AI provider configuration
+  const aiProviderConfigured = isAIProviderConfigured();
+  const showAIProviderWarning = contextStrategy === "index" && !aiProviderConfigured;
+
   // ── Smart Index handlers ──────────────────────────────────────────────
 
   const handleBuildIndex = async () => {
@@ -164,6 +189,8 @@ export function ContextTab() {
     setIndexResult(null);
 
     try {
+      let accumulatedResult: BuildIndexResult | null = null;
+
       for (const workspace of workspaces) {
         const existingIndex = indexes[workspace.id];
         const { index, result } = await buildWorkspaceIndex(
@@ -173,19 +200,26 @@ export function ContextTab() {
           setIndexProgress
         );
         setIndex(workspace.id, index);
-        setIndexResult((prev) => {
-          if (!prev) return result;
-          return {
-            totalFiles: prev.totalFiles + result.totalFiles,
-            summarized: prev.summarized + result.summarized,
-            reused: prev.reused + result.reused,
-            excluded: prev.excluded + result.excluded,
-            errors: [...prev.errors, ...result.errors],
+
+        // Accumulate results locally
+        if (!accumulatedResult) {
+          accumulatedResult = result;
+        } else {
+          accumulatedResult = {
+            totalFiles: accumulatedResult.totalFiles + result.totalFiles,
+            summarized: accumulatedResult.summarized + result.summarized,
+            reused: accumulatedResult.reused + result.reused,
+            excluded: accumulatedResult.excluded + result.excluded,
+            errors: [...accumulatedResult.errors, ...result.errors],
           };
-        });
+        }
       }
 
-      toast.success(`Index built: ${totalIndexFiles} files across ${workspaces.length} workspaces`);
+      // Update state with final result
+      if (accumulatedResult) {
+        setIndexResult(accumulatedResult);
+        toast.success(`Index built: ${accumulatedResult.totalFiles} files across ${workspaces.length} workspaces`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast.error(`Index build failed: ${message}`);
@@ -347,6 +381,18 @@ export function ContextTab() {
             </p>
           </div>
 
+          {showAIProviderWarning && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">AI Provider Not Configured</p>
+                <p className="text-sm text-destructive/90">
+                  Smart Index requires an AI provider. Go to Settings → AI to configure Claude Code CLI or Anthropic API.
+                </p>
+              </div>
+            </div>
+          )}
+
           <Separator />
 
           <div className="flex items-center justify-between">
@@ -397,7 +443,8 @@ export function ContextTab() {
                   <Button
                     variant="outline"
                     onClick={handleBuildIndex}
-                    disabled={isBuilding}
+                    disabled={isBuilding || !aiProviderConfigured}
+                    title={!aiProviderConfigured ? "Configure AI provider first" : undefined}
                   >
                     {isBuilding ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -485,6 +532,24 @@ export function ContextTab() {
                     <SelectItem value="12">12</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Auto-summarize on save</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically update summaries when files change (runs in background)
+                  </p>
+                </div>
+                <Switch
+                  checked={autoSummarizeOnSave}
+                  onCheckedChange={(checked) => {
+                    setAutoSummarizeOnSave(checked);
+                    toast.success(checked ? "Auto-summarize enabled" : "Auto-summarize disabled");
+                  }}
+                />
               </div>
             </CardContent>
           </Card>

@@ -48,20 +48,19 @@ Rules:
     // Try JSON.parse first
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      const paths: unknown[] = JSON.parse(jsonMatch[0]);
-      const validPaths = paths
-        .filter((p): p is string => typeof p === "string" && knownPaths.has(p))
-        .slice(0, options.maxFiles);
-      return validPaths;
+      try {
+        const paths: unknown[] = JSON.parse(jsonMatch[0]);
+        const validPaths = paths
+          .filter((p): p is string => typeof p === "string" && knownPaths.has(p))
+          .slice(0, options.maxFiles);
+        return validPaths;
+      } catch {
+        console.warn("[context-index] JSON parse failed, trying text extraction fallback");
+      }
     }
-  } catch (error) {
-    console.warn("[context-index] File selection AI call failed:", error);
-  }
 
-  // Fallback: try to extract paths from response text
-  try {
-    const response = await options.aiService.custom(systemPrompt, message);
-    const lines = response.message.split("\n");
+    // Fallback: try to extract paths from response text line by line
+    const lines = text.split("\n");
     const foundPaths: string[] = [];
     for (const line of lines) {
       const cleaned = line.replace(/^[\s\-*"\d.]+/, "").replace(/[",\s]+$/, "").trim();
@@ -70,8 +69,9 @@ Rules:
       }
     }
     return foundPaths.slice(0, options.maxFiles);
-  } catch {
-    // Complete failure - return empty
+  } catch (error) {
+    // AI call failed - return empty
+    console.warn("[context-index] File selection AI call failed:", error);
     return [];
   }
 }

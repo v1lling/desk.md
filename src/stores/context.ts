@@ -14,6 +14,7 @@ interface ContextSettings {
 
   // Index-specific
   maxFilesPerQuery: number;
+  autoSummarizeOnSave: boolean;
 
   // RAG-specific
   embeddingProvider: EmbeddingProvider;
@@ -30,6 +31,7 @@ interface ContextState extends ContextSettings {
   // Actions
   setContextStrategy: (strategy: ContextStrategy) => void;
   setMaxFilesPerQuery: (count: number) => void;
+  setAutoSummarizeOnSave: (enabled: boolean) => void;
   setEmbeddingProvider: (provider: EmbeddingProvider) => void;
   setOllamaUrl: (url: string) => void;
   setOllamaModel: (model: string) => void;
@@ -50,6 +52,7 @@ interface ContextState extends ContextSettings {
 const defaultSettings: ContextSettings = {
   contextStrategy: 'index',
   maxFilesPerQuery: 8,
+  autoSummarizeOnSave: true,
   embeddingProvider: 'auto',
   ollamaUrl: 'http://localhost:11434',
   ollamaModel: 'nomic-embed-text',
@@ -68,6 +71,7 @@ export const useContextStore = create<ContextState>()(
 
       setContextStrategy: (strategy) => set({ contextStrategy: strategy }),
       setMaxFilesPerQuery: (count) => set({ maxFilesPerQuery: count }),
+      setAutoSummarizeOnSave: (enabled) => set({ autoSummarizeOnSave: enabled }),
       setEmbeddingProvider: (provider) => set({ embeddingProvider: provider }),
       setOllamaUrl: (url) => set({ ollamaUrl: url }),
       setOllamaModel: (model) => set({ ollamaModel: model }),
@@ -133,6 +137,7 @@ export const useContextStore = create<ContextState>()(
       partialize: (state) => ({
         contextStrategy: state.contextStrategy,
         maxFilesPerQuery: state.maxFilesPerQuery,
+        autoSummarizeOnSave: state.autoSummarizeOnSave,
         embeddingProvider: state.embeddingProvider,
         ollamaUrl: state.ollamaUrl,
         ollamaModel: state.ollamaModel,

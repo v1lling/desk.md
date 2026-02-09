@@ -68,7 +68,7 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
 
   const { path, content, workspaceId, contentType, title } = options;
 
-  // Strategy: index — update content hash in context index store (no AI call)
+  // Strategy: index — update content hash and optionally re-summarize
   if (contextStrategy === "index") {
     try {
       const isIncluded = await getAIInclusion(path, workspaceId);
@@ -82,16 +82,54 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
       const existingEntry = existingIndex?.entries.find((e) => e.filePath === path);
 
       if (existingEntry) {
-        // Update hash (summary stays stale until next Build Index)
-        useContextIndexStore.getState().updateEntry(workspaceId, {
-          ...existingEntry,
-          contentHash,
-          title,
-        });
+        const hashChanged = existingEntry.contentHash !== contentHash;
+
+        // If auto-summarize is enabled and content changed, generate new summary
+        if (contextState.autoSummarizeOnSave && hashChanged) {
+          try {
+            const { createAIService } = await import("@/lib/ai/service");
+            const { extractBody } = await import("@/lib/rag/chunker");
+            const { useAISettingsStore } = await import("@/stores/ai");
+
+            const aiSettings = useAISettingsStore.getState();
+            const service = createAIService({
+              providerType: aiSettings.providerType,
+              apiKey: aiSettings.providerType === "anthropic-api" ? aiSettings.anthropicApiKey : undefined,
+            });
+
+            const body = extractBody(content);
+            const preview = body.slice(0, 500);
+            const systemPrompt = "Summarize this document in 1-2 sentences. Focus on what information it contains. Return ONLY the summary text, no other formatting.";
+            const response = await service.custom(systemPrompt, `Title: ${title}\nType: ${contentType}\n\n${preview}`);
+            const summary = response.message.trim();
+
+            useContextIndexStore.getState().updateEntry(workspaceId, {
+              ...existingEntry,
+              contentHash,
+              title,
+              summary,
+            });
+          } catch (error) {
+            console.warn("[context-index] Failed to generate summary, keeping old one:", error);
+            // Fallback: just update hash and title
+            useContextIndexStore.getState().updateEntry(workspaceId, {
+              ...existingEntry,
+              contentHash,
+              title,
+            });
+          }
+        } else {
+          // Just update hash and title (summary stays unchanged)
+          useContextIndexStore.getState().updateEntry(workspaceId, {
+            ...existingEntry,
+            contentHash,
+            title,
+          });
+        }
       }
       // If no existing entry, it will be added on next Build Index
     } catch (error) {
-      console.error("[context-index] Failed to update entry hash:", error);
+      console.error("[context-index] Failed to update entry:", error);
     }
     return;
   }
