@@ -52,32 +52,54 @@ jobs:
 
       - name: Prepare release artifacts
         run: |
+          echo "=== DEBUG: Listing all bundle files ==="
+          find src-tauri/target/release/bundle -type f 2>/dev/null || true
+          echo ""
+
+          echo "=== DEBUG: Checking for specific file types ==="
+          echo "DMG files:"
+          find src-tauri/target/release/bundle -name "*.dmg" 2>/dev/null || echo "  (none found)"
+          echo "TAR.GZ files:"
+          find src-tauri/target/release/bundle -name "*.tar.gz" 2>/dev/null || echo "  (none found)"
+          echo "SIG files:"
+          find src-tauri/target/release/bundle -name "*.sig" 2>/dev/null || echo "  (none found)"
+          echo ""
+
           # Find the built artifacts
           DMG=$(find src-tauri/target/release/bundle -name "*.dmg" | head -1)
           UPDATER=$(find src-tauri/target/release/bundle -name "*.tar.gz" | head -1)
+          SIG_FILE=$(find src-tauri/target/release/bundle -name "*.tar.gz.sig" | head -1)
 
           if [ -z "$DMG" ] || [ -z "$UPDATER" ]; then
-            echo "Missing artifacts!"
-            find src-tauri/target/release/bundle -type f 2>/dev/null || true
+            echo "ERROR: Missing core artifacts (DMG or TAR.GZ)!"
             exit 1
           fi
 
           cp "$DMG" "Desk_${VERSION}_aarch64.dmg"
           cp "$UPDATER" "Desk.app.tar.gz"
+          echo "Copied DMG: $DMG"
+          echo "Copied updater: $UPDATER"
 
-          # Get signature from tauri-action output
-          ARTIFACTS='${{ steps.tauri-build.outputs.artifactPaths }}'
-          echo "Tauri artifacts: $ARTIFACTS"
-
-          # Find .sig file from action output or generate latest.json from tar.gz signature
-          SIG_FILE=$(find src-tauri/target/release/bundle -name "*.sig" | head -1)
-          if [ -n "$SIG_FILE" ]; then
-            SIG_CONTENT=$(cat "$SIG_FILE")
-          else
-            echo "No .sig file found, checking for inline signature..."
-            # tauri-action may embed signature in its outputs
-            SIG_CONTENT=""
+          # Extract signature from .sig file
+          if [ -z "$SIG_FILE" ]; then
+            echo "ERROR: No signature file found!"
+            echo "This likely means:"
+            echo "  1. TAURI_SIGNING_PRIVATE_KEY is not set correctly"
+            echo "  2. 'updater' target is not in bundle.targets"
+            echo "  3. Tauri version doesn't auto-generate signatures"
+            exit 1
           fi
+
+          echo "Found signature file: $SIG_FILE"
+          SIG_CONTENT=$(cat "$SIG_FILE")
+
+          if [ -z "$SIG_CONTENT" ]; then
+            echo "ERROR: Signature file is empty!"
+            exit 1
+          fi
+
+          echo "Signature length: ${#SIG_CONTENT} chars"
+          echo "Signature (first 50 chars): ${SIG_CONTENT:0:50}..."
 
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           URL="https://github.com/v1lling/deskmd-releases/releases/download/v${VERSION}/Desk.app.tar.gz"
