@@ -246,47 +246,7 @@ Private tasks, docs, and projects.
     await writeTextFile(personalWorkspacePath, personalContent);
   }
 
-  // Create config if it doesn't exist
-  const configPath = await joinPath(deskPath, "config.json");
-  if (!(await exists(configPath))) {
-    const defaultConfig = {
-      currentWorkspaceId: SPECIAL_DIRS.PERSONAL, // Default to Personal workspace
-      theme: "system",
-      sidebarCollapsed: false,
-      setupCompleted: false,
-    };
-    await writeTextFile(configPath, JSON.stringify(defaultConfig, null, 2));
-  }
 }
 
 // Alias for backwards compatibility during migration
 export const initOrbitDirectory = initDeskDirectory;
-
-/**
- * Read the Desk config file
- */
-export async function readConfig(): Promise<Record<string, unknown>> {
-  const deskPath = await getDeskPath();
-  const configPath = await joinPath(deskPath, "config.json");
-
-  try {
-    const content = await readTextFile(configPath);
-    return JSON.parse(content);
-  } catch {
-    return {
-      currentWorkspaceId: null,
-      theme: "system",
-      sidebarCollapsed: false,
-      setupCompleted: false,
-    };
-  }
-}
-
-/**
- * Write the Desk config file
- */
-export async function writeConfig(config: Record<string, unknown>): Promise<void> {
-  const deskPath = await getDeskPath();
-  const configPath = await joinPath(deskPath, "config.json");
-  await writeTextFile(configPath, JSON.stringify(config, null, 2));
-}

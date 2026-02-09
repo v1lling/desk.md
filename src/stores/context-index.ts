@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WorkspaceIndex, IndexEntry } from "@/lib/context-index/types";
+import { createContextIndexStorage } from "./file-storage";
 
 interface ContextIndexState {
   indexes: Record<string, WorkspaceIndex>;
@@ -80,6 +81,7 @@ export const useContextIndexStore = create<ContextIndexState>()(
     }),
     {
       name: "desk-context-index",
+      storage: createContextIndexStorage(),
     }
   )
 );

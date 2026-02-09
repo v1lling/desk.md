@@ -138,7 +138,7 @@ pub async fn rag_init_db(data_path: String, provider: String) -> Result<(), Stri
 /// Get index status
 #[tauri::command]
 pub async fn rag_get_status(data_path: String) -> Result<IndexStatus, String> {
-    let index_dir = Path::new(&data_path).join(".index");
+    let index_dir = Path::new(&data_path).join(".desk").join("rag");
     let db_path = index_dir.join("vectors.db");
 
     // If database doesn't exist, return empty status
@@ -399,7 +399,7 @@ pub async fn rag_search(
     }
     validate_settings(&settings)?;
 
-    let index_dir = Path::new(&data_path).join(".index");
+    let index_dir = Path::new(&data_path).join(".desk").join("rag");
     let db_path = index_dir.join("vectors.db");
 
     if !db_path.exists() {

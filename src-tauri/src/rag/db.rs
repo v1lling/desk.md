@@ -49,7 +49,7 @@ pub struct IndexMeta {
 pub fn open_db(data_path: &str) -> SqliteResult<Connection> {
     init_sqlite_vec();
 
-    let index_dir = Path::new(data_path).join(".index");
+    let index_dir = Path::new(data_path).join(".desk").join("rag");
     std::fs::create_dir_all(&index_dir).map_err(|e| {
         rusqlite::Error::InvalidPath(index_dir.join(format!("create_dir failed: {}", e)))
     })?;

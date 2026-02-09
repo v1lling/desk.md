@@ -31,7 +31,6 @@
  * │           ├── tasks/
  * │           ├── docs/
  * │           └── meetings/
- * └── config.json
  */
 
 import type { ContentScope } from "@/types";

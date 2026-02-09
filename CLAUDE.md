@@ -185,6 +185,43 @@ Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "File System Integration" for full details.
 
+### Metadata File Conventions
+
+All app metadata lives in `~/DeskMD/.desk/` for organization and consistency:
+
+**Directory Structure:**
+```
+~/DeskMD/
+├── .desk/                   ← All app metadata
+│   ├── index/
+│   │   └── indexes.json     ← Smart Index (all workspaces in one file)
+│   └── rag/
+│       └── vectors.db       ← RAG vector database (SQLite)
+└── workspaces/
+    └── {workspaceId}/
+        ├── .aiignore        ← Per-workspace AI exclusions (.gitignore syntax)
+        └── .view.json       ← Per-workspace view state (UI preferences)
+```
+
+**Rules:**
+- **App-level metadata** → `.desk/` subdirectories (indexes, databases)
+- **Workspace-specific config** → Root of workspace directory (`.aiignore`, `.view.json`)
+- **User content** → Regular `.md` files with YAML frontmatter
+- **Naming**: Use `.desk/` for app metadata, dot-prefix (`.aiignore`) for hidden config
+- **Format**: JSON for structured data, plain text for lists/exclusions
+
+**Storage Strategy:**
+| Data Type | Storage | Reason |
+|-----------|---------|--------|
+| User Content | Filesystem | Must backup, sync, persist |
+| Derived Indexes | Filesystem (`.desk/`) | Expensive to rebuild, should sync |
+| App Settings | localStorage | Small, app-specific, no sync needed |
+| Secrets | **TODO: Keychain** | Security (currently localStorage, needs encryption) |
+| Session State | localStorage | UI-only, OK to lose |
+| View Preferences | Filesystem (`.view.json`) | Per-workspace/project UI state |
+
+**No Backwards Compatibility:** Single user, no migration code needed. Just delete and rebuild.
+
 ### Form Components
 
 For modal forms, use these instead of raw `<div className="space-y-2"><Label>`:

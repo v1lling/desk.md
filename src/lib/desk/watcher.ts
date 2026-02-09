@@ -194,9 +194,8 @@ export function isWatcherActive(): boolean {
  * Utility: Extract item type from path
  * e.g., "/Users/x/Desk/workspaces/foo/projects/bar/tasks/baz.md" → "task"
  */
-export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | "project" | "workspace" | "config" | "view" | "unknown" {
+export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | "project" | "workspace" | "view" | "unknown" {
   if (path.endsWith(".view.json")) return "view";
-  if (path.endsWith("config.json")) return "config";
   if (path.includes("/tasks/")) return "task";
   if (path.includes("/docs/")) return "doc";
   if (path.includes("/meetings/")) return "meeting";
