@@ -27,14 +27,35 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         const dirPath = await joinPath(deskPath, ".desk", subdirectory);
         const filePath = await joinPath(dirPath, filename);
 
-        if (!(await exists(filePath))) {
-          return null;
+        // Try to read from filesystem
+        if (await exists(filePath)) {
+          const content = await readTextFile(filePath);
+          console.log(`[file-storage] Read from ${subdirectory}/${filename}`);
+          return content ? JSON.parse(content) : null;
         }
 
-        const content = await readTextFile(filePath);
-        return content ? JSON.parse(content) : null;
+        // Migrate from localStorage if file doesn't exist
+        const localStorageData = localStorage.getItem(name);
+        if (localStorageData) {
+          console.log(`[file-storage] Migrating ${name} from localStorage to filesystem`);
+          const parsed = JSON.parse(localStorageData);
+
+          // Write to filesystem
+          if (!(await exists(dirPath))) {
+            await mkdir(dirPath, { recursive: true });
+          }
+          await writeTextFile(filePath, localStorageData);
+
+          // Clear localStorage after successful migration
+          localStorage.removeItem(name);
+          console.log(`[file-storage] Migration complete, removed from localStorage`);
+
+          return parsed;
+        }
+
+        return null;
       } catch (error) {
-        console.warn(`[file-storage] Failed to read ${subdirectory}/${filename}:`, error);
+        console.error(`[file-storage] Failed to read ${subdirectory}/${filename}:`, error);
         return null;
       }
     },
@@ -53,12 +74,15 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         // Ensure directory exists
         if (!(await exists(dirPath))) {
           await mkdir(dirPath, { recursive: true });
+          console.log(`[file-storage] Created directory: ${dirPath}`);
         }
 
         const filePath = await joinPath(dirPath, filename);
-        await writeTextFile(filePath, JSON.stringify(value));
+        await writeTextFile(filePath, JSON.stringify(value, null, 2));
+        console.log(`[file-storage] Wrote to ${subdirectory}/${filename}`);
       } catch (error) {
         console.error(`[file-storage] Failed to write ${subdirectory}/${filename}:`, error);
+        throw error; // Re-throw so we know if writes are failing
       }
     },
 
