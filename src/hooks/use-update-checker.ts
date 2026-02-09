@@ -24,9 +24,15 @@ export function useUpdateChecker() {
 
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
+      console.log("[Update] Checking for updates...");
       const update = await check();
 
       if (update) {
+        console.log("[Update] Update available:", {
+          version: update.version,
+          date: update.date,
+          currentVersion: update.currentVersion,
+        });
         updateRef.current = update;
         setUpdateInfo({
           version: update.version,
@@ -35,11 +41,13 @@ export function useUpdateChecker() {
         setStatus("available");
         return true;
       } else {
+        console.log("[Update] No updates available");
         setStatus("idle");
         return false;
       }
     } catch (err) {
       console.error("[Update] Check failed:", err);
+      console.error("[Update] Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
       // Only show error in UI when manually triggered
       if (manual) {
         setError(err instanceof Error ? err.message : "Update check failed");
@@ -59,12 +67,27 @@ export function useUpdateChecker() {
     setError(null);
 
     try {
+      console.log("[Update] Starting download and install...");
+      console.log("[Update] Update details:", {
+        version: update.version,
+        date: update.date,
+        currentVersion: update.currentVersion,
+      });
+
       await update.downloadAndInstall();
+
+      console.log("[Update] Download and install completed, relaunching...");
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
     } catch (err) {
       console.error("[Update] Install failed:", err);
-      setError(err instanceof Error ? err.message : "Update install failed");
+      console.error("[Update] Error type:", typeof err);
+      console.error("[Update] Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("[Update] Error message:", errorMessage);
+
+      setError(errorMessage || "Update install failed");
       setStatus("error");
     }
   }, []);
