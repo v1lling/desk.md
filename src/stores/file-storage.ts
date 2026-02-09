@@ -6,14 +6,14 @@
 import { getDeskPath, joinPath } from "@/lib/desk/tauri-fs";
 import { readTextFile, writeTextFile, exists, mkdir } from "@tauri-apps/plugin-fs";
 import { isTauri } from "@/lib/desk";
-import type { StateStorage } from "zustand/middleware";
+import type { PersistStorage } from "zustand/middleware";
 
 /**
  * Create a filesystem-based storage for Zustand persist middleware
  * @param subdirectory - Subdirectory under .desk/ (e.g., "index")
  * @param filename - Filename (e.g., "{workspaceId}.json" or "data.json")
  */
-export function createFileStorage(subdirectory: string, filename: string): StateStorage {
+export function createFileStorage<T>(subdirectory: string, filename: string): PersistStorage<T> {
   return {
     getItem: async (name: string): Promise<string | null> => {
       if (!isTauri()) {
@@ -77,6 +77,6 @@ export function createFileStorage(subdirectory: string, filename: string): State
  * Create filesystem storage for context indexes
  * Stores all workspace indexes in a single file: .desk/index/indexes.json
  */
-export function createContextIndexStorage(): StateStorage {
-  return createFileStorage("index", "indexes.json");
+export function createContextIndexStorage<T>(): PersistStorage<T> {
+  return createFileStorage<T>("index", "indexes.json");
 }
