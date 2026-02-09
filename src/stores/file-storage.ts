@@ -15,10 +15,11 @@ import type { PersistStorage } from "zustand/middleware";
  */
 export function createFileStorage<T>(subdirectory: string, filename: string): PersistStorage<T> {
   return {
-    getItem: async (name: string): Promise<string | null> => {
+    getItem: async (name: string) => {
       if (!isTauri()) {
         // Fallback to localStorage in browser mode
-        return localStorage.getItem(name);
+        const str = localStorage.getItem(name);
+        return str ? JSON.parse(str) : null;
       }
 
       try {
@@ -31,17 +32,17 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         }
 
         const content = await readTextFile(filePath);
-        return content;
+        return content ? JSON.parse(content) : null;
       } catch (error) {
         console.warn(`[file-storage] Failed to read ${subdirectory}/${filename}:`, error);
         return null;
       }
     },
 
-    setItem: async (name: string, value: string): Promise<void> => {
+    setItem: async (name: string, value) => {
       if (!isTauri()) {
         // Fallback to localStorage in browser mode
-        localStorage.setItem(name, value);
+        localStorage.setItem(name, JSON.stringify(value));
         return;
       }
 
@@ -55,13 +56,13 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         }
 
         const filePath = await joinPath(dirPath, filename);
-        await writeTextFile(filePath, value);
+        await writeTextFile(filePath, JSON.stringify(value));
       } catch (error) {
         console.error(`[file-storage] Failed to write ${subdirectory}/${filename}:`, error);
       }
     },
 
-    removeItem: async (name: string): Promise<void> => {
+    removeItem: async (name: string) => {
       if (!isTauri()) {
         localStorage.removeItem(name);
         return;
