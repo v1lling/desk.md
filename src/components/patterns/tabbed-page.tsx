@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export interface TabConfig {
   value: string;
@@ -22,7 +24,7 @@ interface TabbedPageProps {
 
 /**
  * Reusable component for tab-based pages.
- * Combines tabs + per-tab actions in one row.
+ * Underline-style navigation tabs with optional per-tab actions.
  *
  * Usage:
  * ```tsx
@@ -61,14 +63,19 @@ export function TabbedPage({
       onValueChange={handleTabChange}
       className="flex-1 flex flex-col min-h-0 overflow-hidden"
     >
-      {/* Combined tabs + actions row */}
-      <div className="px-4 py-1.5 flex items-center justify-between border-b">
-        <TabsList className="h-8 w-auto">
+      {/* Underline-style tab nav row */}
+      <div className="px-4 flex items-center justify-between border-b">
+        <TabsPrimitive.List className="flex items-center gap-1">
           {tabs.map((tab) => (
-            <TabsTrigger
+            <TabsPrimitive.Trigger
               key={tab.value}
               value={tab.value}
-              className="gap-1.5 text-xs"
+              className={cn(
+                "relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium",
+                "text-muted-foreground hover:text-foreground transition-colors",
+                "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm",
+                "data-[state=active]:text-foreground",
+              )}
             >
               {tab.icon}
               {tab.label}
@@ -80,9 +87,17 @@ export function TabbedPage({
                   {tab.badge}
                 </Badge>
               )}
-            </TabsTrigger>
+              {/* Active underline indicator */}
+              <span
+                className={cn(
+                  "absolute bottom-0 left-2 right-2 h-[2px] rounded-full",
+                  "bg-transparent data-[active=true]:bg-foreground transition-colors",
+                )}
+                data-active={tab.value === activeTab}
+              />
+            </TabsPrimitive.Trigger>
           ))}
-        </TabsList>
+        </TabsPrimitive.List>
 
         {/* Actions for current tab */}
         {currentActions && (
