@@ -333,7 +333,19 @@ git push origin main --tags
 
 **Auto-updater**: App checks `deskmd-releases/releases/latest/download/latest.json` on launch. Settings > General has manual check button. Signing key pair required (see GitHub Secrets).
 
+**GitHub CLI**: Use `gh` for issues, PRs, releases (authenticated, see `~/CLAUDE.md`).
+
 **GitHub Secrets** (on `v1lling/desk.md`):
 - `TAURI_SIGNING_PRIVATE_KEY` — Tauri signing private key
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — its password
 - `RELEASES_TOKEN` — PAT scoped to `deskmd-releases` with Contents: write
+
+## Headless / Automated Runs
+
+When running headless (via `claude-auto` or any non-interactive pipeline):
+
+- **Never deploy** — only create branches and PRs to `main`
+- **Always build** — run `npm run build` before committing to verify nothing is broken
+- **Always create PRs** — never push directly to `main`
+- **Commit as v1lling only** — `v1lling <sascha.villing@web.de>`, no Co-Authored-By lines
+- **One issue per run** — keep changes focused and reviewable
