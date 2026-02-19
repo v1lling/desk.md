@@ -17,7 +17,7 @@ import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
 import { getProjectPath, getMeetingsPath, getProjectsPath, getUnassignedPath } from "./paths";
 import { findItemInAllWorkspaces } from "./search";
-import { getFileTreeService } from "./file-cache";
+import { getFileTreeService, getContentCache } from "./file-cache";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { publishDeleted } from "@/stores/editor-event-bus";
 
@@ -210,6 +210,9 @@ export async function createMeeting(data: {
   const fileContent = serializeMarkdown(frontmatter, meeting.content);
   await writeTextFile(filePath, fileContent);
 
+  // Invalidate file-tree cache so list views see the new file immediately
+  getContentCache().invalidate(filePath);
+
   return meeting;
 }
 
@@ -247,8 +250,11 @@ export async function updateMeeting(
           const content = await readTextFile(filePath);
           const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
 
+          // Normalize dates from gray-matter (may be Date objects) to YYYY-MM-DD strings
           const updatedData: MeetingFrontmatter = {
             ...data,
+            date: normalizeDate(data.date),
+            created: normalizeDate(data.created),
             ...(updates.title && { title: updates.title }),
             ...(updates.date && { date: updates.date }),
             ...(updates.attendees !== undefined && { attendees: updates.attendees }),
@@ -257,6 +263,9 @@ export async function updateMeeting(
           const updatedContent = updates.content !== undefined ? updates.content : body;
           const fileContent = serializeMarkdown(updatedData, updatedContent);
           await writeTextFile(filePath, fileContent);
+
+          // Invalidate file-tree cache so list views see updated data immediately
+          getContentCache().invalidate(filePath);
 
           // Notify registry if file is open (prevents false "external change" detection)
           const registry = useOpenEditorRegistry.getState();
@@ -271,7 +280,7 @@ export async function updateMeeting(
             filePath,
             title: updatedData.title,
             date: updatedData.date,
-            created: normalizeDate(data.created),
+            created: updatedData.created,
             attendees: updatedData.attendees,
             content: updatedContent,
             preview: generatePreview(updatedContent),
@@ -290,8 +299,11 @@ export async function updateMeeting(
   const content = await readTextFile(meeting.filePath);
   const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
 
+  // Normalize dates from gray-matter (may be Date objects) to YYYY-MM-DD strings
   const updatedData: MeetingFrontmatter = {
     ...data,
+    date: normalizeDate(data.date),
+    created: normalizeDate(data.created),
     ...(updates.title && { title: updates.title }),
     ...(updates.date && { date: updates.date }),
     ...(updates.attendees !== undefined && { attendees: updates.attendees }),
@@ -301,6 +313,9 @@ export async function updateMeeting(
   const updatedContent = updates.content !== undefined ? updates.content : body;
   const fileContent = serializeMarkdown(updatedData, updatedContent);
   await writeTextFile(meeting.filePath, fileContent);
+
+  // Invalidate file-tree cache so list views see updated data immediately
+  getContentCache().invalidate(meeting.filePath);
 
   // Notify registry if file is open (prevents false "external change" detection)
   const registry = useOpenEditorRegistry.getState();
