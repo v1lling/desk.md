@@ -54,6 +54,8 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/lib/desk/` | Core CRUD operations |
 | `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
+| `src/lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
+| `src/lib/rag/` | RAG/Embeddings: Vector-based context retrieval (alternative to Smart Index) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
 | `src/components/patterns/` | Page-level layout patterns |
@@ -72,9 +74,9 @@ Key features:
 - Personal as workspace (`_personal`) with capture inbox
 - Workspaces with color coding (Personal = indigo)
 - Projects inline in sidebar (alphabetically sorted)
-- Project detail with Tasks, Docs, Meetings tabs
+- Project detail with Overview, Tasks, Docs, Meetings tabs
 - **Docs**: Tree structure with folders, drag-drop import
-- **AI Chat**: Claude Code CLI or Anthropic API, with doc context
+- **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index or RAG)
 - Global search (Cmd+K)
 - Manual save with Cmd+S, unsaved changes protection
 
@@ -127,6 +129,25 @@ open "desk://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4
 ```
 
 **Flow:** Email opens in session-only tab → user links to project → AI drafts reply → copy to clipboard → return to Outlook → "Insert Reply from Desk" button opens threaded reply form
+
+## AI Context Strategies
+
+AI Chat and email drafts use context retrieval to find relevant docs. Users choose a strategy in Settings > Context:
+
+| Strategy | How It Works | Pros | Cons |
+|----------|-------------|------|------|
+| **Smart Index** | AI-summarized file catalog → AI selects relevant files → full content passed to AI | No embeddings needed, understands file structure | Requires AI call for file selection |
+| **Embeddings (RAG)** | Vector embeddings via Ollama/OpenAI/Voyage → KNN similarity search | Fast retrieval, proven approach | Requires embedding provider setup |
+| **None** | No automatic context | Fastest | No context awareness |
+
+**Key files:**
+| Directory | Purpose |
+|-----------|---------|
+| `src/stores/context.ts` | Context strategy settings (Zustand, persisted) |
+| `src/hooks/use-context-search.ts` | Unified search hook (branches on strategy) |
+| `src/lib/context-index/` | Smart Index: builder, selector, types |
+| `src/lib/rag/` | RAG: chunker, aiignore, reindex, validation |
+| `src/stores/context-index.ts` | Smart Index data store |
 
 ## UI Patterns
 
@@ -187,11 +208,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "File System Integration" f
 
 ### Metadata File Conventions
 
-All app metadata lives in `~/DeskMD/.desk/` for organization and consistency:
+All app metadata lives in `~/Desk/.desk/` for organization and consistency:
 
 **Directory Structure:**
 ```
-~/DeskMD/
+~/Desk/
 ├── .desk/                   ← All app metadata
 │   ├── index/
 │   │   └── indexes.json     ← Smart Index (all workspaces in one file)

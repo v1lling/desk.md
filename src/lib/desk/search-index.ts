@@ -214,6 +214,18 @@ export function isIndexReady(): boolean {
 }
 
 /**
+ * Find a specific item by type and id.
+ * Used for resolving internal note links (desk:// URIs).
+ */
+export function findByTypeAndId(
+  type: SearchItemType,
+  id: string
+): SearchItem | null {
+  if (!isInitialized) return null;
+  return items.find((i) => i.type === type && i.id === id) ?? null;
+}
+
+/**
  * Clear the index
  */
 export function clearIndex(): void {

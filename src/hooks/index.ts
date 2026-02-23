@@ -5,4 +5,5 @@ export { useEditorTab } from "./use-editor-tab";
 export { useSidebarResize } from "./use-sidebar-resize";
 export { useContextSearch } from "./use-context-search";
 export { useWindowClose } from "./use-window-close";
+export { useInternalLinkHandler } from "./use-internal-link-handler";
 export type { ContextSearchOptions, ContextSearchResult } from "./use-context-search";

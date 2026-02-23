@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler } from "@/hooks";
 import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
 import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
@@ -47,6 +47,8 @@ function FolderBreadcrumb({ path }: { path?: string }) {
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
+  const handleInternalLinkClick = useInternalLinkHandler();
+
   // Load doc metadata via TanStack Query
   const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, docId);
   const { data: projects = [] } = useProjects(workspaceId);
@@ -338,6 +340,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
                 onChange={setContent}
                 placeholder="Write your doc in markdown..."
                 minHeight="400px"
+                onInternalLinkClick={handleInternalLinkClick}
               />
             ) : (
               <div className="h-[400px] border rounded-lg flex items-center justify-center bg-muted/10">

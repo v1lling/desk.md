@@ -11,11 +11,14 @@ import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { Markdown } from "tiptap-markdown";
-import { useEffect, useCallback, useRef, MouseEvent } from "react";
+import { useState, useEffect, useCallback, useRef, MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { NoteLinkPicker } from "@/components/ui/note-link-picker";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
+import { parseNoteLinkHref, createNoteLinkHref, type NoteLink, type NoteLinkType } from "@/lib/desk/note-link";
+import type { SearchItemType } from "@/lib/desk/search-index";
 
 interface RichTextEditorProps {
   value: string;
@@ -23,6 +26,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  onInternalLinkClick?: (link: NoteLink) => void;
 }
 
 /**
@@ -40,7 +44,9 @@ export function RichTextEditor({
   placeholder = "Write something...",
   className,
   minHeight = "300px",
+  onInternalLinkClick,
 }: RichTextEditorProps) {
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
   // Track if we're currently syncing to avoid loops
   const isSyncing = useRef(false);
   // Track programmatic updates to prevent onChange from firing
@@ -149,26 +155,63 @@ export function RichTextEditor({
     }
   }, [value, editor]);
 
-  // Handle link clicks to open in browser
+  // Handle link clicks — internal note links or external URLs
   const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (target.tagName === 'A' && target.getAttribute('href')) {
       event.preventDefault();
-      const href = target.getAttribute('href');
-      if (href) {
-        if (isTauri()) {
-          openUrl(href);
-        } else {
-          window.open(href, '_blank', 'noopener,noreferrer');
-        }
+      const href = target.getAttribute('href')!;
+
+      // Internal note link (desk://type/id)
+      const noteLink = parseNoteLinkHref(href);
+      if (noteLink) {
+        onInternalLinkClick?.(noteLink);
+        return;
       }
+
+      // External URL
+      if (isTauri()) {
+        openUrl(href);
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
+    }
+  }, [onInternalLinkClick]);
+
+  // Handle keyboard shortcuts and prevent event bubbling
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    // Cmd+L: Open note link picker
+    if ((e.metaKey || e.ctrlKey) && e.key === "l") {
+      e.preventDefault();
+      setShowLinkPicker(true);
     }
   }, []);
 
-  // Prevent drag-drop events from bubbling up to the board
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    e.stopPropagation();
-  }, []);
+  // Insert a note link at cursor position
+  const handleNoteLinkSelect = useCallback(
+    (item: { type: SearchItemType; id: string; title: string }) => {
+      if (!editor) return;
+      const href = createNoteLinkHref(item.type as NoteLinkType, item.id);
+      const { from, to } = editor.state.selection;
+      const hasSelection = from !== to;
+
+      if (hasSelection) {
+        editor.chain().focus().setLink({ href }).run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "text",
+            text: item.title,
+            marks: [{ type: "link", attrs: { href } }],
+          })
+          .run();
+      }
+    },
+    [editor]
+  );
 
   if (!editor) {
     return null;
@@ -187,6 +230,11 @@ export function RichTextEditor({
           <EditorContent editor={editor} />
         </div>
       </ScrollArea>
+      <NoteLinkPicker
+        open={showLinkPicker}
+        onOpenChange={setShowLinkPicker}
+        onSelect={handleNoteLinkSelect}
+      />
     </div>
   );
 }

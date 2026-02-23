@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler } from "@/hooks";
 import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
 import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
@@ -25,6 +25,7 @@ interface MeetingEditorProps {
 }
 
 export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditorProps) {
+  const handleInternalLinkClick = useInternalLinkHandler();
   const { data: meeting, isLoading: isLoadingMeeting } = useMeeting(workspaceId, meetingId);
 
   const updateMeeting = useUpdateMeeting();
@@ -330,6 +331,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
                 onChange={setContent}
                 placeholder="Write your meeting notes..."
                 minHeight="400px"
+                onInternalLinkClick={handleInternalLinkClick}
               />
             ) : (
               <div className="h-[400px] border rounded-lg flex items-center justify-center bg-muted/10">

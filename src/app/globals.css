@@ -318,3 +318,15 @@
 .tiptap a:hover {
   color: oklch(0.45 0.2 250);
 }
+
+/* Internal note links (desk://type/id) */
+.tiptap a[href^="desk://"] {
+  color: oklch(0.55 0.15 170);
+  text-decoration: none;
+  border-bottom: 1px dashed oklch(0.55 0.15 170 / 0.5);
+}
+
+.tiptap a[href^="desk://"]:hover {
+  color: oklch(0.45 0.17 170);
+  border-bottom-style: solid;
+}

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useTabStore } from "@/stores";
 import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler } from "@/hooks";
 import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
 import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { EditorHeader } from "./editor-header";
@@ -26,6 +26,7 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
+  const handleInternalLinkClick = useInternalLinkHandler();
   const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
 
   // Mutations
@@ -392,6 +393,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
                 onChange={setContent}
                 placeholder="Add notes, details, or checklist items..."
                 minHeight="400px"
+                onInternalLinkClick={handleInternalLinkClick}
               />
             ) : (
               <div className="h-[400px] border rounded-lg flex items-center justify-center bg-muted/10">

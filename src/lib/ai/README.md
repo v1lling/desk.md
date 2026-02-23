@@ -14,7 +14,7 @@ This module provides a layered, extensible AI integration for Desk.
 │  Stores (src/stores/ai.ts)                                  │
 │  - useAISettingsStore: Provider config, API keys            │
 │  - useAIUsageStore: Token tracking, usage history           │
-│  - useAIChatStore: Chat messages, selected docs             │
+│  - useAIChatStore: Chat messages, conversation state         │
 │  Hooks:                                                     │
 │  - useSendMessage(): Chat with history (for chat panel)     │
 │  - useAIAction(): One-off actions (draftEmail, summarize)   │
@@ -147,10 +147,10 @@ async yourPurpose(input: string, options?: {...}): Promise<AIServiceResponse> {
 ### Chat Panel (with conversation history)
 ```typescript
 // useSendMessage manages chat history in useAIChatStore
+// Context is automatically retrieved via the selected strategy (Smart Index / RAG / None)
 const sendMessage = useSendMessage();
 sendMessage.mutate({
   message: "What is this about?",
-  context: { docs: selectedDocs },
   history: previousMessages,
 });
 ```
