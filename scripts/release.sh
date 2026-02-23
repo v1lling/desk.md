@@ -62,20 +62,19 @@ echo ""
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "=== Building Tauri app ==="
-npm run tauri:build
+# DMG bundling can fail (create-dmg issues) but .app + updater artifacts still get created
+npm run tauri:build || true
 
 # ── Find artifacts ────────────────────────────────────────────────────────────
 echo ""
 echo "=== Finding build artifacts ==="
 
-DMG=$(find src-tauri/target/release/bundle -name "*.dmg" | head -1)
-UPDATER=$(find src-tauri/target/release/bundle -name "*.tar.gz" | grep -v ".sig" | head -1)
-SIG_FILE=$(find src-tauri/target/release/bundle -name "*.tar.gz.sig" | head -1)
+UPDATER=$(find src-tauri/target/release/bundle -name "Desk.app.tar.gz" | head -1)
+SIG_FILE=$(find src-tauri/target/release/bundle -name "Desk.app.tar.gz.sig" | head -1)
+DMG=$(find src-tauri/target/release/bundle -name "Desk_${VERSION}_aarch64.dmg" 2>/dev/null | head -1)
 
-if [ -z "$DMG" ] || [ -z "$UPDATER" ]; then
-  echo "ERROR: Missing build artifacts!"
-  echo "DMG: ${DMG:-not found}"
-  echo "Updater: ${UPDATER:-not found}"
+if [ -z "$UPDATER" ]; then
+  echo "ERROR: Missing updater artifact (Desk.app.tar.gz)!"
   echo ""
   echo "All bundle files:"
   find src-tauri/target/release/bundle -type f 2>/dev/null || true
@@ -93,17 +92,19 @@ if [ -z "$SIG_CONTENT" ]; then
   exit 1
 fi
 
-echo "DMG:     $DMG"
 echo "Updater: $UPDATER"
 echo "Sig:     $SIG_FILE (${#SIG_CONTENT} chars)"
+echo "DMG:     ${DMG:-not found (skipping)}"
 
 # ── Prepare release files ─────────────────────────────────────────────────────
 RELEASE_DIR="$ROOT_DIR/.release"
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 
-cp "$DMG" "$RELEASE_DIR/Desk_${VERSION}_aarch64.dmg"
 cp "$UPDATER" "$RELEASE_DIR/Desk.app.tar.gz"
+if [ -n "$DMG" ]; then
+  cp "$DMG" "$RELEASE_DIR/Desk_${VERSION}_aarch64.dmg"
+fi
 
 PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 URL="https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/Desk.app.tar.gz"
@@ -128,14 +129,18 @@ echo "=== Uploading to ${RELEASES_REPO} ==="
 # Delete existing release if present
 gh release delete "v${VERSION}" --repo "$RELEASES_REPO" --yes 2>/dev/null || true
 
+# Collect upload files
+UPLOAD_FILES=("$RELEASE_DIR/Desk.app.tar.gz" "$RELEASE_DIR/latest.json")
+if [ -n "$DMG" ]; then
+  UPLOAD_FILES+=("$RELEASE_DIR/Desk_${VERSION}_aarch64.dmg")
+fi
+
 # Create release and upload
 gh release create "v${VERSION}" \
   --repo "$RELEASES_REPO" \
   --title "Desk v${VERSION}" \
   --notes "Release v${VERSION}" \
-  "$RELEASE_DIR/Desk_${VERSION}_aarch64.dmg" \
-  "$RELEASE_DIR/Desk.app.tar.gz" \
-  "$RELEASE_DIR/latest.json"
+  "${UPLOAD_FILES[@]}"
 
 # Cleanup
 rm -rf "$RELEASE_DIR"
