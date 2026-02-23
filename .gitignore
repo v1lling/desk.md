@@ -43,6 +43,9 @@ next-env.d.ts
 # Playwright MCP screenshots
 .playwright-mcp/
 
+# Local release build artifacts
+.release/
+
 # Tauri MCP plugin (local path dependency, not committed)
 /tauri-plugin-mcp
 
