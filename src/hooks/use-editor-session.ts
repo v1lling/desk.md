@@ -20,6 +20,38 @@ import { writeTextFile, readTextFile, isTauri } from "@/lib/desk/tauri-fs";
 import { parseMarkdown, serializeMarkdown } from "@/lib/desk/parser";
 import type { EditorType } from "@/stores/open-editor-registry";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Empty paragraph preservation
+// ═══════════════════════════════════════════════════════════════════════════
+// Markdown collapses multiple blank lines into one paragraph break.
+// We use zero-width space as a marker to preserve empty paragraphs in the editor.
+
+const EMPTY_PARA_MARKER = '\u200B';
+
+/**
+ * Pre-process markdown on load: convert sequences of 3+ newlines into
+ * marker paragraphs so the editor preserves visual spacing.
+ */
+function preserveEmptyParagraphs(markdown: string): string {
+  return markdown.replace(/\n{3,}/g, (match) => {
+    const extra = match.length - 2; // beyond the base paragraph break (\n\n)
+    const emptyCount = Math.floor(extra / 2);
+    let result = '\n\n';
+    for (let i = 0; i < emptyCount; i++) {
+      result += EMPTY_PARA_MARKER + '\n\n';
+    }
+    if (extra % 2 !== 0) result += '\n';
+    return result;
+  });
+}
+
+/**
+ * Post-process markdown on save: strip all markers for clean markdown on disk.
+ */
+function cleanEmptyParagraphs(markdown: string): string {
+  return markdown.replaceAll(EMPTY_PARA_MARKER, '');
+}
+
 interface UseEditorSessionOptions {
   type: EditorType;
   entityId: string;
@@ -51,8 +83,11 @@ interface UseEditorSessionReturn {
   fileDeleted: boolean;
 
   // Actions
-  save: () => Promise<void>;
+  /** Save content to disk. Returns true on success, false on failure or skip. */
+  save: () => Promise<boolean>;
   acknowledgePathChange: () => void;
+  /** Accept a user-initiated path change (e.g., project move). Updates path without showing banner. */
+  acceptPathChange: (newPath: string) => void;
   acknowledgeDeleted: () => void;
 }
 
@@ -121,11 +156,12 @@ export function useEditorSession({
         const fileContent = await readTextFile(filePath!);
         const { content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
         if (!cancelled) {
-          setContentState(body);
-          lastSavedRef.current = body;
-          contentRef.current = body;
+          const processedBody = preserveEmptyParagraphs(body);
+          setContentState(processedBody);       // Editor gets markers
+          lastSavedRef.current = body;           // CLEAN (for dirty comparison)
+          contentRef.current = processedBody;    // WITH markers (what editor has)
           // Update registry so file watcher knows our baseline content
-          getRegistry().updateLastSaved(filePath!, body);
+          getRegistry().updateLastSaved(filePath!, body); // CLEAN (for watcher)
           setIsLoading(false);
         }
       } catch (error) {
@@ -159,11 +195,12 @@ export function useEditorSession({
         // External change - parse to extract body only
         try {
           const { content: newBody } = parseMarkdown<Record<string, unknown>>(newRawContent);
-          setContentState(newBody);
-          lastSavedRef.current = newBody;
-          contentRef.current = newBody;
+          const processedBody = preserveEmptyParagraphs(newBody);
+          setContentState(processedBody);          // Editor gets markers
+          lastSavedRef.current = newBody;           // CLEAN
+          contentRef.current = processedBody;       // WITH markers
           // Update registry with external content (now our baseline)
-          getRegistry().updateLastSaved(filePath!, newBody);
+          getRegistry().updateLastSaved(filePath!, newBody); // CLEAN
           setIsDirty(false);
           setSaveStatus("idle");
         } catch (e) {
@@ -187,8 +224,8 @@ export function useEditorSession({
     };
   }, [enabled, filePath, type, entityId, getRegistry]);
 
-  // Get current content (for metadata saves)
-  const getCurrentContent = useCallback(() => contentRef.current, []);
+  // Get current content (for metadata saves — always clean, no markers)
+  const getCurrentContent = useCallback(() => cleanEmptyParagraphs(contentRef.current), []);
 
   // Update content (marks dirty, does NOT auto-save)
   const setContent = useCallback((newContent: string) => {
@@ -198,16 +235,17 @@ export function useEditorSession({
   }, []);
 
   // Save function - preserves frontmatter when saving body content
-  const save = useCallback(async () => {
+  // Returns true on success (including no-op when clean), false on failure.
+  const save = useCallback(async (): Promise<boolean> => {
     const path = currentPathRef.current;
-    if (!path || fileDeleted || pathChanged) return;
+    if (!path || fileDeleted || pathChanged) return false;
 
-    const contentToSave = contentRef.current;
+    const contentToSave = cleanEmptyParagraphs(contentRef.current);
 
     // No need to save if content hasn't changed
     if (contentToSave === lastSavedRef.current) {
       setIsDirty(false);
-      return;
+      return true;
     }
 
     setSaveStatus("saving");
@@ -234,13 +272,15 @@ export function useEditorSession({
 
       // Trigger post-save callback (e.g., for RAG indexing)
       onSaveComplete?.(path, fullContent);
+      return true;
     } catch (error) {
       console.error("[editor-session] Save failed:", error);
       setSaveStatus("error");
+      return false;
     }
   }, [getRegistry, fileDeleted, pathChanged, onSaveComplete]);
 
-  // Acknowledge path change
+  // Acknowledge path change (external moves — shows banner first)
   const acknowledgePathChange = useCallback(() => {
     if (currentPathRef.current && newPath) {
       getRegistry().acknowledgePathChange(currentPathRef.current);
@@ -249,6 +289,16 @@ export function useEditorSession({
       setNewPath(null);
     }
   }, [getRegistry, newPath]);
+
+  // Accept a user-initiated path change (e.g., project move) — no banner shown
+  const acceptPathChange = useCallback((movedToPath: string) => {
+    if (currentPathRef.current) {
+      getRegistry().acknowledgePathChange(currentPathRef.current);
+    }
+    currentPathRef.current = movedToPath;
+    setPathChanged(false);
+    setNewPath(null);
+  }, [getRegistry]);
 
   // Acknowledge deletion
   const acknowledgeDeleted = useCallback(() => {
@@ -269,6 +319,7 @@ export function useEditorSession({
     fileDeleted,
     save,
     acknowledgePathChange,
+    acceptPathChange,
     acknowledgeDeleted,
   };
 }

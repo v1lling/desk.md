@@ -89,6 +89,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     newPath,
     fileDeleted,
     acknowledgePathChange,
+    acceptPathChange,
     acknowledgeDeleted,
     save,
   } = useEditorSession({
@@ -237,27 +238,38 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [pendingSaveAndClose, taskId, save, clearPendingSaveAndClose, closeTab]);
 
-  // Project move & save
-  const handleProjectMove = useCallback(async () => {
-    if (!task) return;
+  // Project change — auto-move immediately (consistent with other metadata saves)
+  const handleProjectChange = useCallback(async (newProjectId: string) => {
+    setCurrentProjectId(newProjectId);
+    if (!task || newProjectId === originalProjectId) return;
 
     try {
-      if (currentProjectId !== originalProjectId) {
-        await moveTaskToProject.mutateAsync({
-          taskId: task.id,
-          workspaceId: task.workspaceId,
-          fromProjectId: originalProjectId,
-          toProjectId: currentProjectId,
-        });
-        setOriginalProjectId(currentProjectId);
+      // Save any unsaved content first (move reads from disk)
+      const saved = await save();
+      if (!saved) {
+        setCurrentProjectId(originalProjectId);
+        toast.error("Save failed — cannot move task");
+        return;
       }
 
-      await save();
-      toast.success("Task saved");
+      const result = await moveTaskToProject.mutateAsync({
+        taskId: task.id,
+        workspaceId: task.workspaceId,
+        fromProjectId: originalProjectId,
+        toProjectId: newProjectId,
+      });
+
+      // Accept the path change seamlessly (no "file moved" banner)
+      if (result?.filePath) {
+        acceptPathChange(result.filePath);
+      }
+      setOriginalProjectId(newProjectId);
     } catch {
-      toast.error("Failed to save task");
+      // Revert on failure
+      setCurrentProjectId(originalProjectId);
+      toast.error("Failed to move task");
     }
-  }, [task, currentProjectId, originalProjectId, moveTaskToProject, save]);
+  }, [task, originalProjectId, moveTaskToProject, acceptPathChange, save]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!task) return;
@@ -351,8 +363,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     );
   }
 
-  const projectChanged = currentProjectId !== originalProjectId;
-
   const metadataProps = {
     status,
     onStatusChange: handleStatusChange,
@@ -362,7 +372,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     onDateChange: handleDueChange,
     dateLabel: "Due" as const,
     projectId: currentProjectId,
-    onProjectChange: setCurrentProjectId,
+    onProjectChange: handleProjectChange,
     projects: projects.map((p) => ({ id: p.id, name: p.name })),
   };
 
@@ -402,13 +412,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
             )}
           </div>
 
-          {projectChanged && (
-            <div className="mt-6 flex justify-end">
-              <Button onClick={handleProjectMove} className="min-w-[140px]">
-                Move & Save
-              </Button>
-            </div>
-          )}
         </div>
       </ScrollArea>
 

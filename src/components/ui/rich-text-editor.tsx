@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Paragraph from "@tiptap/extension-paragraph";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
@@ -11,7 +12,7 @@ import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { Markdown } from "tiptap-markdown";
-import { useState, useEffect, useCallback, useRef, MouseEvent } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteLinkPicker } from "@/components/ui/note-link-picker";
@@ -19,6 +20,32 @@ import { isTauri } from "@/lib/desk/tauri-fs";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { parseNoteLinkHref, createNoteLinkHref, type NoteLink, type NoteLinkType } from "@/lib/desk/note-link";
 import type { SearchItemType } from "@/lib/desk/search-index";
+
+// Zero-width space marker for empty paragraphs — preserves blank lines through
+// the markdown serialization roundtrip. Must match the marker in use-editor-session.ts.
+const EMPTY_PARA_MARKER = '\u200B';
+
+// Custom paragraph that writes a zero-width space for empty paragraphs so
+// getMarkdown() doesn't collapse consecutive blank lines into one.
+const CustomParagraph = Paragraph.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: any, node: any) {
+          if (node.content.size === 0) {
+            state.write(EMPTY_PARA_MARKER);
+          } else {
+            state.renderInline(node);
+          }
+          state.closeBlock(node);
+        },
+        parse: {
+          // handled by markdown-it
+        },
+      },
+    };
+  },
+});
 
 interface RichTextEditorProps {
   value: string;
@@ -51,6 +78,9 @@ export function RichTextEditor({
   const isSyncing = useRef(false);
   // Track programmatic updates to prevent onChange from firing
   const isProgrammaticUpdate = useRef(false);
+  // Ref to latest onInternalLinkClick so the ProseMirror handler always has the current callback
+  const onInternalLinkClickRef = useRef(onInternalLinkClick);
+  onInternalLinkClickRef.current = onInternalLinkClick;
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -59,7 +89,9 @@ export function RichTextEditor({
         heading: {
           levels: [1, 2, 3],
         },
+        paragraph: false,
       }),
+      CustomParagraph,
       Markdown.configure({
         html: false,
         transformPastedText: true,
@@ -67,6 +99,7 @@ export function RichTextEditor({
       }),
       Link.configure({
         openOnClick: false,
+        protocols: ['desk'],
         HTMLAttributes: {
           class: "text-primary underline cursor-pointer",
         },
@@ -107,6 +140,32 @@ export function RichTextEditor({
         if (event.key === " ") {
           event.stopPropagation();
         }
+      },
+      handleDOMEvents: {
+        click: (_view, event) => {
+          const target = event.target as HTMLElement;
+          const link = target.closest('a');
+          if (link?.getAttribute('href')) {
+            event.preventDefault();
+            const href = link.getAttribute('href')!;
+
+            // Internal note link (desk://type/id)
+            const noteLink = parseNoteLinkHref(href);
+            if (noteLink) {
+              onInternalLinkClickRef.current?.(noteLink);
+              return true;
+            }
+
+            // External URL
+            if (isTauri()) {
+              openUrl(href);
+            } else {
+              window.open(href, '_blank', 'noopener,noreferrer');
+            }
+            return true;
+          }
+          return false;
+        },
       },
     },
     onUpdate: ({ editor }) => {
@@ -154,29 +213,6 @@ export function RichTextEditor({
       });
     }
   }, [value, editor]);
-
-  // Handle link clicks — internal note links or external URLs
-  const handleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'A' && target.getAttribute('href')) {
-      event.preventDefault();
-      const href = target.getAttribute('href')!;
-
-      // Internal note link (desk://type/id)
-      const noteLink = parseNoteLinkHref(href);
-      if (noteLink) {
-        onInternalLinkClick?.(noteLink);
-        return;
-      }
-
-      // External URL
-      if (isTauri()) {
-        openUrl(href);
-      } else {
-        window.open(href, '_blank', 'noopener,noreferrer');
-      }
-    }
-  }, [onInternalLinkClick]);
 
   // Handle keyboard shortcuts and prevent event bubbling
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -226,7 +262,7 @@ export function RichTextEditor({
       style={{ minHeight }}
     >
       <ScrollArea className="h-full" style={{ minHeight }}>
-        <div className="p-4" onKeyDown={handleKeyDown} onClick={handleClick}>
+        <div className="p-4" onKeyDown={handleKeyDown}>
           <EditorContent editor={editor} />
         </div>
       </ScrollArea>

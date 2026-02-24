@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -43,6 +43,7 @@ export function NoteLinkPicker({
 }: NoteLinkPickerProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !isIndexReady()) {
@@ -59,6 +60,14 @@ export function NoteLinkPicker({
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
+
+  // Reset scroll position when results change to prevent cmdk's
+  // auto-select scrollIntoView from hiding the top result
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [results]);
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
@@ -79,7 +88,7 @@ export function NoteLinkPicker({
         value={query}
         onValueChange={setQuery}
       />
-      <CommandList>
+      <CommandList ref={listRef}>
         <CommandEmpty>
           {isIndexReady() ? "No notes found." : "Building search index..."}
         </CommandEmpty>

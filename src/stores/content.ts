@@ -187,9 +187,13 @@ export function useMoveDocToProject() {
       toProjectId: string;
     }) => contentLib.moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
-      // Invalidate workspace docs to refresh the lists
+      // Invalidate workspace docs to refresh lists
       queryClient.invalidateQueries({
         queryKey: contentKeys.byWorkspace(variables.workspaceId),
+      });
+      // Invalidate the detail query so the doc object refreshes with new filePath/projectId
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.detail(variables.workspaceId, variables.docId),
       });
     },
   });

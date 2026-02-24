@@ -224,7 +224,9 @@ async function handleOpenFileChange(
     const { content: fileBody } = parseMarkdown<Record<string, unknown>>(fileContent);
 
     // Body matches what we last saved → our save event, ignore
-    if (fileBody === session.lastSavedContent) {
+    // Note: gray-matter's stringify/parse roundtrip may add/remove leading/trailing
+    // newlines, so we trim both sides for comparison
+    if (fileBody.trim() === session.lastSavedContent.trim()) {
       return true; // Handled (it was our own save)
     }
 

@@ -105,6 +105,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     newPath,
     fileDeleted,
     acknowledgePathChange,
+    acceptPathChange,
     acknowledgeDeleted,
     save,
   } = useEditorSession({
@@ -196,31 +197,38 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [pendingSaveAndClose, docId, save, clearPendingSaveAndClose, closeTab]);
 
-  // Check if project was changed
-  const projectChanged = currentProjectId !== originalProjectId;
-
-  // Handle project move & save
-  const handleProjectMove = useCallback(async () => {
-    if (!doc) return;
+  // Project change — auto-move immediately (consistent with other metadata saves)
+  const handleProjectChange = useCallback(async (newProjectId: string) => {
+    setCurrentProjectId(newProjectId);
+    if (!doc || newProjectId === originalProjectId) return;
 
     try {
-      if (projectChanged) {
-        await moveDocToProject.mutateAsync({
-          docId: doc.id,
-          workspaceId: doc.workspaceId,
-          fromProjectId: originalProjectId,
-          toProjectId: currentProjectId,
-        });
-        setOriginalProjectId(currentProjectId);
+      // Save any unsaved content first (move reads from disk)
+      const saved = await save();
+      if (!saved) {
+        setCurrentProjectId(originalProjectId);
+        toast.error("Save failed — cannot move doc");
+        return;
       }
 
-      await save();
-      toast.success("Doc saved");
-      onClose();
+      const result = await moveDocToProject.mutateAsync({
+        docId: doc.id,
+        workspaceId: doc.workspaceId,
+        fromProjectId: originalProjectId,
+        toProjectId: newProjectId,
+      });
+
+      // Accept the path change seamlessly (no "file moved" banner)
+      if (result?.filePath) {
+        acceptPathChange(result.filePath);
+      }
+      setOriginalProjectId(newProjectId);
     } catch {
-      toast.error("Failed to save doc");
+      // Revert on failure
+      setCurrentProjectId(originalProjectId);
+      toast.error("Failed to move doc");
     }
-  }, [doc, projectChanged, moveDocToProject, originalProjectId, currentProjectId, save, onClose]);
+  }, [doc, originalProjectId, moveDocToProject, acceptPathChange, save]);
 
   // Handle delete
   const handleDeleteConfirm = useCallback(async () => {
@@ -329,7 +337,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
           <MetadataToolbar
             projectId={currentProjectId}
-            onProjectChange={setCurrentProjectId}
+            onProjectChange={handleProjectChange}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
@@ -349,13 +357,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
             )}
           </div>
 
-          {projectChanged && (
-            <div className="mt-6 flex justify-end">
-              <Button onClick={handleProjectMove} className="min-w-[140px]">
-                Move & Save
-              </Button>
-            </div>
-          )}
         </div>
       </ScrollArea>
 

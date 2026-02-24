@@ -199,9 +199,13 @@ export function useMoveTaskToProject() {
       toProjectId: string;
     }) => taskLib.moveTaskToProject(taskId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
-      // Invalidate workspace tasks to refresh the lists
+      // Invalidate workspace tasks to refresh lists (kanban, task list)
       queryClient.invalidateQueries({
         queryKey: taskKeys.byWorkspace(variables.workspaceId),
+      });
+      // Invalidate the detail query so the task object refreshes with new filePath/projectId
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(variables.workspaceId, variables.taskId),
       });
     },
   });
