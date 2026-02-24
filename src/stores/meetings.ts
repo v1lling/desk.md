@@ -95,22 +95,21 @@ export function useUpdateMeeting() {
       projectId: string;
       updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>;
     }) => meetingLib.updateMeeting(meetingId, updates, workspaceId, projectId),
-    onSuccess: (updatedMeeting, variables) => {
+    onSuccess: (updatedMeeting) => {
       if (updatedMeeting) {
-        // Invalidate both list and detail queries to keep editor in sync
-        queryClient.invalidateQueries({
-          queryKey: meetingKeys.byWorkspace(updatedMeeting.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: meetingKeys.detail(updatedMeeting.workspaceId, updatedMeeting.id),
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: meetingKeys.byWorkspace(variables.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: meetingKeys.detail(variables.workspaceId, variables.meetingId),
-        });
+        // Directly update meeting in all cached list queries (avoids stale file-tree cache race).
+        queryClient.setQueriesData<Meeting[]>(
+          { queryKey: meetingKeys.all },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map(m => m.id === updatedMeeting.id ? updatedMeeting : m);
+          }
+        );
+        // Also update detail query directly
+        queryClient.setQueryData(
+          meetingKeys.detail(updatedMeeting.workspaceId, updatedMeeting.id),
+          updatedMeeting
+        );
       }
     },
   });

@@ -95,21 +95,21 @@ export function useUpdateDoc() {
     }) => contentLib.updateDoc(doc, updates),
     onSuccess: (updatedDoc) => {
       if (updatedDoc) {
-        // Invalidate workspace-scoped queries (includes project queries via hierarchy)
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.byWorkspace(updatedDoc.workspaceId),
-        });
-        // Invalidate detail query to keep editor in sync
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.detail(updatedDoc.workspaceId, updatedDoc.id),
-        });
-        // Also invalidate relevant tree queries
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.tree("workspace", updatedDoc.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.tree("project", updatedDoc.workspaceId, updatedDoc.projectId),
-        });
+        // Directly update doc in all cached list queries (avoids stale file-tree cache race).
+        // Query invalidation alone would trigger a refetch that reads from the still-stale
+        // file cache, causing the UI to snap back to old values briefly.
+        queryClient.setQueriesData<Doc[]>(
+          { queryKey: contentKeys.all },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map(d => d.id === updatedDoc.id ? updatedDoc : d);
+          }
+        );
+        // Also update detail query directly
+        queryClient.setQueryData(
+          contentKeys.detail(updatedDoc.workspaceId, updatedDoc.id),
+          updatedDoc
+        );
       }
     },
   });

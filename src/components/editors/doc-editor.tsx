@@ -127,13 +127,9 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [doc, isLoadingContent, isEditorReady]);
 
-  // Track title changes (saved immediately with content)
-  const [titleDirty, setTitleDirty] = useState(false);
-
   const handleTitleChange = useCallback(
     async (newTitle: string) => {
       setTitle(newTitle);
-      setTitleDirty(true);
       // Save title immediately with current body content
       if (doc) {
         try {
@@ -141,7 +137,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
             doc,
             updates: { title: newTitle.trim() || doc.title, content: getCurrentContent() },
           });
-          setTitleDirty(false);
         } catch (error) {
           console.error("[doc-editor] Failed to save title:", error);
         }
@@ -151,7 +146,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   );
 
   // Manage tab title and dirty state
-  const isDirty = contentDirty || titleDirty;
+  const isDirty = contentDirty;
   useEditorTab(`doc-${docId}`, title, isDirty);
 
   // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)

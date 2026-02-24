@@ -97,23 +97,23 @@ export function useUpdateTask() {
       projectId: string;
       updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content" | "projectId">>;
     }) => taskLib.updateTask(taskId, updates, workspaceId, projectId),
-    onSuccess: (updatedTask, variables) => {
+    onSuccess: (updatedTask) => {
       if (updatedTask) {
-        // Invalidate both list and detail queries to keep editor in sync
-        queryClient.invalidateQueries({
-          queryKey: taskKeys.byWorkspace(updatedTask.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: taskKeys.detail(updatedTask.workspaceId, updatedTask.id),
-        });
-      } else {
-        // Fallback invalidation using passed workspaceId
-        queryClient.invalidateQueries({
-          queryKey: taskKeys.byWorkspace(variables.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: taskKeys.detail(variables.workspaceId, variables.taskId),
-        });
+        // Directly update task in all cached list queries (avoids stale file-tree cache race).
+        // Query invalidation alone would trigger a refetch that reads from the still-stale
+        // file cache, causing the UI to snap back to old values briefly.
+        queryClient.setQueriesData<Task[]>(
+          { queryKey: taskKeys.all },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map(t => t.id === updatedTask.id ? updatedTask : t);
+          }
+        );
+        // Also update detail query directly
+        queryClient.setQueryData(
+          taskKeys.detail(updatedTask.workspaceId, updatedTask.id),
+          updatedTask
+        );
       }
     },
   });
@@ -154,11 +154,11 @@ export function useMoveTask() {
       // Snapshot current state for rollback
       const previousTasks = queryClient.getQueriesData({ queryKey: taskKeys.all });
 
-      // Optimistically update the task in all queries
-      queryClient.setQueriesData(
+      // Optimistically update the task in all list queries
+      queryClient.setQueriesData<Task[]>(
         { queryKey: taskKeys.all },
-        (old: Task[] | undefined) => {
-          if (!old) return old;
+        (old) => {
+          if (!Array.isArray(old)) return old;
           return old.map((task) =>
             task.id === taskId ? { ...task, status: newStatus } : task
           );
