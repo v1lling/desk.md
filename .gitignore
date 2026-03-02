@@ -51,3 +51,5 @@ next-env.d.ts
 
 # Outlook add-in
 outlook-addin/node_modules
+.agtx/
+.claude/

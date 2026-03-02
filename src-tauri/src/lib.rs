@@ -49,6 +49,41 @@ fn open_file_with_default_app(path: String) -> Result<(), String> {
   Ok(())
 }
 
+/// Reveal a file or folder in the system file manager (Finder on macOS, Explorer on Windows)
+#[tauri::command]
+fn reveal_in_finder(path: String) -> Result<(), String> {
+  #[cfg(target_os = "macos")]
+  {
+    Command::new("open")
+      .args(["-R", &path])
+      .spawn()
+      .map_err(|e| format!("Failed to reveal in Finder: {}", e))?;
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    Command::new("explorer")
+      .args(["/select,", &path])
+      .spawn()
+      .map_err(|e| format!("Failed to reveal in Explorer: {}", e))?;
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    // On Linux, we can only open the parent directory
+    let parent = std::path::Path::new(&path)
+      .parent()
+      .map(|p| p.to_string_lossy().to_string())
+      .unwrap_or(path);
+    Command::new("xdg-open")
+      .arg(&parent)
+      .spawn()
+      .map_err(|e| format!("Failed to open folder: {}", e))?;
+  }
+
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let mut builder = tauri::Builder::default()
@@ -63,6 +98,7 @@ pub fn run() {
       ai::claude_check,
       confirm_close,
       open_file_with_default_app,
+      reveal_in_finder,
       rag::rag_init_db,
       rag::rag_get_status,
       rag::rag_clear_index,
