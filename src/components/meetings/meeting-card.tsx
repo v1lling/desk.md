@@ -47,12 +47,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "font-medium truncate",
-              isLatest && "text-violet-700 dark:text-violet-300"
-            )}
-          >
+          <span className="font-medium truncate">
             {meeting.title}
           </span>
           {isLatest && (

@@ -64,12 +64,8 @@ export function TaskCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab group touch-none border-border/40 bg-card border-l-2",
-        task.priority === "high" ? "border-l-rose-400" :
-        task.priority === "medium" ? "border-l-amber-400" :
-        task.priority === "low" ? "border-l-emerald-400" :
-        "border-l-transparent",
-        "shadow-sm hover:shadow-md hover:border-border hover:border-l-2",
+        "cursor-grab group touch-none border-border/50 bg-card overflow-hidden",
+        "shadow-sm hover:shadow-md hover:border-border",
         "transition-all duration-150",
         isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1",
         isHighlighted && "ring-1 ring-offset-1"
@@ -77,8 +73,14 @@ export function TaskCard({
       {...attributes}
       {...listeners}
     >
-      <CardContent className="p-3.5" onClick={onClick}>
-        <div className="flex items-start gap-2">
+      <CardContent className="p-0" onClick={onClick}>
+        {task.priority && (
+          <div className={cn("h-0.5",
+            task.priority === "high" ? "bg-rose-400" :
+            task.priority === "medium" ? "bg-amber-400" : "bg-emerald-400"
+          )} />
+        )}
+        <div className="flex items-start gap-2 p-3.5 pt-3">
           <div className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>

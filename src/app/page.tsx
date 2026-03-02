@@ -115,8 +115,7 @@ function WorkspacesWidget({
             <button
               key={summary.workspaceId}
               onClick={() => handleWorkspaceClick(summary)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-muted/30 hover:bg-accent/50 transition-colors border-l-2"
-              style={{ borderLeftColor: summary.color || DEFAULT_WORKSPACE_COLOR }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-muted/30 hover:bg-accent/50 transition-colors"
             >
               <Circle
                 className="size-3 shrink-0"

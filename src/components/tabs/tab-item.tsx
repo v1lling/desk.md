@@ -73,25 +73,12 @@ export const TabItem = memo(function TabItem({
         onMouseDown={handleMouseDown}
         title={tab.title}
         className={cn(
-        "group relative flex items-center gap-1.5 h-8 text-xs transition-colors",
-        // Browser-like sizing: min width, can shrink, max width
-        isSystemTab
-          ? "min-w-[100px] max-w-[180px] px-2.5 shrink-0"
-          : "min-w-[80px] max-w-[140px] px-2.5 shrink",
-        // System tabs (Desk, AI) have special styling - always medium weight, with separator gap
-        isSystemTab
-          ? cn(
-              "border-r-2 border-border mr-1 font-medium",
-              isActive
-                ? "bg-accent text-accent-foreground"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent/50"
-            )
-          : cn(
-              "border-r border-border/50",
-              isActive
-                ? "bg-background text-foreground font-medium"
-                : "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-accent/50"
-            )
+        "group relative flex items-center gap-1.5 text-xs transition-colors px-3",
+        "min-w-[80px] max-w-[160px] shrink",
+        isSystemTab && "shrink-0",
+        isActive
+          ? "h-[33px] bg-background text-foreground font-medium border-x border-t border-border/50 rounded-t-md -mb-px z-10"
+          : "h-8 bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-md"
       )}
     >
       {/* Workspace color indicator for Desk tab */}
@@ -125,16 +112,6 @@ export const TabItem = memo(function TabItem({
         </span>
       )}
 
-      {/* Active indicator line - uses workspace color for Desk tab, purple for AI tab */}
-      {isActive && (
-        <span
-          className={cn(
-            "absolute bottom-0 left-0 right-0 h-0.5",
-            isAITab ? "bg-violet-500" : "bg-foreground/50"
-          )}
-          style={isDeskTab && workspaceColor ? { backgroundColor: workspaceColor } : undefined}
-        />
-      )}
     </button>
     </TabContextMenu>
   );

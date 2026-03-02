@@ -75,7 +75,7 @@ export function MetadataToolbar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 py-2 px-3 bg-muted/30 rounded-lg border border-border/40",
+        "flex flex-wrap items-center gap-2 py-2 px-3 bg-muted/20 rounded-lg border border-border/30",
         className
       )}
     >

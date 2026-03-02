@@ -51,7 +51,7 @@ export function EditorHeader({
   };
 
   return (
-    <div className="flex items-center gap-3 px-6 py-3 border-b border-border/50 bg-background shrink-0">
+    <div className="flex items-center gap-3 px-6 py-3 border-b border-border/30 bg-background shrink-0">
       <Input
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
