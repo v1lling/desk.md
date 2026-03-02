@@ -74,13 +74,10 @@ export function TaskCard({
       {...listeners}
     >
       <CardContent className="p-0" onClick={onClick}>
-        {task.priority && (
-          <div className={cn("h-0.5",
-            task.priority === "high" ? "bg-rose-400" :
-            task.priority === "medium" ? "bg-amber-400" : "bg-emerald-400"
-          )} />
+        {task.priority === "high" && (
+          <div className="h-0.5 bg-rose-400" />
         )}
-        <div className="flex items-start gap-2 p-3.5 pt-3">
+        <div className={cn("flex items-start gap-2 p-3.5", task.priority === "high" && "pt-3")}>
           <div className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
