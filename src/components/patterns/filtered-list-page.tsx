@@ -74,7 +74,10 @@ export function FilteredListPage({
     <div className="flex flex-col h-full">
       {/* Page Header with workspace context */}
       {(title || workspace) && (
-        <div className="shrink-0 h-12 px-4 flex items-center gap-3 border-b">
+        <div
+          className="shrink-0 h-14 px-4 flex items-center gap-3 border-b"
+          style={{ backgroundColor: workspace ? `color-mix(in srgb, ${workspaceColor} 3%, transparent)` : undefined }}
+        >
           {workspace && (
             <Circle
               className="size-3 shrink-0"

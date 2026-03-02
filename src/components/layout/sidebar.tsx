@@ -26,7 +26,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
 import { useDocs } from "@/stores/content";
@@ -81,15 +80,12 @@ function NavLink({
         <>
           <span className="flex-1">{label}</span>
           {count !== undefined && count > 0 && (
-            <Badge
-              variant="secondary"
-              className={cn(
-                "h-4 px-1.5 text-[10px]",
-                isActive && "bg-sidebar-accent-foreground/20"
-              )}
-            >
+            <span className={cn(
+              "text-[10px] tabular-nums font-medium",
+              isActive ? "text-sidebar-accent-foreground/60" : "text-sidebar-foreground/40"
+            )}>
               {count}
-            </Badge>
+            </span>
           )}
         </>
       )}

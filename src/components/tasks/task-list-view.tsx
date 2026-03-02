@@ -163,7 +163,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
   return (
     <div
       className={cn(
-        "flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer",
+        "flex items-start gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer",
         task.status === "done" && "opacity-60"
       )}
       onClick={() => onClick?.(task)}
@@ -209,7 +209,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
 
         {/* Content preview */}
         {task.content && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mt-1.5">
+          <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
             {task.content}
           </p>
         )}

@@ -220,7 +220,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
             <div className="p-4 max-w-3xl space-y-4">
               {/* Project Info */}
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold">Project Details</h2>
+                <h2 className="text-base font-semibold">Project Details</h2>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="p-3 border rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -247,7 +247,7 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
 
               {/* Task Summary */}
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold">Task Summary</h2>
+                <h2 className="text-base font-semibold">Task Summary</h2>
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="p-3 border rounded-lg">
                     <div className={cn("flex items-center gap-2 mb-1", taskStatusTextColors.todo)}>
@@ -271,25 +271,27 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
                     <p className="text-xl font-bold">{taskStats.done}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-3">
-                <h2 className="text-sm font-semibold">Quick Actions</h2>
-                <div className="flex gap-2 flex-wrap">
-                  <Button onClick={() => setShowNewTask(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Task
-                  </Button>
-                  <Button variant="outline" onClick={() => setActiveTab("docs")}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Doc
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowNewMeeting(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Meeting
-                  </Button>
-                </div>
+                {/* Completion progress */}
+                {taskStats.total > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          taskStats.done === taskStats.total
+                            ? "bg-emerald-500"
+                            : taskStats.done > 0
+                              ? "bg-blue-500"
+                              : "bg-muted-foreground/30"
+                        )}
+                        style={{ width: `${taskStats.total > 0 ? (taskStats.done / taskStats.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {taskStats.done} of {taskStats.total} complete
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </ScrollArea>

@@ -64,8 +64,12 @@ export function TaskCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab group touch-none border-border/60 bg-card",
-        "shadow-sm hover:shadow-md hover:border-border",
+        "cursor-grab group touch-none border-border/40 bg-card border-l-2",
+        task.priority === "high" ? "border-l-rose-400" :
+        task.priority === "medium" ? "border-l-amber-400" :
+        task.priority === "low" ? "border-l-emerald-400" :
+        "border-l-transparent",
+        "shadow-sm hover:shadow-md hover:border-border hover:border-l-2",
         "transition-all duration-150",
         isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1",
         isHighlighted && "ring-1 ring-offset-1"

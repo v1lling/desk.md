@@ -32,10 +32,10 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3">
+    <div className="bg-card border border-border rounded-lg p-3 min-h-[200px]">
       <div className="flex items-center gap-2 mb-2">
         <Loader2 className="size-4 text-orange-500" />
-        <h2 className="text-sm font-medium">Focus</h2>
+        <h2 className="text-base font-medium">Focus</h2>
         <span className="text-xs text-muted-foreground">
           {tasks.length} in progress
         </span>
@@ -97,7 +97,7 @@ function WorkspacesWidget({
     <div className="bg-card border border-border rounded-lg p-3">
       <div className="flex items-center gap-2 mb-2">
         <CheckCircle2 className="size-4 text-blue-500" />
-        <h2 className="text-sm font-medium">Workspaces</h2>
+        <h2 className="text-base font-medium">Workspaces</h2>
       </div>
 
       {isLoading ? (
@@ -110,19 +110,20 @@ function WorkspacesWidget({
           No workspaces yet
         </div>
       ) : (
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           {summaries.map((summary) => (
             <button
               key={summary.workspaceId}
               onClick={() => handleWorkspaceClick(summary)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent/50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-muted/30 hover:bg-accent/50 transition-colors border-l-2"
+              style={{ borderLeftColor: summary.color || DEFAULT_WORKSPACE_COLOR }}
             >
               <Circle
                 className="size-3 shrink-0"
                 style={{ color: summary.color || DEFAULT_WORKSPACE_COLOR }}
                 fill={summary.color || DEFAULT_WORKSPACE_COLOR}
               />
-              <span className="flex-1 text-left truncate">{summary.name}</span>
+              <span className="flex-1 text-left truncate font-medium">{summary.name}</span>
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {summary.completedTasks}/{summary.totalTasks}
               </span>
@@ -177,11 +178,8 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="h-12 border-b border-border flex items-center justify-between px-4">
+      <header className="h-14 border-b border-border flex items-center px-4">
         <h1 className="text-base font-semibold">Dashboard</h1>
-        <span className="text-xs text-muted-foreground">
-          ⌘⇧A for AI Chat
-        </span>
       </header>
 
       <ScrollArea className="flex-1">

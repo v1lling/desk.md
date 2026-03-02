@@ -27,11 +27,11 @@ interface KanbanColumnProps {
   workspaceColor?: string;
 }
 
-const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
-  todo: { label: "To Do", color: "bg-muted-foreground/50" },
-  doing: { label: "In Progress", color: "bg-blue-500" },
-  waiting: { label: "Waiting", color: "bg-amber-500" },
-  done: { label: "Done", color: "bg-emerald-500" },
+const statusConfig: Record<TaskStatus, { label: string; color: string; topBorder: string }> = {
+  todo: { label: "To Do", color: "bg-muted-foreground/50", topBorder: "border-t-muted-foreground/30" },
+  doing: { label: "In Progress", color: "bg-blue-500", topBorder: "border-t-blue-500/50" },
+  waiting: { label: "Waiting", color: "bg-amber-500", topBorder: "border-t-amber-500/50" },
+  done: { label: "Done", color: "bg-emerald-500", topBorder: "border-t-emerald-500/50" },
 };
 
 export function KanbanColumn({
@@ -70,7 +70,8 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "rounded-xl p-2 transition-all duration-200 flex-1",
+          "rounded-xl p-2 transition-all duration-200 flex-1 border-t-2",
+          config.topBorder,
           showHighlight
             ? "bg-accent/70 ring-2 ring-ring/20"
             : "bg-muted/20"
@@ -100,7 +101,7 @@ export function KanbanColumn({
           </div>
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
+          <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
             No tasks
           </div>
         )}

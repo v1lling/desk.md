@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FolderOpen, Loader2, CheckCircle2, FolderPlus } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FolderOpen, Loader2, CheckCircle2, FolderPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaces } from "@/stores/workspaces";
@@ -26,6 +27,7 @@ export function DataTab() {
     setDataPath,
     setCurrentWorkspaceId,
     setSetupCompleted,
+    reset,
   } = useSettingsStore();
 
   const queryClient = useQueryClient();
@@ -36,6 +38,16 @@ export function DataTab() {
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [isCheckingPath, setIsCheckingPath] = useState(false);
   const [foundWorkspaces, setFoundWorkspaces] = useState<Workspace[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const handleResetConfirm = () => {
+    reset();
+    queryClient.invalidateQueries();
+    const root = document.documentElement;
+    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("dark", systemDark);
+    toast.success("Settings reset to defaults");
+  };
 
   const handleCheckDataPath = async () => {
     if (!pendingPath.trim()) return;
@@ -169,6 +181,38 @@ export function DataTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RotateCcw className="h-5 w-5" />
+            Reset
+          </CardTitle>
+          <CardDescription>
+            Reset application settings to defaults
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
+            Reset All Settings
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            This will reset all settings and show the setup wizard again. Your data files will not be deleted.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Reset Settings Confirmation Dialog */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reset All Settings"
+        description="Are you sure you want to reset all settings to defaults? This will show the setup wizard again. Your data files will not be deleted."
+        confirmLabel="Reset"
+        variant="destructive"
+        onConfirm={handleResetConfirm}
+      />
 
       {/* Data Path Change Dialog */}
       <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}>
