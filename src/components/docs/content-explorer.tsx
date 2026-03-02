@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   useImportFiles,
   useOpenTab,
   useFolderAIStates,
+  useMoveDoc,
   PERSONAL_WORKSPACE_ID,
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -32,6 +33,8 @@ import { toast } from "sonner";
 import type { Doc, ContentScope, Asset } from "@/types";
 import { isMarkdownFile } from "@/lib/desk/file-utils";
 import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
+import { getDocsPath } from "@/lib/desk/paths";
+import { isTauri } from "@/lib/desk/tauri-fs";
 
 export interface ContentExplorerScope {
   id: string;
@@ -129,6 +132,21 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     selectedScope?.projectId || null
   );
 
+  // Compute base path for "Reveal in Finder" functionality
+  const [basePath, setBasePath] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!isTauri() || !selectedScope) {
+      setBasePath(undefined);
+      return;
+    }
+
+    getDocsPath(
+      selectedScope.scope,
+      selectedScope.workspaceId,
+      selectedScope.projectId
+    ).then(setBasePath).catch(() => setBasePath(undefined));
+  }, [selectedScope]);
+
   // Mutations
   const createFolder = useCreateFolder();
   const renameFolder = useRenameFolder();
@@ -136,6 +154,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const deleteDoc = useDeleteDoc();
   const deleteAsset = useDeleteAsset();
   const importFiles = useImportFiles();
+  const moveDoc = useMoveDoc();
   const { openDoc } = useOpenTab();
 
   // Local state
@@ -196,6 +215,22 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
       });
     },
     [selectedScope, deleteFolder]
+  );
+
+  // Move doc to a different folder
+  const handleMoveDoc = useCallback(
+    async (docId: string, fromPath: string, toPath: string) => {
+      if (!selectedScope) return;
+      await moveDoc.mutateAsync({
+        scope: selectedScope.scope,
+        docId,
+        fromPath,
+        toPath,
+        workspaceId: selectedScope.workspaceId,
+        projectId: selectedScope.projectId,
+      });
+    },
+    [selectedScope, moveDoc]
   );
 
   // Selection and doc operations
@@ -420,6 +455,9 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         onExpandedFoldersChange={setExpandedFolders}
         onToggleFolderAI={handleToggleFolderAI}
         folderAIStates={folderAIStates}
+        basePath={basePath}
+        onMoveDoc={handleMoveDoc}
+        allFolderPaths={folderPaths}
       />
 
       {/* New doc modal */}

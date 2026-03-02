@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight,
@@ -22,7 +22,11 @@ import {
   FolderPlus,
   ExternalLink,
   Sparkles,
+  FolderSearch,
+  Copy,
+  FolderInput,
 } from "lucide-react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { getFileCategory, type FileCategory } from "@/lib/desk/file-utils";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { toast } from "sonner";
@@ -32,6 +36,9 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from "@/components/ui/context-menu";
 import {
   DropdownMenu,
@@ -39,10 +46,39 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import type { Doc, FileTreeNode, Asset } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
+
+// Helper to reveal file/folder in system file manager
+async function revealInFinder(path: string) {
+  try {
+    if (isTauri()) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("reveal_in_finder", { path });
+    } else {
+      toast.error("Cannot reveal files in browser mode");
+    }
+  } catch (error) {
+    console.error("Failed to reveal in Finder:", error);
+    toast.error("Could not reveal in Finder");
+  }
+}
+
+// Helper to copy path to clipboard
+async function copyPath(path: string) {
+  try {
+    await navigator.clipboard.writeText(path);
+    toast.success("Path copied to clipboard");
+  } catch (error) {
+    console.error("Failed to copy path:", error);
+    toast.error("Could not copy path");
+  }
+}
 
 // Sparkles icon with a diagonal slash through it (for "AI excluded" state)
 function SparklesOff({ className }: { className?: string }) {
@@ -94,6 +130,16 @@ interface ContentTreeItemProps {
   folderAIStates?: Map<string, boolean>;
   /** Whether this item inherits AI exclusion from a parent folder */
   isParentExcluded?: boolean;
+  /** Base path for docs directory (used for Reveal in Finder) */
+  basePath?: string;
+  /** Whether docs can be dragged */
+  isDraggable?: boolean;
+  /** Current drop target folder path (for visual feedback) */
+  dropTargetPath?: string | null;
+  /** All folder paths for "Move to" menu */
+  allFolderPaths?: string[];
+  /** Callback when a doc is moved to a folder via context menu */
+  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string) => Promise<void>;
 }
 
 // Indent guide component - renders vertical lines for tree hierarchy
@@ -131,6 +177,11 @@ export function ContentTreeItem({
   onToggleFolderAI,
   folderAIStates,
   isParentExcluded = false,
+  basePath,
+  isDraggable = false,
+  dropTargetPath,
+  allFolderPaths,
+  onMoveDocToFolder,
 }: ContentTreeItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const paddingLeft = depth * 16 + 8;
@@ -143,6 +194,10 @@ export function ContentTreeItem({
     const isAIIncluded = folderAIStates?.get(folder.path) ?? true;
     // Check if this folder or a parent is excluded from AI
     const isExcludedFromAI = !isAIIncluded || isParentExcluded;
+    // Full path for folder (basePath + folder.path)
+    const fullFolderPath = basePath ? `${basePath}/${folder.path}` : folder.path;
+    // Is this folder currently the drop target?
+    const isDropTarget = dropTargetPath === folder.path;
 
     const menuContent = (
       <>
@@ -158,8 +213,19 @@ export function ContentTreeItem({
             New Subfolder
           </ContextMenuItem>
         )}
-        {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder || onToggleFolderAI) && (
-          <ContextMenuSeparator />
+        {(onNewDocInFolder || onNewSubfolder) && <ContextMenuSeparator />}
+        {basePath && (
+          <>
+            <ContextMenuItem onClick={() => revealInFinder(fullFolderPath)}>
+              <FolderSearch className="size-4 mr-2" />
+              Reveal in Finder
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => copyPath(fullFolderPath)}>
+              <Copy className="size-4 mr-2" />
+              Copy Path
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
         )}
         {onToggleFolderAI && (
           <ContextMenuItem
@@ -196,8 +262,14 @@ export function ContentTreeItem({
       </>
     );
 
+    // Droppable hook for folder
+    const { setNodeRef: setDropRef, isOver } = useDroppable({
+      id: `folder-${folder.path}`,
+      data: { folderPath: folder.path },
+    });
+
     return (
-      <div className="relative">
+      <div className="relative" ref={setDropRef}>
         <IndentGuides depth={depth} />
 
         <ContextMenu>
@@ -210,7 +282,8 @@ export function ContentTreeItem({
                 className={cn(
                   "group inline-flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer",
                   "hover:bg-accent/50 transition-colors",
-                  isFolderSelected && "bg-accent"
+                  isFolderSelected && "bg-accent",
+                  isOver && "ring-2 ring-primary ring-offset-1 bg-primary/10"
                 )}
                 onClick={() => {
                   onSelectFolder?.(folder.path);
@@ -277,8 +350,29 @@ export function ContentTreeItem({
                         New Subfolder
                       </DropdownMenuItem>
                     )}
-                    {(onNewDocInFolder || onNewSubfolder) && (onRenameFolder || onDeleteFolder || onToggleFolderAI) && (
-                      <DropdownMenuSeparator />
+                    {(onNewDocInFolder || onNewSubfolder) && <DropdownMenuSeparator />}
+                    {basePath && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            revealInFinder(fullFolderPath);
+                          }}
+                        >
+                          <FolderSearch className="size-4 mr-2" />
+                          Reveal in Finder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyPath(fullFolderPath);
+                          }}
+                        >
+                          <Copy className="size-4 mr-2" />
+                          Copy Path
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
                     )}
                     {onToggleFolderAI && (
                       <DropdownMenuItem
@@ -355,6 +449,11 @@ export function ContentTreeItem({
                 onToggleFolderAI={onToggleFolderAI}
                 folderAIStates={folderAIStates}
                 isParentExcluded={isExcludedFromAI}
+                basePath={basePath}
+                isDraggable={isDraggable}
+                dropTargetPath={dropTargetPath}
+                allFolderPaths={allFolderPaths}
+                onMoveDocToFolder={onMoveDocToFolder}
               />
             ))}
           </div>
@@ -425,11 +524,29 @@ export function ContentTreeItem({
                         <ExternalLink className="size-4 mr-2" />
                         Open in Default App
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          revealInFinder(asset.filePath);
+                        }}
+                      >
+                        <FolderSearch className="size-4 mr-2" />
+                        Reveal in Finder
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyPath(asset.filePath);
+                        }}
+                      >
+                        <Copy className="size-4 mr-2" />
+                        Copy Path
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteAsset(asset);
+                          onDeleteAsset?.(asset);
                         }}
                         className="text-destructive focus:text-destructive"
                       >
@@ -446,6 +563,14 @@ export function ContentTreeItem({
             <ContextMenuItem onClick={handleOpenExternal}>
               <ExternalLink className="size-4 mr-2" />
               Open in Default App
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => revealInFinder(asset.filePath)}>
+              <FolderSearch className="size-4 mr-2" />
+              Reveal in Finder
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => copyPath(asset.filePath)}>
+              <Copy className="size-4 mr-2" />
+              Copy Path
             </ContextMenuItem>
             {onDeleteAsset && (
               <>
@@ -469,8 +594,41 @@ export function ContentTreeItem({
   const doc = node.doc;
   const isSelected = selectedDocId === doc.id;
 
+  // Get current folder path from doc.path
+  const docFolderPath = doc.path?.includes("/")
+    ? doc.path.substring(0, doc.path.lastIndexOf("/"))
+    : "";
+
+  // Handler for "Move to" menu
+  const handleMoveToFolder = useCallback(async (toPath: string) => {
+    if (!onMoveDocToFolder) return;
+    try {
+      await onMoveDocToFolder(doc.id, docFolderPath, toPath);
+      toast.success(`Moved to ${toPath || "root"}`);
+    } catch (error) {
+      console.error("Failed to move doc:", error);
+      toast.error("Failed to move doc");
+    }
+  }, [doc.id, docFolderPath, onMoveDocToFolder]);
+
+  // Draggable hook for docs
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: `doc-${doc.id}`,
+    data: { doc },
+    disabled: !isDraggable,
+  });
+
+  // Build "Move to" folder list (exclude current folder)
+  const moveToFolders = allFolderPaths?.filter(p => p !== docFolderPath) ?? [];
+
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      ref={setDragRef}
+      {...attributes}
+      {...listeners}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
       <IndentGuides depth={depth} />
 
       <ContextMenu>
@@ -483,7 +641,8 @@ export function ContentTreeItem({
               className={cn(
                 "group inline-flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer",
                 "hover:bg-accent/50 transition-colors",
-                isSelected && "bg-accent"
+                isSelected && "bg-accent",
+                isDragging && "cursor-grabbing"
               )}
               onClick={() => onSelectDoc?.(doc)}
             >
@@ -495,44 +654,126 @@ export function ContentTreeItem({
                   <SparklesOff className="size-3 text-muted-foreground shrink-0" />
                 </span>
               )}
-              {onDeleteDoc && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="size-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteDoc(doc);
-                      }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="size-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {onMoveDocToFolder && moveToFolders.length > 0 && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <FolderInput className="size-4 mr-2" />
+                        Move to...
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {docFolderPath && (
+                          <DropdownMenuItem onClick={() => handleMoveToFolder("")}>
+                            <Folder className="size-4 mr-2" />
+                            Root
+                          </DropdownMenuItem>
+                        )}
+                        {moveToFolders.map((folderPath) => (
+                          <DropdownMenuItem
+                            key={folderPath}
+                            onClick={() => handleMoveToFolder(folderPath)}
+                          >
+                            <Folder className="size-4 mr-2" />
+                            {folderPath}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )}
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      revealInFinder(doc.filePath);
+                    }}
+                  >
+                    <FolderSearch className="size-4 mr-2" />
+                    Reveal in Finder
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyPath(doc.filePath);
+                    }}
+                  >
+                    <Copy className="size-4 mr-2" />
+                    Copy Path
+                  </DropdownMenuItem>
+                  {onDeleteDoc && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteDoc(doc);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
+          {onMoveDocToFolder && moveToFolders.length > 0 && (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <FolderInput className="size-4 mr-2" />
+                Move to...
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {docFolderPath && (
+                  <ContextMenuItem onClick={() => handleMoveToFolder("")}>
+                    <Folder className="size-4 mr-2" />
+                    Root
+                  </ContextMenuItem>
+                )}
+                {moveToFolders.map((folderPath) => (
+                  <ContextMenuItem
+                    key={folderPath}
+                    onClick={() => handleMoveToFolder(folderPath)}
+                  >
+                    <Folder className="size-4 mr-2" />
+                    {folderPath}
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+          )}
+          <ContextMenuItem onClick={() => revealInFinder(doc.filePath)}>
+            <FolderSearch className="size-4 mr-2" />
+            Reveal in Finder
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => copyPath(doc.filePath)}>
+            <Copy className="size-4 mr-2" />
+            Copy Path
+          </ContextMenuItem>
           {onDeleteDoc && (
-            <ContextMenuItem
-              onClick={() => onDeleteDoc(doc)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="size-4 mr-2" />
-              Delete
-            </ContextMenuItem>
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => onDeleteDoc(doc)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="size-4 mr-2" />
+                Delete
+              </ContextMenuItem>
+            </>
           )}
         </ContextMenuContent>
       </ContextMenu>
