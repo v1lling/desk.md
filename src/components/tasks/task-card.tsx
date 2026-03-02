@@ -52,9 +52,9 @@ export function TaskCard({
     // Apply highlight styling with workspace color
     ...(isHighlighted && workspaceColor
       ? {
-          backgroundColor: `color-mix(in srgb, ${workspaceColor} 12%, transparent)`,
-          // Use CSS variable for ring color
-          "--tw-ring-color": workspaceColor,
+          backgroundColor: `color-mix(in srgb, ${workspaceColor} 8%, var(--color-card))`,
+          borderColor: `color-mix(in srgb, ${workspaceColor} 40%, transparent)`,
+          boxShadow: `0 0 0 1px color-mix(in srgb, ${workspaceColor} 15%, transparent)`,
         } as React.CSSProperties
       : {}),
   };
@@ -67,8 +67,7 @@ export function TaskCard({
         "cursor-grab group touch-none border-border/50 bg-card overflow-hidden",
         "shadow-sm hover:shadow-md hover:border-border",
         "transition-all duration-150",
-        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1",
-        isHighlighted && "ring-1 ring-offset-1"
+        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1"
       )}
       {...attributes}
       {...listeners}
