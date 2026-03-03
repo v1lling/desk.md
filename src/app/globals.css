@@ -332,3 +332,25 @@
   color: oklch(0.45 0.17 170);
   border-bottom-style: solid;
 }
+
+/* Slash commands popup */
+.slash-commands-popup {
+  width: 280px;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  border: 1px solid oklch(0.91 0.003 90);
+  background: oklch(1 0 0);
+  padding: 0.25rem;
+  box-shadow:
+    0 4px 6px -1px oklch(0 0 0 / 0.1),
+    0 2px 4px -2px oklch(0 0 0 / 0.1);
+}
+
+.dark .slash-commands-popup {
+  border-color: oklch(0.25 0.01 260);
+  background: oklch(0.17 0.01 260);
+  box-shadow:
+    0 4px 6px -1px oklch(0 0 0 / 0.3),
+    0 2px 4px -2px oklch(0 0 0 / 0.2);
+}
