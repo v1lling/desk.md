@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteLinkPicker } from "@/components/ui/note-link-picker";
+import { SlashCommands } from "@/components/ui/slash-commands";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { parseNoteLinkHref, createNoteLinkHref, type NoteLink, type NoteLinkType } from "@/lib/desk/note-link";
@@ -116,6 +117,7 @@ export function RichTextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      SlashCommands,
     ],
     editorProps: {
       attributes: {
@@ -212,6 +214,15 @@ export function RichTextEditor({
       });
     }
   }, [value, editor]);
+
+  // Listen for slash-command link picker trigger
+  useEffect(() => {
+    const handleOpenLinkPicker = () => setShowLinkPicker(true);
+    window.addEventListener("slash-command:open-link-picker", handleOpenLinkPicker);
+    return () => {
+      window.removeEventListener("slash-command:open-link-picker", handleOpenLinkPicker);
+    };
+  }, []);
 
   // Handle keyboard shortcuts and prevent event bubbling
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
