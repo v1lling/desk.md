@@ -224,14 +224,9 @@ export function RichTextEditor({
     };
   }, []);
 
-  // Handle keyboard shortcuts and prevent event bubbling
+  // Prevent event bubbling (avoids triggering drag/sort handlers)
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     e.stopPropagation();
-    // Cmd+L: Open note link picker
-    if ((e.metaKey || e.ctrlKey) && e.key === "l") {
-      e.preventDefault();
-      setShowLinkPicker(true);
-    }
   }, []);
 
   // Insert a note link at cursor position
