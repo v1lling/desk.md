@@ -99,7 +99,7 @@ export function KanbanColumn({
           </div>
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-[13px] text-muted-foreground/60">
+          <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
             No tasks
           </div>
         )}

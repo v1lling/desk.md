@@ -51,9 +51,9 @@ export function TaskCard({
     // Apply highlight styling with workspace color
     ...(isHighlighted && workspaceColor
       ? {
-          backgroundColor: `color-mix(in srgb, ${workspaceColor} 12%, transparent)`,
-          // Use CSS variable for ring color
-          "--tw-ring-color": workspaceColor,
+          backgroundColor: `color-mix(in srgb, ${workspaceColor} 8%, var(--color-card))`,
+          borderColor: `color-mix(in srgb, ${workspaceColor} 40%, transparent)`,
+          boxShadow: `0 0 0 1px color-mix(in srgb, ${workspaceColor} 15%, transparent)`,
         } as React.CSSProperties
       : {}),
   };
@@ -63,17 +63,19 @@ export function TaskCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab group touch-none border-border/60 bg-card",
+        "cursor-grab group touch-none border-border/50 bg-card overflow-hidden",
         "shadow-sm hover:shadow-md hover:border-border",
         "transition-all duration-150",
-        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1",
-        isHighlighted && "ring-1 ring-offset-1"
+        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1"
       )}
       {...attributes}
       {...listeners}
     >
-      <CardContent className="p-3.5" onClick={onClick}>
-        <div className="flex items-start gap-2">
+      <CardContent className="p-0" onClick={onClick}>
+        {task.priority === "high" && (
+          <div className="h-0.5 bg-rose-400" />
+        )}
+        <div className={cn("flex items-start gap-2 p-3.5", task.priority === "high" && "pt-3")}>
           <div className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>

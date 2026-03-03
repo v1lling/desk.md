@@ -1,7 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -10,9 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Separator } from "@/components/ui/separator";
-import { Palette, Monitor, Sun, Moon, RotateCcw } from "lucide-react";
+import { Palette, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateSection } from "./update-section";
 import {
@@ -20,8 +18,6 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_DEFAULT_WIDTH,
 } from "@/stores/settings";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 
 export function GeneralTab() {
   const {
@@ -29,12 +25,9 @@ export function GeneralTab() {
     sidebarWidth,
     setTheme,
     setSidebarWidth,
-    reset,
   } = useSettingsStore();
 
-  const queryClient = useQueryClient();
   const isCollapsed = sidebarWidth <= SIDEBAR_COLLAPSED_WIDTH;
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme);
@@ -49,20 +42,6 @@ export function GeneralTab() {
     }
 
     toast.success(`Theme set to ${newTheme}`);
-  };
-
-  const handleResetClick = () => {
-    setShowResetConfirm(true);
-  };
-
-  const handleResetConfirm = () => {
-    reset();
-    queryClient.invalidateQueries();
-    // Apply system theme
-    const root = document.documentElement;
-    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.classList.toggle("dark", systemDark);
-    toast.success("Settings reset to defaults");
   };
 
   return (
@@ -135,38 +114,6 @@ export function GeneralTab() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Danger Zone */}
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive flex items-center gap-2">
-            <RotateCcw className="h-5 w-5" />
-            Reset
-          </CardTitle>
-          <CardDescription>
-            Reset application settings to defaults
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={handleResetClick}>
-            Reset All Settings
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            This will reset all settings and show the setup wizard again. Your data files will not be deleted.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Reset Settings Confirmation Dialog */}
-      <ConfirmDialog
-        open={showResetConfirm}
-        onOpenChange={setShowResetConfirm}
-        title="Reset All Settings"
-        description="Are you sure you want to reset all settings to defaults? This will show the setup wizard again. Your data files will not be deleted."
-        confirmLabel="Reset"
-        variant="destructive"
-        onConfirm={handleResetConfirm}
-      />
     </div>
   );
 }

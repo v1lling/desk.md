@@ -33,9 +33,12 @@ export function PageHeader({
   const workspaceColor = workspace?.color || DEFAULT_WORKSPACE_COLOR;
 
   return (
-    <div className="shrink-0 border-b">
+    <div
+      className="shrink-0 border-b"
+      style={{ backgroundColor: workspace ? `color-mix(in srgb, ${workspaceColor} 3%, transparent)` : undefined }}
+    >
       {/* Main header row */}
-      <div className="h-12 px-4 flex items-center gap-3">
+      <div className="h-14 px-4 flex items-center gap-3">
         {/* Workspace color indicator */}
         {workspace && (
           <Circle
@@ -83,7 +86,7 @@ export function SimplePageHeader({
 }) {
   return (
     <div className="shrink-0 border-b">
-      <div className="h-12 px-4 flex items-center gap-3">
+      <div className="h-14 px-4 flex items-center gap-3">
         <h1 className="text-base font-semibold">{title}</h1>
         <div className="flex-1" />
         {children}

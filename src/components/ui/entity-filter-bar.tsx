@@ -6,7 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export interface FilterOption {
@@ -65,9 +64,9 @@ export function EntityFilterBar({
         </div>
       ))}
       <div className="ml-auto flex items-center gap-2">
-        <Badge variant="secondary" className="text-xs">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {count} {countLabel}
-        </Badge>
+        </span>
         {rightElement}
       </div>
     </div>

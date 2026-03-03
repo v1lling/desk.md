@@ -205,9 +205,9 @@ export function TabBar() {
 
   return (
     <>
-      <div className="h-9 bg-muted/50 border-b border-border flex items-center shrink-0">
+      <div className="h-9 bg-muted/30 border-b border-border/50 flex items-end shrink-0">
         <ScrollArea orientation="horizontal" className="w-full h-full">
-          <div className="flex items-center h-full">
+          <div className="flex items-end h-full gap-0.5 px-1">
             {tabs.map((tab) => (
               <TabItem
                 key={tab.id}
