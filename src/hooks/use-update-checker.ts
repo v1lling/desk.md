@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { isTauri } from "@/lib/desk";

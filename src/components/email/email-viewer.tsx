@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useCallback, useEffect } from "react";
 import { Mail, User, Users, Calendar, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronUp, X, Clipboard, Check } from "lucide-react";

@@ -1,4 +1,3 @@
-"use client";
 
 import { FileText, CheckSquare, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";

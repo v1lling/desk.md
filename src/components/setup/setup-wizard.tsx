@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/desk";
 import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
-import Image from "next/image";
 import type { Workspace } from "@/types";
 
 type Step = "welcome" | "data-folder" | "existing-detected" | "first-workspace";
@@ -140,7 +138,7 @@ export function SetupWizard() {
           <>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <Image
+                <img
                   src="/icon.png"
                   alt="Desk"
                   width={80}

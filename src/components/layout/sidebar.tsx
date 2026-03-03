@@ -1,4 +1,3 @@
-"use client";
 
 /**
  * Sidebar - "Work Mode" Navigation
@@ -22,8 +21,7 @@ import {
   Home,
   Search,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -44,14 +42,14 @@ interface SidebarProps {
 
 // Nav link component
 function NavLink({
-  href,
+  to,
   label,
   icon: Icon,
   isActive,
   collapsed,
   count,
 }: {
-  href: string;
+  to: string;
   label: string;
   icon: LucideIcon;
   isActive: boolean;
@@ -60,7 +58,7 @@ function NavLink({
 }) {
   return (
     <Link
-      href={href}
+      to={to}
       className={cn(
         "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
         collapsed && "justify-center px-0",
@@ -103,7 +101,7 @@ function Divider() {
 }
 
 export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarProps) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const currentWorkspace = useCurrentWorkspace();
   const workspaceId = currentWorkspace?.id || null;
 
@@ -184,7 +182,7 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
         <nav className="px-2 py-2 space-y-1">
           {/* Dashboard - top level */}
           <NavLink
-            href="/"
+            to="/"
             label="Dashboard"
             icon={Home}
             isActive={pathname === "/"}
@@ -196,7 +194,7 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
           {/* Global Views (workspace-filtered) */}
           <div className="space-y-0.5">
             <NavLink
-              href="/tasks"
+              to="/tasks"
               label="Tasks"
               icon={CheckSquare}
               isActive={pathname === "/tasks"}
@@ -204,7 +202,7 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
               count={activeTaskCount}
             />
             <NavLink
-              href="/docs"
+              to="/docs"
               label="Docs"
               icon={FileText}
               isActive={pathname === "/docs"}
@@ -212,7 +210,7 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
               count={docCount}
             />
             <NavLink
-              href="/meetings"
+              to="/meetings"
               label="Meetings"
               icon={Calendar}
               isActive={pathname === "/meetings"}
@@ -231,7 +229,7 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
       {/* Footer: Settings */}
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/50">
         <NavLink
-          href="/settings"
+          to="/settings"
           label="Settings"
           icon={Settings}
           isActive={pathname === "/settings"}

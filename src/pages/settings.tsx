@@ -1,5 +1,3 @@
-"use client";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings, Bot, Brain, FolderOpen } from "lucide-react";
 import { GeneralTab, AITab, ContextTab, DataTab } from "@/components/settings";

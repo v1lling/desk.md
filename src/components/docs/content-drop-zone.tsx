@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useCallback, type ReactNode, type DragEvent } from "react";
 import { cn } from "@/lib/utils";

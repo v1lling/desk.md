@@ -1,4 +1,3 @@
-"use client";
 
 /**
  * Projects List
@@ -8,8 +7,7 @@
  */
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown, ChevronRight, Plus, FolderKanban } from "lucide-react";
@@ -23,8 +21,7 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { pathname } = useLocation();
   const currentWorkspace = useCurrentWorkspace();
   const workspaceId = currentWorkspace?.id || null;
 
@@ -100,10 +97,8 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
               <ScrollArea className="max-h-[300px]">
                 <div className="px-1 space-y-0.5">
                   {sortedProjects.map((project) => {
-                    const projectHref = `/projects/view?id=${project.id}`;
-                    const isActive =
-                      pathname === "/projects/view" &&
-                      searchParams.get("id") === project.id;
+                    const projectTo = `/projects/${project.id}`;
+                    const isActive = pathname === `/projects/${project.id}`;
 
                     // Count active tasks (not done)
                     const activeTasks = project.tasksByStatus
@@ -115,7 +110,7 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                     return (
                       <Link
                         key={project.id}
-                        href={projectHref}
+                        to={projectTo}
                         className={cn(
                           "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                           isActive

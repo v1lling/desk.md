@@ -1,4 +1,3 @@
-"use client";
 
 import { memo, useCallback } from "react";
 import { Home, FileText, CheckSquare, Calendar, Mail, Bot, X } from "lucide-react";

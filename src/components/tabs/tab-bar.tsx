@@ -1,7 +1,6 @@
-"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useLocation, useParams } from "react-router-dom";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
@@ -10,7 +9,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 
 // Pages that are workspace-scoped (show workspace name and color)
-const WORKSPACE_SCOPED_PAGES = ["/tasks", "/docs", "/meetings", "/projects/view"];
+const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects/"];
+
+function isWorkspaceScopedPage(pathname: string): boolean {
+  return WORKSPACE_SCOPED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 // Map pathname to friendly page name for Desk tab
 function getPageName(
@@ -19,7 +22,7 @@ function getPageName(
   projectName?: string | null
 ): { title: string; isWorkspaceScoped: boolean } {
   // Handle project detail page
-  if (pathname === "/projects/view") {
+  if (pathname.startsWith("/projects/")) {
     const name = projectName || "Project";
     return { title: name, isWorkspaceScoped: true };
   }
@@ -33,19 +36,19 @@ function getPageName(
   };
 
   const baseName = pageMap[pathname] || "Desk";
-  const isWorkspaceScoped = WORKSPACE_SCOPED_PAGES.includes(pathname);
+  const scoped = isWorkspaceScopedPage(pathname);
 
   // For workspace-scoped pages, include workspace name
-  if (isWorkspaceScoped && workspaceName) {
+  if (scoped && workspaceName) {
     return { title: `${baseName} · ${workspaceName}`, isWorkspaceScoped: true };
   }
 
-  return { title: baseName, isWorkspaceScoped };
+  return { title: baseName, isWorkspaceScoped: scoped };
 }
 
 export function TabBar() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { pathname } = useLocation();
+  const params = useParams();
   const tabs = useTabStore((state) => state.tabs);
   const activeTabId = useTabStore((state) => state.activeTabId);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
@@ -63,7 +66,7 @@ export function TabBar() {
   }>({ open: false, tabId: null, tabTitle: "" });
 
   // Get project ID from URL for project pages
-  const projectId = pathname === "/projects/view" ? searchParams.get("id") : null;
+  const projectId = pathname.startsWith("/projects/") ? (params.id ?? null) : null;
   const { data: project } = useProject(currentWorkspace?.id || null, projectId);
 
   // Track previous pathname to detect navigation
@@ -85,7 +88,7 @@ export function TabBar() {
   }, [pathname, currentWorkspace?.name, project?.name, updateTab]);
 
   // Get workspace color for Desk tab (when on workspace-scoped page)
-  const deskWorkspaceColor = WORKSPACE_SCOPED_PAGES.includes(pathname)
+  const deskWorkspaceColor = isWorkspaceScopedPage(pathname)
     ? currentWorkspace?.color
     : undefined;
 

@@ -1,4 +1,3 @@
-"use client";
 
 import { Calendar, Users, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";

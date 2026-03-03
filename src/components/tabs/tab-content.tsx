@@ -1,4 +1,3 @@
-"use client";
 
 import { useTabStore } from "@/stores/tabs";
 import { DocEditor } from "@/components/editors/doc-editor";

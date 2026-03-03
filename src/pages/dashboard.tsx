@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -12,7 +10,7 @@ import {
   useWorkspaceSummaries,
   useSettingsStore,
 } from "@/stores";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Circle, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
@@ -22,13 +20,13 @@ import type { ActiveTask, WorkspaceSummary } from "@/lib/desk/dashboard";
 const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
 
 function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
 
   const handleTaskClick = (task: ActiveTask) => {
     // Set the workspace context and navigate to tasks
     setCurrentWorkspaceId(task.workspaceId);
-    router.push(`/tasks?open=${task.id}`);
+    navigate(`/tasks?open=${task.id}`);
   };
 
   return (
@@ -82,7 +80,7 @@ function WorkspacesWidget({
   summaries: WorkspaceSummary[];
   isLoading: boolean;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const setCurrentWorkspaceId = useSettingsStore(
     (state) => state.setCurrentWorkspaceId
   );
@@ -90,7 +88,7 @@ function WorkspacesWidget({
   const handleWorkspaceClick = (summary: WorkspaceSummary) => {
     // Set the workspace context and navigate to tasks
     setCurrentWorkspaceId(summary.workspaceId);
-    router.push("/tasks");
+    navigate("/tasks");
   };
 
   return (

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, useTabStore } from "@/stores";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
 import { FilteredListPage } from "@/components/patterns";

@@ -1,7 +1,5 @@
-"use client";
-
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,15 +32,32 @@ import { cn } from "@/lib/utils";
 import { statusColors, taskStatusTextColors } from "@/lib/design-tokens";
 import { calculateTaskStats } from "@/lib/desk/calculations";
 
+export default function ProjectViewPage() {
+  const { id: projectId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const openMeetingId = searchParams.get("meeting");
+
+  if (!projectId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">No project selected</p>
+      </div>
+    );
+  }
+
+  return <ProjectPageClient projectId={projectId} openMeetingId={openMeetingId} navigate={navigate} />;
+}
+
 interface ProjectPageClientProps {
   projectId: string;
   openMeetingId?: string | null;
+  navigate: ReturnType<typeof useNavigate>;
 }
 
-export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClientProps) {
+function ProjectPageClient({ projectId, openMeetingId, navigate }: ProjectPageClientProps) {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const router = useRouter();
 
   const { data: project, isLoading: projectLoading } = useProject(
     currentWorkspaceId,
@@ -80,10 +95,10 @@ export function ProjectPageClient({ projectId, openMeetingId }: ProjectPageClien
       if (meetingToOpen) {
         openMeeting(meetingToOpen);
         // Clear the URL param after opening
-        router.replace(`/projects/view?id=${projectId}`, { scroll: false });
+        navigate(`/projects/${projectId}`, { replace: true });
       }
     }
-  }, [openMeetingId, meetings, router, projectId, openMeeting]);
+  }, [openMeetingId, meetings, navigate, projectId, openMeeting]);
 
   const handleTaskClick = (task: Task) => {
     openTask(task);

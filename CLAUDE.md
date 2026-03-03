@@ -30,13 +30,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed structure, file pa
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui
+- **Frontend**: Vite, React 19, React Router, TypeScript, Tailwind CSS, shadcn/ui
 - **Desktop**: Tauri 2 (Rust shell)
 - **State**: TanStack Query (server), Zustand (client)
 - **Editor**: Tiptap (WYSIWYG markdown)
 - **Drag & Drop**: @dnd-kit
 
-> **Note**: Next.js is used with `output: "export"` (static HTML/JS/CSS). No SSR, no API routes, no server components - Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. If a real backend is ever needed (sync, auth), it would be a separate service.
+> **Note**: This is a single-page app (SPA) built with Vite. No SSR, no API routes — Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. If a real backend is ever needed (sync, auth), it would be a separate service.
 
 ## Data Models
 
@@ -62,7 +62,8 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/components/tabs/` | Tab bar and content system |
 | `src/components/editors/` | Full-width doc/task/meeting editors |
 | `src/components/` | React components by feature |
-| `src/app/` | Next.js routes |
+| `src/pages/` | Page components (one per route) |
+| `src/app/` | App shell, providers, globals.css |
 
 ## Current State: v0.4
 
@@ -301,7 +302,7 @@ pipx install appicongen
 
 - Dashboard at `/`, All Tasks at `/tasks`
 - No dedicated `/projects` page - projects listed inline in sidebar
-- Project detail at `/projects/view?id=xxx` (query params due to static export)
+- Project detail at `/projects/:id`
 - Mock data used when `isTauri() === false`
 - `_unassigned` is a special directory for items without a project
 - `_personal` is the Personal workspace (treated like any other workspace)

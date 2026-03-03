@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2, Loader2 } from "lucide-react";

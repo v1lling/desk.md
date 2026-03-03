@@ -1,7 +1,6 @@
-"use client";
 
 import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 /**
  * Hook to handle opening an item from a URL query parameter.
@@ -12,8 +11,8 @@ export function useOpenFromQuery<T extends { id: string }>(
   onOpen: (item: T) => void,
   replacePath: string
 ) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -21,8 +20,8 @@ export function useOpenFromQuery<T extends { id: string }>(
       const item = items.find((i) => i.id === openId);
       if (item) {
         onOpen(item);
-        router.replace(replacePath, { scroll: false });
+        navigate(replacePath, { replace: true });
       }
     }
-  }, [searchParams, items, router, onOpen, replacePath]);
+  }, [searchParams, items, navigate, onOpen, replacePath]);
 }

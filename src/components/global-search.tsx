@@ -1,7 +1,6 @@
-"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   CommandDialog,
   CommandEmpty,
@@ -45,7 +44,7 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const router = useRouter();
+  const navigate = useNavigate();
   const currentWorkspaceId = useSettingsStore((state) => state.currentWorkspaceId);
 
   // Handle keyboard shortcut
@@ -125,11 +124,11 @@ export function GlobalSearch() {
           });
           break;
         case "project":
-          router.push(`/projects/view?id=${item.projectId}`);
+          navigate(`/projects/${item.projectId}`);
           break;
       }
     },
-    [router, openTask, openDoc, openMeeting]
+    [navigate, openTask, openDoc, openMeeting]
   );
 
   return (

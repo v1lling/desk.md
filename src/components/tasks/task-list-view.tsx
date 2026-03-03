@@ -1,4 +1,3 @@
-"use client";
 
 import { useMemo, useState } from "react";
 import { CheckCircle2, Circle, Clock, Loader2, Flag, FolderKanban, ChevronRight } from "lucide-react";

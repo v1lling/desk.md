@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
@@ -10,7 +8,7 @@ import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
 import { FolderKanban, Plus, Circle } from "lucide-react";
 import type { Meeting } from "@/types";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Calendar } from "lucide-react";
@@ -120,7 +118,7 @@ export default function MeetingsPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <FolderKanban className="h-4 w-4 text-muted-foreground" />
                     <Link
-                      href={`/projects/view?id=${projectId}`}
+                      to={`/projects/${projectId}`}
                       className="font-medium hover:underline"
                     >
                       {getDisplayProjectName(projectId)}

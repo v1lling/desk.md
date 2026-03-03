@@ -1,12 +1,10 @@
-"use client";
-
 import { useMemo } from "react";
 import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
 import { useProjects, useCurrentWorkspace, WORKSPACE_LEVEL_PROJECT_ID } from "@/stores";
 import { Badge } from "@/components/ui/badge";
 import { Circle } from "lucide-react";
 
-export function DocsPageClient() {
+export default function DocsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: projects = [] } = useProjects(currentWorkspaceId);

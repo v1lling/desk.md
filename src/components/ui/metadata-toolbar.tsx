@@ -1,4 +1,3 @@
-"use client";
 
 import { Circle, Flag, FolderKanban, Calendar } from "lucide-react";
 import {

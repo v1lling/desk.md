@@ -1,4 +1,3 @@
-"use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityFilterBar, type FilterConfig } from "@/components/ui/entity-filter-bar";

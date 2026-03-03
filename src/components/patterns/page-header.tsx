@@ -1,4 +1,3 @@
-"use client";
 
 /**
  * Page Header with Workspace Context

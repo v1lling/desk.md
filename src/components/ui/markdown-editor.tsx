@@ -1,4 +1,3 @@
-"use client";
 
 /**
  * @deprecated Use RichTextEditor from "@/components/ui/rich-text-editor" instead.

@@ -33,7 +33,7 @@ Workspace (Client or Personal)
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16, React, TypeScript, Tailwind CSS
+- **Frontend**: React, Vite, TypeScript, Tailwind CSS
 - **Desktop**: Tauri 2.9 (Rust shell, ~15MB binary)
 - **UI**: shadcn/ui
 - **State**: Zustand + TanStack Query
@@ -45,7 +45,7 @@ Workspace (Client or Personal)
 
 ```bash
 npm install
-npm run dev           # Web development (mock data)
+npm run dev           # Vite dev server (mock data)
 npm run tauri dev     # Desktop development (real file system)
 ```
 

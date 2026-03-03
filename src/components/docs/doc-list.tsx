@@ -1,4 +1,3 @@
-"use client";
 
 import { DocCard } from "./doc-card";
 import { EmptyState } from "@/components/ui/empty-state";
