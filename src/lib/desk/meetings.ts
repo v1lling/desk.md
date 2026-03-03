@@ -1,31 +1,76 @@
 /**
  * Meetings library - File system operations for meeting notes
+ *
+ * Uses file-operations.ts for all file I/O (cache invalidation + registry notification handled there).
+ * Uses paths.ts for all path construction.
  */
 import type { Meeting } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
+import { isTauri, readDir, joinPath, exists } from "./tauri-fs";
 import {
-  isTauri,
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeFile,
-  joinPath,
-  exists,
-} from "./tauri-fs";
+  writeMarkdownFile,
+  findAndUpdateFile,
+  findAndDeleteFile,
+} from "./file-operations";
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
 import { getProjectPath, getMeetingsPath, getProjectsPath, getUnassignedPath } from "./paths";
 import { findItemInAllWorkspaces } from "./search";
-import { getFileTreeService, getContentCache } from "./file-cache";
-import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
-import { publishDeleted } from "@/stores/editor-event-bus";
+import { getFileTreeService } from "./file-cache";
 
-interface MeetingFrontmatter {
+interface MeetingFrontmatter extends Record<string, unknown> {
   title: string;
   date: string;
   created: string;
   attendees?: string[];
+}
+
+/**
+ * Build a Meeting object from frontmatter + metadata
+ */
+function buildMeeting(
+  id: string,
+  workspaceId: string,
+  projectId: string,
+  filePath: string,
+  data: MeetingFrontmatter,
+  body: string,
+  filename?: string
+): Meeting {
+  return {
+    id,
+    projectId,
+    workspaceId,
+    filePath,
+    title: data.title || filename || id,
+    date: normalizeDate(data.date || data.created),
+    created: normalizeDate(data.created),
+    attendees: data.attendees,
+    content: body,
+    preview: generatePreview(body),
+  };
+}
+
+/**
+ * Apply meeting updates to existing frontmatter
+ */
+function applyMeetingUpdates(
+  data: MeetingFrontmatter,
+  body: string,
+  updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>
+): { frontmatter: MeetingFrontmatter; content: string } {
+  return {
+    frontmatter: {
+      ...data,
+      // Normalize dates from gray-matter (may be Date objects)
+      date: normalizeDate(data.date),
+      created: normalizeDate(data.created),
+      ...(updates.title && { title: updates.title }),
+      ...(updates.date && { date: updates.date }),
+      ...(updates.attendees !== undefined && { attendees: updates.attendees }),
+    },
+    content: updates.content !== undefined ? updates.content : body,
+  };
 }
 
 /**
@@ -51,7 +96,6 @@ async function readProjectMeetings(
       try {
         const meetingPath = await joinPath(meetingsPath, entry.name);
 
-        // Use cached content from file-tree service
         const content = await fileTreeService.getContentByAbsolutePath<string>(
           meetingPath,
           (raw) => raw
@@ -63,28 +107,14 @@ async function readProjectMeetings(
         }
 
         const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
-
-        meetings.push({
-          id: filenameToId(entry.name),
-          projectId,
-          workspaceId,
-          filePath: meetingPath,
-          title: data.title || entry.name,
-          date: normalizeDate(data.date || data.created),
-          created: normalizeDate(data.created),
-          attendees: data.attendees,
-          content: body,
-          preview: generatePreview(body),
-        });
+        meetings.push(buildMeeting(filenameToId(entry.name), workspaceId, projectId, meetingPath, data, body, entry.name));
       } catch (e) {
         console.warn(`Failed to read meeting ${entry.name}:`, e);
       }
     }
   }
 
-  // Sort by date (newest first)
   meetings.sort((a, b) => b.date.localeCompare(a.date));
-
   return meetings;
 }
 
@@ -105,7 +135,6 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   const projectEntries = await readDir(projectsPath);
   const allMeetings: Meeting[] = [];
 
-  // Read meetings from all projects
   for (const entry of projectEntries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
       const projectPath = await joinPath(projectsPath, entry.name);
@@ -114,16 +143,13 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
     }
   }
 
-  // Also read unassigned meetings
   const unassignedPath = await getUnassignedPath(workspaceId);
   if (await exists(unassignedPath)) {
     const unassignedMeetings = await readProjectMeetings(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allMeetings.push(...unassignedMeetings);
   }
 
-  // Sort all meetings by date (newest first)
   allMeetings.sort((a, b) => b.date.localeCompare(a.date));
-
   return allMeetings;
 }
 
@@ -192,14 +218,9 @@ export async function createMeeting(data: {
   }
 
   const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
-
-  // Ensure meetings directory exists
-  await mkdir(meetingsPath);
-
   const filePath = await joinPath(meetingsPath, filename);
   meeting.filePath = filePath;
 
-  // Create meeting file
   const frontmatter: MeetingFrontmatter = {
     title: meeting.title,
     date: meeting.date,
@@ -207,11 +228,8 @@ export async function createMeeting(data: {
     ...(meeting.attendees && { attendees: meeting.attendees }),
   };
 
-  const fileContent = serializeMarkdown(frontmatter, meeting.content);
-  await writeTextFile(filePath, fileContent);
-
-  // Invalidate file-tree cache so list views see the new file immediately
-  getContentCache().invalidate(filePath);
+  // writeMarkdownFile handles mkdir + cache invalidation
+  await writeMarkdownFile(filePath, frontmatter, meeting.content);
 
   return meeting;
 }
@@ -238,99 +256,29 @@ export async function updateMeeting(
     return mockMeetings[index];
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  // Helper to perform the update at a known meetings directory
+  const updateAtPath = async (meetingsPath: string, wsId: string, projId: string): Promise<Meeting | null> => {
+    const result = await findAndUpdateFile<MeetingFrontmatter>(
+      meetingsPath,
+      meetingId,
+      (data, body) => applyMeetingUpdates(data, body, updates)
+    );
+    if (!result) return null;
+    return buildMeeting(meetingId, wsId, projId, result.filePath, result.frontmatter, result.content);
+  };
+
+  // Fast path: directly locate via workspace + project
   if (workspaceId && projectId) {
     const meetingsPath = await getMeetingsPath(workspaceId, projectId);
-
-    if (await exists(meetingsPath)) {
-      const entries = await readDir(meetingsPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === meetingId) {
-          const filePath = await joinPath(meetingsPath, entry.name);
-          const content = await readTextFile(filePath);
-          const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
-
-          // Normalize dates from gray-matter (may be Date objects) to YYYY-MM-DD strings
-          const updatedData: MeetingFrontmatter = {
-            ...data,
-            date: normalizeDate(data.date),
-            created: normalizeDate(data.created),
-            ...(updates.title && { title: updates.title }),
-            ...(updates.date && { date: updates.date }),
-            ...(updates.attendees !== undefined && { attendees: updates.attendees }),
-          };
-
-          const updatedContent = updates.content !== undefined ? updates.content : body;
-          const fileContent = serializeMarkdown(updatedData, updatedContent);
-          await writeTextFile(filePath, fileContent);
-
-          // Invalidate file-tree cache so list views see updated data immediately
-          getContentCache().invalidate(filePath);
-
-          // Notify registry if file is open (prevents false "external change" detection)
-          const registry = useOpenEditorRegistry.getState();
-          if (registry.isOpen(filePath)) {
-            registry.updateLastSaved(filePath, updatedContent);
-          }
-
-          return {
-            id: meetingId,
-            projectId,
-            workspaceId,
-            filePath,
-            title: updatedData.title,
-            date: updatedData.date,
-            created: updatedData.created,
-            attendees: updatedData.attendees,
-            content: updatedContent,
-            preview: generatePreview(updatedContent),
-          };
-        }
-      }
-    }
-    return null;
+    return updateAtPath(meetingsPath, workspaceId, projectId);
   }
 
-  // Fallback: search all workspaces (slow path) - uses helper to find item
+  // Slow path: search all workspaces
   const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
   if (!meeting) return null;
 
-  // Read existing file and update
-  const content = await readTextFile(meeting.filePath);
-  const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
-
-  // Normalize dates from gray-matter (may be Date objects) to YYYY-MM-DD strings
-  const updatedData: MeetingFrontmatter = {
-    ...data,
-    date: normalizeDate(data.date),
-    created: normalizeDate(data.created),
-    ...(updates.title && { title: updates.title }),
-    ...(updates.date && { date: updates.date }),
-    ...(updates.attendees !== undefined && { attendees: updates.attendees }),
-  };
-
-  // Use body from disk (not meeting.content from TanStack Query which may be stale)
-  const updatedContent = updates.content !== undefined ? updates.content : body;
-  const fileContent = serializeMarkdown(updatedData, updatedContent);
-  await writeTextFile(meeting.filePath, fileContent);
-
-  // Invalidate file-tree cache so list views see updated data immediately
-  getContentCache().invalidate(meeting.filePath);
-
-  // Notify registry if file is open (prevents false "external change" detection)
-  const registry = useOpenEditorRegistry.getState();
-  if (registry.isOpen(meeting.filePath)) {
-    registry.updateLastSaved(meeting.filePath, updatedContent);
-  }
-
-  return {
-    ...meeting,
-    title: updatedData.title,
-    date: updatedData.date,
-    attendees: updatedData.attendees,
-    content: updatedContent,
-    preview: generatePreview(updatedContent),
-  };
+  const meetingsPath = await getMeetingsPath(meeting.workspaceId, meeting.projectId);
+  return updateAtPath(meetingsPath, meeting.workspaceId, meeting.projectId);
 }
 
 /**
@@ -348,42 +296,18 @@ export async function deleteMeeting(
     return true;
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  // Fast path: directly locate via workspace + project
   if (workspaceId && projectId) {
     const meetingsPath = await getMeetingsPath(workspaceId, projectId);
-
-    if (await exists(meetingsPath)) {
-      const entries = await readDir(meetingsPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === meetingId) {
-          const filePath = await joinPath(meetingsPath, entry.name);
-
-          // Notify editor if file was open
-          const registry = useOpenEditorRegistry.getState();
-          if (registry.isOpen(filePath)) {
-            registry.handlePathDeleted(filePath);
-            publishDeleted(filePath);
-          }
-
-          await removeFile(filePath);
-          return true;
-        }
-      }
-    }
-    return false;
+    const deleted = await findAndDeleteFile(meetingsPath, meetingId);
+    return deleted !== null;
   }
 
-  // Fallback: search all workspaces (slow path) - uses helper to find item
+  // Slow path: search all workspaces
   const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
   if (!meeting) return false;
 
-  // Notify editor if file was open
-  const registry = useOpenEditorRegistry.getState();
-  if (registry.isOpen(meeting.filePath)) {
-    registry.handlePathDeleted(meeting.filePath);
-    publishDeleted(meeting.filePath);
-  }
-
-  await removeFile(meeting.filePath);
-  return true;
+  const meetingsPath = await getMeetingsPath(meeting.workspaceId, meeting.projectId);
+  const deleted = await findAndDeleteFile(meetingsPath, meetingId);
+  return deleted !== null;
 }

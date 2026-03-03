@@ -158,14 +158,18 @@ export async function getDocsPath(
   workspaceId?: string,
   projectId?: string
 ): Promise<string> {
-  if (!workspaceId) {
-    throw new Error("workspaceId required");
+  if (scope === "personal") {
+    // Personal scope doesn't require workspaceId — always maps to _personal
+    const workspacePath = await getWorkspacePath(SPECIAL_DIRS.PERSONAL);
+    return joinPath(workspacePath, PATH_SEGMENTS.DOCS);
   }
 
-  if (scope === "workspace" || scope === "personal") {
-    // "personal" scope is deprecated but still supported - maps to Personal workspace
-    const wsId = scope === "personal" ? SPECIAL_DIRS.PERSONAL : workspaceId;
-    const workspacePath = await getWorkspacePath(wsId);
+  if (!workspaceId) {
+    throw new Error("workspaceId required for workspace/project scope");
+  }
+
+  if (scope === "workspace") {
+    const workspacePath = await getWorkspacePath(workspaceId);
     return joinPath(workspacePath, PATH_SEGMENTS.DOCS);
   }
 
