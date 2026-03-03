@@ -14,7 +14,6 @@ import { ChevronDown, ChevronRight, Plus, FolderKanban } from "lucide-react";
 import { useProjects } from "@/stores/projects";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { NewProjectModal } from "@/components/projects/new-project-modal";
-import { Badge } from "@/components/ui/badge";
 
 interface ProjectsListProps {
   isCollapsed?: boolean;
@@ -68,9 +67,9 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
           )}
           <span>Projects</span>
           {projects.length > 0 && (
-            <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px]">
+            <span className="ml-auto text-[10px] tabular-nums font-medium text-sidebar-foreground/40">
               {projects.length}
-            </Badge>
+            </span>
           )}
         </button>
 
@@ -120,30 +119,27 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                       >
                         {/* Project dot indicator */}
                         <span className="size-4 shrink-0 flex items-center justify-center">
-                          <span
-                            className={cn(
-                              "size-1.5 rounded-full",
-                              isActive
-                                ? "bg-sidebar-accent-foreground"
-                                : "bg-sidebar-foreground/40"
-                            )}
-                          />
+                          {isActive ? (
+                            <span className="size-1.5 rounded-full bg-sidebar-accent-foreground" />
+                          ) : (
+                            <span
+                              className="size-1.5 rounded-full opacity-50"
+                              style={{ backgroundColor: currentWorkspace?.color || '#64748b' }}
+                            />
+                          )}
                         </span>
 
                         {/* Project name */}
                         <span className="flex-1 truncate">{project.name}</span>
 
-                        {/* Task count badge (only if > 0) */}
+                        {/* Task count */}
                         {activeTasks > 0 && (
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              "h-4 px-1.5 text-[10px]",
-                              isActive && "bg-sidebar-accent-foreground/20"
-                            )}
-                          >
+                          <span className={cn(
+                            "text-[10px] tabular-nums font-medium",
+                            isActive ? "text-sidebar-accent-foreground/60" : "text-sidebar-foreground/40"
+                          )}>
                             {activeTasks}
-                          </Badge>
+                          </span>
                         )}
                       </Link>
                     );

@@ -1,19 +1,19 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects, useTabStore } from "@/stores";
-import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
+import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
+import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab, useInternalLinkHandler } from "@/hooks";
-import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
-import type { AiExclusionState } from "@/lib/rag/aiignore";
+import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
+import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
+import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
 import { EditorHeader } from "./editor-header";
+import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 import { Folder, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,9 +46,9 @@ function FolderBreadcrumb({ path }: { path?: string }) {
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
+  const tabId = `doc-${docId}`;
   const handleInternalLinkClick = useInternalLinkHandler();
 
-  // Load doc metadata via TanStack Query
   const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, docId);
   const { data: projects = [] } = useProjects(workspaceId);
 
@@ -57,16 +57,19 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const deleteDoc = useDeleteDoc();
   const moveDocToProject = useMoveDocToProject();
 
-  // Local state for title and project
+  // Local state
   const [title, setTitle] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [originalProjectId, setOriginalProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [aiExclusionState, setAiExclusionState] = useState<AiExclusionState>({
-    isExcluded: false,
-    isInExcludedFolder: false,
-  });
+
+  // Shared hooks
+  const { aiExclusionState, handleAIInclusionChange } = useEditorAIInclusion(
+    doc?.filePath,
+    workspaceId,
+    "doc"
+  );
 
   // Initialize local state from doc
   useEffect(() => {
@@ -75,7 +78,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       setCurrentProjectId(doc.projectId);
       setOriginalProjectId(doc.projectId);
       setIsEditorReady(false);
-      getAiExclusionState(doc.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [doc?.id, workspaceId]);
 
@@ -116,7 +118,11 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     onSaveComplete: handleSaveComplete,
   });
 
-  // Defer editor rendering for smooth tab switches
+  // Shared save hooks
+  useEditorSaveShortcut(save);
+  useEditorSaveAndClose(tabId, save);
+
+  // Defer editor rendering
   useEffect(() => {
     if (doc && !isLoadingContent && !isEditorReady) {
       const frameId = requestAnimationFrame(() => {
@@ -129,7 +135,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   const handleTitleChange = useCallback(
     async (newTitle: string) => {
       setTitle(newTitle);
-      // Save title immediately with current body content
       if (doc) {
         try {
           await updateDoc.mutateAsync({
@@ -146,58 +151,14 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
   // Manage tab title and dirty state
   const isDirty = contentDirty;
-  useEditorTab(`doc-${docId}`, title, isDirty);
+  useEditorTab(tabId, title, isDirty);
 
-  // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        save();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
-    // Also listen for menu save event from Tauri native menu
-    let unlistenMenu: (() => void) | undefined;
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen("menu-save", () => {
-        save();
-      }).then((unlisten) => {
-        unlistenMenu = unlisten;
-      });
-    }).catch(() => {
-      // Not in Tauri environment
-    });
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      unlistenMenu?.();
-    };
-  }, [save]);
-
-  // Handle save-and-close request from tab bar
-  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
-  const clearPendingSaveAndClose = useTabStore((state) => state.clearPendingSaveAndClose);
-  const closeTab = useTabStore((state) => state.closeTab);
-
-  useEffect(() => {
-    if (pendingSaveAndClose === `doc-${docId}`) {
-      (async () => {
-        await save();
-        clearPendingSaveAndClose();
-        closeTab(`doc-${docId}`);
-      })();
-    }
-  }, [pendingSaveAndClose, docId, save, clearPendingSaveAndClose, closeTab]);
-
-  // Project change — auto-move immediately (consistent with other metadata saves)
+  // Project change — auto-move immediately
   const handleProjectChange = useCallback(async (newProjectId: string) => {
     setCurrentProjectId(newProjectId);
     if (!doc || newProjectId === originalProjectId) return;
 
     try {
-      // Save any unsaved content first (move reads from disk)
       const saved = await save();
       if (!saved) {
         setCurrentProjectId(originalProjectId);
@@ -212,19 +173,16 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         toProjectId: newProjectId,
       });
 
-      // Accept the path change seamlessly (no "file moved" banner)
       if (result?.filePath) {
         acceptPathChange(result.filePath);
       }
       setOriginalProjectId(newProjectId);
     } catch {
-      // Revert on failure
       setCurrentProjectId(originalProjectId);
       toast.error("Failed to move doc");
     }
   }, [doc, originalProjectId, moveDocToProject, acceptPathChange, save]);
 
-  // Handle delete
   const handleDeleteConfirm = useCallback(async () => {
     if (!doc) return;
 
@@ -238,76 +196,28 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
   }, [doc, deleteDoc, onClose]);
 
-  // Map save status for the header
   const headerSaveStatus = useMemo(() => {
     if (saveStatus === "saving") return "saving" as const;
     if (saveStatus === "error") return "error" as const;
     return "idle" as const;
   }, [saveStatus]);
 
-  // Handle AI inclusion toggle
-  const handleAIInclusionChange = useCallback(
-    async (included: boolean) => {
-      if (!doc) return;
-      if (aiExclusionState.isInExcludedFolder) return;
-      try {
-        await setAIInclusion(doc.filePath, workspaceId, included);
-        setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
-        if (!included) {
-          await removeFromIndex(doc.filePath);
-        }
-      } catch (error) {
-        console.error("[doc-editor] Failed to update AI inclusion:", error);
-        toast.error("Failed to update AI setting");
-      }
-    },
-    [doc, workspaceId, aiExclusionState.isInExcludedFolder]
-  );
+  // Render states (deleted, moved, loading, not found)
+  const renderState = EditorRenderStates({
+    fileDeleted,
+    pathChanged,
+    newPath,
+    isLoading: isLoadingDoc,
+    entity: doc,
+    entityLabel: "doc",
+    onClose,
+    acknowledgePathChange,
+    acknowledgeDeleted,
+  });
+  if (renderState) return renderState;
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Render states
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  if (fileDeleted) {
-    return (
-      <FileDeletedBanner
-        onClose={() => {
-          acknowledgeDeleted();
-          onClose();
-        }}
-      />
-    );
-  }
-
-  if (pathChanged && newPath) {
-    return (
-      <FileMovedBanner
-        newPath={newPath}
-        onAcknowledge={acknowledgePathChange}
-      />
-    );
-  }
-
-  if (isLoadingDoc) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <LoadingState label="doc" />
-      </div>
-    );
-  }
-
-  if (!doc) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <div className="text-center text-muted-foreground">
-          <p>Doc not found</p>
-          <Button variant="ghost" onClick={onClose} className="mt-2">
-            Close tab
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // TypeScript can't narrow through EditorRenderStates — doc is guaranteed non-null here
+  if (!doc) return null;
 
   return (
     <div className="flex flex-col h-full bg-background">

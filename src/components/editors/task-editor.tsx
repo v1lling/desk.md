@@ -1,19 +1,19 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder, useTabStore } from "@/stores";
-import { indexDocumentOnSave, removeFromIndex } from "@/hooks/use-rag-indexer";
+import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
+import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab, useInternalLinkHandler } from "@/hooks";
-import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
-import type { AiExclusionState } from "@/lib/rag/aiignore";
+import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
+import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
+import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
 import { EditorHeader } from "./editor-header";
+import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 import { toast } from "sonner";
 import type { TaskStatus, TaskPriority } from "@/types";
 
@@ -25,6 +25,7 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
+  const tabId = `task-${taskId}`;
   const handleInternalLinkClick = useInternalLinkHandler();
   const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
 
@@ -44,10 +45,13 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [originalProjectId, setOriginalProjectId] = useState("");
-  const [aiExclusionState, setAiExclusionState] = useState<AiExclusionState>({
-    isExcluded: false,
-    isInExcludedFolder: false,
-  });
+
+  // Shared hooks
+  const { aiExclusionState, handleAIInclusionChange } = useEditorAIInclusion(
+    task?.filePath,
+    workspaceId,
+    "task"
+  );
 
   // Initialize metadata from task
   useEffect(() => {
@@ -59,7 +63,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setCurrentProjectId(task.projectId);
       setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
-      getAiExclusionState(task.filePath, workspaceId).then(setAiExclusionState);
     }
   }, [task?.id, workspaceId]);
 
@@ -100,6 +103,10 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     onSaveComplete: handleSaveComplete,
   });
 
+  // Shared save hooks
+  useEditorSaveShortcut(save);
+  useEditorSaveAndClose(tabId, save);
+
   // Defer editor rendering
   useEffect(() => {
     if (task && !isLoadingContent && !isEditorReady) {
@@ -110,140 +117,63 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [task, isLoadingContent, isEditorReady]);
 
-  // Metadata change handlers - save immediately with current body
-  const handleTitleChange = useCallback(
-    async (newTitle: string) => {
-      setTitle(newTitle);
-      if (task) {
-        try {
-          await updateTask.mutateAsync({
-            taskId: task.id,
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            updates: { title: newTitle.trim() || task.title, content: getCurrentContent() },
-          });
-        } catch (error) {
-          console.error("[task-editor] Failed to save title:", error);
+  // Metadata change handler factory
+  const createMetadataHandler = useCallback(
+    <T,>(
+      setter: (value: T) => void,
+      toUpdates: (value: T) => Record<string, unknown>
+    ) => {
+      return async (value: T) => {
+        setter(value);
+        if (task) {
+          try {
+            await updateTask.mutateAsync({
+              taskId: task.id,
+              workspaceId: task.workspaceId,
+              projectId: task.projectId,
+              updates: { ...toUpdates(value), content: getCurrentContent() },
+            });
+          } catch (error) {
+            console.error("[task-editor] Failed to save metadata:", error);
+          }
         }
-      }
+      };
     },
     [task, updateTask, getCurrentContent]
   );
 
-  const handleStatusChange = useCallback(
-    async (newStatus: TaskStatus) => {
-      setStatus(newStatus);
-      if (task) {
-        try {
-          await updateTask.mutateAsync({
-            taskId: task.id,
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            updates: { status: newStatus, content: getCurrentContent() },
-          });
-        } catch (error) {
-          console.error("[task-editor] Failed to save status:", error);
-        }
-      }
-    },
-    [task, updateTask, getCurrentContent]
+  const handleTitleChange = useMemo(
+    () => createMetadataHandler(setTitle, (v: string) => ({ title: v.trim() || task?.title })),
+    [createMetadataHandler, task?.title]
   );
 
-  const handlePriorityChange = useCallback(
-    async (newPriority: TaskPriority | "none") => {
-      setPriority(newPriority);
-      if (task) {
-        try {
-          await updateTask.mutateAsync({
-            taskId: task.id,
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            updates: {
-              priority: newPriority === "none" ? undefined : newPriority,
-              content: getCurrentContent(),
-            },
-          });
-        } catch (error) {
-          console.error("[task-editor] Failed to save priority:", error);
-        }
-      }
-    },
-    [task, updateTask, getCurrentContent]
+  const handleStatusChange = useMemo(
+    () => createMetadataHandler(setStatus, (v: TaskStatus) => ({ status: v })),
+    [createMetadataHandler]
   );
 
-  const handleDueChange = useCallback(
-    async (newDue: string) => {
-      setDue(newDue);
-      if (task) {
-        try {
-          await updateTask.mutateAsync({
-            taskId: task.id,
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            updates: { due: newDue || undefined, content: getCurrentContent() },
-          });
-        } catch (error) {
-          console.error("[task-editor] Failed to save due date:", error);
-        }
-      }
-    },
-    [task, updateTask, getCurrentContent]
+  const handlePriorityChange = useMemo(
+    () => createMetadataHandler(setPriority, (v: TaskPriority | "none") => ({
+      priority: v === "none" ? undefined : v,
+    })),
+    [createMetadataHandler]
+  );
+
+  const handleDueChange = useMemo(
+    () => createMetadataHandler(setDue, (v: string) => ({ due: v || undefined })),
+    [createMetadataHandler]
   );
 
   // Manage tab title and dirty state
   const isDirty = contentDirty;
-  useEditorTab(`task-${taskId}`, title, isDirty);
+  useEditorTab(tabId, title, isDirty);
 
-  // Keyboard shortcut: Cmd+S to save (also handles menu-save event from Tauri native menu)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        save();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
-    // Also listen for menu save event from Tauri native menu
-    let unlistenMenu: (() => void) | undefined;
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen("menu-save", () => {
-        save();
-      }).then((unlisten) => {
-        unlistenMenu = unlisten;
-      });
-    }).catch(() => {
-      // Not in Tauri environment
-    });
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      unlistenMenu?.();
-    };
-  }, [save]);
-
-  // Handle save-and-close request from tab bar
-  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
-  const clearPendingSaveAndClose = useTabStore((state) => state.clearPendingSaveAndClose);
-  const closeTab = useTabStore((state) => state.closeTab);
-
-  useEffect(() => {
-    if (pendingSaveAndClose === `task-${taskId}`) {
-      (async () => {
-        await save();
-        clearPendingSaveAndClose();
-        closeTab(`task-${taskId}`);
-      })();
-    }
-  }, [pendingSaveAndClose, taskId, save, clearPendingSaveAndClose, closeTab]);
-
-  // Project change — auto-move immediately (consistent with other metadata saves)
+  // Project change — auto-move immediately
   const handleProjectChange = useCallback(async (newProjectId: string) => {
     setCurrentProjectId(newProjectId);
     if (!task || newProjectId === originalProjectId) return;
 
     try {
-      // Save any unsaved content first (move reads from disk)
       const saved = await save();
       if (!saved) {
         setCurrentProjectId(originalProjectId);
@@ -258,13 +188,11 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         toProjectId: newProjectId,
       });
 
-      // Accept the path change seamlessly (no "file moved" banner)
       if (result?.filePath) {
         acceptPathChange(result.filePath);
       }
       setOriginalProjectId(newProjectId);
     } catch {
-      // Revert on failure
       setCurrentProjectId(originalProjectId);
       toast.error("Failed to move task");
     }
@@ -291,76 +219,25 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
   }, [task, deleteTask, removeTaskFromOrder, onClose]);
 
-  // Map save status for the header
   const saveStatus = useMemo(() => {
     if (contentSaveStatus === "saving") return "saving" as const;
     if (contentSaveStatus === "error") return "error" as const;
     return "idle" as const;
   }, [contentSaveStatus]);
 
-  // Handle AI inclusion toggle
-  const handleAIInclusionChange = useCallback(
-    async (included: boolean) => {
-      if (!task) return;
-      if (aiExclusionState.isInExcludedFolder) return;
-      try {
-        await setAIInclusion(task.filePath, workspaceId, included);
-        setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
-        if (!included) {
-          await removeFromIndex(task.filePath);
-        }
-      } catch (error) {
-        console.error("[task-editor] Failed to update AI inclusion:", error);
-        toast.error("Failed to update AI setting");
-      }
-    },
-    [task, workspaceId, aiExclusionState.isInExcludedFolder]
-  );
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Render states
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  if (fileDeleted) {
-    return (
-      <FileDeletedBanner
-        onClose={() => {
-          acknowledgeDeleted();
-          onClose();
-        }}
-      />
-    );
-  }
-
-  if (pathChanged && newPath) {
-    return (
-      <FileMovedBanner
-        newPath={newPath}
-        onAcknowledge={acknowledgePathChange}
-      />
-    );
-  }
-
-  if (isLoadingTask) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <LoadingState label="task" />
-      </div>
-    );
-  }
-
-  if (!task) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <div className="text-center text-muted-foreground">
-          <p>Task not found</p>
-          <Button variant="ghost" onClick={onClose} className="mt-2">
-            Close tab
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Render states (deleted, moved, loading, not found)
+  const renderState = EditorRenderStates({
+    fileDeleted,
+    pathChanged,
+    newPath,
+    isLoading: isLoadingTask,
+    entity: task,
+    entityLabel: "task",
+    onClose,
+    acknowledgePathChange,
+    acknowledgeDeleted,
+  });
+  if (renderState) return renderState;
 
   const metadataProps = {
     status,

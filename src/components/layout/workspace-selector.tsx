@@ -92,10 +92,9 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                 className="w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Circle
-                    className="size-3.5 shrink-0 transition-transform group-hover:scale-110"
-                    style={{ color: fillColor }}
-                    fill={fillColor}
+                  <div
+                    className="size-3.5 rounded shrink-0"
+                    style={{ backgroundColor: fillColor }}
                   />
                   <span className="font-medium truncate text-sidebar-foreground">
                     {currentWorkspace?.name || "Select Workspace"}

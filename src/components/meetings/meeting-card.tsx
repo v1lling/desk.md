@@ -25,9 +25,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
       onClick={onClick}
       className={cn(
         "w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3 group",
-        isLatest
-          ? "bg-violet-500/10 hover:bg-violet-500/15 ring-1 ring-violet-500/20"
-          : "hover:bg-accent/50"
+        "hover:bg-accent/50"
       )}
     >
       <div
@@ -48,12 +46,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "font-medium truncate",
-              isLatest && "text-violet-700 dark:text-violet-300"
-            )}
-          >
+          <span className="font-medium truncate">
             {meeting.title}
           </span>
           {isLatest && (
@@ -82,7 +75,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
         </div>
       </div>
 
-      <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0" />
     </button>
   );
 }
