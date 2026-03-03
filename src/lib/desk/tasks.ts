@@ -1,32 +1,78 @@
 /**
  * Tasks library - File system operations for tasks
+ *
+ * Uses file-operations.ts for all file I/O (cache invalidation + registry notification handled there).
+ * Uses paths.ts for all path construction.
  */
 import type { Task, TaskStatus, TaskPriority } from "@/types";
-import { parseMarkdown, serializeMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
+import { isTauri, readDir, joinPath, exists } from "./tauri-fs";
 import {
-  isTauri,
-  getDeskPath,
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeFile,
-  joinPath,
-  exists,
-} from "./tauri-fs";
+  writeMarkdownFile,
+  findFileById,
+  findAndUpdateFile,
+  findAndDeleteFile,
+  moveMarkdownFile,
+  readMarkdownFile,
+} from "./file-operations";
 import { mockTasks } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
+import { getTasksPath, getProjectsPath, getUnassignedPath, getProjectPath } from "./paths";
 import { findItemInAllWorkspaces } from "./search";
 import { getFileTreeService } from "./file-cache";
-import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
-import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
 
-interface TaskFrontmatter {
+interface TaskFrontmatter extends Record<string, unknown> {
   title: string;
   status: TaskStatus;
   priority?: TaskPriority;
   due?: string;
   created: string;
+}
+
+/**
+ * Build a Task object from frontmatter + metadata
+ */
+function buildTask(
+  id: string,
+  workspaceId: string,
+  projectId: string,
+  filePath: string,
+  data: TaskFrontmatter,
+  body: string,
+  filename?: string
+): Task {
+  return {
+    id,
+    projectId,
+    workspaceId,
+    filePath,
+    title: data.title || filename || id,
+    status: data.status || "todo",
+    priority: data.priority,
+    due: data.due ? normalizeDate(data.due) : undefined,
+    created: normalizeDate(data.created),
+    content: body,
+  };
+}
+
+/**
+ * Apply task updates to existing frontmatter
+ */
+function applyTaskUpdates(
+  data: TaskFrontmatter,
+  body: string,
+  updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content">>
+): { frontmatter: TaskFrontmatter; content: string } {
+  return {
+    frontmatter: {
+      ...data,
+      ...(updates.title && { title: updates.title }),
+      ...(updates.status && { status: updates.status }),
+      ...(updates.priority !== undefined && { priority: updates.priority }),
+      ...(updates.due !== undefined && { due: updates.due }),
+    },
+    content: updates.content !== undefined ? updates.content : body,
+  };
 }
 
 /**
@@ -52,7 +98,6 @@ async function readProjectTasks(
       try {
         const taskPath = await joinPath(tasksPath, entry.name);
 
-        // Use cached content from file-tree service
         const content = await fileTreeService.getContentByAbsolutePath<string>(
           taskPath,
           (raw) => raw
@@ -64,19 +109,7 @@ async function readProjectTasks(
         }
 
         const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-        tasks.push({
-          id: filenameToId(entry.name),
-          projectId,
-          workspaceId,
-          filePath: taskPath,
-          title: data.title || entry.name,
-          status: data.status || "todo",
-          priority: data.priority,
-          due: data.due ? normalizeDate(data.due) : undefined,
-          created: normalizeDate(data.created),
-          content: body,
-        });
+        tasks.push(buildTask(filenameToId(entry.name), workspaceId, projectId, taskPath, data, body, entry.name));
       } catch (e) {
         console.warn(`Failed to read task ${entry.name}:`, e);
       }
@@ -94,8 +127,7 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
     return mockTasks.filter((task) => task.workspaceId === workspaceId);
   }
 
-  const deskPath = await getDeskPath();
-  const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
+  const projectsPath = await getProjectsPath(workspaceId);
 
   if (!(await exists(projectsPath))) {
     return [];
@@ -113,7 +145,7 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
   }
 
   // Also read unassigned tasks
-  const unassignedPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED);
+  const unassignedPath = await getUnassignedPath(workspaceId);
   if (await exists(unassignedPath)) {
     const unassignedTasks = await readProjectTasks(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allTasks.push(...unassignedTasks);
@@ -133,11 +165,7 @@ export async function getTasksByProject(
     return mockTasks.filter((task) => task.workspaceId === workspaceId && task.projectId === projectId);
   }
 
-  const deskPath = await getDeskPath();
-  const projectPath = isUnassigned(projectId)
-    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED)
-    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
-
+  const projectPath = await getProjectPath(workspaceId, projectId);
   return readProjectTasks(workspaceId, projectId, projectPath);
 }
 
@@ -185,18 +213,10 @@ export async function createTask(data: {
     return task;
   }
 
-  const deskPath = await getDeskPath();
-  const tasksPath = isUnassigned(data.projectId)
-    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, data.projectId, PATH_SEGMENTS.TASKS);
-
-  // Ensure tasks directory exists
-  await mkdir(tasksPath);
-
+  const tasksPath = await getTasksPath(data.workspaceId, data.projectId);
   const filePath = await joinPath(tasksPath, filename);
   task.filePath = filePath;
 
-  // Create task file
   const frontmatter: TaskFrontmatter = {
     title: task.title,
     status: task.status,
@@ -205,8 +225,7 @@ export async function createTask(data: {
     created: task.created,
   };
 
-  const fileContent = serializeMarkdown(frontmatter, task.content);
-  await writeTextFile(filePath, fileContent);
+  await writeMarkdownFile(filePath, frontmatter, task.content);
 
   return task;
 }
@@ -227,93 +246,29 @@ export async function updateTask(
     return mockTasks[index];
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  // Helper to perform the update at a known tasks directory
+  const updateAtPath = async (tasksPath: string, wsId: string, projId: string): Promise<Task | null> => {
+    const result = await findAndUpdateFile<TaskFrontmatter>(
+      tasksPath,
+      taskId,
+      (data, body) => applyTaskUpdates(data, body, updates)
+    );
+    if (!result) return null;
+    return buildTask(taskId, wsId, projId, result.filePath, result.frontmatter, result.content);
+  };
+
+  // Fast path: directly locate via workspace + project
   if (workspaceId && projectId) {
-    const deskPath = await getDeskPath();
-    const tasksPath = isUnassigned(projectId)
-      ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-      : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
-
-    // Find the task file by ID
-    if (await exists(tasksPath)) {
-      const entries = await readDir(tasksPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === taskId) {
-          const filePath = await joinPath(tasksPath, entry.name);
-          const content = await readTextFile(filePath);
-          const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-          const updatedData: TaskFrontmatter = {
-            ...data,
-            ...(updates.title && { title: updates.title }),
-            ...(updates.status && { status: updates.status }),
-            ...(updates.priority !== undefined && { priority: updates.priority }),
-            ...(updates.due !== undefined && { due: updates.due }),
-          };
-
-          const updatedContent = updates.content !== undefined ? updates.content : body;
-          const fileContent = serializeMarkdown(updatedData, updatedContent);
-          await writeTextFile(filePath, fileContent);
-
-          // Notify registry if file is open (prevents false "external change" detection)
-          const registry = useOpenEditorRegistry.getState();
-          if (registry.isOpen(filePath)) {
-            registry.updateLastSaved(filePath, updatedContent);
-          }
-
-          return {
-            id: taskId,
-            projectId,
-            workspaceId,
-            filePath,
-            title: updatedData.title,
-            status: updatedData.status,
-            priority: updatedData.priority,
-            due: updatedData.due,
-            created: normalizeDate(data.created),
-            content: updatedContent,
-          };
-        }
-      }
-    }
-    return null;
+    const tasksPath = await getTasksPath(workspaceId, projectId);
+    return updateAtPath(tasksPath, workspaceId, projectId);
   }
 
-  // Fallback: search all workspaces (slow path) - uses helper to find item
+  // Slow path: search all workspaces to find the task
   const task = await findItemInAllWorkspaces(taskId, getTasks);
   if (!task) return null;
 
-  // Read existing file and update
-  const content = await readTextFile(task.filePath);
-  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-  const updatedData: TaskFrontmatter = {
-    ...data,
-    ...(updates.title && { title: updates.title }),
-    ...(updates.status && { status: updates.status }),
-    ...(updates.priority !== undefined && { priority: updates.priority }),
-    ...(updates.due !== undefined && { due: updates.due }),
-  };
-
-  const updatedContent = updates.content !== undefined ? updates.content : body;
-  const fileContent = serializeMarkdown(updatedData, updatedContent);
-  await writeTextFile(task.filePath, fileContent);
-
-  // Notify registry if file is open (prevents false "external change" detection)
-  const registry = useOpenEditorRegistry.getState();
-  if (registry.isOpen(task.filePath)) {
-    registry.updateLastSaved(task.filePath, updatedContent);
-  }
-
-  return {
-    ...task,
-    ...updates,
-    title: updatedData.title,
-    status: updatedData.status,
-    priority: updatedData.priority,
-    due: updatedData.due,
-    content: updatedContent,
-  };
+  const tasksPath = await getTasksPath(task.workspaceId, task.projectId);
+  return updateAtPath(tasksPath, task.workspaceId, task.projectId);
 }
 
 /**
@@ -331,47 +286,20 @@ export async function deleteTask(
     return true;
   }
 
-  // If we have workspaceId and projectId, we can directly locate the file (fast path)
+  // Fast path: directly locate via workspace + project
   if (workspaceId && projectId) {
-    const deskPath = await getDeskPath();
-    const tasksPath = isUnassigned(projectId)
-      ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-      : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId, PATH_SEGMENTS.TASKS);
-
-    if (await exists(tasksPath)) {
-      const entries = await readDir(tasksPath);
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === taskId) {
-          const filePath = await joinPath(tasksPath, entry.name);
-
-          // Notify editor if file was open
-          const registry = useOpenEditorRegistry.getState();
-          if (registry.isOpen(filePath)) {
-            registry.handlePathDeleted(filePath);
-            publishDeleted(filePath);
-          }
-
-          await removeFile(filePath);
-          return true;
-        }
-      }
-    }
-    return false;
+    const tasksPath = await getTasksPath(workspaceId, projectId);
+    const deleted = await findAndDeleteFile(tasksPath, taskId);
+    return deleted !== null;
   }
 
-  // Fallback: search all workspaces (slow path) - uses helper to find item
+  // Slow path: search all workspaces
   const task = await findItemInAllWorkspaces(taskId, getTasks);
   if (!task) return false;
 
-  // Notify editor if file was open
-  const registry = useOpenEditorRegistry.getState();
-  if (registry.isOpen(task.filePath)) {
-    registry.handlePathDeleted(task.filePath);
-    publishDeleted(task.filePath);
-  }
-
-  await removeFile(task.filePath);
-  return true;
+  const tasksPath = await getTasksPath(task.workspaceId, task.projectId);
+  const deleted = await findAndDeleteFile(tasksPath, taskId);
+  return deleted !== null;
 }
 
 /**
@@ -403,70 +331,26 @@ export async function moveTaskToProject(
   }
 
   if (fromProjectId === toProjectId) {
-    // No move needed
     const tasks = await getTasks(workspaceId);
     return tasks.find((t) => t.id === taskId) || null;
   }
 
-  const deskPath = await getDeskPath();
-
   // Find the source file
-  const fromTasksPath = isUnassigned(fromProjectId)
-    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, fromProjectId, PATH_SEGMENTS.TASKS);
+  const fromTasksPath = await getTasksPath(workspaceId, fromProjectId);
+  const sourceFilePath = await findFileById(fromTasksPath, taskId);
+  if (!sourceFilePath) return null;
 
-  if (!(await exists(fromTasksPath))) return null;
+  // Read source content before moving
+  const parsed = await readMarkdownFile<TaskFrontmatter>(sourceFilePath);
+  if (!parsed) return null;
 
-  const entries = await readDir(fromTasksPath);
-  let sourceFilename: string | null = null;
-
-  for (const entry of entries) {
-    if (entry.isFile && entry.name.endsWith(".md") && filenameToId(entry.name) === taskId) {
-      sourceFilename = entry.name;
-      break;
-    }
-  }
-
-  if (!sourceFilename) return null;
-
-  const sourceFilePath = await joinPath(fromTasksPath, sourceFilename);
-
-  // Read the task content
-  const content = await readTextFile(sourceFilePath);
-  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-  // Ensure target directory exists
-  const toTasksPath = isUnassigned(toProjectId)
-    ? await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS)
-    : await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, toProjectId, PATH_SEGMENTS.TASKS);
-
-  await mkdir(toTasksPath);
-
-  // Write to new location
+  // Build target path (same filename, different directory)
+  const toTasksPath = await getTasksPath(workspaceId, toProjectId);
+  const sourceFilename = sourceFilePath.split("/").pop()!;
   const targetFilePath = await joinPath(toTasksPath, sourceFilename);
-  const fileContent = serializeMarkdown(data, body);
-  await writeTextFile(targetFilePath, fileContent);
 
-  // Delete original file
-  await removeFile(sourceFilePath);
+  // Move the file (handles mkdir, cache invalidation, registry notification)
+  await moveMarkdownFile(sourceFilePath, targetFilePath);
 
-  // Notify editor if file was open
-  const registry = useOpenEditorRegistry.getState();
-  if (registry.isOpen(sourceFilePath)) {
-    registry.handlePathChange(sourceFilePath, targetFilePath);
-    publishPathChange(sourceFilePath, targetFilePath);
-  }
-
-  return {
-    id: taskId,
-    projectId: toProjectId,
-    workspaceId,
-    filePath: targetFilePath,
-    title: data.title,
-    status: data.status,
-    priority: data.priority,
-    due: data.due ? normalizeDate(data.due) : undefined,
-    created: normalizeDate(data.created),
-    content: body,
-  };
+  return buildTask(taskId, workspaceId, toProjectId, targetFilePath, parsed.frontmatter, parsed.content);
 }

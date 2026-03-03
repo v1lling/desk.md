@@ -3,6 +3,10 @@
  *
  * DRY utilities for common markdown file operations.
  * Used by tasks.ts, content.ts, meetings.ts, personal.ts.
+ *
+ * All write/update/delete/move operations automatically:
+ * - Invalidate the content cache (so list views refresh)
+ * - Notify open editors via the registry (prevents false "external change" detection)
  */
 
 import {
@@ -17,7 +21,8 @@ import {
 } from "./tauri-fs";
 import { parseMarkdown, serializeMarkdown, filenameToId } from "./parser";
 import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
-import { getFileTreeService } from "./file-cache";
+import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
+import { getFileTreeService, getContentCache } from "./file-cache";
 
 // =============================================================================
 // TYPES
@@ -176,23 +181,42 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
   const { createDir = true } = options;
 
   if (createDir) {
-    // Extract directory from filePath
     const parts = filePath.split("/");
-    parts.pop(); // Remove filename
+    parts.pop();
     const dirPath = parts.join("/");
     await mkdir(dirPath);
   }
 
   const fileContent = serializeMarkdown(frontmatter, content);
   await writeTextFile(filePath, fileContent);
+  getContentCache().invalidate(filePath);
+}
+
+/**
+ * Result of updating a markdown file
+ */
+export interface UpdateResult<T> {
+  frontmatter: T;
+  content: string;
+  filePath: string;
+}
+
+/**
+ * Options for updating a markdown file
+ */
+export interface UpdateFileOptions {
+  /** Notify open editors about the update (default: true) */
+  notifyEditors?: boolean;
 }
 
 /**
  * Update a markdown file's frontmatter and/or content
  *
+ * Automatically invalidates cache and notifies open editors.
+ *
  * @param filePath - Absolute path to file
  * @param updater - Function that receives current frontmatter and content, returns updated values
- * @returns Updated frontmatter or null if file not found
+ * @returns Update result with frontmatter, content, and filePath; or null if file not found
  *
  * @example
  * await updateMarkdownFile<TaskFrontmatter>(filePath, (fm, content) => ({
@@ -202,8 +226,11 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
  */
 export async function updateMarkdownFile<T extends Record<string, unknown>>(
   filePath: string,
-  updater: (frontmatter: T, content: string) => { frontmatter: T; content: string }
-): Promise<T | null> {
+  updater: (frontmatter: T, content: string) => { frontmatter: T; content: string },
+  options: UpdateFileOptions = {}
+): Promise<UpdateResult<T> | null> {
+  const { notifyEditors = true } = options;
+
   if (!(await exists(filePath))) {
     return null;
   }
@@ -216,7 +243,20 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
     const fileContent = serializeMarkdown(updated.frontmatter, updated.content);
     await writeTextFile(filePath, fileContent);
 
-    return updated.frontmatter;
+    getContentCache().invalidate(filePath);
+
+    if (notifyEditors) {
+      const registry = useOpenEditorRegistry.getState();
+      if (registry.isOpen(filePath)) {
+        registry.updateLastSaved(filePath, updated.content);
+      }
+    }
+
+    return {
+      frontmatter: updated.frontmatter,
+      content: updated.content,
+      filePath,
+    };
   } catch (e) {
     console.warn(`[file-ops] Failed to update file:`, e);
     return null;
@@ -238,6 +278,8 @@ export interface DeleteFileOptions {
 /**
  * Delete a markdown file
  *
+ * Automatically invalidates cache and notifies open editors.
+ *
  * @param filePath - Absolute path to file
  * @param options - Optional configuration
  * @returns true if deleted, false if not found
@@ -253,8 +295,13 @@ export async function deleteMarkdownFile(
   }
 
   await removeFile(filePath);
+  getContentCache().invalidate(filePath);
 
   if (notifyEditors) {
+    const registry = useOpenEditorRegistry.getState();
+    if (registry.isOpen(filePath)) {
+      registry.handlePathDeleted(filePath);
+    }
     publishDeleted(filePath);
   }
 
@@ -278,6 +325,8 @@ export interface MoveFileOptions {
 /**
  * Move a markdown file to a new location
  *
+ * Automatically invalidates cache and notifies open editors.
+ *
  * @param sourcePath - Current absolute path
  * @param targetPath - New absolute path
  * @param options - Optional configuration
@@ -295,16 +344,22 @@ export async function moveMarkdownFile(
   }
 
   if (createDir) {
-    // Extract directory from targetPath
     const parts = targetPath.split("/");
-    parts.pop(); // Remove filename
+    parts.pop();
     const dirPath = parts.join("/");
     await mkdir(dirPath);
   }
 
   await rename(sourcePath, targetPath);
 
+  getContentCache().invalidate(sourcePath);
+  getContentCache().invalidate(targetPath);
+
   if (notifyEditors) {
+    const registry = useOpenEditorRegistry.getState();
+    if (registry.isOpen(sourcePath)) {
+      registry.handlePathChange(sourcePath, targetPath);
+    }
     publishPathChange(sourcePath, targetPath);
   }
 
@@ -391,4 +446,52 @@ export async function findFileById(
   }
 
   return null;
+}
+
+// =============================================================================
+// COMPOUND OPERATIONS
+// =============================================================================
+
+/**
+ * Find a file by ID in a directory and update it
+ *
+ * Combines findFileById + updateMarkdownFile — the most common pattern
+ * in domain files (tasks, meetings, docs).
+ *
+ * @param dirPath - Absolute path to directory containing the file
+ * @param id - File ID (filename without extension)
+ * @param updater - Function that receives current frontmatter and content, returns updated values
+ * @param options - Optional configuration
+ * @returns Update result or null if not found
+ */
+export async function findAndUpdateFile<T extends Record<string, unknown>>(
+  dirPath: string,
+  id: string,
+  updater: (frontmatter: T, content: string) => { frontmatter: T; content: string },
+  options?: UpdateFileOptions
+): Promise<UpdateResult<T> | null> {
+  const filePath = await findFileById(dirPath, id);
+  if (!filePath) return null;
+  return updateMarkdownFile<T>(filePath, updater, options);
+}
+
+/**
+ * Find a file by ID in a directory and delete it
+ *
+ * Combines findFileById + deleteMarkdownFile.
+ *
+ * @param dirPath - Absolute path to directory containing the file
+ * @param id - File ID (filename without extension)
+ * @param options - Optional configuration
+ * @returns The deleted file's path, or null if not found
+ */
+export async function findAndDeleteFile(
+  dirPath: string,
+  id: string,
+  options?: DeleteFileOptions
+): Promise<string | null> {
+  const filePath = await findFileById(dirPath, id);
+  if (!filePath) return null;
+  const deleted = await deleteMarkdownFile(filePath, options);
+  return deleted ? filePath : null;
 }
