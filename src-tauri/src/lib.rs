@@ -3,6 +3,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager, WindowEvent};
 use tauri::menu::{Menu, MenuItem, Submenu, PredefinedMenuItem};
+use tauri_plugin_fs::FsExt;
 
 mod ai;
 mod rag;
@@ -84,6 +85,17 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
   Ok(())
 }
 
+/// Dynamically expand the file system scope to allow access to a directory.
+/// Called by the frontend on startup with the user's configured data path.
+#[tauri::command]
+fn expand_fs_scope(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
+  let p = std::path::PathBuf::from(&path);
+  app_handle
+    .fs_scope()
+    .allow_directory(&p, true)
+    .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let mut builder = tauri::Builder::default()
@@ -97,6 +109,7 @@ pub fn run() {
       ai::claude_chat,
       ai::claude_check,
       confirm_close,
+      expand_fs_scope,
       open_file_with_default_app,
       reveal_in_finder,
       rag::rag_init_db,

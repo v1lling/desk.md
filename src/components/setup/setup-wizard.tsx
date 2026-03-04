@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding } from "@/lib/desk";
+import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding, expandFsScope } from "@/lib/desk";
 import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
 import type { Workspace } from "@/types";
 
@@ -66,6 +66,9 @@ export function SetupWizard() {
     try {
       // Save the data path first so getWorkspaces knows where to look
       setSettingsDataPath(dataPath);
+
+      // Expand FS scope to the new data path before any file operations
+      await expandFsScope(dataPath);
 
       // Only check for existing workspaces in Tauri mode
       if (isTauri()) {

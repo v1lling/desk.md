@@ -52,7 +52,8 @@ export class AIService {
       req.purpose,
       req.message,
       req.context,
-      req.customSystemPrompt
+      req.customSystemPrompt,
+      req.userInstructions
     );
 
     // Make the request
@@ -86,6 +87,7 @@ export class AIService {
     options?: {
       context?: AIContext;
       history?: AIMessage[];
+      userInstructions?: string;
     }
   ): Promise<AIServiceResponse> {
     return this.request({
@@ -93,6 +95,7 @@ export class AIService {
       message,
       context: options?.context,
       history: options?.history,
+      userInstructions: options?.userInstructions,
     });
   }
 

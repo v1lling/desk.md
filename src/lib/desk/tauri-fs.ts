@@ -70,6 +70,29 @@ export async function getDeskPath(): Promise<string> {
 export const getOrbitPath = getDeskPath;
 
 /**
+ * Expand the Tauri file system scope to allow access to a directory.
+ * Must be called before any FS operations on the user's data path.
+ * No-ops in browser mode.
+ */
+export async function expandFsScope(dataPath?: string): Promise<void> {
+  if (!isTauri()) return;
+
+  const path = dataPath || (await getDeskPath());
+
+  // Resolve ~ to absolute path
+  let resolvedPath = path;
+  if (path.startsWith("~/") || path === "~") {
+    const { homeDir, join } = await getTauriPathModule();
+    const home = await homeDir();
+    const relativePath = path.slice(2) || "";
+    resolvedPath = relativePath ? await join(home, relativePath) : home;
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("expand_fs_scope", { path: resolvedPath });
+}
+
+/**
  * Check if a file or directory exists
  */
 export async function exists(path: string): Promise<boolean> {

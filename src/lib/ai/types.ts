@@ -8,6 +8,10 @@ export interface AIMessageSource {
   contentType: 'doc' | 'task' | 'meeting';
   /** Similarity score from RAG retrieval (0-1, higher = more relevant) */
   score?: number;
+  /** Workspace the source was retrieved from */
+  workspaceId?: string;
+  /** Display name of the workspace */
+  workspaceName?: string;
 }
 
 export interface AIMessage {
@@ -116,6 +120,8 @@ export interface AIServiceRequest {
   history?: AIMessage[];
   /** Custom system prompt (required for 'custom' purpose) */
   customSystemPrompt?: string;
+  /** User's standing instructions (always included in prompts) */
+  userInstructions?: string;
 }
 
 export interface AIServiceResponse {
