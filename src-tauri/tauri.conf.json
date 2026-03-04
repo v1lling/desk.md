@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Desk",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "identifier": "ch.sascha.desk",
   "plugins": {
     "deep-link": {
