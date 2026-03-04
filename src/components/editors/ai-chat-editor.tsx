@@ -13,6 +13,7 @@ import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai"
 import { useCurrentWorkspace } from "@/stores/workspaces";
 
 const DEFAULT_WORKSPACE_COLOR = "#64748b";
+const EMPTY_MESSAGES: import("@/lib/ai/types").AIMessage[] = [];
 
 interface AIChatEditorProps {
   onClose: () => void;
@@ -33,7 +34,7 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
   // Store
   const activeConversationId = useAIChatStore((s) => s.activeConversationId);
   const messages = useAIChatStore(
-    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.messages ?? []
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.messages ?? EMPTY_MESSAGES
   );
   const pendingSources = useAIChatStore((s) => s.pendingSources);
   const createConversation = useAIChatStore((s) => s.createConversation);
