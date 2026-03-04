@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare, X, PanelLeftClose, PanelLeft, Circle } from "lucide-react";
+import { Send, MessageSquare, X, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,9 +10,7 @@ import { ChatMessage } from "@/components/ai/chat-message";
 import { SourcesDisplay } from "@/components/ai/sources-display";
 import { ConversationList } from "@/components/ai/conversation-list";
 import { useAIChatStore, useSendMessage, useAISettingsStore } from "@/stores/ai";
-import { useCurrentWorkspace } from "@/stores/workspaces";
 
-const DEFAULT_WORKSPACE_COLOR = "#64748b";
 const EMPTY_MESSAGES: import("@/lib/ai/types").AIMessage[] = [];
 
 interface AIChatEditorProps {
@@ -40,11 +38,6 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
   const createConversation = useAIChatStore((s) => s.createConversation);
   const sendMessage = useSendMessage();
   const { providerType, anthropicApiKey } = useAISettingsStore();
-
-  // Workspace context indicator
-  const currentWorkspace = useCurrentWorkspace();
-  const workspaceColor = currentWorkspace?.color || DEFAULT_WORKSPACE_COLOR;
-  const workspaceName = currentWorkspace?.name || "No workspace";
 
   // Check if AI is properly configured
   const isConfigured = providerType === 'claude-code' ||
@@ -117,19 +110,6 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Workspace context badge */}
-            <div
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground"
-              title="AI retrieves context from this workspace"
-            >
-              <Circle
-                className="size-2 shrink-0"
-                style={{ color: workspaceColor }}
-                fill={workspaceColor}
-              />
-              <span className="max-w-[120px] truncate">{workspaceName}</span>
-            </div>
-
             <Button
               variant="ghost"
               size="icon"
@@ -166,7 +146,7 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
               <div className="py-12">
                 <EmptyState
                   title="Start a conversation"
-                  description={`Ask anything about your ${workspaceName} workspace. Docs, tasks, and meetings are automatically included as context.`}
+                  description="Ask anything. Docs, tasks, and meetings from your active workspace are automatically included as context."
                   icon={MessageSquare}
                 />
                 {/* Suggested prompts */}

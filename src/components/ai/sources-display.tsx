@@ -91,9 +91,12 @@ export function SourcesDisplay({
           key={idx}
           onClick={() => handleClick(source)}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-          title={`Open ${source.title}`}
+          title={`Open ${source.title}${source.workspaceName ? ` (${source.workspaceName})` : ''}`}
         >
           <SourceIcon type={source.contentType} />
+          {source.workspaceName && (
+            <span className="text-[10px] opacity-60 font-medium">{source.workspaceName}:</span>
+          )}
           <span className="max-w-[150px] truncate">{source.title}</span>
           {source.score !== undefined && (
             <span className="text-[10px] opacity-60">

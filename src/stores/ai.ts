@@ -15,6 +15,7 @@ import {
 } from '@/lib/ai';
 import { formatEmailAddress, type IncomingEmail } from '@/lib/email/types';
 import { useSettingsStore } from '@/stores/settings';
+import { useWorkspaces } from '@/stores/workspaces';
 import { useContextSearch } from '@/hooks/use-context-search';
 
 // =============================================================================
@@ -281,6 +282,7 @@ export function useSendMessage() {
   const { providerType, anthropicApiKey, customInstructions } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
   const { search: contextSearch } = useContextSearch();
+  const { data: workspaces = [] } = useWorkspaces();
 
   return useMutation({
     mutationFn: async ({
@@ -297,6 +299,7 @@ export function useSendMessage() {
       let sources: AIMessageSource[] | undefined;
 
       const currentWorkspaceId = useSettingsStore.getState().currentWorkspaceId;
+      const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId);
 
       try {
         const result = await contextSearch({
@@ -305,7 +308,12 @@ export function useSendMessage() {
         });
         contextResults = result.contextResults;
         if (result.sources.length > 0) {
-          sources = result.sources;
+          // Attach workspace info to each source for history transparency
+          sources = result.sources.map((s) => ({
+            ...s,
+            workspaceId: currentWorkspaceId ?? undefined,
+            workspaceName: currentWorkspace?.name,
+          }));
           setPendingSources(sources);
         }
       } catch (error) {
