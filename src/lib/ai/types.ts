@@ -116,6 +116,8 @@ export interface AIServiceRequest {
   history?: AIMessage[];
   /** Custom system prompt (required for 'custom' purpose) */
   customSystemPrompt?: string;
+  /** User's standing instructions (always included in prompts) */
+  userInstructions?: string;
 }
 
 export interface AIServiceResponse {

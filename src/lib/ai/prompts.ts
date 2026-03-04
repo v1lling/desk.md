@@ -146,7 +146,8 @@ export function buildPrompt(
   purpose: AIPurpose,
   message: string,
   context?: AIContext,
-  customSystemPrompt?: string
+  customSystemPrompt?: string,
+  userInstructions?: string
 ): BuiltPrompt {
   // Get system prompt (BASE_CONTEXT + purpose-specific)
   let systemPrompt: string;
@@ -158,6 +159,11 @@ export function buildPrompt(
     systemPrompt = `${BASE_CONTEXT}\n\n${customSystemPrompt}`;
   } else {
     systemPrompt = getPromptForPurpose(purpose);
+  }
+
+  // Add user's standing instructions if provided
+  if (userInstructions?.trim()) {
+    systemPrompt += `\n\n# User Instructions\nThe user has provided these standing instructions that should always be followed:\n${userInstructions.trim()}`;
   }
 
   // Add context to system prompt if provided

@@ -20,6 +20,7 @@ import {
   Calendar,
   Home,
   Search,
+  Bot,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ import { useDocs } from "@/stores/content";
 import { useMeetings } from "@/stores/meetings";
 import { ProjectsList } from "./projects-list";
 import { WorkspaceSelector } from "./workspace-selector";
+import { useOpenTab } from "@/stores/tabs";
+import { useTabStore } from "@/stores/tabs";
 import type { LucideIcon } from "lucide-react";
 
 interface SidebarProps {
@@ -110,6 +113,11 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
   const activeTaskCount = tasks.filter((t) => t.status !== "done").length;
   const docCount = docs.length;
   const meetingCount = meetings.length;
+
+  // AI Chat
+  const { openAI } = useOpenTab();
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const isAIChatActive = activeTabId === "ai";
 
   // Use isCollapsed for conditional rendering
   const collapsed = isCollapsed;
@@ -222,8 +230,39 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
         </nav>
       </ScrollArea>
 
-      {/* Footer: Settings */}
-      <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/50">
+      {/* Footer: AI Chat + Settings */}
+      <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/50 space-y-0.5">
+        <button
+          onClick={openAI}
+          className={cn(
+            "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors w-full",
+            collapsed && "justify-center px-0",
+            isAIChatActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+          )}
+          title={collapsed ? "AI Chat (⌘⇧A)" : undefined}
+        >
+          <Bot
+            className={cn(
+              "size-4 shrink-0",
+              isAIChatActive
+                ? "text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/60"
+            )}
+          />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">AI Chat</span>
+              <kbd className={cn(
+                "text-[10px] font-medium px-1 py-0.5 rounded",
+                isAIChatActive ? "bg-sidebar-accent-foreground/10" : "bg-sidebar-accent/50"
+              )}>
+                ⌘⇧A
+              </kbd>
+            </>
+          )}
+        </button>
         <NavLink
           to="/settings"
           label="Settings"

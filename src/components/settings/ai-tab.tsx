@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -80,8 +81,10 @@ export function AITab() {
   const {
     providerType,
     anthropicApiKey,
+    customInstructions,
     setProviderType,
     setAnthropicApiKey,
+    setCustomInstructions,
   } = useAISettingsStore();
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -232,6 +235,25 @@ export function AITab() {
               )}
             </div>
           )}
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label htmlFor="custom-instructions">Custom Instructions</Label>
+            <p className="text-sm text-muted-foreground">
+              Instructions that are always included in AI requests (chat, email drafts, etc.)
+            </p>
+            <Textarea
+              id="custom-instructions"
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              placeholder="e.g., Always respond in German. Use informal tone. Prefer bullet points..."
+              className="min-h-[100px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              These instructions apply globally across all workspaces.
+            </p>
+          </div>
 
           <Separator />
 

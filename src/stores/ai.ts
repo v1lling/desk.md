@@ -24,8 +24,10 @@ import { useContextSearch } from '@/hooks/use-context-search';
 interface AISettingsState {
   providerType: AIProviderType;
   anthropicApiKey: string;
+  customInstructions: string;
   setProviderType: (type: AIProviderType) => void;
   setAnthropicApiKey: (key: string) => void;
+  setCustomInstructions: (instructions: string) => void;
 }
 
 export const useAISettingsStore = create<AISettingsState>()(
@@ -33,8 +35,10 @@ export const useAISettingsStore = create<AISettingsState>()(
     (set) => ({
       providerType: 'claude-code',
       anthropicApiKey: '',
+      customInstructions: '',
       setProviderType: (type) => set({ providerType: type }),
       setAnthropicApiKey: (key) => set({ anthropicApiKey: key }),
+      setCustomInstructions: (instructions) => set({ customInstructions: instructions }),
     }),
     {
       name: 'desk-ai-settings',
@@ -102,25 +106,145 @@ export const useAIUsageStore = create<AIUsageState>()(
 );
 
 // =============================================================================
-// AI Chat Store (session only - not persisted)
+// AI Chat Store (persisted - conversation history)
 // =============================================================================
 
-interface AIChatState {
+const MAX_CONVERSATIONS = 50;
+
+export interface Conversation {
+  id: string;
+  title: string;
+  /** Workspace active when conversation was started */
+  workspaceId: string | null;
   messages: AIMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AIChatState {
+  conversations: Conversation[];
+  activeConversationId: string | null;
   /** Sources found by context search, shown while waiting for AI response */
   pendingSources: AIMessageSource[] | null;
+
+  // Actions
+  createConversation: () => string;
+  setActiveConversation: (id: string | null) => void;
   addMessage: (msg: AIMessage) => void;
-  clearMessages: () => void;
+  deleteConversation: (id: string) => void;
+  clearAllConversations: () => void;
   setPendingSources: (sources: AIMessageSource[] | null) => void;
 }
 
-export const useAIChatStore = create<AIChatState>((set) => ({
-  messages: [],
-  pendingSources: null,
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
-  clearMessages: () => set({ messages: [], pendingSources: null }),
-  setPendingSources: (sources) => set({ pendingSources: sources }),
-}));
+export const useAIChatStore = create<AIChatState>()(
+  persist(
+    (set, get) => ({
+      conversations: [],
+      activeConversationId: null,
+      pendingSources: null,
+
+      createConversation: () => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const workspaceId = useSettingsStore.getState().currentWorkspaceId;
+
+        const newConversation: Conversation = {
+          id,
+          title: 'New Chat',
+          workspaceId,
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => {
+          // Prune oldest if at capacity
+          let conversations = [newConversation, ...state.conversations];
+          if (conversations.length > MAX_CONVERSATIONS) {
+            conversations = conversations.slice(0, MAX_CONVERSATIONS);
+          }
+          return {
+            conversations,
+            activeConversationId: id,
+            pendingSources: null,
+          };
+        });
+
+        return id;
+      },
+
+      setActiveConversation: (id) => set({ activeConversationId: id, pendingSources: null }),
+
+      addMessage: (msg) =>
+        set((state) => {
+          let { activeConversationId, conversations } = state;
+
+          // Auto-create conversation if none active
+          if (!activeConversationId) {
+            const id = crypto.randomUUID();
+            const now = new Date().toISOString();
+            const workspaceId = useSettingsStore.getState().currentWorkspaceId;
+            const newConv: Conversation = {
+              id,
+              title: 'New Chat',
+              workspaceId,
+              messages: [],
+              createdAt: now,
+              updatedAt: now,
+            };
+            activeConversationId = id;
+            conversations = [newConv, ...conversations];
+            if (conversations.length > MAX_CONVERSATIONS) {
+              conversations = conversations.slice(0, MAX_CONVERSATIONS);
+            }
+          }
+
+          return {
+            activeConversationId,
+            conversations: conversations.map((c) => {
+              if (c.id !== activeConversationId) return c;
+
+              const updatedMessages = [...c.messages, msg];
+              // Auto-title from first user message
+              let title = c.title;
+              if (title === 'New Chat' && msg.role === 'user') {
+                title = msg.content.length > 50
+                  ? msg.content.slice(0, 50) + '...'
+                  : msg.content;
+              }
+
+              return {
+                ...c,
+                messages: updatedMessages,
+                title,
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          };
+        }),
+
+      deleteConversation: (id) =>
+        set((state) => {
+          const conversations = state.conversations.filter((c) => c.id !== id);
+          const activeConversationId =
+            state.activeConversationId === id ? null : state.activeConversationId;
+          return { conversations, activeConversationId, pendingSources: null };
+        }),
+
+      clearAllConversations: () =>
+        set({ conversations: [], activeConversationId: null, pendingSources: null }),
+
+      setPendingSources: (sources) => set({ pendingSources: sources }),
+    }),
+    {
+      name: 'desk-ai-chat',
+      partialize: (state) => ({
+        conversations: state.conversations,
+        activeConversationId: state.activeConversationId,
+      }),
+    }
+  )
+);
 
 // =============================================================================
 // AI Hooks
@@ -154,7 +278,7 @@ function useAIService() {
  */
 export function useSendMessage() {
   const { addMessage, setPendingSources } = useAIChatStore();
-  const { providerType, anthropicApiKey } = useAISettingsStore();
+  const { providerType, anthropicApiKey, customInstructions } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
   const { search: contextSearch } = useContextSearch();
 
@@ -202,7 +326,11 @@ export function useSendMessage() {
         },
       });
 
-      const response = await service.chat(message, { context: enrichedContext, history });
+      const response = await service.chat(message, {
+        context: enrichedContext,
+        history,
+        userInstructions: customInstructions || undefined,
+      });
       return { response, sources };
     },
     onMutate: ({ message }) => {
