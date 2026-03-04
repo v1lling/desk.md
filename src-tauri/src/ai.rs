@@ -124,6 +124,17 @@ pub async fn claude_chat(request: ChatRequest) -> Result<ChatResponse, String> {
     // Use JSON output format to get usage data
     cmd.arg("--output-format").arg("json");
 
+    // Disable all tools — Claude should only use the context we provide,
+    // not browse the filesystem on its own
+    cmd.arg("--tools").arg("");
+
+    // Instruct Claude to only use provided context (defense-in-depth)
+    cmd.arg("--append-system-prompt").arg(
+        "IMPORTANT: You have no tools available. Only use the context provided in this prompt. \
+         If the provided context is insufficient to answer the question, say so honestly. \
+         Do not hallucinate information or claim to have searched for files."
+    );
+
     // Add system prompt if provided
     if let Some(system) = &request.system_prompt {
         cmd.arg("--system-prompt").arg(system);
