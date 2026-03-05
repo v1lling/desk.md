@@ -151,13 +151,13 @@ export function SetupWizard() {
               </div>
               <CardTitle className="text-2xl">Welcome to Desk</CardTitle>
               <CardDescription>
-                Project-centric work management for freelancers and consultants.
+                Manage tasks, docs, and meetings across clients.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Desk organizes your work around <strong>projects</strong>, not notes.
-                Everything lives in portable markdown files.
+                Organize your work by <strong>workspace</strong> and project.
+                Everything stays on your machine as plain markdown files.
               </p>
               <Button className="w-full" onClick={() => setStep("data-folder")}>
                 Get Started

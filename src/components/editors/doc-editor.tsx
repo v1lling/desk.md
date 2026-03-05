@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab, useInternalLinkHandler } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler, useEditorProjectMove } from "@/hooks";
 import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
 import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
 import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
@@ -59,8 +59,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
   // Local state
   const [title, setTitle] = useState("");
-  const [currentProjectId, setCurrentProjectId] = useState("");
-  const [originalProjectId, setOriginalProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
 
@@ -75,8 +73,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   useEffect(() => {
     if (doc) {
       setTitle(doc.title);
-      setCurrentProjectId(doc.projectId);
-      setOriginalProjectId(doc.projectId);
       setIsEditorReady(false);
     }
   }, [doc?.id, workspaceId]);
@@ -122,6 +118,16 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   useEditorSaveShortcut(save);
   useEditorSaveAndClose(tabId, save);
 
+  // Project move
+  const { currentProjectId, handleProjectChange } = useEditorProjectMove({
+    entity: doc,
+    save,
+    acceptPathChange,
+    move: moveDocToProject.mutateAsync,
+    entityLabel: "doc",
+    buildMoveArgs: (id, ws, from, to) => ({ docId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
+  });
+
   // Defer editor rendering
   useEffect(() => {
     if (doc && !isLoadingContent && !isEditorReady) {
@@ -152,36 +158,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   // Manage tab title and dirty state
   const isDirty = contentDirty;
   useEditorTab(tabId, title, isDirty);
-
-  // Project change — auto-move immediately
-  const handleProjectChange = useCallback(async (newProjectId: string) => {
-    setCurrentProjectId(newProjectId);
-    if (!doc || newProjectId === originalProjectId) return;
-
-    try {
-      const saved = await save();
-      if (!saved) {
-        setCurrentProjectId(originalProjectId);
-        toast.error("Save failed — cannot move doc");
-        return;
-      }
-
-      const result = await moveDocToProject.mutateAsync({
-        docId: doc.id,
-        workspaceId: doc.workspaceId,
-        fromProjectId: originalProjectId,
-        toProjectId: newProjectId,
-      });
-
-      if (result?.filePath) {
-        acceptPathChange(result.filePath);
-      }
-      setOriginalProjectId(newProjectId);
-    } catch {
-      setCurrentProjectId(originalProjectId);
-      toast.error("Failed to move doc");
-    }
-  }, [doc, originalProjectId, moveDocToProject, acceptPathChange, save]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!doc) return;

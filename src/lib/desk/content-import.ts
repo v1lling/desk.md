@@ -23,13 +23,14 @@ export async function createDocInFolder(data: {
   scope: ContentScope;
   title: string;
   content?: string;
+  templateBody?: string;
   folderPath?: string;
   workspaceId?: string;
   projectId?: string;
 }): Promise<Doc> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
-  const content = data.content || `# ${data.title}\n\n`;
+  const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const wsId = data.workspaceId || PERSONAL_WORKSPACE_ID;
   const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID);
 

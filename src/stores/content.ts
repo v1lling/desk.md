@@ -69,6 +69,7 @@ export function useCreateDoc() {
       projectId: string;
       title: string;
       content?: string;
+      templateBody?: string;
     }) => contentLib.createDoc(data),
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({
@@ -380,6 +381,7 @@ export function useCreateDocInFolder() {
       scope: ContentScope;
       title: string;
       content?: string;
+      templateBody?: string;
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;

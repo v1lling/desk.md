@@ -66,8 +66,8 @@ export function useCreateMeeting() {
       projectId: string;
       title: string;
       date?: string;
-      attendees?: string[];
       content?: string;
+      templateBody?: string;
     }) => meetingLib.createMeeting(data),
     onSuccess: (newMeeting) => {
       queryClient.invalidateQueries({
@@ -111,6 +111,35 @@ export function useUpdateMeeting() {
           updatedMeeting
         );
       }
+    },
+  });
+}
+
+/**
+ * Hook to move a meeting to a different project
+ */
+export function useMoveMeetingToProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      workspaceId,
+      fromProjectId,
+      toProjectId,
+    }: {
+      meetingId: string;
+      workspaceId: string;
+      fromProjectId: string;
+      toProjectId: string;
+    }) => meetingLib.moveMeetingToProject(meetingId, workspaceId, fromProjectId, toProjectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.byWorkspace(variables.workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.detail(variables.workspaceId, variables.meetingId),
+      });
     },
   });
 }

@@ -5,7 +5,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 const Command = React.forwardRef<
@@ -38,6 +38,7 @@ const CommandDialog = ({
       <DialogContent className="overflow-hidden p-0 shadow-lg">
         <VisuallyHidden.Root>
           <DialogTitle>Search</DialogTitle>
+          <DialogDescription>Search tasks, docs, and projects</DialogDescription>
         </VisuallyHidden.Root>
         <Command
           shouldFilter={shouldFilter}

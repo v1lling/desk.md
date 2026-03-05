@@ -190,6 +190,7 @@ export async function createTask(data: {
   priority?: TaskPriority;
   due?: string;
   content?: string;
+  templateBody?: string;
 }): Promise<Task> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
@@ -204,7 +205,7 @@ export async function createTask(data: {
     priority: data.priority,
     due: data.due,
     created: todayISO(),
-    content: data.content || "",
+    content: data.content || data.templateBody || "",
   };
 
   if (!isTauri()) {

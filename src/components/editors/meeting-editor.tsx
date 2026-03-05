@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useMeeting, useUpdateMeeting, useDeleteMeeting } from "@/stores";
+import { useMeeting, useUpdateMeeting, useDeleteMeeting, useMoveMeetingToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab, useInternalLinkHandler } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler, useEditorProjectMove } from "@/hooks";
 import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
 import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
 import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
@@ -30,6 +30,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
 
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
+  const moveMeetingToProject = useMoveMeetingToProject();
+  const { data: projects = [] } = useProjects(workspaceId);
 
   // Metadata state
   const [title, setTitle] = useState("");
@@ -80,6 +82,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     newPath,
     fileDeleted,
     acknowledgePathChange,
+    acceptPathChange,
     acknowledgeDeleted,
     save,
   } = useEditorSession({
@@ -94,6 +97,16 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   // Shared save hooks
   useEditorSaveShortcut(save);
   useEditorSaveAndClose(tabId, save);
+
+  // Project move
+  const { currentProjectId, handleProjectChange } = useEditorProjectMove({
+    entity: meeting,
+    save,
+    acceptPathChange,
+    move: moveMeetingToProject.mutateAsync,
+    entityLabel: "meeting",
+    buildMoveArgs: (id, ws, from, to) => ({ meetingId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
+  });
 
   // Defer editor rendering
   useEffect(() => {
@@ -234,6 +247,9 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
             dateLabel="Date"
             attendees={attendees}
             onAttendeesChange={handleAttendeesChange}
+            projectId={currentProjectId}
+            onProjectChange={handleProjectChange}
+            projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
           <div className="mt-6">

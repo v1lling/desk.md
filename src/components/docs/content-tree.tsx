@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -491,6 +492,9 @@ export function ContentTree({
             <DialogTitle>
               {folderModal?.mode === "create" ? "New Folder" : "Rename Folder"}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {folderModal?.mode === "create" ? "Create a new folder" : "Rename the selected folder"}
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input

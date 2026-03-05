@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/format";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -106,7 +107,7 @@ export function TaskCard({
               {task.due && (
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  {task.due}
+                  {formatDate(task.due)}
                 </span>
               )}
             </div>

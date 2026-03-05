@@ -74,10 +74,11 @@ export async function createDoc(data: {
   projectId: string;
   title: string;
   content?: string;
+  templateBody?: string;
 }): Promise<Doc> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
-  const content = data.content || `# ${data.title}\n\n`;
+  const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
 
   const doc: Doc = {
     id,

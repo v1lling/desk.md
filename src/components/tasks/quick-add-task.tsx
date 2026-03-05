@@ -3,12 +3,12 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
 import { FormGrid } from "@/components/ui/form-grid";
 import {
@@ -19,13 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Flag, Loader2 } from "lucide-react";
-import { useCreateTask, useProjects, useCurrentWorkspace } from "@/stores";
+import { useCreateTask, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import type { TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { SPECIAL_DIRS } from "@/lib/desk/constants";
 import { priorityTextColors } from "@/lib/design-tokens";
+import { useTemplatesStore } from "@/stores/templates";
+import { resolveVariables } from "@/lib/templates";
 
 interface QuickAddTaskProps {
   open: boolean;
@@ -43,11 +45,12 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
   const currentWorkspace = useCurrentWorkspace();
   const createTask = useCreateTask();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
+  const { openTask } = useOpenTab();
+  const getTemplate = useTemplatesStore((s) => s.getTemplate);
 
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [due, setDue] = useState("");
-  const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || SPECIAL_DIRS.UNASSIGNED);
 
   // Set default project when provided
@@ -63,13 +66,23 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
     if (!title.trim() || !currentWorkspace) return;
 
     try {
-      await createTask.mutateAsync({
+      const templateBody = resolveVariables(
+        getTemplate("task", currentWorkspace.id),
+        {
+          title: title.trim(),
+          date: new Date().toISOString().split("T")[0],
+          project: projects.find((p) => p.id === projectId)?.name || "",
+          workspace: currentWorkspace.name,
+        }
+      );
+
+      const task = await createTask.mutateAsync({
         workspaceId: currentWorkspace.id,
         projectId,
         title: title.trim(),
         priority: priority === "none" ? undefined : priority,
         due: due || undefined,
-        content,
+        templateBody: templateBody || undefined,
       });
 
       toast.success("Task created");
@@ -78,8 +91,15 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
       setTitle("");
       setPriority("none");
       setDue("");
-      setContent("");
       onClose();
+
+      // Auto-open in editor tab
+      openTask({
+        id: task.id,
+        title: task.title,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+      });
     } catch (error) {
       console.error("Failed to create task:", error);
       toast.error("Failed to create task");
@@ -90,7 +110,6 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
     setTitle("");
     setPriority("none");
     setDue("");
-    setContent("");
     onClose();
   };
 
@@ -99,6 +118,7 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>New Task</DialogTitle>
+          <DialogDescription className="sr-only">Create a new task in your workspace</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -164,16 +184,6 @@ export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskPr
               </div>
             </FormField>
           </FormGrid>
-
-          <FormField id="new-content" label="Notes" optional>
-            <Textarea
-              id="new-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Add details..."
-              className="min-h-[80px] resize-none"
-            />
-          </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>

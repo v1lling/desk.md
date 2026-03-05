@@ -34,7 +34,7 @@ Workspace (Client or Personal)
 ## Tech Stack
 
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
-- **Desktop**: Tauri 2.9 (Rust shell, ~15MB binary)
+- **Desktop**: Tauri 2.10 (Rust shell, ~15MB binary)
 - **UI**: shadcn/ui
 - **State**: Zustand + TanStack Query
 - **Drag & Drop**: @dnd-kit
@@ -49,7 +49,7 @@ npm run dev           # Vite dev server (mock data)
 npm run tauri dev     # Desktop development (real file system)
 ```
 
-## Current Status: v0.4
+## Current Status: v0.7
 
 Working features:
 - **Work Mode** navigation with workspace selector at sidebar bottom
@@ -103,7 +103,7 @@ Desk stores everything in `~/Desk/` as markdown files:
 │   │       │   └── meetings/
 │   │       └── project-2/
 │   └── client-b/
-└── config.json
+└── .desk/                     # App metadata (indexes, RAG database)
 ```
 
 ## License

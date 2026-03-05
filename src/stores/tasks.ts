@@ -69,6 +69,7 @@ export function useCreateTask() {
       priority?: TaskPriority;
       due?: string;
       content?: string;
+      templateBody?: string;
     }) => taskLib.createTask(data),
     onSuccess: (newTask) => {
       // Invalidate and refetch tasks for the workspace

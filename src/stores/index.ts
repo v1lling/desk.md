@@ -58,6 +58,7 @@ export {
   useCreateMeeting,
   useUpdateMeeting,
   useDeleteMeeting,
+  useMoveMeetingToProject,
   meetingKeys,
 } from "./meetings";
 export {

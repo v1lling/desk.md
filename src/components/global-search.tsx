@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { formatDate } from "@/lib/format";
 import { useNavigate } from "react-router-dom";
 import {
   CommandDialog,
@@ -211,7 +212,7 @@ function SearchResultItem({
       {item.due && (
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          {item.due}
+          {formatDate(item.due)}
         </span>
       )}
     </CommandItem>

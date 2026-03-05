@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { CheckCircle2, Circle, Clock, Loader2, Flag, FolderKanban, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDate, stripMarkdown } from "@/lib/format";
 import {
   priorityTextColors,
   taskStatusTextColors,
@@ -201,7 +202,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
             <span className={cn(
               new Date(task.due) < new Date() && task.status !== "done" && "text-destructive"
             )}>
-              Due: {new Date(task.due).toLocaleDateString()}
+              Due: {formatDate(task.due)}
             </span>
           )}
         </div>
@@ -209,7 +210,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
         {/* Content preview */}
         {task.content && (
           <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-            {task.content}
+            {stripMarkdown(task.content)}
           </p>
         )}
       </div>

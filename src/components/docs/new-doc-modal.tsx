@@ -4,11 +4,11 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
 import {
   Select,
@@ -18,9 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Folder } from "lucide-react";
-import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace } from "@/stores";
+import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
 import type { ContentScope } from "@/types";
+import { useTemplatesStore } from "@/stores/templates";
+import { resolveVariables } from "@/lib/templates";
 
 interface NewDocModalProps {
   open: boolean;
@@ -42,13 +44,14 @@ export function NewDocModal({
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
   const createDocInFolder = useCreateDocInFolder();
+  const { openDoc } = useOpenTab();
+  const getTemplate = useTemplatesStore((s) => s.getTemplate);
 
   // Use provided workspaceId or fall back to current workspace
   const workspaceId = defaultWorkspaceId || currentWorkspace?.id;
   const { data: projects = [] } = useProjects(workspaceId || null);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
   // Determine scope mode
@@ -71,40 +74,48 @@ export function NewDocModal({
     if (!isPersonalScope && !workspaceId) return;
 
     try {
+      const templateBody = resolveVariables(
+        getTemplate("doc", workspaceId || ""),
+        {
+          title: title.trim(),
+          date: new Date().toISOString().split("T")[0],
+          project: projects.find((p) => p.id === (defaultProjectId || projectId))?.name || "",
+          workspace: currentWorkspace?.name || "",
+        }
+      );
+
+      let doc;
+
       if (isPersonalScope) {
-        // Create in personal docs folder
-        await createDocInFolder.mutateAsync({
+        doc = await createDocInFolder.mutateAsync({
           scope: "personal",
           title: title.trim(),
-          content: content || undefined,
+          templateBody: templateBody || undefined,
           folderPath: defaultFolderPath,
         });
       } else if (isWorkspaceScope) {
-        // Create in workspace docs folder (with optional folder path)
-        await createDocInFolder.mutateAsync({
+        doc = await createDocInFolder.mutateAsync({
           scope: "workspace",
           title: title.trim(),
-          content: content || undefined,
+          templateBody: templateBody || undefined,
           folderPath: defaultFolderPath,
           workspaceId: workspaceId,
         });
       } else if (isProjectScope && defaultProjectId) {
-        // Create in specific project docs folder
-        await createDocInFolder.mutateAsync({
+        doc = await createDocInFolder.mutateAsync({
           scope: "project",
           title: title.trim(),
-          content: content || undefined,
+          templateBody: templateBody || undefined,
           folderPath: defaultFolderPath,
           workspaceId: workspaceId,
           projectId: defaultProjectId,
         });
       } else {
-        // Create in project docs folder (user selects project)
-        await createDoc.mutateAsync({
+        doc = await createDoc.mutateAsync({
           workspaceId: workspaceId!,
           projectId: projectId || "_unassigned",
           title: title.trim(),
-          content: content || undefined,
+          templateBody: templateBody || undefined,
         });
       }
 
@@ -112,8 +123,15 @@ export function NewDocModal({
 
       // Reset form
       setTitle("");
-      setContent("");
       onClose();
+
+      // Auto-open in editor tab
+      openDoc({
+        id: doc.id,
+        title: doc.title,
+        workspaceId: doc.workspaceId,
+        projectId: doc.projectId,
+      });
     } catch (error) {
       console.error("Failed to create doc:", error);
       toast.error("Failed to create doc");
@@ -122,7 +140,6 @@ export function NewDocModal({
 
   const handleClose = () => {
     setTitle("");
-    setContent("");
     onClose();
   };
 
@@ -133,6 +150,7 @@ export function NewDocModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>New Doc</DialogTitle>
+          <DialogDescription className="sr-only">Create a new document in your workspace</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -171,16 +189,6 @@ export function NewDocModal({
               </Select>
             </FormField>
           )}
-
-          <FormField id="doc-content" label="Content" optional>
-            <Textarea
-              id="doc-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing..."
-              className="min-h-[120px] resize-none"
-            />
-          </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>

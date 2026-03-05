@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Users, Loader2 } from "lucide-react";
-import { useCreateMeeting, useProjects, useCurrentWorkspace } from "@/stores";
+import { Calendar, Loader2 } from "lucide-react";
+import { useCreateMeeting, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
+import { useTemplatesStore } from "@/stores/templates";
+import { resolveVariables } from "@/lib/templates";
 
 interface NewMeetingModalProps {
   open: boolean;
@@ -35,10 +38,11 @@ export function NewMeetingModal({
   const currentWorkspace = useCurrentWorkspace();
   const createMeeting = useCreateMeeting();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
+  const { openMeeting } = useOpenTab();
+  const getTemplate = useTemplatesStore((s) => s.getTemplate);
 
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [attendees, setAttendees] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
   useEffect(() => {
@@ -53,17 +57,22 @@ export function NewMeetingModal({
     if (!title.trim() || !currentWorkspace || !projectId) return;
 
     try {
-      const attendeesList = attendees
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
+      const templateBody = resolveVariables(
+        getTemplate("meeting", currentWorkspace.id),
+        {
+          title: title.trim(),
+          date: date || new Date().toISOString().split("T")[0],
+          project: projects.find((p) => p.id === projectId)?.name || "",
+          workspace: currentWorkspace.name,
+        }
+      );
 
-      await createMeeting.mutateAsync({
+      const meeting = await createMeeting.mutateAsync({
         workspaceId: currentWorkspace.id,
         projectId,
         title: title.trim(),
         date: date || undefined,
-        attendees: attendeesList.length > 0 ? attendeesList : undefined,
+        templateBody,
       });
 
       toast.success("Meeting created");
@@ -71,8 +80,15 @@ export function NewMeetingModal({
       // Reset form
       setTitle("");
       setDate(new Date().toISOString().split("T")[0]);
-      setAttendees("");
       onClose();
+
+      // Auto-open in editor tab
+      openMeeting({
+        id: meeting.id,
+        title: meeting.title,
+        workspaceId: meeting.workspaceId,
+        projectId: meeting.projectId,
+      });
     } catch (error) {
       console.error("Failed to create meeting:", error);
       toast.error("Failed to create meeting");
@@ -82,7 +98,6 @@ export function NewMeetingModal({
   const handleClose = () => {
     setTitle("");
     setDate(new Date().toISOString().split("T")[0]);
-    setAttendees("");
     onClose();
   };
 
@@ -91,6 +106,7 @@ export function NewMeetingModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>New Meeting</DialogTitle>
+          <DialogDescription className="sr-only">Create a new meeting in your workspace</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -104,22 +120,22 @@ export function NewMeetingModal({
             />
           </FormField>
 
-          <FormField label="Project">
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
           <FormGrid>
+            <FormField label="Project">
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
             <FormField id="meeting-date" label="Date">
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -128,19 +144,6 @@ export function NewMeetingModal({
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </FormField>
-
-            <FormField id="meeting-attendees" label="Attendees">
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="meeting-attendees"
-                  value={attendees}
-                  onChange={(e) => setAttendees(e.target.value)}
-                  placeholder="John, Sarah..."
                   className="pl-10"
                 />
               </div>

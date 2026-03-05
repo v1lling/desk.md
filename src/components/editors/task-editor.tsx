@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab, useInternalLinkHandler } from "@/hooks";
+import { useEditorTab, useInternalLinkHandler, useEditorProjectMove } from "@/hooks";
 import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
 import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
 import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
@@ -41,10 +41,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
   const [due, setDue] = useState("");
-  const [currentProjectId, setCurrentProjectId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [originalProjectId, setOriginalProjectId] = useState("");
 
   // Shared hooks
   const { aiExclusionState, handleAIInclusionChange } = useEditorAIInclusion(
@@ -60,8 +58,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setStatus(task.status);
       setPriority(task.priority || "none");
       setDue(task.due || "");
-      setCurrentProjectId(task.projectId);
-      setOriginalProjectId(task.projectId);
       setIsEditorReady(false);
     }
   }, [task?.id, workspaceId]);
@@ -106,6 +102,16 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   // Shared save hooks
   useEditorSaveShortcut(save);
   useEditorSaveAndClose(tabId, save);
+
+  // Project move
+  const { currentProjectId, handleProjectChange } = useEditorProjectMove({
+    entity: task,
+    save,
+    acceptPathChange,
+    move: moveTaskToProject.mutateAsync,
+    entityLabel: "task",
+    buildMoveArgs: (id, ws, from, to) => ({ taskId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
+  });
 
   // Defer editor rendering
   useEffect(() => {
@@ -167,36 +173,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   // Manage tab title and dirty state
   const isDirty = contentDirty;
   useEditorTab(tabId, title, isDirty);
-
-  // Project change — auto-move immediately
-  const handleProjectChange = useCallback(async (newProjectId: string) => {
-    setCurrentProjectId(newProjectId);
-    if (!task || newProjectId === originalProjectId) return;
-
-    try {
-      const saved = await save();
-      if (!saved) {
-        setCurrentProjectId(originalProjectId);
-        toast.error("Save failed — cannot move task");
-        return;
-      }
-
-      const result = await moveTaskToProject.mutateAsync({
-        taskId: task.id,
-        workspaceId: task.workspaceId,
-        fromProjectId: originalProjectId,
-        toProjectId: newProjectId,
-      });
-
-      if (result?.filePath) {
-        acceptPathChange(result.filePath);
-      }
-      setOriginalProjectId(newProjectId);
-    } catch {
-      setCurrentProjectId(originalProjectId);
-      toast.error("Failed to move task");
-    }
-  }, [task, originalProjectId, moveTaskToProject, acceptPathChange, save]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!task) return;

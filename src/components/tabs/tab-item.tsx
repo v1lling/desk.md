@@ -73,7 +73,7 @@ export const TabItem = memo(function TabItem({
         title={tab.title}
         className={cn(
         "group relative flex items-center gap-1.5 text-xs transition-colors px-3",
-        "min-w-[80px] max-w-[160px] shrink",
+        "min-w-[80px] max-w-[200px] shrink",
         isSystemTab && "shrink-0",
         isActive
           ? "h-[33px] bg-background text-foreground font-medium border-x border-t border-border/50 rounded-t-md -mb-px z-10"

@@ -65,7 +65,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/pages/` | Page components (one per route) |
 | `src/app/` | App shell, providers, globals.css |
 
-## Current State: v0.4
+## Current State: v0.7
 
 See [docs/FEATURES.md](docs/FEATURES.md) for full feature list.
 

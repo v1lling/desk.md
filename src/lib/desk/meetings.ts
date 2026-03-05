@@ -11,6 +11,9 @@ import {
   writeMarkdownFile,
   findAndUpdateFile,
   findAndDeleteFile,
+  findFileById,
+  readMarkdownFile,
+  moveMarkdownFile,
 } from "./file-operations";
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
@@ -187,13 +190,13 @@ export async function createMeeting(data: {
   projectId: string;
   title: string;
   date?: string;
-  attendees?: string[];
   content?: string;
+  templateBody?: string;
 }): Promise<Meeting> {
   const meetingDate = data.date || todayISO();
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
-  const content = data.content || `# ${data.title}\n\n## Attendees\n${data.attendees?.map(a => `- ${a}`).join('\n') || '- '}\n\n## Agenda\n- \n\n## Notes\n\n\n## Action Items\n- [ ] `;
+  const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
 
   const meeting: Meeting = {
     id,
@@ -203,7 +206,6 @@ export async function createMeeting(data: {
     title: data.title,
     date: meetingDate,
     created: todayISO(),
-    attendees: data.attendees,
     content,
     preview: generatePreview(content),
   };
@@ -225,7 +227,6 @@ export async function createMeeting(data: {
     title: meeting.title,
     date: meeting.date,
     created: meeting.created,
-    ...(meeting.attendees && { attendees: meeting.attendees }),
   };
 
   // writeMarkdownFile handles mkdir + cache invalidation
@@ -310,4 +311,42 @@ export async function deleteMeeting(
   const meetingsPath = await getMeetingsPath(meeting.workspaceId, meeting.projectId);
   const deleted = await findAndDeleteFile(meetingsPath, meetingId);
   return deleted !== null;
+}
+
+/**
+ * Move meeting to a different project (physically moves the file)
+ */
+export async function moveMeetingToProject(
+  meetingId: string,
+  workspaceId: string,
+  fromProjectId: string,
+  toProjectId: string
+): Promise<Meeting | null> {
+  if (!isTauri()) {
+    const index = mockMeetings.findIndex((m) => m.id === meetingId && m.workspaceId === workspaceId);
+    if (index === -1) return null;
+    mockMeetings[index] = { ...mockMeetings[index], projectId: toProjectId };
+    return mockMeetings[index];
+  }
+
+  if (fromProjectId === toProjectId) {
+    const meetings = await getMeetings(workspaceId);
+    return meetings.find((m) => m.id === meetingId) || null;
+  }
+
+  const fromMeetingsPath = await getMeetingsPath(workspaceId, fromProjectId);
+  const sourceFilePath = await findFileById(fromMeetingsPath, meetingId);
+  if (!sourceFilePath) return null;
+
+  const parsed = await readMarkdownFile<MeetingFrontmatter>(sourceFilePath);
+  if (!parsed) return null;
+
+  const toMeetingsPath = await getMeetingsPath(workspaceId, toProjectId);
+  const sourceFilename = sourceFilePath.split("/").pop()!;
+  const targetFilePath = await joinPath(toMeetingsPath, sourceFilename);
+
+  // moveMarkdownFile handles mkdir, cache invalidation, registry notification
+  await moveMarkdownFile(sourceFilePath, targetFilePath);
+
+  return buildMeeting(meetingId, workspaceId, toProjectId, targetFilePath, parsed.frontmatter, parsed.content);
 }
