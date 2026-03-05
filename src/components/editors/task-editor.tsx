@@ -2,11 +2,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/rag/indexer";
-import { useEditorSession } from "@/hooks/use-editor-session";
-import { useEditorTab, useInternalLinkHandler, useEditorProjectMove } from "@/hooks";
-import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";
-import { useEditorSaveAndClose } from "@/hooks/use-editor-save-and-close";
-import { useEditorAIInclusion } from "@/hooks/use-editor-ai-inclusion";
+import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
+import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
