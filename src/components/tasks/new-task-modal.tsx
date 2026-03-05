@@ -29,7 +29,7 @@ import { priorityTextColors } from "@/lib/design-tokens";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
 
-interface QuickAddTaskProps {
+interface NewTaskModalProps {
   open: boolean;
   onClose: () => void;
   defaultProjectId?: string;
@@ -41,7 +41,7 @@ const priorityOptions: { value: TaskPriority; label: string; color: string }[] =
   { value: "low", label: "Low", color: priorityTextColors.low },
 ];
 
-export function QuickAddTask({ open, onClose, defaultProjectId }: QuickAddTaskProps) {
+export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalProps) {
   const currentWorkspace = useCurrentWorkspace();
   const createTask = useCreateTask();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);

@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
+import { KanbanBoard, NewTaskModal, TaskListView } from "@/components/tasks";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { ContentExplorer, type ContentExplorerScope, type ContentExplorerRef } from "@/components/docs";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
@@ -345,7 +345,7 @@ function ProjectPageClient({ projectId, openMeetingId, navigate }: ProjectPageCl
       </TabbedPage>
 
       {/* Quick Add Task Modal */}
-      <QuickAddTask
+      <NewTaskModal
         open={showNewTask}
         onClose={() => setShowNewTask(false)}
         defaultProjectId={projectId}

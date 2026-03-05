@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { KanbanBoard, QuickAddTask, TaskListView } from "@/components/tasks";
+import { KanbanBoard, NewTaskModal, TaskListView } from "@/components/tasks";
 import { FilteredListPage } from "@/components/patterns";
 import { useTasks, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery } from "@/hooks";
@@ -81,7 +81,7 @@ export default function TasksPage() {
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       modal={
-        <QuickAddTask
+        <NewTaskModal
           open={showNewTask}
           onClose={() => setShowNewTask(false)}
         />
