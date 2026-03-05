@@ -1,4 +1,7 @@
+// ── Settings ────────────────────────────────────────────────────────
 export { useSettingsStore } from "./settings";
+
+// ── Workspaces ──────────────────────────────────────────────────────
 export {
   useWorkspaces,
   useWorkspace,
@@ -8,6 +11,8 @@ export {
   useCurrentWorkspace,
   workspaceKeys,
 } from "./workspaces";
+
+// ── Tasks ───────────────────────────────────────────────────────────
 export {
   useTasks,
   useProjectTasks,
@@ -20,6 +25,8 @@ export {
   groupTasksByStatus,
   taskKeys,
 } from "./tasks";
+
+// ── Projects ────────────────────────────────────────────────────────
 export {
   useProjects,
   useProject,
@@ -29,6 +36,8 @@ export {
   useDeleteProject,
   projectKeys,
 } from "./projects";
+
+// ── Content (Docs, Assets, Folders) ─────────────────────────────────
 export {
   useDocs,
   useProjectDocs,
@@ -40,7 +49,6 @@ export {
   useMoveDocToProject,
   useAllWorkspaceDocs,
   contentKeys,
-  // Tree-based hooks
   useContentTree,
   useCreateFolder,
   useRenameFolder,
@@ -48,9 +56,10 @@ export {
   useMoveDoc,
   useCreateDocInFolder,
   useImportFiles,
-  // Folder AI inclusion
   useFolderAIStates,
 } from "./content";
+
+// ── Meetings ────────────────────────────────────────────────────────
 export {
   useMeetings,
   useProjectMeetings,
@@ -61,6 +70,8 @@ export {
   useMoveMeetingToProject,
   meetingKeys,
 } from "./meetings";
+
+// ── View State (task ordering, view modes, highlights) ──────────────
 export {
   useViewState,
   useUpdateTaskOrder,
@@ -72,6 +83,8 @@ export {
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";
+
+// ── Personal / Capture ──────────────────────────────────────────────
 export {
   useCaptureTasks,
   useCreateCaptureTask,
@@ -83,16 +96,21 @@ export {
   captureKeys,
   PERSONAL_WORKSPACE_ID,
 } from "./personal";
+
+// ── Dashboard ───────────────────────────────────────────────────────
 export {
   useActiveTasks,
   useWorkspaceSummaries,
   dashboardKeys,
 } from "./dashboard";
+
+// ── Tabs ────────────────────────────────────────────────────────────
 export {
   useTabStore,
   useOpenTab,
   type TabItem,
   type TabType,
 } from "./tabs";
-// Re-export constants for convenience
+
+// ── Re-exports ──────────────────────────────────────────────────────
 export { WORKSPACE_LEVEL_PROJECT_ID } from "@/lib/desk/constants";

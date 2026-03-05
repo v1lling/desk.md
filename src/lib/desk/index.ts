@@ -1,19 +1,32 @@
 /**
- * Desk file system library
+ * Desk file system library — barrel export
+ *
+ * All CRUD operations, file system abstractions, and utilities
+ * for the desk.md data model.
  */
+
+// ── CRUD operations ─────────────────────────────────────────────────
 export * from "./workspaces";
 export * from "./projects";
 export * from "./tasks";
 export * from "./content";
 export * from "./meetings";
 export * from "./personal";
-export * from "./parser";
+
+// ── File system & parsing ───────────────────────────────────────────
 export * from "./tauri-fs";
+export * from "./parser";
 export * from "./constants";
-export * from "./calculations";
+
+// ── Search ──────────────────────────────────────────────────────────
 export * from "./search";
-export * from "./view-state";
-export * from "./watcher";
 export * from "./search-index";
+
+// ── Computed / aggregated data ──────────────────────────────────────
+export * from "./calculations";
 export * from "./dashboard";
+export * from "./view-state";
+
+// ── Infrastructure ──────────────────────────────────────────────────
+export * from "./watcher";
 export * from "./file-cache";
