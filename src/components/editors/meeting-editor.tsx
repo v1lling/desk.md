@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, useMoveMeetingToProject, useProjects } from "@/stores";
-import { indexDocumentOnSave } from "@/hooks/use-rag-indexer";
+import { indexDocumentOnSave } from "@/lib/rag/indexer";
 import { useEditorSession } from "@/hooks/use-editor-session";
 import { useEditorTab, useInternalLinkHandler, useEditorProjectMove } from "@/hooks";
 import { useEditorSaveShortcut } from "@/hooks/use-editor-save-shortcut";

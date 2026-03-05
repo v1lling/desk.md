@@ -4,7 +4,7 @@
  */
 import { useState, useCallback, useEffect } from "react";
 import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
-import { removeFromIndex } from "@/hooks/use-rag-indexer";
+import { removeFromIndex } from "@/lib/rag/indexer";
 import type { AiExclusionState } from "@/lib/rag/aiignore";
 import { toast } from "sonner";
 
