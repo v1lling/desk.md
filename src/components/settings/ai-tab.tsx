@@ -13,10 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { Bot, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, Zap, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { checkClaudeCode, type ClaudeCodeStatus } from "@/lib/ai/providers/claude-code";
+import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
+import { SystemPromptsCard } from "./system-prompts-card";
 
 function AIUsageStats() {
   const { getStats, clearRecords, records } = useAIUsageStore();
@@ -82,10 +84,15 @@ export function AITab() {
     providerType,
     anthropicApiKey,
     customInstructions,
+    modelByProvider,
     setProviderType,
     setAnthropicApiKey,
     setCustomInstructions,
+    setModelForProvider,
   } = useAISettingsStore();
+
+  const activeModel = modelByProvider[providerType] || DEFAULT_MODELS[providerType];
+  const modelOptions = PROVIDER_MODELS[providerType];
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [claudeStatus, setClaudeStatus] = useState<ClaudeCodeStatus | null>(null);
@@ -103,7 +110,7 @@ export function AITab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -139,6 +146,35 @@ export function AITab() {
                 <SelectItem value="anthropic-api">
                   Anthropic API
                 </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Model</Label>
+              <p className="text-sm text-muted-foreground">
+                Sonnet is recommended for most tasks
+              </p>
+            </div>
+            <Select
+              value={activeModel}
+              onValueChange={(value) => {
+                setModelForProvider(providerType, value);
+                const label = modelOptions.find((m) => m.id === value)?.label ?? value;
+                toast.success(`Model set to ${label}`);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {modelOptions.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    <span>{model.label}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{model.description}</span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -190,9 +226,13 @@ export function AITab() {
 
           {providerType === "claude-code" && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Uses your local Claude Code CLI installation. Make sure Claude Code is installed and authenticated.
-              </p>
+              <div className="rounded-md border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50 p-3 flex gap-2.5">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                  <p>Uses your local Claude Code CLI. The CLI runs scoped to your Desk data directory with tools disabled.</p>
+                  <p>Your doc content is sent as prompt context. Be mindful of untrusted content in imported documents (prompt injection).</p>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -260,6 +300,8 @@ export function AITab() {
           <AIUsageStats />
         </CardContent>
       </Card>
+
+      <SystemPromptsCard />
     </div>
   );
 }

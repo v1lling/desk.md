@@ -1,10 +1,9 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare, X, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Send, MessageSquare, X, PanelLeftClose, PanelLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "@/components/ai/chat-message";
 import { SourcesDisplay } from "@/components/ai/sources-display";
@@ -35,6 +34,7 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
     (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.messages ?? EMPTY_MESSAGES
   );
   const pendingSources = useAIChatStore((s) => s.pendingSources);
+  const aiProgress = useAIChatStore((s) => s.aiProgress);
   const createConversation = useAIChatStore((s) => s.createConversation);
   const sendMessage = useSendMessage();
   const { providerType, anthropicApiKey } = useAISettingsStore();
@@ -179,7 +179,12 @@ export function AIChatEditor({ onClose }: AIChatEditorProps) {
                         className="px-1"
                       />
                     )}
-                    <LoadingState label="AI response" height="h-16" spinner />
+                    <div className="flex items-center gap-2 h-16 justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {aiProgress === 'context' ? 'Searching your docs...' : 'Generating response...'}
+                      </span>
+                    </div>
                   </div>
                 )}
                 <div ref={messagesEndRef} />

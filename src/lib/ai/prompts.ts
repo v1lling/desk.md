@@ -7,7 +7,7 @@ import type { AIPurpose, AIContext } from './types';
 /**
  * Base context included in ALL prompts - gives AI understanding of Desk
  */
-const BASE_CONTEXT = `You are an AI assistant for Desk, a project management app for freelancers.
+export const BASE_CONTEXT = `You are an AI assistant for Desk, a project management app for freelancers.
 Desk helps users manage multiple client workspaces, each containing projects with tasks, documents, and meetings.
 Be concise, professional, and helpful.`;
 
@@ -15,12 +15,10 @@ Be concise, professional, and helpful.`;
  * Purpose-specific instructions (combined with BASE_CONTEXT)
  */
 const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
-  chat: `Answer questions and help with tasks. When context (documents, tasks, emails) is provided, use it to give relevant answers.`,
+  chat: `Answer questions and help with tasks. When auto-retrieved context is provided, use your judgment about which items are actually relevant to the query. Items are labeled with relevance levels — focus on high-relevance items and only use medium/low-relevance context if it genuinely adds value. Don't force connections to marginally related context.`,
 
-  'draft-email': `Draft a professional email reply on behalf of Sascha Villing.
-- Sign as "Sascha Villing" for formal emails, "Sascha" for casual/informal ones (match the sender's formality)
-- Match the greeting style to how the sender addressed you (e.g., if they wrote "Hi Sascha", reply with "Hi [Name]")
-- For closing: match the sender's style, or use "Liebe Grüße" (German) / "Best regards" (English) as fallback
+  'draft-email': `Draft a professional email reply.
+- Match the greeting and closing style of the original email
 - Match the language and tone of the original email
 - Be clear and concise
 - Output ONLY the email body text, no subject line or headers
@@ -44,6 +42,44 @@ const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
 };
 
 /**
+ * User-facing AI purposes with display info and default prompts.
+ * Used by the Settings UI to show what the AI receives.
+ */
+export const USER_FACING_PROMPTS: Array<{
+  purpose: AIPurpose;
+  label: string;
+  description: string;
+  defaultPrompt: string;
+}> = [
+  {
+    purpose: 'chat',
+    label: 'Chat',
+    description: 'General AI chat in the chat panel',
+    defaultPrompt: PURPOSE_PROMPTS.chat,
+  },
+  {
+    purpose: 'draft-email',
+    label: 'Email Draft',
+    description: 'Drafting email replies',
+    defaultPrompt: PURPOSE_PROMPTS['draft-email'],
+  },
+];
+
+/**
+ * Combine global and per-type user instructions into a single string.
+ * Returns undefined if both are empty.
+ */
+export function combineInstructions(
+  globalInstructions: string | undefined,
+  perTypeInstructions: string | undefined
+): string | undefined {
+  const parts: string[] = [];
+  if (globalInstructions?.trim()) parts.push(globalInstructions.trim());
+  if (perTypeInstructions?.trim()) parts.push(perTypeInstructions.trim());
+  return parts.length > 0 ? parts.join('\n\n') : undefined;
+}
+
+/**
  * System prompts for internal operations (indexing, context search, etc.)
  * These are used directly with AI service, not through buildPrompt()
  */
@@ -65,12 +101,17 @@ export const SYSTEM_PROMPTS = {
    * Used by: context-index/selector.ts
    * @param maxFiles - Maximum number of files to select
    */
-  fileSelector: (maxFiles: number) => `You are a file selector for a work management app. Given a query and a file catalog, return the most relevant file paths as a JSON array.
+  fileSelector: (maxFiles: number) => `You are a file selector for a work management app. Given a query and a file catalog, return the most relevant files as a JSON array of objects with "path" and "relevance" fields.
 
 Rules:
-- Return ONLY a JSON array of file paths, nothing else
-- Select at most ${maxFiles} files
-- Consider the file path hierarchy (workspace/project structure)
+- Return ONLY a JSON array, nothing else
+- Each item: {"path": "file/path.md", "relevance": "high" | "medium" | "low"}
+- Select at most ${maxFiles} files, but prefer fewer high-relevance files over filling the quota with marginal matches
+- Only select files that are clearly relevant to the query. If only 2 files match well, return 2 — not ${maxFiles}
+- "high": directly answers or is central to the query
+- "medium": provides useful background or related context
+- "low": only tangentially related
+- Consider file path hierarchy (workspace/project structure)
 - For tasks, prefer active (doing > todo > waiting > done) and high priority
 - For meetings, prefer recent dates
 - If no files are relevant, return an empty array []`,
@@ -86,6 +127,13 @@ function getPromptForPurpose(purpose: Exclude<AIPurpose, 'custom'>): string {
 // =============================================================================
 // Context Formatting
 // =============================================================================
+
+/** Map numeric score back to relevance label for prompt display */
+function scoreToRelevance(score: number): string {
+  if (score >= 0.9) return 'high';
+  if (score >= 0.6) return 'medium';
+  return 'low';
+}
 
 /**
  * Format context into a string for inclusion in the prompt
@@ -116,9 +164,12 @@ export function formatContext(context: AIContext): string {
 
   if (context.contextResults && context.contextResults.length > 0) {
     const contextText = context.contextResults
-      .map((r) => `### ${r.title} (${r.contentType})\n${r.content}`)
+      .map((r) => {
+        const relevance = scoreToRelevance(r.score);
+        return `### ${r.title} (${r.contentType}, ${relevance} relevance)\n${r.content}`;
+      })
       .join('\n\n');
-    sections.push(`## Relevant Context (auto-retrieved)\n${contextText}`);
+    sections.push(`## Auto-Retrieved Context\nThe following items were automatically retrieved. Focus on high-relevance items; medium/low items are background that may or may not be useful.\n\n${contextText}`);
   }
 
   if (context.custom) {

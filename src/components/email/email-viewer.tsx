@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useEmailDraft, useAISettingsStore } from "@/stores/ai";
+import { useEmailDraft, useAISettingsStore, type AIProgressStage } from "@/stores/ai";
 import type { AIMessageSource } from "@/lib/ai/types";
 import { isTauri } from "@/lib/desk";
 import type { IncomingEmail } from "@/lib/email/types";
@@ -33,6 +33,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [sources, setSources] = useState<AIMessageSource[]>([]);
+  const [progressStage, setProgressStage] = useState<AIProgressStage>(null);
 
   const providerType = useAISettingsStore((state) => state.providerType);
   const emailDraft = useEmailDraft();
@@ -54,11 +55,13 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     setDraft("");
     setError(null);
     setSources([]);
+    setProgressStage('context');
 
     try {
       const result = await emailDraft.mutateAsync({
         email,
         instructions: instructions || "Write a professional reply.",
+        onProgress: setProgressStage,
       });
 
       if (result.draft) {
@@ -73,6 +76,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
       setError(errorMessage);
     } finally {
       setIsGenerating(false);
+      setProgressStage(null);
     }
   }, [email, instructions, emailDraft]);
 
@@ -247,7 +251,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
+                    {progressStage === 'context' ? 'Searching docs...' : 'Generating draft...'}
                   </>
                 ) : (
                   <>

@@ -11,9 +11,16 @@ import type { WorkspaceIndex } from "./types";
 import { formatIndexForPrompt } from "./builder";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 
+export type Relevance = "high" | "medium" | "low";
+
+export interface ScoredSelection {
+  path: string;
+  relevance: Relevance;
+}
+
 /**
  * Select the most relevant files from a workspace index for a given query.
- * Returns an array of file paths (workspace-relative).
+ * Returns scored selections with relevance level per file.
  */
 export async function selectFiles(
   query: string,
@@ -22,7 +29,7 @@ export async function selectFiles(
     maxFiles: number;
     aiService: AIService;
   }
-): Promise<string[]> {
+): Promise<ScoredSelection[]> {
   if (index.entries.length === 0) {
     return [];
   }
@@ -41,11 +48,24 @@ export async function selectFiles(
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       try {
-        const paths: unknown[] = JSON.parse(jsonMatch[0]);
-        const validPaths = paths
+        const parsed: unknown[] = JSON.parse(jsonMatch[0]);
+
+        // New format: array of objects with path + relevance
+        if (parsed.length > 0 && typeof parsed[0] === "object" && parsed[0] !== null && "path" in parsed[0]) {
+          return (parsed as Array<{ path: string; relevance?: string }>)
+            .filter((item) => typeof item.path === "string" && knownPaths.has(item.path))
+            .map((item) => ({
+              path: item.path,
+              relevance: isValidRelevance(item.relevance) ? item.relevance : "high",
+            }))
+            .slice(0, options.maxFiles);
+        }
+
+        // Legacy fallback: plain string array → default to "high"
+        const validPaths = parsed
           .filter((p): p is string => typeof p === "string" && knownPaths.has(p))
           .slice(0, options.maxFiles);
-        return validPaths;
+        return validPaths.map((path) => ({ path, relevance: "high" as Relevance }));
       } catch {
         console.warn("[context-index] JSON parse failed, trying text extraction fallback");
       }
@@ -60,10 +80,14 @@ export async function selectFiles(
         foundPaths.push(cleaned);
       }
     }
-    return foundPaths.slice(0, options.maxFiles);
+    return foundPaths.slice(0, options.maxFiles).map((path) => ({ path, relevance: "high" }));
   } catch (error) {
     // AI call failed - return empty
     console.warn("[context-index] File selection AI call failed:", error);
     return [];
   }
+}
+
+function isValidRelevance(value: unknown): value is Relevance {
+  return value === "high" || value === "medium" || value === "low";
 }

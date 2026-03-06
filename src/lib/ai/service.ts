@@ -17,6 +17,7 @@ import type {
 export interface AIServiceConfig {
   providerType: AIProviderType;
   apiKey?: string;
+  model?: string;
   onUsage?: (usage: AIUsage, purpose: AIPurpose, provider: AIProviderType) => void;
 }
 
@@ -45,6 +46,7 @@ export class AIService {
     const provider = createProvider({
       type: this.config.providerType,
       apiKey: this.config.apiKey,
+      model: this.config.model,
     });
 
     // Build the prompt for this purpose
@@ -105,7 +107,7 @@ export class AIService {
   async draftEmail(
     originalEmail: { from: string; subject: string; body: string },
     instructions: string,
-    options?: { context?: AIContext }
+    options?: { context?: AIContext; userInstructions?: string }
   ): Promise<AIServiceResponse> {
     return this.request({
       purpose: 'draft-email',
@@ -114,6 +116,7 @@ export class AIService {
         ...options?.context,
         emails: [{ id: 'original', ...originalEmail }],
       },
+      userInstructions: options?.userInstructions,
     });
   }
 

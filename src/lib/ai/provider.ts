@@ -5,6 +5,7 @@ import { createAnthropicProvider } from './providers/anthropic';
 export interface ProviderConfig {
   type: AIProviderType;
   apiKey?: string; // Required for anthropic-api
+  model?: string;  // Model ID (provider-specific)
 }
 
 /**
@@ -16,13 +17,13 @@ export interface ProviderConfig {
 export function createProvider(config: ProviderConfig): AIProvider {
   switch (config.type) {
     case 'claude-code':
-      return createClaudeCodeProvider();
+      return createClaudeCodeProvider(config.model);
 
     case 'anthropic-api':
       if (!config.apiKey) {
         throw new Error('Anthropic API requires an API key');
       }
-      return createAnthropicProvider(config.apiKey);
+      return createAnthropicProvider(config.apiKey, config.model);
 
     default:
       throw new Error(`Unknown provider: ${config.type}`);

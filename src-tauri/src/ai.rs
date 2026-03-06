@@ -66,6 +66,8 @@ fn find_claude_binary() -> Option<ClaudeBinaryInfo> {
 pub struct ChatRequest {
     pub prompt: String,
     pub system_prompt: Option<String>,
+    pub cwd: Option<String>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,6 +113,13 @@ pub async fn claude_chat(request: ChatRequest) -> Result<ChatResponse, String> {
 
     let mut cmd = Command::new(&claude_info.path);
 
+    // Run CLI in the Desk data directory (or $HOME as fallback) to avoid
+    // macOS TCC permission prompts from inheriting the app bundle's cwd
+    let cwd = request.cwd
+        .filter(|p| !p.is_empty() && std::path::Path::new(p).is_dir())
+        .unwrap_or_else(|| std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string()));
+    cmd.current_dir(&cwd);
+
     // If we have a bin_dir (e.g., from nvm), add it to PATH so node can be found
     if let Some(bin_dir) = &claude_info.bin_dir {
         let current_path = std::env::var("PATH").unwrap_or_default();
@@ -120,6 +129,13 @@ pub async fn claude_chat(request: ChatRequest) -> Result<ChatResponse, String> {
 
     // Use print mode for non-interactive output
     cmd.arg("-p");
+
+    // Select model if specified (e.g., "sonnet", "opus", "haiku")
+    if let Some(model) = &request.model {
+        if !model.is_empty() {
+            cmd.arg("--model").arg(model);
+        }
+    }
 
     // Use JSON output format to get usage data
     cmd.arg("--output-format").arg("json");

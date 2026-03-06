@@ -13,7 +13,7 @@ import { readTextFile } from "@/lib/desk/tauri-fs";
 import { extractBody } from "@/lib/rag/chunker";
 import * as rag from "@/lib/rag";
 import { deduplicateByDocPath } from "@/lib/rag/utils";
-import { selectFiles } from "@/lib/context-index/selector";
+import { selectFiles, type Relevance } from "@/lib/context-index/selector";
 import { createAIService } from "@/lib/ai/service";
 import { useAISettingsStore } from "@/stores/ai";
 import type { AIContextResult, AIMessageSource } from "@/lib/ai/types";
@@ -74,41 +74,43 @@ async function indexSearch(options: ContextSearchOptions): Promise<ContextSearch
     apiKey: providerType === "anthropic-api" ? anthropicApiKey : undefined,
   });
 
-  // Step 1: AI selects relevant files
-  const selectedPaths = await selectFiles(options.query, index, {
+  // Step 1: AI selects relevant files with relevance scores
+  const selections = await selectFiles(options.query, index, {
     maxFiles: maxFilesPerQuery,
     aiService,
   });
 
-  if (selectedPaths.length === 0) return emptyResult;
+  if (selections.length === 0) return emptyResult;
 
-  // Step 2: Read selected files and build results
+  // Step 2: Read selected files and build results with relevance scores
   const contextResults: AIContextResult[] = [];
-  const selectedEntries = index.entries.filter((e) => selectedPaths.includes(e.path));
+  const relevanceByPath = new Map(selections.map((s) => [s.path, s.relevance]));
+  const selectedEntries = index.entries.filter((e) => relevanceByPath.has(e.path));
 
   for (const entry of selectedEntries) {
     try {
       const content = await readTextFile(entry.filePath);
       const body = extractBody(content);
+      const relevance = relevanceByPath.get(entry.path) ?? "high";
       contextResults.push({
         docPath: entry.filePath,
         title: entry.title,
         content: body,
         contentType: entry.type,
-        score: 1.0, // Kept for internal use, but not shown in UI (see sources below)
+        score: relevanceToScore(relevance),
       });
     } catch (error) {
       console.warn(`[context-search] Failed to read ${entry.filePath}:`, error);
     }
   }
 
-  // Build sources for UI (no score for Smart Index - it's binary selection, not similarity)
+  // Build sources for UI with relevance scores
   const sources: AIMessageSource[] = showSourcesInChat
     ? contextResults.map((r) => ({
         docPath: r.docPath,
         title: r.title,
         contentType: r.contentType,
-        // Omit score for Smart Index - showing 100% is misleading
+        score: r.score,
       }))
     : [];
 
@@ -164,5 +166,14 @@ async function embeddingSearch(options: ContextSearchOptions): Promise<ContextSe
   } catch (error) {
     console.warn("[context-search] RAG search failed:", error);
     return emptyResult;
+  }
+}
+
+/** Map relevance label to numeric score */
+function relevanceToScore(relevance: Relevance): number {
+  switch (relevance) {
+    case "high": return 1.0;
+    case "medium": return 0.7;
+    case "low": return 0.4;
   }
 }

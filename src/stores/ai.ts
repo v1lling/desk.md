@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
   createAIService,
+  combineInstructions,
   type AIMessage,
   type AIMessageSource,
   type AIContext,
@@ -13,6 +14,7 @@ import {
   type AIContextResult,
   type AIServiceResponse,
 } from '@/lib/ai';
+import { DEFAULT_MODELS } from '@/lib/ai/models';
 import { formatEmailAddress, type IncomingEmail } from '@/lib/email/types';
 import { useSettingsStore } from '@/stores/settings';
 import { useWorkspaces } from '@/stores/workspaces';
@@ -26,9 +28,14 @@ interface AISettingsState {
   providerType: AIProviderType;
   anthropicApiKey: string;
   customInstructions: string;
+  perTypeInstructions: Record<string, string>;
+  /** Model ID per provider (empty = use default from DEFAULT_MODELS) */
+  modelByProvider: Record<string, string>;
   setProviderType: (type: AIProviderType) => void;
   setAnthropicApiKey: (key: string) => void;
   setCustomInstructions: (instructions: string) => void;
+  setPerTypeInstructions: (purpose: string, instructions: string) => void;
+  setModelForProvider: (provider: AIProviderType, model: string) => void;
 }
 
 export const useAISettingsStore = create<AISettingsState>()(
@@ -37,9 +44,19 @@ export const useAISettingsStore = create<AISettingsState>()(
       providerType: 'claude-code',
       anthropicApiKey: '',
       customInstructions: '',
+      perTypeInstructions: {},
+      modelByProvider: {},
       setProviderType: (type) => set({ providerType: type }),
       setAnthropicApiKey: (key) => set({ anthropicApiKey: key }),
       setCustomInstructions: (instructions) => set({ customInstructions: instructions }),
+      setPerTypeInstructions: (purpose, instructions) =>
+        set((state) => ({
+          perTypeInstructions: { ...state.perTypeInstructions, [purpose]: instructions },
+        })),
+      setModelForProvider: (provider, model) =>
+        set((state) => ({
+          modelByProvider: { ...state.modelByProvider, [provider]: model },
+        })),
     }),
     {
       name: 'desk-ai-settings',
@@ -107,6 +124,12 @@ export const useAIUsageStore = create<AIUsageState>()(
 );
 
 // =============================================================================
+// AI Progress Stage
+// =============================================================================
+
+export type AIProgressStage = 'context' | 'generating' | null;
+
+// =============================================================================
 // AI Chat Store (persisted - conversation history)
 // =============================================================================
 
@@ -127,6 +150,8 @@ interface AIChatState {
   activeConversationId: string | null;
   /** Sources found by context search, shown while waiting for AI response */
   pendingSources: AIMessageSource[] | null;
+  /** Current stage of the AI request pipeline */
+  aiProgress: AIProgressStage;
 
   // Actions
   createConversation: () => string;
@@ -135,6 +160,7 @@ interface AIChatState {
   deleteConversation: (id: string) => void;
   clearAllConversations: () => void;
   setPendingSources: (sources: AIMessageSource[] | null) => void;
+  setAIProgress: (stage: AIProgressStage) => void;
 }
 
 export const useAIChatStore = create<AIChatState>()(
@@ -143,6 +169,7 @@ export const useAIChatStore = create<AIChatState>()(
       conversations: [],
       activeConversationId: null,
       pendingSources: null,
+      aiProgress: null,
 
       createConversation: () => {
         const id = crypto.randomUUID();
@@ -236,6 +263,7 @@ export const useAIChatStore = create<AIChatState>()(
         set({ conversations: [], activeConversationId: null, pendingSources: null }),
 
       setPendingSources: (sources) => set({ pendingSources: sources }),
+      setAIProgress: (stage) => set({ aiProgress: stage }),
     }),
     {
       name: 'desk-ai-chat',
@@ -257,16 +285,22 @@ export const useAIChatStore = create<AIChatState>()(
 // - useAIAction(): For one-off operations - email drafts, summaries, etc.
 //
 
+/** Get the active model for the current provider */
+function getActiveModel(providerType: AIProviderType, modelByProvider: Record<string, string>): string {
+  return modelByProvider[providerType] || DEFAULT_MODELS[providerType];
+}
+
 /**
  * Internal: Get a configured AI service instance
  */
 function useAIService() {
-  const { providerType, anthropicApiKey } = useAISettingsStore();
+  const { providerType, anthropicApiKey, modelByProvider } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
 
   return createAIService({
     providerType,
     apiKey: providerType === 'anthropic-api' ? anthropicApiKey : undefined,
+    model: getActiveModel(providerType, modelByProvider),
     onUsage: (usage: AIUsage, purpose: AIPurpose, provider: AIProviderType) => {
       addRecord({ purpose, provider, usage });
     },
@@ -278,8 +312,8 @@ function useAIService() {
  * Automatically includes context based on the selected strategy (index, rag, or none)
  */
 export function useSendMessage() {
-  const { addMessage, setPendingSources } = useAIChatStore();
-  const { providerType, anthropicApiKey, customInstructions } = useAISettingsStore();
+  const { addMessage, setPendingSources, setAIProgress } = useAIChatStore();
+  const { providerType, anthropicApiKey, customInstructions, perTypeInstructions, modelByProvider } = useAISettingsStore();
   const { addRecord } = useAIUsageStore();
   const { search: contextSearch } = useContextSearch();
   const { data: workspaces = [] } = useWorkspaces();
@@ -301,6 +335,7 @@ export function useSendMessage() {
       const currentWorkspaceId = useSettingsStore.getState().currentWorkspaceId;
       const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId);
 
+      setAIProgress('context');
       try {
         const result = await contextSearch({
           query: message,
@@ -326,9 +361,12 @@ export function useSendMessage() {
         contextResults: contextResults.length > 0 ? contextResults : undefined,
       };
 
+      setAIProgress('generating');
+
       const service = createAIService({
         providerType,
         apiKey: providerType === 'anthropic-api' ? anthropicApiKey : undefined,
+        model: getActiveModel(providerType, modelByProvider),
         onUsage: (usage, purpose, provider) => {
           addRecord({ purpose, provider, usage });
         },
@@ -337,7 +375,7 @@ export function useSendMessage() {
       const response = await service.chat(message, {
         context: enrichedContext,
         history,
-        userInstructions: customInstructions || undefined,
+        userInstructions: combineInstructions(customInstructions, perTypeInstructions['chat']),
       });
       return { response, sources };
     },
@@ -350,6 +388,7 @@ export function useSendMessage() {
       });
     },
     onSuccess: ({ response, sources }) => {
+      setAIProgress(null);
       setPendingSources(null);
       addMessage({
         id: crypto.randomUUID(),
@@ -360,6 +399,7 @@ export function useSendMessage() {
       });
     },
     onError: () => {
+      setAIProgress(null);
       setPendingSources(null);
     },
   });
@@ -391,6 +431,8 @@ export interface EmailDraftOptions {
   instructions: string;
   /** Workspace ID for context retrieval */
   workspaceId?: string;
+  /** Progress callback for UI stage indicators */
+  onProgress?: (stage: AIProgressStage) => void;
 }
 
 export interface EmailDraftResult {
@@ -406,6 +448,7 @@ export interface EmailDraftResult {
  */
 export function useEmailDraft() {
   const service = useAIService();
+  const { customInstructions, perTypeInstructions } = useAISettingsStore();
   const { search: contextSearch } = useContextSearch();
 
   return useMutation({
@@ -417,6 +460,7 @@ export function useEmailDraft() {
       const query = `${options.email.subject} ${options.email.body.slice(0, 300)}`;
       const workspaceId = options.workspaceId ?? useSettingsStore.getState().currentWorkspaceId ?? undefined;
 
+      options.onProgress?.('context');
       try {
         const result = await contextSearch({ query, workspaceId });
         sources = result.sources;
@@ -425,6 +469,8 @@ export function useEmailDraft() {
         console.warn('[useEmailDraft] Context search failed:', error);
       }
 
+      options.onProgress?.('generating');
+
       const response = await service.draftEmail(
         {
           from: formatEmailAddress(options.email.from),
@@ -432,7 +478,10 @@ export function useEmailDraft() {
           body: options.email.body,
         },
         options.instructions || 'Write a professional reply.',
-        { context: contextResults.length > 0 ? { contextResults } : undefined }
+        {
+          context: contextResults.length > 0 ? { contextResults } : undefined,
+          userInstructions: combineInstructions(customInstructions, perTypeInstructions['draft-email']),
+        }
       );
 
       return {

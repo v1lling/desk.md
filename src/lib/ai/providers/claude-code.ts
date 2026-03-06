@@ -1,10 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from '@/lib/desk/tauri-fs';
+import { isTauri, getDeskPath } from '@/lib/desk/tauri-fs';
 import type { AIProvider, AIRequest, AIResponse } from '../types';
 
 interface TauriChatRequest {
   prompt: string;
   system_prompt?: string;
+  cwd?: string;
+  model?: string;
 }
 
 interface TauriTokenUsage {
@@ -28,7 +30,7 @@ interface TauriChatResponse {
  * Note: This is a "dumb" transport layer. The service layer handles
  * prompt building and context injection before calling this provider.
  */
-export function createClaudeCodeProvider(): AIProvider {
+export function createClaudeCodeProvider(model?: string): AIProvider {
   return {
     id: 'claude-code',
     name: 'Claude Code',
@@ -51,10 +53,15 @@ export function createClaudeCodeProvider(): AIProvider {
       }
 
       try {
+        // Resolve Desk data path so the CLI runs scoped to it (avoids macOS permission prompts)
+        const cwd = await getDeskPath();
+
         const response = await invoke<TauriChatResponse>('claude_chat', {
           request: {
             prompt,
             system_prompt: request.systemPrompt, // Already built by service layer
+            cwd,
+            model,
           } as TauriChatRequest,
         });
 

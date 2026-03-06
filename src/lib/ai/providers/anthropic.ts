@@ -9,8 +9,9 @@ import type { AIProvider, AIRequest, AIResponse } from '../types';
  * Note: This is a "dumb" transport layer. The service layer handles
  * prompt building and context injection before calling this provider.
  */
-export function createAnthropicProvider(apiKey: string): AIProvider {
+export function createAnthropicProvider(apiKey: string, model?: string): AIProvider {
   const anthropic = createAnthropic({ apiKey });
+  const modelId = model || 'claude-sonnet-4-5';
 
   return {
     id: 'anthropic-api',
@@ -28,7 +29,7 @@ export function createAnthropicProvider(apiKey: string): AIProvider {
 
       try {
         const { text, usage } = await generateText({
-          model: anthropic('claude-sonnet-4-20250514'),
+          model: anthropic(modelId),
           system: request.systemPrompt, // Already built by service layer
           messages,
         });
