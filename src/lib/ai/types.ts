@@ -68,6 +68,8 @@ export interface AIContext {
   custom?: Record<string, string>;
   /** Auto-retrieved context results (from index or RAG strategy) */
   contextResults?: AIContextResult[];
+  /** Titles of files already sent in earlier conversation turns (for AI awareness) */
+  previousContextTitles?: string[];
 }
 
 // =============================================================================

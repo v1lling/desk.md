@@ -172,6 +172,10 @@ export function formatContext(context: AIContext): string {
     sections.push(`## Auto-Retrieved Context\nThe following items were automatically retrieved. Focus on high-relevance items; medium/low items are background that may or may not be useful.\n\n${contextText}`);
   }
 
+  if (context.previousContextTitles && context.previousContextTitles.length > 0) {
+    sections.push(`## Previously Provided Context\nThese files were included in earlier turns — refer to conversation history for details: ${context.previousContextTitles.join(', ')}`);
+  }
+
   if (context.custom) {
     for (const [key, value] of Object.entries(context.custom)) {
       sections.push(`## ${key}\n${value}`);

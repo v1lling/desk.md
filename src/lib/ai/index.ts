@@ -3,6 +3,7 @@ export * from './types';
 
 // Utils
 export { parseDocPath } from './utils';
+export { deduplicateContext } from './context-dedup';
 
 // Provider layer
 export { createProvider, type ProviderConfig } from './provider';

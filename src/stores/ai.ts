@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import {
   createAIService,
   combineInstructions,
+  deduplicateContext,
   type AIMessage,
   type AIMessageSource,
   type AIContext,
@@ -355,10 +356,17 @@ export function useSendMessage() {
         console.warn('[AI] Context search failed:', error);
       }
 
+      // Deduplicate: skip files already sent in earlier conversation turns
+      const { results: newContextResults, previousTitles } = deduplicateContext(
+        contextResults,
+        history ?? []
+      );
+
       // Merge results with existing context
       const enrichedContext: AIContext = {
         ...context,
-        contextResults: contextResults.length > 0 ? contextResults : undefined,
+        contextResults: newContextResults.length > 0 ? newContextResults : undefined,
+        previousContextTitles: previousTitles.length > 0 ? previousTitles : undefined,
       };
 
       setAIProgress('generating');
