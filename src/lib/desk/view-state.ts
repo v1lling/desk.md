@@ -201,6 +201,7 @@ export async function removeTaskFromOrder(
   if (!state.taskOrder) return;
 
   const newOrder: Record<TaskStatus, string[]> = {
+    backlog: (state.taskOrder.backlog || []).filter(id => id !== taskId),
     todo: (state.taskOrder.todo || []).filter(id => id !== taskId),
     doing: (state.taskOrder.doing || []).filter(id => id !== taskId),
     waiting: (state.taskOrder.waiting || []).filter(id => id !== taskId),

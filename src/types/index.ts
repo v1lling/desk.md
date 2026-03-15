@@ -17,6 +17,7 @@ export interface Project {
   created: string;         // ISO date
   taskCount?: number;
   tasksByStatus?: {
+    backlog: number;
     todo: number;
     doing: number;
     waiting: number;
@@ -41,7 +42,7 @@ export interface Task {
   content: string;         // Markdown body
 }
 
-export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'doing' | 'waiting' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 // Doc - lives under a project (renamed from Note)

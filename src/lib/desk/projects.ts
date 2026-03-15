@@ -29,16 +29,16 @@ interface ProjectFrontmatter {
  */
 async function countProjectTasks(projectPath: string): Promise<{
   total: number;
-  byStatus: { todo: number; doing: number; waiting: number; done: number };
+  byStatus: { backlog: number; todo: number; doing: number; waiting: number; done: number };
 }> {
   const tasksPath = await joinPath(projectPath, PATH_SEGMENTS.TASKS);
 
   if (!(await exists(tasksPath))) {
-    return { total: 0, byStatus: { todo: 0, doing: 0, waiting: 0, done: 0 } };
+    return { total: 0, byStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 } };
   }
 
   const entries = await readDir(tasksPath);
-  const byStatus = { todo: 0, doing: 0, waiting: 0, done: 0 };
+  const byStatus = { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 };
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
@@ -57,7 +57,7 @@ async function countProjectTasks(projectPath: string): Promise<{
   }
 
   return {
-    total: byStatus.todo + byStatus.doing + byStatus.waiting + byStatus.done,
+    total: byStatus.backlog + byStatus.todo + byStatus.doing + byStatus.waiting + byStatus.done,
     byStatus,
   };
 }
@@ -170,7 +170,7 @@ export async function createProject(data: {
     description: data.description,
     created: todayISO(),
     taskCount: 0,
-    tasksByStatus: { todo: 0, doing: 0, waiting: 0, done: 0 },
+    tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
   };
 
   if (!isTauri()) {
@@ -258,7 +258,7 @@ export async function updateProject(
       description: updatedData.description,
       created: updatedData.created,
       taskCount: 0,
-      tasksByStatus: { todo: 0, doing: 0, waiting: 0, done: 0 },
+      tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
     };
   } catch {
     return null;

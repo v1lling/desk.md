@@ -19,6 +19,7 @@ export interface WorkspaceSummary {
   name: string;
   color?: string;
   totalTasks: number;
+  backlogTasks: number;
   completedTasks: number;
   doingTasks: number;
   completionPercent: number;
@@ -85,6 +86,7 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
     const tasks = await getTasks(workspace.id);
 
     const totalTasks = tasks.length;
+    const backlogTasks = tasks.filter((t) => t.status === "backlog").length;
     const completedTasks = tasks.filter((t) => t.status === "done").length;
     const doingTasks = tasks.filter((t) => t.status === "doing").length;
     const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -94,6 +96,7 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
       name: workspace.name,
       color: workspace.color,
       totalTasks,
+      backlogTasks,
       completedTasks,
       doingTasks,
       completionPercent,
@@ -103,10 +106,10 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
   const results = await Promise.all(summaryPromises);
   summaries.push(...results);
 
-  // Sort by number of active (non-done) tasks descending
+  // Sort by number of active (exclude done/backlog) tasks descending
   summaries.sort((a, b) => {
-    const aActive = a.totalTasks - a.completedTasks;
-    const bActive = b.totalTasks - b.completedTasks;
+    const aActive = a.totalTasks - a.completedTasks - a.backlogTasks;
+    const bActive = b.totalTasks - b.completedTasks - b.backlogTasks;
     return bActive - aActive;
   });
 

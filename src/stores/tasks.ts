@@ -217,6 +217,7 @@ export function useMoveTaskToProject() {
  */
 export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
   return {
+    backlog: tasks.filter((t) => t.status === "backlog"),
     todo: tasks.filter((t) => t.status === "todo"),
     doing: tasks.filter((t) => t.status === "doing"),
     waiting: tasks.filter((t) => t.status === "waiting"),

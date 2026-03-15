@@ -109,8 +109,8 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
   const { data: docs = [] } = useDocs(workspaceId);
   const { data: meetings = [] } = useMeetings(workspaceId);
 
-  // Count active tasks (not done)
-  const activeTaskCount = tasks.filter((t) => t.status !== "done").length;
+  // Count active tasks (exclude backlog and done)
+  const activeTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "backlog").length;
   const docCount = docs.length;
   const meetingCount = meetings.length;
 

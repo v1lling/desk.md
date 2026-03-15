@@ -57,6 +57,7 @@ export const workspaceColorOptions: readonly { value: string; label: string }[] 
 // =============================================================================
 
 export const taskStatusColors = {
+  backlog: "bg-slate-500",
   todo: "bg-muted-foreground",
   doing: "bg-blue-500",
   waiting: "bg-amber-500",
@@ -71,6 +72,7 @@ export type TaskStatus = keyof typeof taskStatusColors;
 // =============================================================================
 
 export const taskStatusTextColors = {
+  backlog: "text-slate-600 dark:text-slate-400",
   todo: "text-muted-foreground",
   doing: "text-blue-600 dark:text-blue-400",
   waiting: "text-amber-600 dark:text-amber-400",
@@ -94,6 +96,7 @@ export const priorityTextColors = {
 // =============================================================================
 
 export const taskStatusLabels = {
+  backlog: "Backlog",
   todo: "To Do",
   doing: "In Progress",
   waiting: "Waiting",
@@ -101,7 +104,7 @@ export const taskStatusLabels = {
 } as const;
 
 /** Ordered list of statuses for consistent display across views */
-export const taskStatusOrder: TaskStatus[] = ["doing", "todo", "waiting", "done"];
+export const taskStatusOrder: TaskStatus[] = ["backlog", "todo", "doing", "waiting", "done"];
 
 // =============================================================================
 // ICON ASSIGNMENTS

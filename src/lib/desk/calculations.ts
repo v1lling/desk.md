@@ -13,6 +13,7 @@ import type { Task, TaskStatus } from "@/types";
 
 export interface TaskStats {
   total: number;
+  backlog: number;
   todo: number;
   doing: number;
   waiting: number;
@@ -25,6 +26,7 @@ export interface TaskStats {
 export function calculateTaskStats(tasks: Task[]): TaskStats {
   return {
     total: tasks.length,
+    backlog: tasks.filter((t) => t.status === "backlog").length,
     todo: tasks.filter((t) => t.status === "todo").length,
     doing: tasks.filter((t) => t.status === "doing").length,
     waiting: tasks.filter((t) => t.status === "waiting").length,
@@ -46,6 +48,7 @@ export function calculateCompletionPercentage(tasks: Task[]): number {
  */
 export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
   return {
+    backlog: tasks.filter((t) => t.status === "backlog"),
     todo: tasks.filter((t) => t.status === "todo"),
     doing: tasks.filter((t) => t.status === "doing"),
     waiting: tasks.filter((t) => t.status === "waiting"),

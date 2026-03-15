@@ -112,7 +112,7 @@ Rules:
 - "medium": provides useful background or related context
 - "low": only tangentially related
 - Consider file path hierarchy (workspace/project structure)
-- For tasks, prefer active (doing > todo > waiting > done) and high priority
+- For tasks, prefer active (todo > doing > waiting > backlog > done) and high priority
 - For meetings, prefer recent dates
 - If no files are relevant, return an empty array []`,
 } as const;

@@ -14,13 +14,14 @@ import { priorityTextColors } from "@/lib/design-tokens";
 
 // Status configuration
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
+  backlog: { label: "Backlog", color: "text-slate-600 dark:text-slate-400" },
   todo: { label: "To Do", color: "text-muted-foreground" },
   doing: { label: "In Progress", color: "text-blue-600 dark:text-blue-400" },
   waiting: { label: "Waiting", color: "text-amber-600 dark:text-amber-400" },
   done: { label: "Done", color: "text-green-600 dark:text-green-400" },
 };
 
-const statusOptions: TaskStatus[] = ["todo", "doing", "waiting", "done"];
+const statusOptions: TaskStatus[] = ["backlog", "todo", "doing", "waiting", "done"];
 
 const priorityConfig: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: "High", color: priorityTextColors.high },

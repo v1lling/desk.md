@@ -27,6 +27,7 @@ interface KanbanColumnProps {
 }
 
 const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
+  backlog: { label: "Backlog", color: "bg-slate-500" },
   todo: { label: "To Do", color: "bg-muted-foreground/50" },
   doing: { label: "In Progress", color: "bg-blue-500" },
   waiting: { label: "Waiting", color: "bg-amber-500" },
