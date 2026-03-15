@@ -1,12 +1,28 @@
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import { Bot, Home, Zap } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
+import type { TabType } from "@/stores/tabs";
 import { TabItem } from "./tab-item";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const MAX_VISIBLE_DESKTOP = 8;
+const MAX_VISIBLE_MOBILE = 5;
+
+const SYSTEM_TAB_ICONS: Partial<Record<TabType, React.ElementType>> = {
+  desk: Home,
+  ai: Bot,
+  agent: Zap,
+};
 
 // Pages that are workspace-scoped (show workspace name and color)
 const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects/"];
@@ -18,7 +34,6 @@ function isWorkspaceScopedPage(pathname: string): boolean {
 // Map pathname to friendly page name for Desk tab
 function getPageName(
   pathname: string,
-  workspaceName?: string | null,
   projectName?: string | null
 ): { title: string; isWorkspaceScoped: boolean } {
   // Handle project detail page
@@ -38,11 +53,6 @@ function getPageName(
   const baseName = pageMap[pathname] || "Desk";
   const scoped = isWorkspaceScopedPage(pathname);
 
-  // For workspace-scoped pages, include workspace name
-  if (scoped && workspaceName) {
-    return { title: `${baseName} · ${workspaceName}`, isWorkspaceScoped: true };
-  }
-
   return { title: baseName, isWorkspaceScoped: scoped };
 }
 
@@ -56,14 +66,29 @@ export function TabBar() {
   const closeOtherTabs = useTabStore((state) => state.closeOtherTabs);
   const updateTab = useTabStore((state) => state.updateTab);
   const requestSaveAndClose = useTabStore((state) => state.requestSaveAndClose);
+  const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
   const currentWorkspace = useCurrentWorkspace();
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
 
   // State for unsaved changes dialog
   const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{
     open: boolean;
     tabId: string | null;
     tabTitle: string;
-  }>({ open: false, tabId: null, tabTitle: "" });
+    mode: "close-tab" | "close-others";
+  }>({ open: false, tabId: null, tabTitle: "", mode: "close-tab" });
+  const [closeOthersTargetTabId, setCloseOthersTargetTabId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+    };
+
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   // Get project ID from URL for project pages
   const projectId = pathname.startsWith("/projects/") ? (params.id ?? null) : null;
@@ -83,9 +108,9 @@ export function TabBar() {
 
   // Update Desk tab title based on current page
   useEffect(() => {
-    const { title } = getPageName(pathname, currentWorkspace?.name, project?.name);
+    const { title } = getPageName(pathname, project?.name);
     updateTab("desk", { title });
-  }, [pathname, currentWorkspace?.name, project?.name, updateTab]);
+  }, [pathname, project?.name, updateTab]);
 
   // Get workspace color for Desk tab (when on workspace-scoped page)
   const deskWorkspaceColor = isWorkspaceScopedPage(pathname)
@@ -107,7 +132,12 @@ export function TabBar() {
 
       // Check if tab has unsaved changes
       if (tab.isDirty) {
-        setDirtyCloseDialog({ open: true, tabId, tabTitle: tab.title });
+        setDirtyCloseDialog({
+          open: true,
+          tabId,
+          tabTitle: tab.title,
+          mode: "close-tab",
+        });
         return;
       }
 
@@ -122,7 +152,12 @@ export function TabBar() {
       // Request save, then close
       requestSaveAndClose(dirtyCloseDialog.tabId);
     }
-    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+    setDirtyCloseDialog({
+      open: false,
+      tabId: null,
+      tabTitle: "",
+      mode: "close-tab",
+    });
   }, [dirtyCloseDialog.tabId, requestSaveAndClose]);
 
   // Handle discard and close from dialog
@@ -130,13 +165,26 @@ export function TabBar() {
     if (dirtyCloseDialog.tabId) {
       closeTab(dirtyCloseDialog.tabId);
     }
-    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+    setDirtyCloseDialog({
+      open: false,
+      tabId: null,
+      tabTitle: "",
+      mode: "close-tab",
+    });
   }, [dirtyCloseDialog.tabId, closeTab]);
 
   // Handle cancel from dialog
   const handleDialogCancel = useCallback(() => {
-    setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
-  }, []);
+    if (dirtyCloseDialog.mode === "close-others") {
+      setCloseOthersTargetTabId(null);
+    }
+    setDirtyCloseDialog({
+      open: false,
+      tabId: null,
+      tabTitle: "",
+      mode: "close-tab",
+    });
+  }, [dirtyCloseDialog.mode]);
 
   const handleCloseOthers = useCallback(
     (tabId: string) => {
@@ -146,12 +194,12 @@ export function TabBar() {
       );
 
       if (otherDirtyTabs.length > 0) {
-        // For simplicity, show dialog for first dirty tab
-        // In a more complex implementation, we could batch these
+        setCloseOthersTargetTabId(tabId);
         setDirtyCloseDialog({
           open: true,
           tabId: otherDirtyTabs[0].id,
           tabTitle: otherDirtyTabs[0].title,
+          mode: "close-others",
         });
         return;
       }
@@ -161,6 +209,40 @@ export function TabBar() {
     [tabs, closeOtherTabs]
   );
 
+  // Continue close-others flow after each dirty tab is handled
+  useEffect(() => {
+    if (!closeOthersTargetTabId || dirtyCloseDialog.open || pendingSaveAndClose) return;
+
+    // Target tab was closed while flow was active
+    if (!tabs.some((t) => t.id === closeOthersTargetTabId)) {
+      setCloseOthersTargetTabId(null);
+      return;
+    }
+
+    const nextDirtyTab = tabs.find(
+      (t) => !t.isPinned && t.id !== closeOthersTargetTabId && t.isDirty
+    );
+
+    if (nextDirtyTab) {
+      setDirtyCloseDialog({
+        open: true,
+        tabId: nextDirtyTab.id,
+        tabTitle: nextDirtyTab.title,
+        mode: "close-others",
+      });
+      return;
+    }
+
+    closeOtherTabs(closeOthersTargetTabId);
+    setCloseOthersTargetTabId(null);
+  }, [
+    closeOthersTargetTabId,
+    dirtyCloseDialog.open,
+    pendingSaveAndClose,
+    tabs,
+    closeOtherTabs,
+  ]);
+
   // Check if there are other closable (non-pinned) tabs besides a given tab
   const hasOtherClosableTabs = useCallback(
     (tabId: string) => {
@@ -168,6 +250,41 @@ export function TabBar() {
     },
     [tabs]
   );
+
+  const { visibleTabs, overflowTabs } = useMemo(() => {
+    const maxVisible = isDesktop ? MAX_VISIBLE_DESKTOP : MAX_VISIBLE_MOBILE;
+    const contentTabs = tabs.filter(
+      (tab) => tab.type !== "desk" && tab.type !== "ai" && tab.type !== "agent"
+    );
+    if (contentTabs.length <= maxVisible) {
+      return { visibleTabs: contentTabs, overflowTabs: [] };
+    }
+
+    const nextVisibleTabs = [...contentTabs.slice(0, maxVisible)];
+    if (!nextVisibleTabs.some((tab) => tab.id === activeTabId)) {
+      const activeTab = contentTabs.find((tab) => tab.id === activeTabId);
+      const replacementIndex = [...nextVisibleTabs]
+        .reverse()
+        .findIndex((tab) => !tab.isPinned);
+
+      if (activeTab && replacementIndex !== -1) {
+        const normalizedIndex = nextVisibleTabs.length - 1 - replacementIndex;
+        nextVisibleTabs[normalizedIndex] = activeTab;
+      }
+    }
+
+    const visibleTabIds = new Set(nextVisibleTabs.map((tab) => tab.id));
+    const nextOverflowTabs = contentTabs.filter((tab) => !visibleTabIds.has(tab.id));
+
+    return { visibleTabs: nextVisibleTabs, overflowTabs: nextOverflowTabs };
+  }, [tabs, activeTabId, isDesktop]);
+
+  const mainTabs = useMemo(() => {
+    const order: TabType[] = ["desk", "ai", "agent"];
+    return order
+      .map((type) => tabs.find((tab) => tab.type === type))
+      .filter((tab): tab is NonNullable<typeof tab> => Boolean(tab));
+  }, [tabs]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -206,9 +323,30 @@ export function TabBar() {
   return (
     <>
       <div className="h-9 bg-muted/30 border-b border-border/50 flex items-end shrink-0">
-        <ScrollArea orientation="horizontal" className="w-full h-full">
-          <div className="flex items-end h-full gap-0.5 px-1">
-            {tabs.map((tab) => (
+        <div className="w-full h-full flex items-end gap-0.5 px-1 overflow-hidden">
+          {mainTabs.length > 0 && (
+            <>
+              {mainTabs.map((tab) => (
+                <TabItem
+                  key={tab.id}
+                  tab={tab}
+                  isActive={tab.id === activeTabId}
+                  onActivate={() => handleActivate(tab.id)}
+                  onClose={() => handleClose(tab.id)}
+                  onMiddleClick={() => handleClose(tab.id)}
+                  onCloseOthers={() => handleCloseOthers(tab.id)}
+                  hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
+                  workspaceColor={tab.type === "desk" ? deskWorkspaceColor : undefined}
+                  showIcon
+                  isMainTab
+                />
+              ))}
+              <div className="h-5 w-px bg-border/50 mx-1 mb-1.5 shrink-0" />
+            </>
+          )}
+
+          <div className="flex items-end h-full gap-0.5 min-w-0">
+            {visibleTabs.map((tab) => (
               <TabItem
                 key={tab.id}
                 tab={tab}
@@ -218,18 +356,68 @@ export function TabBar() {
                 onMiddleClick={() => handleClose(tab.id)}
                 onCloseOthers={() => handleCloseOthers(tab.id)}
                 hasOtherClosableTabs={hasOtherClosableTabs(tab.id)}
-                workspaceColor={tab.type === "desk" ? deskWorkspaceColor : undefined}
+                showIcon={false}
               />
             ))}
           </div>
-        </ScrollArea>
+
+          {overflowTabs.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-8 px-2 text-xs rounded-t-md text-muted-foreground/80 hover:text-foreground hover:bg-muted/30 transition-colors shrink-0"
+                  title={`${overflowTabs.length} hidden tabs`}
+                >
+                  +{overflowTabs.length}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-64"
+              >
+                {overflowTabs.map((tab) => {
+                  const Icon = SYSTEM_TAB_ICONS[tab.type];
+                  const isSystemTab = tab.type === "desk" || tab.type === "ai" || tab.type === "agent";
+                  return (
+                    <DropdownMenuItem
+                      key={tab.id}
+                      onSelect={() => handleActivate(tab.id)}
+                      className="gap-2"
+                    >
+                      {isSystemTab && Icon ? (
+                        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <span className="w-3.5 shrink-0" />
+                      )}
+                      <span className="truncate flex-1">{tab.title}</span>
+                      {tab.isDirty && (
+                        <span className="text-muted-foreground/60 shrink-0 text-[10px] leading-none">
+                          •
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       <SaveChangesDialog
         open={dirtyCloseDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setDirtyCloseDialog({ open: false, tabId: null, tabTitle: "" });
+            if (dirtyCloseDialog.mode === "close-others") {
+              setCloseOthersTargetTabId(null);
+            }
+            setDirtyCloseDialog({
+              open: false,
+              tabId: null,
+              tabTitle: "",
+              mode: "close-tab",
+            });
           }
         }}
         title="Unsaved Changes"

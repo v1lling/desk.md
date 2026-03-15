@@ -13,9 +13,14 @@ export function useEditorSaveAndClose(tabId: string, save: () => Promise<boolean
   useEffect(() => {
     if (pendingSaveAndClose === tabId) {
       (async () => {
-        await save();
-        clearPendingSaveAndClose();
-        closeTab(tabId);
+        try {
+          const didSave = await save();
+          if (didSave) {
+            closeTab(tabId);
+          }
+        } finally {
+          clearPendingSaveAndClose();
+        }
       })();
     }
   }, [pendingSaveAndClose, tabId, save, clearPendingSaveAndClose, closeTab]);
