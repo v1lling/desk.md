@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Providers } from "./app/providers";
 import { AppShell } from "./app/app-shell";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,6 +10,16 @@ import DocsPage from "./pages/docs";
 import MeetingsPage from "./pages/meetings";
 import SettingsPage from "./pages/settings";
 import ProjectViewPage from "./pages/project-view";
+
+function ProjectRootRedirect() {
+  const { id } = useParams<{ id: string }>();
+
+  if (!id) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Navigate to={`/projects/${id}/tasks`} replace />;
+}
 
 export function App() {
   return (
@@ -23,7 +33,8 @@ export function App() {
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/projects/:id" element={<ProjectViewPage />} />
+              <Route path="/projects/:id" element={<ProjectRootRedirect />} />
+              <Route path="/projects/:id/:section" element={<ProjectViewPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AppShell>

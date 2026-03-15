@@ -118,7 +118,7 @@ export default function MeetingsPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <FolderKanban className="h-4 w-4 text-muted-foreground" />
                     <Link
-                      to={`/projects/${projectId}`}
+                      to={`/projects/${projectId}/tasks`}
                       className="font-medium hover:underline"
                     >
                       {getDisplayProjectName(projectId)}
