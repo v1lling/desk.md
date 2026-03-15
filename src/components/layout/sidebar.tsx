@@ -182,8 +182,8 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
       </div>
 
       {/* Main Navigation */}
-      <ScrollArea className="flex-1 h-0">
-        <nav className="px-2 py-2 space-y-1">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <nav className="px-2 py-2 space-y-1 shrink-0">
           {/* Dashboard - top level */}
           <NavLink
             to="/"
@@ -224,11 +224,13 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
           </div>
 
           <Divider />
-
-          {/* Projects (for current workspace) */}
-          <ProjectsList isCollapsed={collapsed} />
         </nav>
-      </ScrollArea>
+
+        {/* Projects (for current workspace) */}
+        <div className="flex-1 min-h-0 px-2 pb-2">
+          <ProjectsList isCollapsed={collapsed} />
+        </div>
+      </div>
 
       {/* Footer: AI Chat + Settings */}
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/50 space-y-0.5">
