@@ -47,6 +47,8 @@ export const mockProjects: Project[] = [
     created: "2024-01-01",
     taskCount: 4,
     tasksByStatus: { backlog: 0, todo: 1, doing: 2, waiting: 0, done: 1 },
+    docCount: 2,
+    meetingCount: 3,
   },
   {
     id: "alma-migration",
@@ -57,6 +59,8 @@ export const mockProjects: Project[] = [
     created: "2024-01-05",
     taskCount: 1,
     tasksByStatus: { backlog: 0, todo: 1, doing: 0, waiting: 0, done: 0 },
+    docCount: 1,
+    meetingCount: 1,
   },
   {
     id: "api-v2",
@@ -67,6 +71,8 @@ export const mockProjects: Project[] = [
     created: "2023-11-15",
     taskCount: 0,
     tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
+    docCount: 0,
+    meetingCount: 0,
   },
   {
     id: "main",
@@ -77,6 +83,8 @@ export const mockProjects: Project[] = [
     created: "2024-01-10",
     taskCount: 0,
     tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
+    docCount: 0,
+    meetingCount: 0,
   },
 ];
 

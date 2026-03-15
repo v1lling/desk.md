@@ -24,6 +24,7 @@ export interface Project {
     done: number;
   };
   docCount?: number;
+  meetingCount?: number;
 }
 
 export type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';

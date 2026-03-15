@@ -63,6 +63,30 @@ async function countProjectTasks(projectPath: string): Promise<{
 }
 
 /**
+ * Count markdown files in a directory.
+ * Supports optional recursive traversal for nested docs folders.
+ */
+async function countMarkdownFiles(dirPath: string, recursive = false): Promise<number> {
+  if (!(await exists(dirPath))) {
+    return 0;
+  }
+
+  const entries = await readDir(dirPath);
+  let count = 0;
+
+  for (const entry of entries) {
+    if (entry.isFile && entry.name.endsWith(".md")) {
+      count++;
+    } else if (recursive && entry.isDirectory && !entry.name.startsWith(".")) {
+      const childPath = await joinPath(dirPath, entry.name);
+      count += await countMarkdownFiles(childPath, true);
+    }
+  }
+
+  return count;
+}
+
+/**
  * Get all projects for a workspace
  */
 export async function getProjects(workspaceId: string): Promise<Project[]> {
@@ -88,8 +112,14 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
         const content = await readTextFile(projectMdPath);
         const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-        // Count tasks
+        // Count project content
         const taskStats = await countProjectTasks(projectPath);
+        const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
+        const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
+        const [docCount, meetingCount] = await Promise.all([
+          countMarkdownFiles(docsPath, true),
+          countMarkdownFiles(meetingsPath),
+        ]);
 
         projects.push({
           id: entry.name,
@@ -100,6 +130,8 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
           created: normalizeDate(data.created),
           taskCount: taskStats.total,
           tasksByStatus: taskStats.byStatus,
+          docCount,
+          meetingCount,
         });
       } catch (e) {
         console.warn(`Failed to read project ${entry.name}:`, e);
@@ -133,8 +165,14 @@ export async function getProject(
     const content = await readTextFile(projectMdPath);
     const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-    // Count tasks
+    // Count project content
     const taskStats = await countProjectTasks(projectPath);
+    const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
+    const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
+    const [docCount, meetingCount] = await Promise.all([
+      countMarkdownFiles(docsPath, true),
+      countMarkdownFiles(meetingsPath),
+    ]);
 
     return {
       id: projectId,
@@ -145,6 +183,8 @@ export async function getProject(
       created: normalizeDate(data.created),
       taskCount: taskStats.total,
       tasksByStatus: taskStats.byStatus,
+      docCount,
+      meetingCount,
     };
   } catch {
     return null;
@@ -171,6 +211,8 @@ export async function createProject(data: {
     created: todayISO(),
     taskCount: 0,
     tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
+    docCount: 0,
+    meetingCount: 0,
   };
 
   if (!isTauri()) {
@@ -259,6 +301,8 @@ export async function updateProject(
       created: updatedData.created,
       taskCount: 0,
       tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
+      docCount: 0,
+      meetingCount: 0,
     };
   } catch {
     return null;
