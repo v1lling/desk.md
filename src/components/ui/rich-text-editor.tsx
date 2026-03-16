@@ -56,6 +56,10 @@ interface RichTextEditorProps {
   onInternalLinkClick?: (link: NoteLink) => void;
 }
 
+interface OpenLinkPickerDetail {
+  editor?: unknown;
+}
+
 /**
  * RichTextEditor - WYSIWYG markdown editor built on Tiptap
  *
@@ -217,12 +221,19 @@ export function RichTextEditor({
 
   // Listen for slash-command link picker trigger
   useEffect(() => {
-    const handleOpenLinkPicker = () => setShowLinkPicker(true);
+    const handleOpenLinkPicker = (event: Event) => {
+      const customEvent = event as CustomEvent<OpenLinkPickerDetail>;
+      // Multiple editors can be mounted in background tabs.
+      // Only open the picker for the editor instance that dispatched the command.
+      if (customEvent.detail?.editor === editor) {
+        setShowLinkPicker(true);
+      }
+    };
     window.addEventListener("slash-command:open-link-picker", handleOpenLinkPicker);
     return () => {
       window.removeEventListener("slash-command:open-link-picker", handleOpenLinkPicker);
     };
-  }, []);
+  }, [editor]);
 
   // Prevent event bubbling (avoids triggering drag/sort handlers)
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

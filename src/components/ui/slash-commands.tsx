@@ -142,7 +142,11 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     icon: <Link className="size-4" />,
     command: (editor, range) => {
       editor.chain().focus().deleteRange(range).run();
-      window.dispatchEvent(new CustomEvent("slash-command:open-link-picker"));
+      window.dispatchEvent(
+        new CustomEvent("slash-command:open-link-picker", {
+          detail: { editor },
+        })
+      );
     },
   },
 ];
