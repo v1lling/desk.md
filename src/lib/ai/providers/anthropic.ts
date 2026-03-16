@@ -14,8 +14,8 @@ export function createAnthropicProvider(apiKey: string, model?: string): AIProvi
   const modelId = model || 'claude-sonnet-4-5';
 
   return {
-    id: 'anthropic-api',
-    name: 'Anthropic API',
+    id: 'anthropic',
+    name: 'Anthropic',
 
     async chat(request: AIRequest): Promise<AIResponse> {
       // Build messages from history

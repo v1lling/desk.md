@@ -1,18 +1,14 @@
-
 import { useState, useCallback, useEffect } from "react";
-import { Mail, User, Users, Calendar, Bot, ExternalLink, Send, Loader2, Sparkles, ChevronUp, X, Clipboard, Check } from "lucide-react";
-import { open as openUrl } from "@tauri-apps/plugin-shell";
+import { Mail, User, Users, Calendar, Bot, ExternalLink, Loader2, ChevronUp, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useEmailDraft, useAISettingsStore, type AIProgressStage } from "@/stores/ai";
-import type { AIMessageSource } from "@/lib/ai/types";
-import { isTauri } from "@/lib/desk";
+import { useAISettingsStore } from "@/stores/ai";
+import { useAssistantStore } from "@/stores/assistant";
+import { useOpenTab } from "@/stores/tabs";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress, formatEmailDate } from "@/lib/email/types";
-import { SourcesDisplay } from "@/components/ai/sources-display";
 
 interface EmailViewerProps {
   email: IncomingEmail;
@@ -20,110 +16,43 @@ interface EmailViewerProps {
 }
 
 export function EmailViewer({ email, onClose }: EmailViewerProps) {
-  // Draft reply state
   const [showDraft, setShowDraft] = useState(false);
-  const [to, setTo] = useState(email.from.email);
-  const [subject, setSubject] = useState(
-    email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`
-  );
-  const [cc, setCc] = useState(email.cc?.map((c) => c.email).join(", ") || "");
   const [instructions, setInstructions] = useState("");
-  const [draft, setDraft] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLaunchingAssistant, setIsLaunchingAssistant] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [sources, setSources] = useState<AIMessageSource[]>([]);
-  const [progressStage, setProgressStage] = useState<AIProgressStage>(null);
 
-  const providerType = useAISettingsStore((state) => state.providerType);
-  const emailDraft = useEmailDraft();
+  const { providerType, providerConfigured } = useAISettingsStore();
+  const hasAIProvider = !!providerConfigured[providerType];
+  const startEmailDraft = useAssistantStore((s) => s.startEmailDraft);
+  const { openAI } = useOpenTab();
 
-  // Reset draft fields when email changes
   useEffect(() => {
-    setTo(email.from.email);
-    setSubject(email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`);
-    setCc(email.cc?.map((c) => c.email).join(", ") || "");
-    setDraft("");
     setInstructions("");
     setError(null);
     setShowDraft(false);
-    setSources([]);
   }, [email]);
 
-  const handleGenerate = useCallback(async () => {
-    setIsGenerating(true);
-    setDraft("");
+  const handleOpenAssistantDraft = useCallback(async () => {
+    setIsLaunchingAssistant(true);
     setError(null);
-    setSources([]);
-    setProgressStage('context');
 
     try {
-      const result = await emailDraft.mutateAsync({
+      openAI();
+      await startEmailDraft({
         email,
-        instructions: instructions || "Write a professional reply.",
-        onProgress: setProgressStage,
+        instructions: instructions.trim() || undefined,
       });
-
-      if (result.draft) {
-        setDraft(result.draft);
-        setSources(result.sources);
-      } else {
-        setError("No response received from AI.");
-      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error("[email-viewer] Generation failed:", errorMessage);
+      console.error("[email-viewer] Failed to launch assistant draft:", errorMessage);
       setError(errorMessage);
     } finally {
-      setIsGenerating(false);
-      setProgressStage(null);
+      setIsLaunchingAssistant(false);
     }
-  }, [email, instructions, emailDraft]);
-
-  const handleSendViaMailClient = useCallback(async () => {
-    const params: string[] = [];
-    params.push(`subject=${encodeURIComponent(subject)}`);
-    params.push(`body=${encodeURIComponent(draft)}`);
-    if (cc.trim()) {
-      params.push(`cc=${encodeURIComponent(cc)}`);
-    }
-
-    const mailto = `mailto:${encodeURIComponent(to)}?${params.join("&")}`;
-
-    if (isTauri()) {
-      try {
-        await openUrl(mailto);
-      } catch (err) {
-        console.error("[email-viewer] Failed to open mail client:", err);
-      }
-    } else {
-      window.location.href = mailto;
-    }
-  }, [to, subject, cc, draft]);
-
-  const handleCopyForOutlook = useCallback(async (isReplyAll: boolean = false) => {
-    if (!draft) return;
-
-    try {
-      // Add marker for Outlook add-in to detect reply type
-      const marker = `<!-- DESK_REPLY:${isReplyAll ? "replyall" : "reply"} -->\n`;
-      const textToCopy = marker + draft;
-
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-
-      // Reset copied state after 3 seconds
-      setTimeout(() => setCopied(false), 3000);
-    } catch (err) {
-      console.error("[email-viewer] Failed to copy to clipboard:", err);
-    }
-  }, [draft]);
-
-  const hasAIProvider = providerType !== null;
+  }, [email, instructions, openAI, startEmailDraft]);
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
       <div className="shrink-0 border-b px-6 py-4">
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -143,7 +72,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
 
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-6 space-y-6">
-          {/* Email metadata */}
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -176,7 +104,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
             )}
           </div>
 
-          {/* Email body */}
           <div className="space-y-2">
             <h2 className="text-sm font-medium text-muted-foreground">Message</h2>
             <div className="p-4 rounded-lg border bg-card">
@@ -186,7 +113,6 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2 pt-4 border-t">
             <Button
               variant={showDraft ? "secondary" : "default"}
@@ -211,13 +137,12 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
             </Button>
           </div>
 
-          {/* Inline Draft Section */}
           {showDraft && (
             <div className="p-4 rounded-lg border bg-muted/20 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  AI Draft Reply
+                  <Bot className="h-4 w-4" />
+                  Assistant Draft
                 </h3>
                 <Button
                   variant="ghost"
@@ -229,163 +154,55 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
                 </Button>
               </div>
 
-              {/* Instructions */}
               <div className="space-y-2">
-                <Label htmlFor="instructions" className="text-xs">Instructions (optional)</Label>
+                <Label htmlFor="instructions" className="text-xs">Custom instructions (optional)</Label>
                 <Input
                   id="instructions"
-                  placeholder="e.g., be brief, decline politely, ask for more details..."
+                  placeholder="e.g., be warm, concise, cite project status from docs..."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  disabled={isGenerating}
+                  disabled={isLaunchingAssistant}
                   className="text-sm"
                 />
               </div>
 
-              {/* Generate button */}
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || !hasAIProvider}
-                size="sm"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {progressStage === 'context' ? 'Searching docs...' : 'Generating draft...'}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Draft
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={handleOpenAssistantDraft}
+                  disabled={isLaunchingAssistant || !hasAIProvider}
+                  size="sm"
+                >
+                  {isLaunchingAssistant ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Opening Assistant...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                      Open Draft in Assistant
+                    </>
+                  )}
+                </Button>
+              </div>
 
               {!hasAIProvider && (
                 <p className="text-xs text-muted-foreground">
-                  Configure an AI provider in Settings to use this feature.
+                  Configure an AI provider in Settings to use Assistant drafting.
                 </p>
               )}
 
-              {/* Error display */}
               {error && (
                 <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <p className="text-sm text-destructive">
-                    Failed to generate draft. Check Settings → AI.
-                  </p>
+                  <p className="text-sm text-destructive">Failed to start assistant draft. Check Settings → AI.</p>
                 </div>
               )}
 
-              {/* Email fields and draft - shown after generation */}
-              {draft && (
-                <div className="space-y-3 pt-3 border-t">
-                  {/* Sources display */}
-                  {sources.length > 0 && (
-                    <SourcesDisplay
-                      sources={sources}
-                      label="Context used:"
-                      className="px-1"
-                    />
-                  )}
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="to" className="text-xs">To</Label>
-                      <Input
-                        id="to"
-                        type="email"
-                        value={to}
-                        onChange={(e) => setTo(e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cc" className="text-xs">CC (optional)</Label>
-                      <Input
-                        id="cc"
-                        value={cc}
-                        onChange={(e) => setCc(e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="subject" className="text-xs">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="draft" className="text-xs">Message</Label>
-                    <Textarea
-                      id="draft"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      rows={8}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="space-y-2">
-                    {/* Copy for Outlook - primary action for threading */}
-                    <Button
-                      onClick={() => handleCopyForOutlook(false)}
-                      className="w-full"
-                      variant={copied ? "outline" : "default"}
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Copied! Return to Outlook
-                        </>
-                      ) : (
-                        <>
-                          <Clipboard className="h-4 w-4 mr-2" />
-                          Copy Draft for Outlook
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Reply All option when CC recipients exist */}
-                    {email.cc && email.cc.length > 0 && !copied && (
-                      <Button
-                        onClick={() => handleCopyForOutlook(true)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Clipboard className="h-4 w-4 mr-2" />
-                        Copy Draft (Reply All)
-                      </Button>
-                    )}
-
-                    {/* Fallback mailto option */}
-                    <Button
-                      onClick={handleSendViaMailClient}
-                      variant="ghost"
-                      className="w-full text-muted-foreground"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Open in Default Mail Client
-                    </Button>
-                  </div>
-
-                  {/* Instructions for Outlook threading */}
-                  <div className="p-3 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
-                    <p className="font-medium">To insert as a threaded reply:</p>
-                    <ol className="list-decimal list-inside space-y-0.5 ml-1">
-                      <li>Click "Copy Draft for Outlook" above</li>
-                      <li>In Outlook, click "Insert Reply from Desk"</li>
-                      <li>Paste (Ctrl+V) and click Reply</li>
-                    </ol>
-                  </div>
-                </div>
-              )}
+              <div className="p-3 rounded-md bg-muted/50 text-xs text-muted-foreground">
+                Assistant opens with a prefilled draft request and starts one run automatically. Keep this tab open
+                to reference the original email while refining the reply in Assistant. When ready, copy the final
+                reply from Assistant and paste it into Outlook's Reply or Reply All composer.
+              </div>
             </div>
           )}
         </div>

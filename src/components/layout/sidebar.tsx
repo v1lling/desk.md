@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
 import { useDocs } from "@/stores/content";
@@ -114,10 +113,10 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
   const docCount = docs.length;
   const meetingCount = meetings.length;
 
-  // AI Chat
+  // Assistant
   const { openAI } = useOpenTab();
   const activeTabId = useTabStore((s) => s.activeTabId);
-  const isAIChatActive = activeTabId === "ai";
+  const isAssistantActive = activeTabId === "ai";
 
   // Use isCollapsed for conditional rendering
   const collapsed = isCollapsed;
@@ -196,6 +195,11 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
           <Divider />
 
           {/* Global Views (workspace-filtered) */}
+          {!collapsed && (
+            <div className="px-2.5 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/45">
+              Workspace Views
+            </div>
+          )}
           <div className="space-y-0.5">
             <NavLink
               to="/tasks"
@@ -232,36 +236,30 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
         </div>
       </div>
 
-      {/* Footer: AI Chat + Settings */}
+      {/* Footer: Assistant + Settings */}
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/50 space-y-0.5">
         <button
           onClick={openAI}
           className={cn(
             "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors w-full",
             collapsed && "justify-center px-0",
-            isAIChatActive
+            isAssistantActive
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
               : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
           )}
-          title={collapsed ? "AI Chat (⌘⇧A)" : undefined}
+          title={collapsed ? "Assistant" : undefined}
         >
           <Bot
             className={cn(
               "size-4 shrink-0",
-              isAIChatActive
+              isAssistantActive
                 ? "text-sidebar-accent-foreground"
                 : "text-sidebar-foreground/60"
             )}
           />
           {!collapsed && (
             <>
-              <span className="flex-1 text-left">AI Chat</span>
-              <kbd className={cn(
-                "text-[10px] font-medium px-1 py-0.5 rounded",
-                isAIChatActive ? "bg-sidebar-accent-foreground/10" : "bg-sidebar-accent/50"
-              )}>
-                ⌘⇧A
-              </kbd>
+              <span className="flex-1 text-left">Assistant</span>
             </>
           )}
         </button>

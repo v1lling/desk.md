@@ -25,18 +25,9 @@ export function formatRelativeTime(dateStr: string | null): string {
 
 /**
  * Check if AI provider is configured for Smart Index.
- * Claude Code CLI works without API key, Anthropic API requires key.
+ * OpenAI and Anthropic both require API keys.
  */
 export function isAIProviderConfigured(): boolean {
-  const { providerType, anthropicApiKey } = useAISettingsStore.getState();
-
-  if (providerType === "claude-code") {
-    return true;
-  }
-
-  if (providerType === "anthropic-api") {
-    return !!anthropicApiKey?.trim();
-  }
-
-  return false;
+  const { providerType, providerConfigured } = useAISettingsStore.getState();
+  return !!providerConfigured[providerType];
 }

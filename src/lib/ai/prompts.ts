@@ -14,31 +14,35 @@ Be concise, professional, and helpful.`;
 /**
  * Purpose-specific instructions (combined with BASE_CONTEXT)
  */
-const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, 'custom'>, string> = {
-  chat: `Answer questions and help with tasks. When auto-retrieved context is provided, use your judgment about which items are actually relevant to the query. Items are labeled with relevance levels — focus on high-relevance items and only use medium/low-relevance context if it genuinely adds value. Don't force connections to marginally related context.`,
+const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, "custom">, string> = {
+  chat: `You are Desk Assistant for a local-first project workspace app.
 
-  'draft-email': `Draft a professional email reply.
+Assistant behavior:
+- Use tools to gather context on demand instead of assuming data.
+- Use retrieval tools when it helps answer better (e.g. docs, tasks, meetings), but do not call tools when the user request can be answered well without them.
+- When file context is needed, call desk_index_search first, then read top candidates with desk_read (usually 1-3, up to 5) before factual claims.
+- Treat desk_index_search as candidate ranking, not final evidence.
+- Before mutating tools, explain briefly what you are changing.
+- If a tool call is rejected, continue with alternatives and ask for confirmation.
+
+Data-model constraints:
+- Do not assume assignees, owners, usernames, emails, teams, or cloud account identities unless explicitly present in retrieved Desk content.
+- Desk is local-first and typically single-user; avoid asking for a "Desk username".
+- If required metadata is missing, say so plainly and suggest the closest actionable next step.`,
+
+  "draft-email": `Draft a professional email reply.
+- Tool usage is optional: if project context would improve accuracy (docs, tasks, meetings), you may use retrieval tools; do not fetch extra context when unnecessary.
 - Match the greeting and closing style of the original email
 - Match the language and tone of the original email
 - Be clear and concise
 - Output ONLY the email body text, no subject line or headers
 - No markdown formatting (no **bold**, *italic*, or headers)
 - Bullet points (-) and numbered lists (1. 2. 3.) are fine when appropriate
-- Use regular hyphens (-) only, never em dashes (—) or en dashes (–)`,
-
-  summarize: `Summarize the provided content.
-- Capture key points clearly
-- Use bullet points for multiple items
-- Keep to 3-5 sentences unless asked for more detail`,
-
-  'find-tasks': `Extract actionable tasks from the content.
-- Format each task on its own line starting with "- [ ] "
-- Keep task titles concise but include relevant context
-- Prioritize by importance if possible`,
-
-  explain: `Explain the concept or content clearly.
-- Use examples when helpful
-- Adjust complexity based on the question`,
+- Use regular hyphens (-) only, never em dashes or en dashes
+- If original email context is missing or too thin, ask one concise follow-up asking the user to paste the original email and desired tone/goal
+- Accept raw pasted email text (including forwarded/thread text) and extract relevant context before drafting
+- If reply intent (goal/tone/constraints) is not provided yet, ask one concise follow-up before drafting
+- Never invent sender/recipient identities or assignment metadata`,
 };
 
 /**
@@ -52,18 +56,128 @@ export const USER_FACING_PROMPTS: Array<{
   defaultPrompt: string;
 }> = [
   {
-    purpose: 'chat',
-    label: 'Chat',
-    description: 'General AI chat in the chat panel',
+    purpose: "chat",
+    label: "Assistant",
+    description: "General assistant interactions in the Assistant tab",
     defaultPrompt: PURPOSE_PROMPTS.chat,
   },
   {
-    purpose: 'draft-email',
-    label: 'Email Draft',
-    description: 'Drafting email replies',
-    defaultPrompt: PURPOSE_PROMPTS['draft-email'],
+    purpose: "draft-email",
+    label: "Email Draft",
+    description: "Drafting email replies via Assistant",
+    defaultPrompt: PURPOSE_PROMPTS["draft-email"],
   },
 ];
+
+export function getPurposePrompt(purpose: Exclude<AIPurpose, "custom">): string {
+  return PURPOSE_PROMPTS[purpose];
+}
+
+export type AssistantPromptMode = "chat" | "draft-email";
+
+export interface AssistantPromptBreakdown {
+  baseContext: string;
+  modePrompt: string;
+  userInstructions?: string;
+  effectivePrompt: string;
+}
+
+export function buildAssistantPromptBreakdown(
+  mode: AssistantPromptMode,
+  globalInstructions?: string,
+  perTypeInstructions?: string
+): AssistantPromptBreakdown {
+  const baseContext = BASE_CONTEXT;
+  const modePrompt = getPurposePrompt(mode);
+  const userInstructions = combineInstructions(globalInstructions, perTypeInstructions);
+
+  let effectivePrompt = `${baseContext}\n\n${modePrompt}`;
+  if (userInstructions?.trim()) {
+    effectivePrompt += `\n\n# User Instructions\n${userInstructions.trim()}`;
+  }
+
+  return {
+    baseContext,
+    modePrompt,
+    userInstructions,
+    effectivePrompt,
+  };
+}
+
+export function buildAssistantSystemPrompt(
+  mode: AssistantPromptMode,
+  globalInstructions?: string,
+  perTypeInstructions?: string
+): string {
+  return buildAssistantPromptBreakdown(mode, globalInstructions, perTypeInstructions).effectivePrompt;
+}
+
+interface DraftEmailMessageInput {
+  from?: string;
+  to?: string;
+  cc?: string;
+  subject?: string;
+  date?: string;
+  source?: string;
+  body?: string;
+  instructions?: string;
+}
+
+export function buildDraftEmailUserMessage(input?: DraftEmailMessageInput): string {
+  const from = input?.from?.trim() || "";
+  const to = input?.to?.trim() || "";
+  const cc = input?.cc?.trim() || "";
+  const subject = input?.subject?.trim() || "";
+  const date = input?.date?.trim() || "";
+  const source = input?.source?.trim() || "";
+  const body = input?.body?.trim() || "";
+  const instructions = input?.instructions?.trim() || "";
+
+  const headerLines: string[] = [];
+  if (from) headerLines.push(`- From: ${from}`);
+  if (to) headerLines.push(`- To: ${to}`);
+  if (cc) headerLines.push(`- CC: ${cc}`);
+  if (subject) headerLines.push(`- Subject: ${subject}`);
+  if (date) headerLines.push(`- Date: ${date}`);
+  if (source) headerLines.push(`- Source: ${source}`);
+
+  const parts: string[] = [
+    "Please draft an email reply using this context.",
+  ];
+
+  if (headerLines.length > 0) {
+    parts.push("", "Original email metadata:", ...headerLines);
+  }
+
+  if (body) {
+    parts.push("", "Original email body:", body);
+  }
+
+  if (instructions) {
+    parts.push("", "Additional instructions:", instructions);
+  }
+
+  if (headerLines.length === 0 && !body) {
+    parts.push("", "No original email content was provided.");
+  }
+
+  return parts.join("\n");
+}
+
+interface BuildAssistantTurnUserMessageOptions {
+  emailContext?: DraftEmailMessageInput;
+}
+
+export function buildAssistantTurnUserMessage(
+  mode: AssistantPromptMode,
+  options?: BuildAssistantTurnUserMessageOptions
+): string {
+  if (mode === "chat") {
+    return "Help me with this workspace.";
+  }
+
+  return buildDraftEmailUserMessage(options?.emailContext);
+}
 
 /**
  * Combine global and per-type user instructions into a single string.
@@ -86,7 +200,7 @@ export function combineInstructions(
 export const SYSTEM_PROMPTS = {
   /**
    * Auto-summarize document on save
-   * Used by: use-rag-indexer.ts
+   * Used by: context-index/indexer.ts
    */
   autoSummarize: `Summarize this document in 1-2 sentences. Focus on what information it contains. Return ONLY the summary text, no other formatting.`,
 
@@ -120,8 +234,8 @@ Rules:
 /**
  * Get the full system prompt for a purpose (BASE_CONTEXT + PURPOSE_PROMPT)
  */
-function getPromptForPurpose(purpose: Exclude<AIPurpose, 'custom'>): string {
-  return `${BASE_CONTEXT}\n\n${PURPOSE_PROMPTS[purpose]}`;
+function getPromptForPurpose(purpose: Exclude<AIPurpose, "custom">): string {
+  return `${BASE_CONTEXT}\n\n${getPurposePrompt(purpose)}`;
 }
 
 // =============================================================================
@@ -195,8 +309,9 @@ export interface BuiltPrompt {
 }
 
 /**
- * Build the full prompt for a given purpose and context
+ * Build the full prompt for a given purpose and context.
  */
+
 export function buildPrompt(
   purpose: AIPurpose,
   message: string,

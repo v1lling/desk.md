@@ -1,188 +1,56 @@
-# AI Module Architecture
+# AI Module
 
-This module provides a layered, extensible AI integration for Desk.
+Desk uses an API-key-first architecture with a provider registry.
 
-## Architecture Overview
+## Providers
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  UI Components                                               │
-│  (AIChatPanel, future: EmailDraftButton, TaskFinder, etc.)  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│  Stores (src/stores/ai.ts)                                  │
-│  - useAISettingsStore: Provider config, API keys            │
-│  - useAIUsageStore: Token tracking, usage history           │
-│  - useAIChatStore: Chat messages, conversation state         │
-│  Hooks:                                                     │
-│  - useSendMessage(): Chat with history (for chat panel)     │
-│  - useAIAction(): One-off actions (draftEmail, summarize)   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│  Service Layer (src/lib/ai/service.ts)                      │
-│  AIService class - Purpose-based API:                       │
-│  - chat(message, options)                                   │
-│  - draftEmail(email, instructions)                          │
-│  - summarize(content, options)                              │
-│  - findTasks(content) → returns structured tasks            │
-│  - explain(content, question)                               │
-│  - custom(systemPrompt, message)                            │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│  Prompts (src/lib/ai/prompts.ts)                            │
-│  - System prompts per purpose                               │
-│  - Context formatting (docs, tasks, emails → text)          │
-│  - buildPrompt(purpose, message, context)                   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│  Provider Layer (src/lib/ai/provider.ts)                    │
-│  createProvider(config) → AIProvider                        │
-└─────────────┬───────────────────────────────┬───────────────┘
-              │                               │
-┌─────────────▼─────────────┐   ┌─────────────▼─────────────┐
-│  Claude Code Provider     │   │  Anthropic API Provider   │
-│  (providers/claude-code)  │   │  (providers/anthropic)    │
-│  - Uses Tauri invoke      │   │  - Uses AI SDK            │
-│  - Spawns CLI             │   │  - Direct HTTP            │
-│  - Token tracking (JSON)  │   │  - Token tracking         │
-└───────────────────────────┘   └───────────────────────────┘
-```
+- `openai` via `@ai-sdk/openai`
+- `anthropic` via `@ai-sdk/anthropic`
 
-## Adding a New Provider
+Provider metadata and model factories live in:
 
-1. Create `src/lib/ai/providers/your-provider.ts`:
+- `src/lib/ai/provider-registry.ts`
 
-```typescript
-import type { AIProvider, AIRequest, AIResponse } from '../types';
+The runtime provider adapter selection lives in:
 
-/**
- * Note: Providers are "dumb" transport layers. The service layer handles
- * prompt building and passes systemPrompt via the request object.
- */
-export function createYourProvider(config: YourConfig): AIProvider {
-  return {
-    id: 'your-provider',
-    name: 'Your Provider',
+- `src/lib/ai/provider.ts`
 
-    async chat(request: AIRequest): Promise<AIResponse> {
-      // request.systemPrompt is already built by the service layer
-      const response = await yourApiCall({
-        system: request.systemPrompt,
-        message: request.message,
-        history: request.history,
-      });
+## Secrets
 
-      return {
-        message: response.text,
-        usage: {
-          promptTokens: response.inputTokens,
-          completionTokens: response.outputTokens,
-          totalTokens: response.inputTokens + response.outputTokens,
-        },
-      };
-    },
-  };
-}
-```
+API keys are stored in OS keychain through Tauri commands:
 
-2. Add to `src/lib/ai/provider.ts`:
+- `secret_get`
+- `secret_set`
+- `secret_delete`
 
-```typescript
-import { createYourProvider } from './providers/your-provider';
+TypeScript wrappers are in:
 
-export function createProvider(config: ProviderConfig): AIProvider {
-  switch (config.type) {
-    // ...existing cases
-    case 'your-provider':
-      return createYourProvider(config.yourConfig);
-  }
-}
-```
+- `src/lib/ai/secrets.ts`
 
-3. Add type to `src/lib/ai/types.ts`:
+No AI API keys are persisted in Zustand/localStorage.
 
-```typescript
-export type AIProviderType = 'claude-code' | 'anthropic-api' | 'your-provider';
-```
+## Service layer
 
-## Adding a New Purpose
+`AIService` handles prompt construction and raw purpose-based calls for internal helpers.
+Current app usage is focused on `request()` and `custom()` for context-catalog flows.
 
-1. Add purpose type in `src/lib/ai/types.ts`:
+File:
 
-```typescript
-export type AIPurpose =
-  | 'chat'
-  | 'draft-email'
-  // ...
-  | 'your-purpose';
-```
+- `src/lib/ai/service.ts`
 
-2. Add system prompt in `src/lib/ai/prompts.ts`:
+## MCP path
 
-```typescript
-const SYSTEM_PROMPTS = {
-  // ...
-  'your-purpose': `You are a ... assistant. Do X, Y, Z.`,
-};
-```
+- Advanced tool workflows run through the standalone `desk-mcp` sidecar.
+- In-app AI runs through the Assistant orchestrator/tool loop (including email drafting handoff).
 
-3. Add convenience method in `src/lib/ai/service.ts`:
+## Adding a provider
 
-```typescript
-async yourPurpose(input: string, options?: {...}): Promise<AIServiceResponse> {
-  return this.request({
-    purpose: 'your-purpose',
-    message: input,
-    context: options?.context,
-  });
-}
-```
-
-## Usage Examples
-
-### Chat Panel (with conversation history)
-```typescript
-// useSendMessage manages chat history in useAIChatStore
-// Context is automatically retrieved via the selected strategy (Smart Index / RAG / None)
-const sendMessage = useSendMessage();
-sendMessage.mutate({
-  message: "What is this about?",
-  history: previousMessages,
-});
-```
-
-### Draft Email (one-off action)
-```typescript
-const { draftEmail } = useAIAction();
-const response = await draftEmail(
-  { from: 'client@example.com', subject: 'Question', body: '...' },
-  'Reply politely declining the meeting'
-);
-```
-
-### Find Tasks (one-off action)
-```typescript
-const { findTasks } = useAIAction();
-const response = await findTasks(meetingNotes);
-console.log(response.structured?.tasks); // [{ id, title, status }]
-```
-
-## Token Tracking
-
-Usage is tracked automatically for both providers:
-
-```typescript
-const { getStats } = useAIUsageStore();
-const stats = getStats();
-// { totalTokens: 1234, totalRequests: 10, byProvider: {...} }
-```
-
-Both providers now return token usage:
-- **Claude Code CLI**: Uses `--output-format json` to get usage data
-- **Anthropic API**: Returns usage from AI SDK
-
-The response also includes `cost_usd` from Claude Code CLI.
+1. Add provider definition to `PROVIDER_REGISTRY` with:
+- `providerId`
+- `keyRef`
+- `defaultModel`
+- `models`
+- `createModel`
+2. Add provider-specific model list in `src/lib/ai/models.ts`.
+3. Extend `AIProviderType` in `src/lib/ai/types.ts`.
+4. Add adapter in `createProvider()` (`src/lib/ai/provider.ts`).

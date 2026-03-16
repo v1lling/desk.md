@@ -5,7 +5,7 @@
  */
 export function parseDocPath(docPath: string): { workspaceId: string; entityId: string } | null {
   // Extract workspaceId from path
-  const workspaceMatch = docPath.match(/\/workspaces\/([^/]+)\//);
+  const workspaceMatch = docPath.match(/(?:^|\/)workspaces\/([^/]+)\//);
   if (!workspaceMatch) return null;
   const workspaceId = workspaceMatch[1];
 

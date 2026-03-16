@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/rag/aiignore";
+import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/context-index/aiignore";
 import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import type { ContentScope } from "@/types";

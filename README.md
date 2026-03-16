@@ -8,103 +8,45 @@
 
 ## What is desk.md?
 
-desk.md is a desktop app that organizes your work around **workspaces** and **projects**. Built for freelancers and consultants who manage multiple clients and need a single place for tasks, docs, and meetings.
+desk.md is a Tauri desktop app that organizes work into **workspaces** and **projects**, with all content stored as local markdown files.
 
-```
-Workspace (Client or Personal)
-├── Tasks           ← Aggregates project tasks + unassigned
-├── Docs            ← Workspace-level docs
-├── Meetings        ← Aggregates project meetings
-├── _unassigned/    ← Items not yet assigned to a project
-└── Projects
-    └── Project X
-        ├── Tasks
-        ├── Docs
-        └── Meetings
-```
+## Current Direction: Assistant-First
 
-**Key ideas:**
-- **Work Mode** navigation with explicit workspace switching
-- **Workspaces** separate your clients/contexts completely (Personal is also a workspace)
-- **Projects** contain everything related to that work
-- **Unassigned** items can exist without a project for quick capture
-- **Markdown files** underneath - portable, grep-able, yours forever
-- **AI-ready** - attach docs as context for smart assistance
+Desk now ships with an in-app **Assistant** as the primary AI experience:
+
+- Assistant is a chat UI with tool-calling
+- Email drafting is routed through Assistant with prefilled draft turns
+- Tool calls are scoped to the active workspace
+- Mutations (create/update tasks, meetings, docs) require explicit approval
+- Context retrieval is tool-driven via **Context Catalog** (Smart Index)
+- MCP remains available for external CLI interoperability
 
 ## Tech Stack
 
-- **Frontend**: React, Vite, TypeScript, Tailwind CSS
-- **Desktop**: Tauri 2.10 (Rust shell, ~15MB binary)
-- **UI**: shadcn/ui
-- **State**: Zustand + TanStack Query
-- **Drag & Drop**: @dnd-kit
-- **Notifications**: Sonner
-- **Storage**: Local markdown files
+- Frontend: React, Vite, TypeScript, Tailwind CSS
+- Desktop: Tauri 2
+- UI: shadcn/ui
+- State: Zustand + TanStack Query
+- Storage: Local markdown files under `~/Desk/`
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev           # Vite dev server (mock data)
-npm run tauri dev     # Desktop development (real file system)
+npm run dev
+npm run tauri dev
 ```
-
-## Current Status: v0.7
-
-Working features:
-- **Work Mode** navigation with workspace selector at sidebar bottom
-- **Personal workspace** - first option in selector, with capture inbox
-- Workspaces with color coding (dot in selector and page headers)
-- Projects listed directly in sidebar (alphabetically sorted)
-- Tasks: Kanban board with drag-drop, quick add, detail panel
-- Docs: Tree structure with folders, drag-drop import, scope selector
-- Meetings: Aggregated view across workspace projects
-- Unassigned items: Tasks/docs/meetings not linked to any project
-- Project reassignment: Move tasks/docs between projects
-- Settings: Theme toggle, data path configuration
-- Setup wizard with existing data detection
-- File system: All data in portable markdown
-- AI Chat: Claude Code CLI or Anthropic API, with doc context
-- Email integration: Deep links from Outlook add-in
 
 ## Documentation
 
-- [CLAUDE.md](./CLAUDE.md) - Project overview & AI context
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) - System design
-- [docs/FEATURES.md](./docs/FEATURES.md) - Feature specs
+- [docs/FEATURES.md](./docs/FEATURES.md)
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- [docs/EMAIL-INTEGRATION.md](./docs/EMAIL-INTEGRATION.md)
+- [docs/MCP_INTEGRATION.md](./docs/MCP_INTEGRATION.md)
 
 ## Data Storage
 
-Desk stores everything in `~/Desk/` as markdown files:
-
-```
-~/Desk/
-├── workspaces/
-│   ├── _personal/              # Personal workspace (first in selector)
-│   │   ├── workspace.md
-│   │   ├── docs/
-│   │   ├── _capture/tasks/     # Quick capture for triage
-│   │   ├── _unassigned/
-│   │   │   ├── tasks/
-│   │   │   └── docs/
-│   │   └── projects/
-│   ├── client-a/
-│   │   ├── workspace.md
-│   │   ├── docs/               # Workspace-level docs (contracts, etc.)
-│   │   ├── _unassigned/
-│   │   │   ├── tasks/
-│   │   │   ├── docs/
-│   │   │   └── meetings/
-│   │   └── projects/
-│   │       ├── project-1/
-│   │       │   ├── project.md
-│   │       │   ├── tasks/
-│   │       │   ├── docs/
-│   │       │   └── meetings/
-│   │       └── project-2/
-│   └── client-b/
-└── .desk/                     # App metadata (indexes, RAG database)
-```
+Desk stores user data in `~/Desk/workspaces/*` and app metadata in `~/Desk/.desk/`.
 
 ## License
 

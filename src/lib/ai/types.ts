@@ -6,7 +6,7 @@ export interface AIMessageSource {
   docPath: string;
   title: string;
   contentType: 'doc' | 'task' | 'meeting';
-  /** Similarity score from RAG retrieval (0-1, higher = more relevant) */
+  /** Relevance score from context retrieval (0-1, higher = more relevant) */
   score?: number;
   /** Workspace the source was retrieved from */
   workspaceId?: string;
@@ -66,7 +66,7 @@ export interface AIContext {
   tasks?: AITask[];
   emails?: AIEmail[];
   custom?: Record<string, string>;
-  /** Auto-retrieved context results (from index or RAG strategy) */
+  /** Auto-retrieved context results */
   contextResults?: AIContextResult[];
   /** Titles of files already sent in earlier conversation turns (for AI awareness) */
   previousContextTitles?: string[];
@@ -100,19 +100,16 @@ export interface AIProvider {
   // streamChat?(request: AIRequest): AsyncIterable<string>;
 }
 
-export type AIProviderType = 'claude-code' | 'anthropic-api';
+export type AIProviderType = 'anthropic' | 'openai';
 
 // =============================================================================
 // Service Types - Purpose-based AI interactions
 // =============================================================================
 
-/** Available AI purposes - each has its own system prompt and context strategy */
+/** Available AI purposes - each has its own system prompt and behavior profile */
 export type AIPurpose =
   | 'chat'           // General chat with manual context
   | 'draft-email'    // Draft email response
-  | 'summarize'      // Summarize content
-  | 'find-tasks'     // Find/suggest tasks from content
-  | 'explain'        // Explain code or concept
   | 'custom';        // Custom purpose with provided prompt
 
 export interface AIServiceRequest {

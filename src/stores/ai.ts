@@ -1,25 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import {
-  createAIService,
-  combineInstructions,
-  deduplicateContext,
-  type AIMessage,
-  type AIMessageSource,
-  type AIContext,
-  type AIProviderType,
-  type AIPurpose,
-  type AIUsage,
-  type AIUsageRecord,
-  type AIContextResult,
-  type AIServiceResponse,
-} from '@/lib/ai';
-import { DEFAULT_MODELS } from '@/lib/ai/models';
-import { formatEmailAddress, type IncomingEmail } from '@/lib/email/types';
-import { useSettingsStore } from '@/stores/settings';
-import { useWorkspaces } from '@/stores/workspaces';
-import { useContextSearch } from '@/hooks/use-context-search';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { AIProviderType, AIPurpose, AIUsage, AIUsageRecord } from "@/lib/ai";
 
 // =============================================================================
 // AI Settings Store (persisted)
@@ -27,13 +8,13 @@ import { useContextSearch } from '@/hooks/use-context-search';
 
 interface AISettingsState {
   providerType: AIProviderType;
-  anthropicApiKey: string;
+  providerConfigured: Record<AIProviderType, boolean>;
   customInstructions: string;
   perTypeInstructions: Record<string, string>;
-  /** Model ID per provider (empty = use default from DEFAULT_MODELS) */
+  /** Model ID per provider (empty = use provider default model) */
   modelByProvider: Record<string, string>;
   setProviderType: (type: AIProviderType) => void;
-  setAnthropicApiKey: (key: string) => void;
+  setProviderConfigured: (provider: AIProviderType, configured: boolean) => void;
   setCustomInstructions: (instructions: string) => void;
   setPerTypeInstructions: (purpose: string, instructions: string) => void;
   setModelForProvider: (provider: AIProviderType, model: string) => void;
@@ -42,13 +23,19 @@ interface AISettingsState {
 export const useAISettingsStore = create<AISettingsState>()(
   persist(
     (set) => ({
-      providerType: 'claude-code',
-      anthropicApiKey: '',
-      customInstructions: '',
+      providerType: "openai",
+      providerConfigured: {
+        openai: false,
+        anthropic: false,
+      },
+      customInstructions: "",
       perTypeInstructions: {},
       modelByProvider: {},
       setProviderType: (type) => set({ providerType: type }),
-      setAnthropicApiKey: (key) => set({ anthropicApiKey: key }),
+      setProviderConfigured: (provider, configured) =>
+        set((state) => ({
+          providerConfigured: { ...state.providerConfigured, [provider]: configured },
+        })),
       setCustomInstructions: (instructions) => set({ customInstructions: instructions }),
       setPerTypeInstructions: (purpose, instructions) =>
         set((state) => ({
@@ -60,7 +47,7 @@ export const useAISettingsStore = create<AISettingsState>()(
         })),
     }),
     {
-      name: 'desk-ai-settings',
+      name: "desk-ai-settings-v2",
     }
   )
 );
@@ -71,11 +58,12 @@ export const useAISettingsStore = create<AISettingsState>()(
 
 interface AIUsageState {
   records: AIUsageRecord[];
-  addRecord: (record: Omit<AIUsageRecord, 'id' | 'timestamp'>) => void;
+  addRecord: (record: Omit<AIUsageRecord, "id" | "timestamp">) => void;
   clearRecords: () => void;
   getStats: () => {
     totalTokens: number;
     totalRequests: number;
+    byPurpose: Record<string, { tokens: number; requests: number }>;
     byProvider: Record<string, { tokens: number; requests: number }>;
   };
 }
@@ -99,6 +87,7 @@ export const useAIUsageStore = create<AIUsageState>()(
       getStats: () => {
         const records = get().records;
         const byProvider: Record<string, { tokens: number; requests: number }> = {};
+        const byPurpose: Record<string, { tokens: number; requests: number }> = {};
 
         let totalTokens = 0;
         for (const record of records) {
@@ -109,393 +98,26 @@ export const useAIUsageStore = create<AIUsageState>()(
           }
           byProvider[record.provider].tokens += record.usage.totalTokens;
           byProvider[record.provider].requests += 1;
+
+          if (!byPurpose[record.purpose]) {
+            byPurpose[record.purpose] = { tokens: 0, requests: 0 };
+          }
+          byPurpose[record.purpose].tokens += record.usage.totalTokens;
+          byPurpose[record.purpose].requests += 1;
         }
 
         return {
           totalTokens,
           totalRequests: records.length,
+          byPurpose,
           byProvider,
         };
       },
     }),
     {
-      name: 'desk-ai-usage',
+      name: "desk-ai-usage",
     }
   )
 );
 
-// =============================================================================
-// AI Progress Stage
-// =============================================================================
-
-export type AIProgressStage = 'context' | 'generating' | null;
-
-// =============================================================================
-// AI Chat Store (persisted - conversation history)
-// =============================================================================
-
-const MAX_CONVERSATIONS = 50;
-
-export interface Conversation {
-  id: string;
-  title: string;
-  /** Workspace active when conversation was started */
-  workspaceId: string | null;
-  messages: AIMessage[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface AIChatState {
-  conversations: Conversation[];
-  activeConversationId: string | null;
-  /** Sources found by context search, shown while waiting for AI response */
-  pendingSources: AIMessageSource[] | null;
-  /** Current stage of the AI request pipeline */
-  aiProgress: AIProgressStage;
-
-  // Actions
-  createConversation: () => string;
-  setActiveConversation: (id: string | null) => void;
-  addMessage: (msg: AIMessage) => void;
-  deleteConversation: (id: string) => void;
-  clearAllConversations: () => void;
-  setPendingSources: (sources: AIMessageSource[] | null) => void;
-  setAIProgress: (stage: AIProgressStage) => void;
-}
-
-export const useAIChatStore = create<AIChatState>()(
-  persist(
-    (set, get) => ({
-      conversations: [],
-      activeConversationId: null,
-      pendingSources: null,
-      aiProgress: null,
-
-      createConversation: () => {
-        const id = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const workspaceId = useSettingsStore.getState().currentWorkspaceId;
-
-        const newConversation: Conversation = {
-          id,
-          title: 'New Chat',
-          workspaceId,
-          messages: [],
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        set((state) => {
-          // Prune oldest if at capacity
-          let conversations = [newConversation, ...state.conversations];
-          if (conversations.length > MAX_CONVERSATIONS) {
-            conversations = conversations.slice(0, MAX_CONVERSATIONS);
-          }
-          return {
-            conversations,
-            activeConversationId: id,
-            pendingSources: null,
-          };
-        });
-
-        return id;
-      },
-
-      setActiveConversation: (id) => set({ activeConversationId: id, pendingSources: null }),
-
-      addMessage: (msg) =>
-        set((state) => {
-          let { activeConversationId, conversations } = state;
-
-          // Auto-create conversation if none active
-          if (!activeConversationId) {
-            const id = crypto.randomUUID();
-            const now = new Date().toISOString();
-            const workspaceId = useSettingsStore.getState().currentWorkspaceId;
-            const newConv: Conversation = {
-              id,
-              title: 'New Chat',
-              workspaceId,
-              messages: [],
-              createdAt: now,
-              updatedAt: now,
-            };
-            activeConversationId = id;
-            conversations = [newConv, ...conversations];
-            if (conversations.length > MAX_CONVERSATIONS) {
-              conversations = conversations.slice(0, MAX_CONVERSATIONS);
-            }
-          }
-
-          return {
-            activeConversationId,
-            conversations: conversations.map((c) => {
-              if (c.id !== activeConversationId) return c;
-
-              const updatedMessages = [...c.messages, msg];
-              // Auto-title from first user message
-              let title = c.title;
-              if (title === 'New Chat' && msg.role === 'user') {
-                title = msg.content.length > 50
-                  ? msg.content.slice(0, 50) + '...'
-                  : msg.content;
-              }
-
-              return {
-                ...c,
-                messages: updatedMessages,
-                title,
-                updatedAt: new Date().toISOString(),
-              };
-            }),
-          };
-        }),
-
-      deleteConversation: (id) =>
-        set((state) => {
-          const conversations = state.conversations.filter((c) => c.id !== id);
-          const activeConversationId =
-            state.activeConversationId === id ? null : state.activeConversationId;
-          return { conversations, activeConversationId, pendingSources: null };
-        }),
-
-      clearAllConversations: () =>
-        set({ conversations: [], activeConversationId: null, pendingSources: null }),
-
-      setPendingSources: (sources) => set({ pendingSources: sources }),
-      setAIProgress: (stage) => set({ aiProgress: stage }),
-    }),
-    {
-      name: 'desk-ai-chat',
-      partialize: (state) => ({
-        conversations: state.conversations,
-        activeConversationId: state.activeConversationId,
-      }),
-    }
-  )
-);
-
-// =============================================================================
-// AI Hooks
-// =============================================================================
-//
-// Three hooks for different use cases:
-// - useAIService(): Internal - returns raw AIService instance
-// - useSendMessage(): For chat panel - manages conversation history in store
-// - useAIAction(): For one-off operations - email drafts, summaries, etc.
-//
-
-/** Get the active model for the current provider */
-function getActiveModel(providerType: AIProviderType, modelByProvider: Record<string, string>): string {
-  return modelByProvider[providerType] || DEFAULT_MODELS[providerType];
-}
-
-/**
- * Internal: Get a configured AI service instance
- */
-function useAIService() {
-  const { providerType, anthropicApiKey, modelByProvider } = useAISettingsStore();
-  const { addRecord } = useAIUsageStore();
-
-  return createAIService({
-    providerType,
-    apiKey: providerType === 'anthropic-api' ? anthropicApiKey : undefined,
-    model: getActiveModel(providerType, modelByProvider),
-    onUsage: (usage: AIUsage, purpose: AIPurpose, provider: AIProviderType) => {
-      addRecord({ purpose, provider, usage });
-    },
-  });
-}
-
-/**
- * Hook to send a chat message (for the chat panel)
- * Automatically includes context based on the selected strategy (index, rag, or none)
- */
-export function useSendMessage() {
-  const { addMessage, setPendingSources, setAIProgress } = useAIChatStore();
-  const { providerType, anthropicApiKey, customInstructions, perTypeInstructions, modelByProvider } = useAISettingsStore();
-  const { addRecord } = useAIUsageStore();
-  const { search: contextSearch } = useContextSearch();
-  const { data: workspaces = [] } = useWorkspaces();
-
-  return useMutation({
-    mutationFn: async ({
-      message,
-      context,
-      history,
-    }: {
-      message: string;
-      context?: AIContext;
-      history?: AIMessage[];
-    }): Promise<{ response: AIServiceResponse; sources?: AIMessageSource[] }> => {
-      // Perform context search (strategy-aware: index, rag, or none)
-      let contextResults: AIContextResult[] = [];
-      let sources: AIMessageSource[] | undefined;
-
-      const currentWorkspaceId = useSettingsStore.getState().currentWorkspaceId;
-      const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId);
-
-      setAIProgress('context');
-      try {
-        const result = await contextSearch({
-          query: message,
-          workspaceId: currentWorkspaceId ?? undefined,
-        });
-        contextResults = result.contextResults;
-        if (result.sources.length > 0) {
-          // Attach workspace info to each source for history transparency
-          sources = result.sources.map((s) => ({
-            ...s,
-            workspaceId: currentWorkspaceId ?? undefined,
-            workspaceName: currentWorkspace?.name,
-          }));
-          setPendingSources(sources);
-        }
-      } catch (error) {
-        console.warn('[AI] Context search failed:', error);
-      }
-
-      // Deduplicate: skip files already sent in earlier conversation turns
-      const { results: newContextResults, previousTitles } = deduplicateContext(
-        contextResults,
-        history ?? []
-      );
-
-      // Merge results with existing context
-      const enrichedContext: AIContext = {
-        ...context,
-        contextResults: newContextResults.length > 0 ? newContextResults : undefined,
-        previousContextTitles: previousTitles.length > 0 ? previousTitles : undefined,
-      };
-
-      setAIProgress('generating');
-
-      const service = createAIService({
-        providerType,
-        apiKey: providerType === 'anthropic-api' ? anthropicApiKey : undefined,
-        model: getActiveModel(providerType, modelByProvider),
-        onUsage: (usage, purpose, provider) => {
-          addRecord({ purpose, provider, usage });
-        },
-      });
-
-      const response = await service.chat(message, {
-        context: enrichedContext,
-        history,
-        userInstructions: combineInstructions(customInstructions, perTypeInstructions['chat']),
-      });
-      return { response, sources };
-    },
-    onMutate: ({ message }) => {
-      addMessage({
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString(),
-      });
-    },
-    onSuccess: ({ response, sources }) => {
-      setAIProgress(null);
-      setPendingSources(null);
-      addMessage({
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response.message,
-        timestamp: new Date().toISOString(),
-        sources,
-      });
-    },
-    onError: () => {
-      setAIProgress(null);
-      setPendingSources(null);
-    },
-  });
-}
-
-/**
- * Hook for quick AI actions (draft email, summarize, etc.)
- */
-export function useAIAction() {
-  const service = useAIService();
-
-  return {
-    draftEmail: service.draftEmail.bind(service),
-    summarize: service.summarize.bind(service),
-    findTasks: service.findTasks.bind(service),
-    explain: service.explain.bind(service),
-    custom: service.custom.bind(service),
-  };
-}
-
-// =============================================================================
-// Email Draft Hook (with Context Retrieval)
-// =============================================================================
-
-export interface EmailDraftOptions {
-  /** The incoming email to reply to */
-  email: IncomingEmail;
-  /** User's instructions for the reply */
-  instructions: string;
-  /** Workspace ID for context retrieval */
-  workspaceId?: string;
-  /** Progress callback for UI stage indicators */
-  onProgress?: (stage: AIProgressStage) => void;
-}
-
-export interface EmailDraftResult {
-  /** Generated draft text */
-  draft: string;
-  /** Sources used for context */
-  sources: AIMessageSource[];
-}
-
-/**
- * Hook for drafting email replies with automatic context retrieval.
- * Uses the active context strategy (index, rag, or none) to find relevant docs.
- */
-export function useEmailDraft() {
-  const service = useAIService();
-  const { customInstructions, perTypeInstructions } = useAISettingsStore();
-  const { search: contextSearch } = useContextSearch();
-
-  return useMutation({
-    mutationFn: async (options: EmailDraftOptions): Promise<EmailDraftResult> => {
-      let sources: AIMessageSource[] = [];
-      let contextResults: AIContextResult[] = [];
-
-      // Build a query from the email content
-      const query = `${options.email.subject} ${options.email.body.slice(0, 300)}`;
-      const workspaceId = options.workspaceId ?? useSettingsStore.getState().currentWorkspaceId ?? undefined;
-
-      options.onProgress?.('context');
-      try {
-        const result = await contextSearch({ query, workspaceId });
-        sources = result.sources;
-        contextResults = result.contextResults;
-      } catch (error) {
-        console.warn('[useEmailDraft] Context search failed:', error);
-      }
-
-      options.onProgress?.('generating');
-
-      const response = await service.draftEmail(
-        {
-          from: formatEmailAddress(options.email.from),
-          subject: options.email.subject,
-          body: options.email.body,
-        },
-        options.instructions || 'Write a professional reply.',
-        {
-          context: contextResults.length > 0 ? { contextResults } : undefined,
-          userInstructions: combineInstructions(customInstructions, perTypeInstructions['draft-email']),
-        }
-      );
-
-      return {
-        draft: response.message,
-        sources,
-      };
-    },
-  });
-}
+export type { AIPurpose, AIUsage };

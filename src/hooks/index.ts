@@ -2,9 +2,7 @@ export { useProjectName } from "./use-project-name";
 export { useOpenFromQuery } from "./use-open-from-query";
 export { useGroupedItems } from "./use-grouped-items";
 export { useSidebarResize } from "./use-sidebar-resize";
-export { useContextSearch } from "./use-context-search";
 export { useWindowClose } from "./use-window-close";
 export { useInternalLinkHandler } from "./use-internal-link-handler";
-export type { ContextSearchOptions, ContextSearchResult } from "./use-context-search";
 // Editor hooks (re-exported from subdirectory)
 export { useEditorTab, useEditorProjectMove } from "./editor";

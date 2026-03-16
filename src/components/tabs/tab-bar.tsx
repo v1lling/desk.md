@@ -1,7 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { Bot, Home, Zap } from "lucide-react";
+import { Bot, Home } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
@@ -21,7 +21,6 @@ const MAX_VISIBLE_MOBILE = 5;
 const SYSTEM_TAB_ICONS: Partial<Record<TabType, React.ElementType>> = {
   desk: Home,
   ai: Bot,
-  agent: Zap,
 };
 
 // Pages that are workspace-scoped (show workspace name and color)
@@ -254,7 +253,7 @@ export function TabBar() {
   const { visibleTabs, overflowTabs } = useMemo(() => {
     const maxVisible = isDesktop ? MAX_VISIBLE_DESKTOP : MAX_VISIBLE_MOBILE;
     const contentTabs = tabs.filter(
-      (tab) => tab.type !== "desk" && tab.type !== "ai" && tab.type !== "agent"
+      (tab) => tab.type !== "desk" && tab.type !== "ai"
     );
     if (contentTabs.length <= maxVisible) {
       return { visibleTabs: contentTabs, overflowTabs: [] };
@@ -280,7 +279,7 @@ export function TabBar() {
   }, [tabs, activeTabId, isDesktop]);
 
   const mainTabs = useMemo(() => {
-    const order: TabType[] = ["desk", "ai", "agent"];
+    const order: TabType[] = ["desk", "ai"];
     return order
       .map((type) => tabs.find((tab) => tab.type === type))
       .filter((tab): tab is NonNullable<typeof tab> => Boolean(tab));
@@ -378,7 +377,7 @@ export function TabBar() {
               >
                 {overflowTabs.map((tab) => {
                   const Icon = SYSTEM_TAB_ICONS[tab.type];
-                  const isSystemTab = tab.type === "desk" || tab.type === "ai" || tab.type === "agent";
+                  const isSystemTab = tab.type === "desk" || tab.type === "ai";
                   return (
                     <DropdownMenuItem
                       key={tab.id}

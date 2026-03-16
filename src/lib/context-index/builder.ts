@@ -9,8 +9,8 @@
 import { isTauri } from "@/lib/desk";
 import * as desk from "@/lib/desk";
 import { getWorkspacePath } from "@/lib/desk/paths";
-import { hashContent, extractBody } from "@/lib/rag/chunker";
-import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/rag/aiignore";
+import { hashContent, extractBody } from "@/lib/context-index/content-utils";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
 import { generatePreview } from "@/lib/desk/parser";
 import { createAIService } from "@/lib/ai/service";
 import { useAISettingsStore } from "@/stores/ai";
@@ -49,7 +49,6 @@ async function buildEntryFromItem(
   workspaceId: string,
   extra?: { status?: string; priority?: string; date?: string; attendees?: string[]; projectName?: string }
 ): Promise<IndexEntry> {
-  const body = extractBody(item.content);
   const contentHash = await hashContent(item.content);
   const relativePath = extractRelativePath(item.filePath, workspaceId);
 
@@ -77,8 +76,8 @@ async function summarizeBatch(
   entries: IndexEntry[],
   contents: Map<string, string>
 ): Promise<void> {
-  const { providerType, anthropicApiKey } = useAISettingsStore.getState();
-  const service = createAIService({ providerType, apiKey: providerType === "anthropic-api" ? anthropicApiKey : undefined });
+  const { providerType } = useAISettingsStore.getState();
+  const service = createAIService({ providerType });
 
   // Build prompt
   const docs = entries.map((entry, i) => {

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
-import { indexDocumentOnSave } from "@/lib/rag/indexer";
+import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";

@@ -1,9 +1,9 @@
 import { createProvider } from './provider';
 import { buildPrompt } from './prompts';
+import { getProviderDefinition } from './provider-registry';
+import { getSecret } from './secrets';
 import type {
   AIPurpose,
-  AIContext,
-  AIMessage,
   AIServiceRequest,
   AIServiceResponse,
   AIUsage,
@@ -43,9 +43,12 @@ export class AIService {
    * Generic request handler for all purposes
    */
   async request(req: AIServiceRequest): Promise<AIServiceResponse> {
+    const providerDef = getProviderDefinition(this.config.providerType);
+    const resolvedKey = this.config.apiKey ?? await getSecret(providerDef.keyRef) ?? undefined;
+
     const provider = createProvider({
       type: this.config.providerType,
-      apiKey: this.config.apiKey,
+      apiKey: resolvedKey,
       model: this.config.model,
     });
 
@@ -77,125 +80,16 @@ export class AIService {
     };
   }
 
-  // ===========================================================================
-  // Convenience Methods for Common Purposes
-  // ===========================================================================
-
   /**
-   * General chat with optional context
-   */
-  async chat(
-    message: string,
-    options?: {
-      context?: AIContext;
-      history?: AIMessage[];
-      userInstructions?: string;
-    }
-  ): Promise<AIServiceResponse> {
-    return this.request({
-      purpose: 'chat',
-      message,
-      context: options?.context,
-      history: options?.history,
-      userInstructions: options?.userInstructions,
-    });
-  }
-
-  /**
-   * Draft an email response
-   */
-  async draftEmail(
-    originalEmail: { from: string; subject: string; body: string },
-    instructions: string,
-    options?: { context?: AIContext; userInstructions?: string }
-  ): Promise<AIServiceResponse> {
-    return this.request({
-      purpose: 'draft-email',
-      message: instructions,
-      context: {
-        ...options?.context,
-        emails: [{ id: 'original', ...originalEmail }],
-      },
-      userInstructions: options?.userInstructions,
-    });
-  }
-
-  /**
-   * Summarize content
-   */
-  async summarize(
-    content: string,
-    options?: { maxLength?: 'short' | 'medium' | 'long' }
-  ): Promise<AIServiceResponse> {
-    const lengthInstruction = {
-      short: 'Keep the summary to 1-2 sentences.',
-      medium: 'Keep the summary to 3-5 sentences.',
-      long: 'Provide a detailed summary with key points.',
-    }[options?.maxLength || 'medium'];
-
-    return this.request({
-      purpose: 'summarize',
-      message: `${lengthInstruction}\n\nContent to summarize:\n${content}`,
-    });
-  }
-
-  /**
-   * Find/extract tasks from content
-   */
-  async findTasks(
-    content: string,
-    options?: { context?: AIContext }
-  ): Promise<AIServiceResponse> {
-    const response = await this.request({
-      purpose: 'find-tasks',
-      message: `Extract actionable tasks from this content:\n\n${content}`,
-      context: options?.context,
-    });
-
-    // Parse tasks from response (simple format: "- [ ] task")
-    const taskRegex = /^- \[ \] (.+)$/gm;
-    const tasks: { id: string; title: string; status: string }[] = [];
-    let match;
-    while ((match = taskRegex.exec(response.message)) !== null) {
-      tasks.push({
-        id: crypto.randomUUID(),
-        title: match[1],
-        status: 'todo',
-      });
-    }
-
-    return {
-      ...response,
-      structured: { tasks },
-    };
-  }
-
-  /**
-   * Explain a concept or code
-   */
-  async explain(
-    content: string,
-    question?: string
-  ): Promise<AIServiceResponse> {
-    const message = question
-      ? `${question}\n\nContent:\n${content}`
-      : `Explain this:\n\n${content}`;
-
-    return this.request({
-      purpose: 'explain',
-      message,
-    });
-  }
-
-  /**
-   * Custom purpose with your own system prompt
+   * Custom purpose with your own system prompt.
+   * Used by context catalog indexing/selection utilities.
    */
   async custom(
     systemPrompt: string,
     message: string,
     options?: {
-      context?: AIContext;
-      history?: AIMessage[];
+      context?: AIServiceRequest['context'];
+      history?: AIServiceRequest['history'];
     }
   ): Promise<AIServiceResponse> {
     return this.request({

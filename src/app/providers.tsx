@@ -9,6 +9,7 @@ import { useDeepLink } from "@/hooks/use-deep-link";
 import { useWindowClose } from "@/hooks/use-window-close";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { useContextIndexSync } from "@/hooks/use-context-index-sync";
+import { useSecretHydration } from "@/hooks/use-secret-hydration";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { toast } from "sonner";
 
@@ -57,6 +58,11 @@ function SearchIndexProvider({ children }: { children: React.ReactNode }) {
 // Initialize context index sync
 function ContextIndexProvider({ children }: { children: React.ReactNode }) {
   useContextIndexSync();
+  return <>{children}</>;
+}
+
+function SecretHydrationProvider({ children }: { children: React.ReactNode }) {
+  useSecretHydration();
   return <>{children}</>;
 }
 
@@ -190,11 +196,13 @@ export function Providers({ children }: ProvidersProps) {
           <UpdateProvider>
             <QueryInvalidatorProvider>
               <SearchIndexProvider>
-                <ContextIndexProvider>
-                  <WindowCloseProvider>
-                    <ThemeProvider>{children}</ThemeProvider>
-                  </WindowCloseProvider>
-                </ContextIndexProvider>
+                <SecretHydrationProvider>
+                  <ContextIndexProvider>
+                    <WindowCloseProvider>
+                      <ThemeProvider>{children}</ThemeProvider>
+                    </WindowCloseProvider>
+                  </ContextIndexProvider>
+                </SecretHydrationProvider>
               </SearchIndexProvider>
             </QueryInvalidatorProvider>
           </UpdateProvider>

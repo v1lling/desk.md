@@ -39,8 +39,8 @@ function SourceIcon({ type }: { type: 'doc' | 'task' | 'meeting' }) {
 // =============================================================================
 
 /**
- * Displays a list of RAG sources as clickable badges.
- * Used in AI chat messages and email drafting.
+ * Displays a list of assistant context sources as clickable badges.
+ * Used in assistant messages and email drafting.
  *
  * Features:
  * - Shows icon based on content type (doc/task/meeting)
@@ -63,14 +63,28 @@ export function SourcesDisplay({
 }: SourcesDisplayProps) {
   const openTab = useTabStore((state) => state.openTab);
 
+  const parseRelativePath = (source: AIMessageSource): { workspaceId: string; entityId: string } | null => {
+    if (!source.workspaceId) return null;
+
+    const filename = source.docPath.split("/").pop();
+    if (!filename) return null;
+    const entityId = filename.replace(/\.md$/, "");
+    if (!entityId) return null;
+
+    return {
+      workspaceId: source.workspaceId,
+      entityId,
+    };
+  };
+
   const handleClick = (source: AIMessageSource) => {
     if (onSourceClick) {
       onSourceClick(source);
       return;
     }
 
-    // Default: open in tab
-    const parsed = parseDocPath(source.docPath);
+    // Default: open in tab. Support both absolute file paths and workspace-relative index paths.
+    const parsed = parseDocPath(source.docPath) ?? parseRelativePath(source);
     if (!parsed) return;
 
     openTab({

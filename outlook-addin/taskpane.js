@@ -1,9 +1,7 @@
 /**
  * Desk Outlook Add-in Taskpane
  *
- * UI for the add-in that allows:
- * 1. Opening emails in Desk
- * 2. Inserting AI-drafted replies as threaded replies
+ * UI for the add-in that allows opening emails in Desk.
  */
 
 /* global Office */
@@ -14,12 +12,6 @@ Office.onReady(function (info) {
   if (info.host === Office.HostType.Outlook) {
     loadEmailInfo();
     document.getElementById("open-btn").onclick = openInDesk;
-    document.getElementById("reply-btn").onclick = function () {
-      insertReply(false);
-    };
-    document.getElementById("reply-all-btn").onclick = function () {
-      insertReply(true);
-    };
   }
 });
 
@@ -106,51 +98,6 @@ function openInDesk() {
   } catch (error) {
     console.error("Failed to open in Desk:", error);
     showStatus("open-status", "Failed to open in Desk", "error");
-  }
-}
-
-/**
- * Insert reply from pasted draft
- */
-function insertReply(replyAll) {
-  var draftInput = document.getElementById("draft-input");
-  var draftText = draftInput.value.trim();
-
-  if (!draftText) {
-    showStatus("reply-status", "Please paste your draft first", "error");
-    return;
-  }
-
-  // Remove Desk marker if present
-  var replyBody = draftText.replace(/<!--\s*DESK_REPLY:\w+\s*-->\n?/, "").trim();
-
-  // Convert plain text to HTML for Outlook
-  var htmlBody = replyBody
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
-
-  try {
-    var item = Office.context.mailbox.item;
-
-    if (replyAll) {
-      item.displayReplyAllForm({
-        htmlBody: htmlBody,
-      });
-    } else {
-      item.displayReplyForm({
-        htmlBody: htmlBody,
-      });
-    }
-
-    showStatus("reply-status", "Reply form opened!", "success");
-
-    // Clear the textarea after successful insert
-    draftInput.value = "";
-  } catch (error) {
-    console.error("Failed to insert reply:", error);
-    showStatus("reply-status", "Failed to open reply form", "error");
   }
 }
 

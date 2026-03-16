@@ -56,7 +56,7 @@ export function TabContent({ children }: TabContentProps) {
               onClose={() => closeTab(tab.id)}
             />
           ) : tab.type === "ai" ? (
-            <AIChatEditor onClose={() => closeTab(tab.id)} />
+            <AIChatEditor />
           ) : null}
         </div>
       ))}

@@ -124,7 +124,7 @@
           <bt:String id="deskBtnLabel" DefaultValue="Desk"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="deskBtnDesc" DefaultValue="Open Desk panel to send emails or insert AI-drafted replies"/>
+          <bt:String id="deskBtnDesc" DefaultValue="Open Desk panel to send this email to Desk for AI drafting"/>
         </bt:LongStrings>
       </Resources>
 

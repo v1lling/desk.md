@@ -1,6 +1,6 @@
 
 import { memo, useCallback } from "react";
-import { Home, FileText, CheckSquare, Calendar, Mail, Bot, Zap, X } from "lucide-react";
+import { Home, FileText, CheckSquare, Calendar, Mail, Bot, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabItem as TabItemType, TabType } from "@/stores/tabs";
 import { TabContextMenu } from "./tab-context-menu";
@@ -12,7 +12,6 @@ const TAB_ICONS: Record<TabType, React.ElementType> = {
   meeting: Calendar,
   email: Mail,
   ai: Bot,
-  agent: Zap,
 };
 
 interface TabItemProps {
@@ -44,8 +43,7 @@ export const TabItem = memo(function TabItem({
   const Icon = TAB_ICONS[tab.type];
   const isDeskTab = tab.type === "desk";
   const isAITab = tab.type === "ai";
-  const isAgentTab = tab.type === "agent";
-  const isSystemTab = isDeskTab || isAITab || isAgentTab;
+  const isSystemTab = isDeskTab || isAITab;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {

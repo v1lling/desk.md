@@ -1,6 +1,6 @@
 # Desk Outlook Add-in
 
-Opens emails from Outlook in the Desk desktop app for AI-assisted workflows.
+Opens emails from Outlook in the Desk desktop app for AI-assisted drafting workflows.
 
 ## How It Works
 
@@ -31,7 +31,7 @@ npm run validate
 
 # Start HTTPS server
 npm run dev
-# Serves add-in at https://localhost:3000
+# Serves add-in files from outlook-addin/ at https://localhost:3000
 ```
 
 ### Sideload in Outlook
@@ -68,10 +68,10 @@ On first use, you may need to allow the `desk://` protocol:
 | File | Purpose |
 |------|---------|
 | `manifest.xml` | Office Add-in manifest (defines capabilities, UI) |
-| `src/commands.html` | Host page for ribbon button commands |
-| `src/commands.js` | Button click handler - extracts email, opens deep link |
-| `src/taskpane.html` | Optional taskpane UI |
-| `src/taskpane.js` | Taskpane logic |
+| `commands.html` | Host page for ribbon button commands |
+| `commands.js` | Button click handler - extracts email, opens deep link |
+| `taskpane.html` | Taskpane UI (send current email to Desk) |
+| `taskpane.js` | Taskpane handoff logic |
 
 ## Production Deployment
 

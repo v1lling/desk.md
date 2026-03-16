@@ -3,9 +3,9 @@
  * Extracted from editor components where this 20-line pattern was duplicated 3 times.
  */
 import { useState, useCallback, useEffect } from "react";
-import { getAiExclusionState, setAIInclusion } from "@/lib/rag/aiignore";
-import { removeFromIndex } from "@/lib/rag/indexer";
-import type { AiExclusionState } from "@/lib/rag/aiignore";
+import { getAiExclusionState, setAIInclusion } from "@/lib/context-index/aiignore";
+import { removeFromIndex } from "@/lib/context-index/indexer";
+import type { AiExclusionState } from "@/lib/context-index/aiignore";
 import { toast } from "sonner";
 
 export function useEditorAIInclusion(
@@ -32,7 +32,7 @@ export function useEditorAIInclusion(
         await setAIInclusion(filePath, workspaceId, included);
         setAiExclusionState((prev) => ({ ...prev, isExcluded: !included }));
         if (!included) {
-          await removeFromIndex(filePath);
+          await removeFromIndex(filePath, workspaceId);
         }
       } catch (error) {
         console.error(`[${entityLabel}-editor] Failed to update AI inclusion:`, error);

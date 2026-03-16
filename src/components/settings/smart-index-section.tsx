@@ -3,15 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Loader2,
   AlertCircle,
@@ -24,7 +16,9 @@ import { toast } from "sonner";
 import { useContextStore } from "@/stores/context";
 import { useContextIndexStore } from "@/stores/context-index";
 import { useWorkspaces } from "@/stores";
+import { useSettingsStore } from "@/stores/settings";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
+import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
 
@@ -34,11 +28,10 @@ interface SmartIndexSectionProps {
 
 export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionProps) {
   const {
-    maxFilesPerQuery,
     autoSummarizeOnSave,
-    setMaxFilesPerQuery,
     setAutoSummarizeOnSave,
   } = useContextStore();
+  const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
 
   const { indexes, setIndex, isBuilding, setIsBuilding } = useContextIndexStore();
   const { data: workspaces = [] } = useWorkspaces();
@@ -52,6 +45,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
     .map((idx) => idx.builtAt)
     .sort()
     .pop() ?? null;
+  const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || null;
 
   const handleBuildIndex = async () => {
     setIsBuilding(true);
@@ -70,6 +64,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
           setIndexProgress
         );
         setIndex(workspace.id, index);
+        await writeWorkspaceContextArtifact(index);
 
         if (!accumulatedResult) {
           accumulatedResult = result;
@@ -110,7 +105,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Index Status</CardTitle>
+          <CardTitle className="text-base">Catalog Status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -143,7 +138,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Build Index
+                Rebuild Catalog
               </Button>
               <Button
                 variant="outline"
@@ -191,43 +186,26 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
                 {indexResult.excluded > 0 && `, ${indexResult.excluded} excluded`}
               </div>
             )}
+
+            <div className="mt-2 rounded-lg border p-3 text-sm text-muted-foreground">
+              <p>
+                Catalog is used by assistant retrieval tools. The model decides which files to look up per turn.
+              </p>
+              {currentWorkspace && (
+                <p className="mt-1">
+                  Active workspace: <span className="text-foreground">{currentWorkspace.name}</span>
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Index Settings</CardTitle>
+        <CardTitle className="text-base">Catalog Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Max files per query</Label>
-              <p className="text-sm text-muted-foreground">
-                Maximum number of files included as AI context
-              </p>
-            </div>
-            <Select
-              value={String(maxFilesPerQuery)}
-              onValueChange={(value) => {
-                setMaxFilesPerQuery(Number(value));
-                toast.success(`Max files set to ${value}`);
-              }}
-            >
-              <SelectTrigger className="w-[80px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="4">4</SelectItem>
-                <SelectItem value="6">6</SelectItem>
-                <SelectItem value="8">8</SelectItem>
-                <SelectItem value="12">12</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Auto-summarize on save</Label>

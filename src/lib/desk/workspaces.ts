@@ -24,6 +24,27 @@ interface WorkspaceFrontmatter {
   created: string;
 }
 
+function buildAgentsFile(workspace: Pick<Workspace, "id" | "name">): string {
+  const lines: string[] = [];
+  lines.push("# AGENTS");
+  lines.push("");
+  lines.push("## Role");
+  lines.push("You are an assistant working with the Desk data workspace.");
+  lines.push("");
+  lines.push("## Workspace Context");
+  lines.push(`Read and use ${FILE_NAMES.WORKSPACE_CONTEXT_MD} in this workspace for a curated file catalog.`);
+  lines.push("");
+  lines.push("## Safety");
+  lines.push("- Do not assume facts not present in workspace files.");
+  lines.push("- Prefer citing exact file paths when making claims.");
+  lines.push("");
+  lines.push("## Workspace");
+  lines.push(`Name: ${workspace.name}`);
+  lines.push(`ID: ${workspace.id}`);
+  lines.push("");
+  return `${lines.join("\n").trim()}\n`;
+}
+
 /**
  * Personal workspace metadata
  * Personal is a special workspace that always exists
@@ -165,6 +186,7 @@ ${workspace.description || ""}
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
+  await writeTextFile(await joinPath(workspacePath, FILE_NAMES.AGENTS_MD), buildAgentsFile(workspace));
 
   return workspace;
 }
@@ -282,5 +304,10 @@ Private tasks, docs, and projects.
 
     const fileContent = serializeMarkdown(frontmatter, markdownContent);
     await writeTextFile(workspaceFilePath, fileContent);
+  }
+
+  const agentsFilePath = await joinPath(personalPath, FILE_NAMES.AGENTS_MD);
+  if (!(await exists(agentsFilePath))) {
+    await writeTextFile(agentsFilePath, buildAgentsFile(PERSONAL_WORKSPACE));
   }
 }

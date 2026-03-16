@@ -1,23 +1,18 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, Zap, Info } from "lucide-react";
+import { Bot, Eye, EyeOff, KeyRound, Cable } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
-import { checkClaudeCode, type ClaudeCodeStatus } from "@/lib/ai/providers/claude-code";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
+import type { AIProviderType } from "@/lib/ai/types";
+import { getSecret, setSecret } from "@/lib/ai/secrets";
+import { getMcpStatus, runMcpSelfTest, type McpStatus } from "@/lib/mcp";
 import { SystemPromptsCard } from "./system-prompts-card";
 
 function AIUsageStats() {
@@ -35,22 +30,17 @@ function AIUsageStats() {
       <div className="flex items-center justify-between">
         <Label>Usage Statistics</Label>
         {records.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => {
-              clearRecords();
-              toast.success("Usage history cleared");
-            }}
-          >
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+            clearRecords();
+            toast.success("Usage history cleared");
+          }}>
             Clear
           </Button>
         )}
       </div>
 
       {stats.totalRequests === 0 ? (
-        <p className="text-sm text-muted-foreground">No AI usage yet</p>
+        <p className="text-sm text-muted-foreground">No usage yet</p>
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-lg border p-3">
@@ -61,18 +51,6 @@ function AIUsageStats() {
             <p className="text-2xl font-semibold">{stats.totalRequests}</p>
             <p className="text-xs text-muted-foreground">Requests</p>
           </div>
-          {Object.entries(stats.byProvider).map(([provider, data]) => (
-            <div key={provider} className="rounded-lg border p-3 col-span-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">
-                  {provider === "claude-code" ? "Claude Code" : "Anthropic API"}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {formatNumber(data.tokens)} tokens / {data.requests} requests
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
       )}
     </div>
@@ -82,30 +60,58 @@ function AIUsageStats() {
 export function AITab() {
   const {
     providerType,
-    anthropicApiKey,
+    providerConfigured,
     customInstructions,
     modelByProvider,
     setProviderType,
-    setAnthropicApiKey,
+    setProviderConfigured,
     setCustomInstructions,
     setModelForProvider,
   } = useAISettingsStore();
 
-  const activeModel = modelByProvider[providerType] || DEFAULT_MODELS[providerType];
-  const modelOptions = PROVIDER_MODELS[providerType];
-
+  const safeProviderType: AIProviderType =
+    providerType in PROVIDER_MODELS ? providerType : "openai";
+  const activeModel = modelByProvider[safeProviderType] || DEFAULT_MODELS[safeProviderType];
+  const modelOptions = PROVIDER_MODELS[safeProviderType];
   const [showApiKey, setShowApiKey] = useState(false);
-  const [claudeStatus, setClaudeStatus] = useState<ClaudeCodeStatus | null>(null);
-  const [isTestingClaude, setIsTestingClaude] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isSavingKey, setIsSavingKey] = useState(false);
 
-  const handleTestClaudeCode = async () => {
-    setIsTestingClaude(true);
-    setClaudeStatus(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const keyRef = safeProviderType === "openai" ? "ai.openai" : "ai.anthropic";
+      const key = await getSecret(keyRef);
+      if (!cancelled) setApiKeyInput(key ?? "");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [safeProviderType]);
+
+  useEffect(() => {
+    if (providerType !== safeProviderType) {
+      setProviderType(safeProviderType);
+    }
+  }, [providerType, safeProviderType, setProviderType]);
+
+  const handleSaveApiKey = async () => {
+    const trimmed = apiKeyInput.trim();
+    if (!trimmed) {
+      toast.error("API key cannot be empty");
+      return;
+    }
+
+    setIsSavingKey(true);
     try {
-      const status = await checkClaudeCode();
-      setClaudeStatus(status);
+      const keyRef = safeProviderType === "openai" ? "ai.openai" : "ai.anthropic";
+      await setSecret(keyRef, trimmed);
+      setProviderConfigured(safeProviderType, true);
+      toast.success(`${safeProviderType === "openai" ? "OpenAI" : "Anthropic"} key saved to keychain`);
+    } catch (error) {
+      toast.error(`Failed to save API key: ${String(error)}`);
     } finally {
-      setIsTestingClaude(false);
+      setIsSavingKey(false);
     }
   };
 
@@ -115,37 +121,31 @@ export function AITab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            AI Assistant
+            Assistant
           </CardTitle>
           <CardDescription>
-            Configure your AI provider for chat
+            Configure API provider, model, and instructions for Assistant and drafting features.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Provider</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose how to connect to Claude
-              </p>
+              <p className="text-sm text-muted-foreground">AI API backend</p>
             </div>
             <Select
-              value={providerType}
-              onValueChange={(value: "claude-code" | "anthropic-api") => {
+              value={safeProviderType}
+              onValueChange={(value: AIProviderType) => {
                 setProviderType(value);
-                toast.success(`AI provider set to ${value === "claude-code" ? "Claude Code" : "Anthropic API"}`);
+                toast.success(`Provider set to ${value === "openai" ? "OpenAI" : "Anthropic"}`);
               }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="claude-code">
-                  Claude Code (CLI)
-                </SelectItem>
-                <SelectItem value="anthropic-api">
-                  Anthropic API
-                </SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -153,155 +153,247 @@ export function AITab() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Model</Label>
-              <p className="text-sm text-muted-foreground">
-                Sonnet is recommended for most tasks
-              </p>
+              <p className="text-sm text-muted-foreground">Default model for provider</p>
             </div>
             <Select
               value={activeModel}
               onValueChange={(value) => {
-                setModelForProvider(providerType, value);
+                setModelForProvider(safeProviderType, value);
                 const label = modelOptions.find((m) => m.id === value)?.label ?? value;
                 toast.success(`Model set to ${label}`);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {modelOptions.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
-                    <span>{model.label}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">{model.description}</span>
+                    {model.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {providerType === "anthropic-api" && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <Label htmlFor="api-key">API Key</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      id="api-key"
-                      type={showApiKey ? "text" : "password"}
-                      value={anthropicApiKey}
-                      onChange={(e) => setAnthropicApiKey(e.target.value)}
-                      placeholder="sk-ant-..."
-                      className="font-mono text-sm pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                    >
-                      {showApiKey ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Get your API key from{" "}
-                  <a
-                    href="https://console.anthropic.com/settings/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    console.anthropic.com
-                  </a>
-                </p>
-              </div>
-            </>
-          )}
+          <Separator />
 
-          {providerType === "claude-code" && (
-            <div className="space-y-3">
-              <div className="rounded-md border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50 p-3 flex gap-2.5">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
-                  <p>Uses your local Claude Code CLI. The CLI runs scoped to your Desk data directory with tools disabled.</p>
-                  <p>Your doc content is sent as prompt context. Be mindful of untrusted content in imported documents (prompt injection).</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <Label htmlFor="api-key" className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              API Key ({safeProviderType === "openai" ? "OpenAI" : "Anthropic"})
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="api-key"
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder={safeProviderType === "openai" ? "sk-..." : "sk-ant-..."}
+                  className="font-mono text-sm pr-10"
+                />
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestClaudeCode}
-                  disabled={isTestingClaude}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowApiKey(!showApiKey)}
                 >
-                  {isTestingClaude ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Zap className="mr-2 h-4 w-4" />
-                  )}
-                  Test Connection
+                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-                {claudeStatus && (
-                  <div className="flex items-center gap-2 text-sm">
-                    {claudeStatus.available ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                        <span className="text-emerald-600 dark:text-emerald-400">Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                        <span className="text-destructive">Failed</span>
-                      </>
-                    )}
-                  </div>
-                )}
               </div>
-              {claudeStatus && (
-                <div className="text-xs text-muted-foreground space-y-1">
-                  {claudeStatus.path && (
-                    <p>Path: <code className="bg-muted px-1 rounded">{claudeStatus.path}</code></p>
-                  )}
-                  {claudeStatus.error && (
-                    <p className="text-destructive">{claudeStatus.error}</p>
-                  )}
-                </div>
-              )}
+              <Button onClick={handleSaveApiKey} disabled={isSavingKey}>
+                Save
+              </Button>
             </div>
-          )}
+            <p className="text-xs text-muted-foreground">
+              Stored in OS keychain. Not persisted in app localStorage.
+            </p>
+            {!providerConfigured[safeProviderType] && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Provider key not configured.
+              </p>
+            )}
+          </div>
 
           <Separator />
 
           <div className="space-y-2">
             <Label htmlFor="custom-instructions">Custom Instructions</Label>
             <p className="text-sm text-muted-foreground">
-              Instructions that are always included in AI requests (chat, email drafts, etc.)
+              Always included in prompt generation.
             </p>
             <Textarea
               id="custom-instructions"
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="e.g., Always respond in German. Use informal tone. Prefer bullet points..."
+              placeholder="e.g., respond with concise bullet points."
               className="min-h-[100px]"
             />
-            <p className="text-xs text-muted-foreground">
-              These instructions apply globally across all workspaces.
-            </p>
           </div>
 
           <Separator />
-
           <AIUsageStats />
         </CardContent>
       </Card>
 
       <SystemPromptsCard />
+      <McpStatusCard />
     </div>
+  );
+}
+
+function McpStatusCard() {
+  const [status, setStatus] = useState<McpStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isRunningSelfTest, setIsRunningSelfTest] = useState(false);
+  const [selfTestOutput, setSelfTestOutput] = useState<string>("");
+  const [activeSnippet, setActiveSnippet] = useState<"claude" | "codex" | "gemini">("claude");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const next = await getMcpStatus();
+        if (!cancelled) {
+          setStatus(next);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(`Failed to load MCP status: ${String(error)}`);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const currentSnippet = status
+    ? activeSnippet === "claude"
+      ? status.claude_config_snippet
+      : activeSnippet === "codex"
+        ? status.codex_config_snippet
+        : status.gemini_config_snippet
+    : "";
+
+  const handleCopy = async () => {
+    if (!currentSnippet) {
+      toast.error("No MCP config snippet available");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(currentSnippet);
+      toast.success("MCP config copied");
+    } catch (error) {
+      toast.error(`Failed to copy MCP config: ${String(error)}`);
+    }
+  };
+
+  const handleSelfTest = async () => {
+    setIsRunningSelfTest(true);
+    setSelfTestOutput("");
+    try {
+      const result = await runMcpSelfTest();
+      setSelfTestOutput(result.output || "(no output)");
+      if (result.ok) {
+        toast.success("MCP self-test passed");
+      } else {
+        toast.error("MCP self-test failed");
+      }
+    } catch (error) {
+      toast.error(`MCP self-test failed: ${String(error)}`);
+    } finally {
+      setIsRunningSelfTest(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cable className="h-5 w-5" />
+          Advanced: MCP Interoperability
+        </CardTitle>
+        <CardDescription>
+          External CLI integration. Assistant uses direct in-app tools; MCP is optional for power users.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading MCP status...</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Transport</p>
+                <p className="text-sm font-medium">{status?.transport || "-"}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Server Command</p>
+                <p className="text-sm font-mono break-all">{status?.command || "-"}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Data Root</p>
+                <p className="text-sm font-mono break-all">{status?.data_root || "-"}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Shared Config</p>
+                <p className="text-sm font-mono break-all">{status?.shared_config_path || "-"}</p>
+              </div>
+            </div>
+            {!status?.available && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                desk-mcp sidecar binary not found at the resolved command path. Build or bundle the sidecar to enable one-click self-test.
+              </p>
+            )}
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">Config snippet</p>
+                <div className="flex gap-1">
+                  <Button size="sm" variant={activeSnippet === "claude" ? "default" : "outline"} onClick={() => setActiveSnippet("claude")}>
+                    Claude
+                  </Button>
+                  <Button size="sm" variant={activeSnippet === "codex" ? "default" : "outline"} onClick={() => setActiveSnippet("codex")}>
+                    Codex
+                  </Button>
+                  <Button size="sm" variant={activeSnippet === "gemini" ? "default" : "outline"} onClick={() => setActiveSnippet("gemini")}>
+                    Gemini
+                  </Button>
+                </div>
+              </div>
+              <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto">
+{currentSnippet || "{}"}
+              </pre>
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={handleSelfTest} disabled={isRunningSelfTest}>
+                  {isRunningSelfTest ? "Testing..." : "Run self-test"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleCopy}>
+                  Copy config
+                </Button>
+              </div>
+            </div>
+            {selfTestOutput && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Self-test output</p>
+                <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto whitespace-pre-wrap">
+{selfTestOutput}
+                </pre>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              External MCP workflows run in your CLI. In-app Assistant uses direct tool calls instead of MCP transport.
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

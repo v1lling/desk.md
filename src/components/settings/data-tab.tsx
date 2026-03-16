@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaces } from "@/stores/workspaces";
 import { useQueryClient } from "@tanstack/react-query";
-import { getWorkspaces, isTauri } from "@/lib/desk";
+import { getWorkspaces, isTauri, expandFsScope } from "@/lib/desk";
 import type { Workspace } from "@/types";
 
 export function DataTab() {
@@ -81,8 +81,15 @@ export function DataTab() {
     }
   };
 
-  const handleConfirmPathChange = (useExisting: boolean) => {
+  const handleConfirmPathChange = async (useExisting: boolean) => {
     setDataPath(pendingPath);
+    if (isTauri()) {
+      try {
+        await expandFsScope(pendingPath);
+      } catch (error) {
+        console.error("Failed to update file scope for new data path:", error);
+      }
+    }
     queryClient.invalidateQueries();
 
     if (useExisting && foundWorkspaces.length > 0) {

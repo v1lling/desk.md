@@ -94,22 +94,24 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
         <ScrollArea className="h-full">
           <div className="sticky top-0 z-10 border-b border-sidebar-border/60 bg-sidebar/95 px-2.5 py-1.5 backdrop-blur">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-sidebar-foreground/55">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/45">
                 Projects
               </span>
-              {projects.length > 0 && (
-                <span className="ml-auto text-[10px] tabular-nums font-medium text-sidebar-foreground/40">
-                  {projects.length}
-                </span>
-              )}
-              <button
-                onClick={() => setShowNewProjectModal(true)}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground transition-colors"
-                title="New Project"
-              >
-                <Plus className="size-3.5" />
-                New
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                {projects.length > 0 && (
+                  <span className="text-[10px] tabular-nums font-medium text-sidebar-foreground/40">
+                    {projects.length}
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowNewProjectModal(true)}
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-sidebar-foreground/50 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground transition-colors"
+                  title="New Project"
+                >
+                  <Plus className="size-3.5" />
+                  New
+                </button>
+              </div>
             </div>
           </div>
 

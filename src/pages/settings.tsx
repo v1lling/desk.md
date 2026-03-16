@@ -7,7 +7,7 @@ const tabs: TabConfig[] = [
   { value: "general", label: "General", icon: <Settings className="h-3.5 w-3.5" /> },
   { value: "templates", label: "Templates", icon: <FileText className="h-3.5 w-3.5" /> },
   { value: "ai", label: "AI", icon: <Bot className="h-3.5 w-3.5" /> },
-  { value: "context", label: "Context", icon: <Brain className="h-3.5 w-3.5" /> },
+  { value: "context", label: "Catalog", icon: <Brain className="h-3.5 w-3.5" /> },
   { value: "data", label: "Data", icon: <FolderOpen className="h-3.5 w-3.5" /> },
 ];
 

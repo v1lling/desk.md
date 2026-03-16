@@ -1,12 +1,12 @@
 
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
-import type { AIMessage } from "@/lib/ai";
+import type { AssistantMessage } from "@/lib/assistant/types";
 import { SourcesDisplay } from "./sources-display";
 import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
-  message: AIMessage;
+  message: AssistantMessage;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {

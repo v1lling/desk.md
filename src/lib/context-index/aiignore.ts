@@ -1,8 +1,8 @@
 /**
- * RAG AI Exclusion Helpers
+ * AI Exclusion Helpers
  *
  * Functions to toggle AI inclusion for files via .aiignore.
- * Used by editor toggles to exclude/include documents from RAG indexing.
+ * Used by editor toggles to exclude/include documents from AI indexing.
  *
  * .aiignore files are stored at workspace level:
  * ~/Desk/workspaces/{workspaceId}/.aiignore
@@ -58,7 +58,7 @@ async function writeAIIgnoreEntries(
   // Add header comment if there are entries
   const content =
     uniqueEntries.length > 0
-      ? `# AI Exclusions - files and patterns excluded from RAG indexing\n${uniqueEntries.join("\n")}\n`
+      ? `# AI Exclusions - files and patterns excluded from AI indexing\n${uniqueEntries.join("\n")}\n`
       : "";
 
   await writeTextFile(aiignorePath, content);
@@ -66,7 +66,7 @@ async function writeAIIgnoreEntries(
 
 /**
  * Convert absolute file path to relative path within a workspace.
- * Exported for use by reindex and other RAG modules.
+ * Exported for use by index and other catalog modules.
  */
 export async function toRelativePath(
   filePath: string,
@@ -132,11 +132,11 @@ export async function setAIInclusion(
   const entries = await readAIIgnoreEntries(workspaceId);
 
   if (included) {
-    // Remove from .aiignore (include in RAG)
+    // Remove from .aiignore (include in AI indexing)
     const filtered = entries.filter((entry) => entry !== relativePath);
     await writeAIIgnoreEntries(workspaceId, filtered);
   } else {
-    // Add to .aiignore (exclude from RAG)
+    // Add to .aiignore (exclude from AI indexing)
     if (!entries.includes(relativePath)) {
       entries.push(relativePath);
       await writeAIIgnoreEntries(workspaceId, entries);
@@ -312,11 +312,11 @@ export async function setFolderAIInclusion(
   const entries = await readAIIgnoreEntries(workspaceId);
 
   if (included) {
-    // Remove from .aiignore (include in RAG)
+    // Remove from .aiignore (include in AI indexing)
     const filtered = entries.filter((entry) => entry !== folderPattern);
     await writeAIIgnoreEntries(workspaceId, filtered);
   } else {
-    // Add to .aiignore (exclude from RAG)
+    // Add to .aiignore (exclude from AI indexing)
     if (!entries.includes(folderPattern)) {
       entries.push(folderPattern);
       await writeAIIgnoreEntries(workspaceId, entries);

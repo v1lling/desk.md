@@ -3,7 +3,7 @@ import { Plus, Trash2, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useAIChatStore, type Conversation } from "@/stores/ai";
+import { useAssistantStore, type AssistantConversation as Conversation } from "@/stores/assistant";
 import { useWorkspaces } from "@/stores/workspaces";
 
 const DEFAULT_WORKSPACE_COLOR = "#64748b";
@@ -13,11 +13,11 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ className }: ConversationListProps) {
-  const conversations = useAIChatStore((s) => s.conversations);
-  const activeConversationId = useAIChatStore((s) => s.activeConversationId);
-  const createConversation = useAIChatStore((s) => s.createConversation);
-  const setActiveConversation = useAIChatStore((s) => s.setActiveConversation);
-  const deleteConversation = useAIChatStore((s) => s.deleteConversation);
+  const conversations = useAssistantStore((s) => s.conversations);
+  const activeConversationId = useAssistantStore((s) => s.activeConversationId);
+  const createConversation = useAssistantStore((s) => s.createConversation);
+  const setActiveConversation = useAssistantStore((s) => s.setActiveConversation);
+  const deleteConversation = useAssistantStore((s) => s.deleteConversation);
   const { data: workspaces = [] } = useWorkspaces();
 
   const getWorkspaceColor = (workspaceId: string | null) => {
@@ -39,10 +39,10 @@ export function ConversationList({ className }: ConversationListProps) {
           variant="outline"
           size="sm"
           className="w-full justify-start gap-2 text-xs"
-          onClick={createConversation}
+          onClick={() => createConversation()}
         >
           <Plus className="h-3.5 w-3.5" />
-          New Chat
+          New Assistant
         </Button>
       </div>
 

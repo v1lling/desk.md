@@ -49,6 +49,12 @@ const DESK_TAB: TabItem = {
   isPinned: true,
 };
 
+function stripSessionOnlyTabData(tab: TabItem): Omit<TabItem, "emailData"> {
+  const next = { ...tab };
+  delete next.emailData;
+  return next;
+}
+
 export const useTabStore = create<TabState>()(
   persist(
     (set, get) => ({
@@ -61,7 +67,7 @@ export const useTabStore = create<TabState>()(
 
         // AI tab is a singleton - reuse existing
         if (newTab.type === "ai") {
-          const existing = tabs.find((t) => t.type === "ai");
+          const existing = tabs.find((t) => t.type === newTab.type);
           if (existing) {
             set({ activeTabId: existing.id });
             return;
@@ -193,7 +199,7 @@ export const useTabStore = create<TabState>()(
         // Filter out session-only tabs (email, ai) and strip emailData
         tabs: state.tabs
           .filter((t) => t.type !== "email" && t.type !== "ai")
-          .map(({ emailData, ...rest }) => rest),
+          .map(stripSessionOnlyTabData),
         activeTabId: state.activeTabId === "desk" ||
           (!state.activeTabId.startsWith("email-") && state.activeTabId !== "ai")
           ? state.activeTabId
@@ -248,7 +254,7 @@ export function useOpenTab() {
     openAI: () => {
       openTab({
         type: "ai",
-        title: "AI Chat",
+        title: "Assistant",
       });
     },
   };

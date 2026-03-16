@@ -270,7 +270,7 @@ export function useEditorSession({
       setIsDirty(false);
       setSaveStatus("idle");
 
-      // Trigger post-save callback (e.g., for RAG indexing)
+      // Trigger post-save callback (e.g., for catalog indexing)
       onSaveComplete?.(path, fullContent);
       return true;
     } catch (error) {
