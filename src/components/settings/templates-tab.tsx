@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -93,12 +93,8 @@ function TemplateCard({
   }, [scope, type, resolvedValue, setWorkspaceTemplate]);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{label} Template</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsSection title={`${label} Template`} description={description}>
+      <div className="space-y-3">
         {!isGlobal && !hasWorkspaceOverride ? (
           <div className="space-y-2">
             <div className="rounded-md border border-dashed p-3">
@@ -145,8 +141,8 @@ function TemplateCard({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }
 
@@ -155,43 +151,35 @@ export function TemplatesTab() {
   const [scope, setScope] = useState(GLOBAL_SCOPE);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Templates
-          </CardTitle>
-          <CardDescription>
-            Define default content for new meetings, docs, and tasks.
-            Set global defaults or customize per workspace.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            <Label>Scope</Label>
-            <Select value={scope} onValueChange={setScope}>
-              <SelectTrigger className="w-[260px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={GLOBAL_SCOPE}>Global Defaults</SelectItem>
-                {workspaces.map((ws) => (
-                  <SelectItem key={ws.id} value={ws.id}>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: ws.color || "#6366f1" }}
-                      />
-                      {ws.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <SettingsSection
+        icon={<FileText className="h-4 w-4" />}
+        title="Templates"
+        description="Define default content for new meetings, docs, and tasks. Set global defaults or customize per workspace."
+      >
+        <div className="space-y-1">
+          <Label>Scope</Label>
+          <Select value={scope} onValueChange={setScope}>
+            <SelectTrigger className="w-[260px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={GLOBAL_SCOPE}>Global Defaults</SelectItem>
+              {workspaces.map((ws) => (
+                <SelectItem key={ws.id} value={ws.id}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: ws.color || "#6366f1" }}
+                    />
+                    {ws.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </SettingsSection>
 
       {TEMPLATE_TYPES.map(({ type, label, description, note }) => (
         <TemplateCard

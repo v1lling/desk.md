@@ -1,4 +1,3 @@
-
 import { memo, useCallback } from "react";
 import { Home, FileText, CheckSquare, Calendar, Mail, Bot, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ interface TabItemProps {
   onMiddleClick: () => void;
   onCloseOthers: () => void;
   hasOtherClosableTabs: boolean;
-  /** Workspace color indicator (for Desk tab on workspace-scoped pages) */
   workspaceColor?: string;
   showIcon?: boolean;
   isMainTab?: boolean;
@@ -43,11 +41,9 @@ export const TabItem = memo(function TabItem({
   const Icon = TAB_ICONS[tab.type];
   const isDeskTab = tab.type === "desk";
   const isAITab = tab.type === "ai";
-  const isSystemTab = isDeskTab || isAITab;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Middle click to close
       if (e.button === 1 && !tab.isPinned) {
         e.preventDefault();
         onMiddleClick();
@@ -64,6 +60,8 @@ export const TabItem = memo(function TabItem({
     [onClose]
   );
 
+  const widthClass = isMainTab ? "w-[140px]" : "w-[160px]";
+
   return (
     <TabContextMenu
       tab={tab}
@@ -76,22 +74,14 @@ export const TabItem = memo(function TabItem({
         onMouseDown={handleMouseDown}
         title={tab.title}
         className={cn(
-          "group relative flex items-center gap-1.5 text-xs transition-colors px-3",
-          isMainTab
-            ? "w-[140px] shrink-0"
-            : isSystemTab
-              ? "w-[120px] shrink-0"
-              : "w-[160px] shrink-0",
-          isMainTab
-            ? isActive
-              ? "h-8 text-foreground font-medium border-b-2 border-foreground/50 rounded-none"
-              : "h-8 text-muted-foreground/80 hover:text-foreground hover:bg-muted/20 rounded-none border-b-2 border-transparent"
-            : isActive
-              ? "h-[33px] bg-background text-foreground font-medium border-x border-t border-border/50 rounded-t-md -mb-px z-10"
-              : "h-8 bg-transparent text-muted-foreground/80 hover:text-foreground hover:bg-muted/30 rounded-t-md"
+          "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-t-lg border border-transparent px-3 text-xs transition-colors",
+          widthClass,
+          isActive
+            ? "bg-background text-foreground border-border/80 border-b-background shadow-[0_-1px_0_rgba(0,0,0,0.02)]"
+            : "text-muted-foreground/85 hover:text-foreground hover:bg-muted/35",
+          isMainTab && "font-medium"
         )}
       >
-        {/* Workspace color indicator for Desk tab */}
         {isDeskTab && workspaceColor && (
           <span
             className="w-2 h-2 rounded-full shrink-0"
@@ -99,18 +89,14 @@ export const TabItem = memo(function TabItem({
           />
         )}
         {showIcon && (
-          <Icon className={cn("h-3.5 w-3.5 shrink-0", isAITab && "text-violet-500")} />
+          <Icon className={cn("h-3.5 w-3.5 shrink-0", isAITab && "text-primary")} />
         )}
-        <span className="truncate flex-1">{tab.title}</span>
+        <span className="truncate flex-1 text-left">{tab.title}</span>
 
-        {/* Subtle dirty indicator */}
         {tab.isDirty && (
-          <span className="text-muted-foreground/60 shrink-0 text-[10px] leading-none">
-            •
-          </span>
+          <span className="text-muted-foreground/60 shrink-0 text-[10px] leading-none">•</span>
         )}
 
-        {/* Close button (hidden for pinned tabs) */}
         {!tab.isPinned && (
           <span
             role="button"

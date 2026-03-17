@@ -1,5 +1,4 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -9,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Palette, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateSection } from "./update-section";
@@ -45,23 +43,18 @@ export function GeneralTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Updates */}
       <UpdateSection />
 
       {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            Appearance
-          </CardTitle>
-          <CardDescription>
-            Customize how Desk looks
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+      <SettingsSection
+        icon={<Palette className="h-4 w-4" />}
+        title="Appearance"
+        description="Customize how Desk looks"
+      >
+        <div className="divide-y divide-border/40">
+          <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5">
               <Label>Theme</Label>
               <p className="text-sm text-muted-foreground">
@@ -95,9 +88,7 @@ export function GeneralTab() {
             </Select>
           </div>
 
-          <Separator />
-
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5">
               <Label>Compact sidebar</Label>
               <p className="text-sm text-muted-foreground">
@@ -112,8 +103,8 @@ export function GeneralTab() {
               }}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

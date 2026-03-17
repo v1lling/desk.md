@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { Bot, Home } from "lucide-react";
@@ -23,19 +22,16 @@ const SYSTEM_TAB_ICONS: Partial<Record<TabType, React.ElementType>> = {
   ai: Bot,
 };
 
-// Pages that are workspace-scoped (show workspace name and color)
 const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects/"];
 
 function isWorkspaceScopedPage(pathname: string): boolean {
   return WORKSPACE_SCOPED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-// Map pathname to friendly page name for Desk tab
 function getPageName(
   pathname: string,
   projectName?: string | null
 ): { title: string; isWorkspaceScoped: boolean } {
-  // Handle project detail page
   if (pathname.startsWith("/projects/")) {
     const name = projectName || "Project";
     return { title: name, isWorkspaceScoped: true };
@@ -55,7 +51,11 @@ function getPageName(
   return { title: baseName, isWorkspaceScoped: scoped };
 }
 
-export function TabBar() {
+interface TabBarProps {
+  inTitleBar?: boolean;
+}
+
+export function TabBar({ inTitleBar = false }: TabBarProps) {
   const { pathname } = useLocation();
   const params = useParams();
   const tabs = useTabStore((state) => state.tabs);
@@ -69,7 +69,6 @@ export function TabBar() {
   const currentWorkspace = useCurrentWorkspace();
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
 
-  // State for unsaved changes dialog
   const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{
     open: boolean;
     tabId: string | null;
@@ -89,29 +88,23 @@ export function TabBar() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // Get project ID from URL for project pages
   const projectId = pathname.startsWith("/projects/") ? (params.id ?? null) : null;
   const { data: project } = useProject(currentWorkspace?.id || null, projectId);
 
-  // Track previous pathname to detect navigation
   const prevPathnameRef = useRef(pathname);
 
-  // Auto-switch to Desk tab when navigating via sidebar
   useEffect(() => {
     if (pathname !== prevPathnameRef.current) {
-      // Navigation happened - switch to Desk tab
       setActiveTab("desk");
       prevPathnameRef.current = pathname;
     }
   }, [pathname, setActiveTab]);
 
-  // Update Desk tab title based on current page
   useEffect(() => {
     const { title } = getPageName(pathname, project?.name);
     updateTab("desk", { title });
   }, [pathname, project?.name, updateTab]);
 
-  // Get workspace color for Desk tab (when on workspace-scoped page)
   const deskWorkspaceColor = isWorkspaceScopedPage(pathname)
     ? currentWorkspace?.color
     : undefined;
@@ -123,13 +116,11 @@ export function TabBar() {
     [setActiveTab]
   );
 
-  // Close tab with dirty check
   const handleClose = useCallback(
     (tabId: string) => {
       const tab = tabs.find((t) => t.id === tabId);
       if (!tab) return;
 
-      // Check if tab has unsaved changes
       if (tab.isDirty) {
         setDirtyCloseDialog({
           open: true,
@@ -145,10 +136,8 @@ export function TabBar() {
     [tabs, closeTab]
   );
 
-  // Handle save and close from dialog
   const handleDialogSave = useCallback(() => {
     if (dirtyCloseDialog.tabId) {
-      // Request save, then close
       requestSaveAndClose(dirtyCloseDialog.tabId);
     }
     setDirtyCloseDialog({
@@ -159,7 +148,6 @@ export function TabBar() {
     });
   }, [dirtyCloseDialog.tabId, requestSaveAndClose]);
 
-  // Handle discard and close from dialog
   const handleDialogDontSave = useCallback(() => {
     if (dirtyCloseDialog.tabId) {
       closeTab(dirtyCloseDialog.tabId);
@@ -172,7 +160,6 @@ export function TabBar() {
     });
   }, [dirtyCloseDialog.tabId, closeTab]);
 
-  // Handle cancel from dialog
   const handleDialogCancel = useCallback(() => {
     if (dirtyCloseDialog.mode === "close-others") {
       setCloseOthersTargetTabId(null);
@@ -187,7 +174,6 @@ export function TabBar() {
 
   const handleCloseOthers = useCallback(
     (tabId: string) => {
-      // Check if any other tabs are dirty
       const otherDirtyTabs = tabs.filter(
         (t) => !t.isPinned && t.id !== tabId && t.isDirty
       );
@@ -208,11 +194,9 @@ export function TabBar() {
     [tabs, closeOtherTabs]
   );
 
-  // Continue close-others flow after each dirty tab is handled
   useEffect(() => {
     if (!closeOthersTargetTabId || dirtyCloseDialog.open || pendingSaveAndClose) return;
 
-    // Target tab was closed while flow was active
     if (!tabs.some((t) => t.id === closeOthersTargetTabId)) {
       setCloseOthersTargetTabId(null);
       return;
@@ -242,7 +226,6 @@ export function TabBar() {
     closeOtherTabs,
   ]);
 
-  // Check if there are other closable (non-pinned) tabs besides a given tab
   const hasOtherClosableTabs = useCallback(
     (tabId: string) => {
       return tabs.filter((t) => !t.isPinned && t.id !== tabId).length > 0;
@@ -285,10 +268,8 @@ export function TabBar() {
       .filter((tab): tab is NonNullable<typeof tab> => Boolean(tab));
   }, [tabs]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+W to close current tab
       if ((e.metaKey || e.ctrlKey) && e.key === "w") {
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (activeTab && !activeTab.isPinned) {
@@ -297,7 +278,6 @@ export function TabBar() {
         }
       }
 
-      // Cmd+Shift+[ or ] to switch tabs
       if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
         const currentIndex = tabs.findIndex((t) => t.id === activeTabId);
         if (e.key === "[" && currentIndex > 0) {
@@ -314,15 +294,22 @@ export function TabBar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tabs, activeTabId, handleClose, setActiveTab]);
 
-  // Only show tab bar if there are editor tabs open (not just Desk)
   if (tabs.length <= 1) {
-    return null;
+    return inTitleBar ? <div className="h-full" /> : null;
   }
+
+  const barClasses = inTitleBar
+    ? "h-full flex items-center"
+    : "h-9 bg-muted/20 border-b border-border/80 flex items-end shrink-0";
+
+  const innerClasses = inTitleBar
+    ? "w-full h-full flex items-center gap-1 pr-2 overflow-hidden"
+    : "w-full h-full flex items-end gap-1 px-2 overflow-hidden";
 
   return (
     <>
-      <div className="h-9 bg-muted/30 border-b border-border/50 flex items-end shrink-0">
-        <div className="w-full h-full flex items-end gap-0.5 px-1 overflow-hidden">
+      <div className={barClasses}>
+        <div className={innerClasses}>
           {mainTabs.length > 0 && (
             <>
               {mainTabs.map((tab) => (
@@ -340,11 +327,10 @@ export function TabBar() {
                   isMainTab
                 />
               ))}
-              <div className="h-5 w-px bg-border/50 mx-1 mb-1.5 shrink-0" />
             </>
           )}
 
-          <div className="flex items-end h-full gap-0.5 min-w-0">
+          <div className={inTitleBar ? "flex items-center h-full gap-1 min-w-0" : "flex items-end h-full gap-1 min-w-0"}>
             {visibleTabs.map((tab) => (
               <TabItem
                 key={tab.id}

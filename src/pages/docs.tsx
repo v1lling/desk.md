@@ -1,15 +1,14 @@
 import { useMemo } from "react";
 import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
 import { useProjects, useCurrentWorkspace, WORKSPACE_LEVEL_PROJECT_ID } from "@/stores";
-import { Badge } from "@/components/ui/badge";
-import { Circle } from "lucide-react";
+import { PageHeader } from "@/components/patterns/page-header";
+import { StatePanel } from "@/components/ui/state-panel";
 
 export default function DocsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: projects = [] } = useProjects(currentWorkspaceId);
 
-  // Build scopes: Workspace-level + all projects (sorted alphabetically)
   const scopes: ContentExplorerScope[] = useMemo(() => {
     if (!currentWorkspaceId || !currentWorkspace) return [];
 
@@ -23,7 +22,6 @@ export default function DocsPage() {
       },
     ];
 
-    // Sort projects alphabetically and add as scopes
     const sortedProjects = [...projects].sort((a, b) =>
       a.name.localeCompare(b.name)
     );
@@ -41,37 +39,25 @@ export default function DocsPage() {
     return scopeList;
   }, [currentWorkspaceId, currentWorkspace, projects]);
 
-  const workspaceColor = currentWorkspace?.color || "#64748b";
-
-  if (!currentWorkspaceId) {
+  if (!currentWorkspaceId || !currentWorkspace) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          Select a workspace to view docs
-        </div>
+      <div className="flex flex-col h-full p-4">
+        <StatePanel
+          variant="empty"
+          title="Select a workspace"
+          description="Choose a workspace in the sidebar to view docs."
+          className="h-full"
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Page Header with workspace context */}
-      {currentWorkspace && (
-        <div className="shrink-0 h-12 px-4 flex items-center gap-3 border-b">
-          <Circle
-            className="size-3 shrink-0"
-            style={{ color: workspaceColor }}
-            fill={workspaceColor}
-          />
-          <h1 className="text-base font-semibold">Docs</h1>
-          <Badge variant="outline" className="text-xs font-normal">
-            {currentWorkspace.name}
-          </Badge>
-        </div>
-      )}
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeader title="Docs" workspace={currentWorkspace} />
 
       <main className="flex-1 h-full overflow-hidden">
-        <ContentExplorer scopes={scopes} defaultScopeId="_shared" />
+        <ContentExplorer scopes={scopes} defaultScopeId={WORKSPACE_LEVEL_PROJECT_ID} />
       </main>
     </div>
   );

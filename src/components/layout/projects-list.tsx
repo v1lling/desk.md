@@ -1,10 +1,3 @@
-/**
- * Projects List
- *
- * Sidebar section showing projects for the current workspace.
- * One project is expanded at a time based on active route.
- */
-
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,46 +6,12 @@ import { ChevronRight, Plus, FolderKanban } from "lucide-react";
 import { useProjects } from "@/stores/projects";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { NewProjectModal } from "@/components/projects/new-project-modal";
+import { SidebarNavRow } from "./sidebar-nav-row";
 
 type ProjectSection = "tasks" | "docs" | "meetings";
 
 interface ProjectsListProps {
   isCollapsed?: boolean;
-}
-
-function ProjectSubItem({
-  to,
-  label,
-  isActive,
-  count,
-}: {
-  to: string;
-  label: string;
-  isActive: boolean;
-  count?: number;
-}) {
-  return (
-    <Link
-      to={to}
-      title={label}
-      className={cn(
-        "flex items-center rounded-md px-3 py-1.5 text-xs transition-colors",
-        isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-          : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/35"
-      )}
-    >
-      <span className="flex-1 truncate">{label}</span>
-      {count !== undefined && count > 0 && (
-        <span className={cn(
-          "text-[10px] tabular-nums transition-opacity",
-          isActive ? "text-sidebar-accent-foreground/65" : "text-sidebar-foreground/45"
-        )}>
-          {count}
-        </span>
-      )}
-    </Link>
-  );
 }
 
 export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
@@ -118,7 +77,7 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
           <div className="space-y-1 px-1.5 py-1.5 pr-3">
             {isLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="h-7 rounded-md bg-sidebar-accent/30 animate-pulse" />
+                <div key={i} className="h-8 rounded-md bg-sidebar-accent/30 animate-pulse" />
               ))
             ) : sortedProjects.length === 0 ? (
               <div className="px-2 py-2 text-xs italic text-sidebar-foreground/40">No projects yet</div>
@@ -128,9 +87,7 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                 const isExpanded = expandedProjectId === project.id;
 
                 const activeTasks = project.tasksByStatus
-                  ? project.tasksByStatus.todo +
-                    project.tasksByStatus.doing +
-                    project.tasksByStatus.waiting
+                  ? project.tasksByStatus.todo + project.tasksByStatus.doing + project.tasksByStatus.waiting
                   : 0;
 
                 return (
@@ -141,8 +98,8 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                       className={cn(
                         "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                         isExpanded
-                          ? "bg-sidebar-accent/65 text-sidebar-foreground"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                       )}
                     >
                       <ChevronRight
@@ -152,32 +109,14 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                         )}
                       />
 
-                      <span className="flex-1 truncate font-medium">
-                        {project.name}
-                      </span>
-
+                      <span className="flex-1 truncate font-medium">{project.name}</span>
                     </Link>
 
                     {isExpanded && (
                       <div className="ml-5 space-y-0.5">
-                        <ProjectSubItem
-                          to={`/projects/${project.id}/tasks`}
-                          label="Tasks"
-                          isActive={activeSection === "tasks"}
-                          count={activeTasks}
-                        />
-                        <ProjectSubItem
-                          to={`/projects/${project.id}/docs`}
-                          label="Docs"
-                          isActive={activeSection === "docs"}
-                          count={project.docCount}
-                        />
-                        <ProjectSubItem
-                          to={`/projects/${project.id}/meetings`}
-                          label="Meetings"
-                          isActive={activeSection === "meetings"}
-                          count={project.meetingCount}
-                        />
+                        <SidebarNavRow to={`/projects/${project.id}/tasks`} label="Tasks" active={activeSection === "tasks"} role="subitem" count={activeTasks} />
+                        <SidebarNavRow to={`/projects/${project.id}/docs`} label="Docs" active={activeSection === "docs"} role="subitem" count={project.docCount} />
+                        <SidebarNavRow to={`/projects/${project.id}/meetings`} label="Meetings" active={activeSection === "meetings"} role="subitem" count={project.meetingCount} />
                       </div>
                     )}
                   </div>

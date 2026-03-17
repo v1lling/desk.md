@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -103,11 +103,8 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Catalog Status</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SettingsSection title="Catalog Status">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-3 rounded-lg border p-3">
               <FileText className="h-5 w-5 text-muted-foreground" />
@@ -198,31 +195,26 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      <Card>
-        <CardHeader>
-        <CardTitle className="text-base">Catalog Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Auto-summarize on save</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically update summaries when files change (runs in background)
-              </p>
-            </div>
-            <Switch
-              checked={autoSummarizeOnSave}
-              onCheckedChange={(checked) => {
-                setAutoSummarizeOnSave(checked);
-                toast.success(checked ? "Auto-summarize enabled" : "Auto-summarize disabled");
-              }}
-            />
+      <SettingsSection title="Catalog Settings">
+        <div className="flex items-center justify-between py-3">
+          <div className="space-y-0.5">
+            <Label>Auto-summarize on save</Label>
+            <p className="text-sm text-muted-foreground">
+              Automatically update summaries when files change (runs in background)
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <Switch
+            checked={autoSummarizeOnSave}
+            onCheckedChange={(checked) => {
+              setAutoSummarizeOnSave(checked);
+              toast.success(checked ? "Auto-summarize enabled" : "Auto-summarize disabled");
+            }}
+          />
+        </div>
+      </SettingsSection>
 
       <ConfirmDialog
         open={showClearIndexConfirm}

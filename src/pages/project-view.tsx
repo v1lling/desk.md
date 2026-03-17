@@ -23,6 +23,8 @@ import type { Task, Meeting } from "@/types";
 import { Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/lib/design-tokens";
+import { PageHeader, SectionBar } from "@/components/patterns/page-header";
+import { StatePanel } from "@/components/ui/state-panel";
 
 type ProjectSection = "tasks" | "docs" | "meetings";
 
@@ -38,8 +40,8 @@ export default function ProjectViewPage() {
 
   if (!projectId) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">No project selected</p>
+      <div className="p-4 h-full">
+        <StatePanel variant="notFound" title="No project selected" className="h-full" />
       </div>
     );
   }
@@ -127,83 +129,82 @@ function ProjectPageClient({
 
   if (projectLoading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="h-10 border-b border-border flex items-center px-4">
-          <div className="animate-pulse text-muted-foreground text-sm">Loading project...</div>
-        </div>
+      <div className="p-4 h-full">
+        <StatePanel variant="loading" title="Loading project..." className="h-full" />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="h-10 border-b border-border flex items-center px-4">
-          <h1 className="text-sm font-semibold">Project Not Found</h1>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-muted-foreground">
-            The project you&apos;re looking for doesn&apos;t exist.
-          </div>
-        </div>
+      <div className="p-4 h-full">
+        <StatePanel
+          variant="notFound"
+          title="Project not found"
+          description="The project you're looking for doesn't exist."
+          className="h-full"
+        />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <header className="h-10 border-b border-border px-4 flex items-center gap-2">
-        <h1 className="text-sm font-semibold">{project.name}</h1>
-        <Badge
-          variant="outline"
-          className={cn("capitalize text-[10px] h-5", statusColors[project.status])}
-        >
-          {project.status}
-        </Badge>
-      </header>
+      <PageHeader
+        title={project.name}
+        density="compact"
+        actions={
+          <Badge
+            variant="outline"
+            className={cn("capitalize text-[10px] h-5", statusColors[project.status])}
+          >
+            {project.status}
+          </Badge>
+        }
+      />
 
-      <div className="shrink-0 h-11 px-4 border-b border-border flex items-center justify-between">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {sectionLabels[section]}
-        </div>
+      <SectionBar
+        density="regular"
+        left={<div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{sectionLabels[section]}</div>}
+        right={
+          <>
+            {section === "tasks" && (
+              <>
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                <Button size="sm" onClick={() => setShowNewTask(true)}>
+                  <Plus className="h-4 w-4" />
+                  New Task
+                </Button>
+              </>
+            )}
 
-        <div className="flex items-center gap-2">
-          {section === "tasks" && (
-            <>
-              <ViewModeToggle value={viewMode} onChange={setViewMode} />
-              <Button size="sm" onClick={() => setShowNewTask(true)}>
+            {section === "docs" && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => contentExplorerRef.current?.triggerImport()}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Upload className="h-4 w-4" />
+                  Import
+                </Button>
+                <Button size="sm" onClick={() => contentExplorerRef.current?.triggerNewDoc()}>
+                  <Plus className="h-4 w-4" />
+                  New Doc
+                </Button>
+              </>
+            )}
+
+            {section === "meetings" && (
+              <Button size="sm" onClick={() => setShowNewMeeting(true)}>
                 <Plus className="h-4 w-4" />
-                New Task
+                New Meeting
               </Button>
-            </>
-          )}
-
-          {section === "docs" && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => contentExplorerRef.current?.triggerImport()}
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
-              >
-                <Upload className="h-4 w-4" />
-                Import
-              </Button>
-              <Button size="sm" onClick={() => contentExplorerRef.current?.triggerNewDoc()}>
-                <Plus className="h-4 w-4" />
-                New Doc
-              </Button>
-            </>
-          )}
-
-          {section === "meetings" && (
-            <Button size="sm" onClick={() => setShowNewMeeting(true)}>
-              <Plus className="h-4 w-4" />
-              New Meeting
-            </Button>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        }
+      />
 
       {section === "tasks" && (
         <ScrollArea className="flex-1">

@@ -354,9 +354,9 @@ export function ContentTree({
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Tree container with visual structure */}
-      <div className="flex-1 min-h-0 flex flex-col border rounded-lg bg-muted/5 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Toolbar header */}
-        <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b bg-muted/10">
+        <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b">
           {/* Search input */}
           <div className="relative flex-1 max-w-[200px]">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />

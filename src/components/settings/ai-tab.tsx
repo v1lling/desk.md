@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Bot, Eye, EyeOff, KeyRound, Cable } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
@@ -117,18 +116,13 @@ export function AITab() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            Assistant
-          </CardTitle>
-          <CardDescription>
-            Configure API provider, model, and instructions for Assistant and drafting features.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+      <SettingsSection
+        icon={<Bot className="h-4 w-4" />}
+        title="Assistant"
+        description="Configure API provider, model, and instructions for Assistant and drafting features."
+      >
+        <div className="divide-y divide-border/40">
+          <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5">
               <Label>Provider</Label>
               <p className="text-sm text-muted-foreground">AI API backend</p>
@@ -150,7 +144,7 @@ export function AITab() {
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5">
               <Label>Model</Label>
               <p className="text-sm text-muted-foreground">Default model for provider</p>
@@ -176,9 +170,7 @@ export function AITab() {
             </Select>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
+          <div className="space-y-2 py-3">
             <Label htmlFor="api-key" className="flex items-center gap-2">
               <KeyRound className="h-4 w-4" />
               API Key ({safeProviderType === "openai" ? "OpenAI" : "Anthropic"})
@@ -217,9 +209,7 @@ export function AITab() {
             )}
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
+          <div className="space-y-2 py-3">
             <Label htmlFor="custom-instructions">Custom Instructions</Label>
             <p className="text-sm text-muted-foreground">
               Always included in prompt generation.
@@ -233,10 +223,11 @@ export function AITab() {
             />
           </div>
 
-          <Separator />
-          <AIUsageStats />
-        </CardContent>
-      </Card>
+          <div className="py-3">
+            <AIUsageStats />
+          </div>
+        </div>
+      </SettingsSection>
 
       <SystemPromptsCard />
       <McpStatusCard />
@@ -314,17 +305,13 @@ function McpStatusCard() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cable className="h-5 w-5" />
-          Advanced: MCP Interoperability
-        </CardTitle>
-        <CardDescription>
-          External CLI integration. Assistant uses direct in-app tools; MCP is optional for power users.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingsSection
+      icon={<Cable className="h-4 w-4" />}
+      title="Advanced: MCP Interoperability"
+      description="External CLI integration. Assistant uses direct in-app tools; MCP is optional for power users."
+      variant="inset"
+    >
+      <div className="space-y-4">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading MCP status...</p>
         ) : (
@@ -393,7 +380,7 @@ function McpStatusCard() {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }

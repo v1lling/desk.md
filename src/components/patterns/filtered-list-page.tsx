@@ -1,44 +1,27 @@
-
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { EntityFilterBar, type FilterConfig } from "@/components/ui/entity-filter-bar";
+import { FilterBar, type FilterBarConfig } from "@/components/ui/filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { Button } from "@/components/ui/button";
-import { Plus, Circle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Plus } from "lucide-react";
+import { PageHeader } from "./page-header";
+import { densityClasses, type Density } from "@/lib/enterprise-ui";
 import type { Workspace } from "@/types";
 
-// Default workspace color
-const DEFAULT_WORKSPACE_COLOR = "#64748b";
-
 interface FilteredListPageProps {
-  // Page title and workspace context
-  title?: string;
+  title: string;
   workspace?: Workspace | null;
-
-  // Action button (shown in filter bar)
   actionLabel?: string;
   onAction?: () => void;
-
-  // Filter configuration
-  filters: FilterConfig[];
+  filters: FilterBarConfig[];
   count: number;
   countLabel: string;
-
-  // View mode toggle (optional)
   viewMode?: "list" | "kanban";
   onViewModeChange?: (mode: "list" | "kanban") => void;
-
-  // Content
   children: React.ReactNode;
-
-  // Modal (rendered at the end)
   modal?: React.ReactNode;
+  density?: Density;
 }
 
-/**
- * Common page layout for filtered list views.
- * Provides: Header (optional) + Filter Bar + Scroll Area + Optional Modal
- */
 export function FilteredListPage({
   title,
   workspace,
@@ -51,8 +34,10 @@ export function FilteredListPage({
   onViewModeChange,
   children,
   modal,
+  density = "regular",
 }: FilteredListPageProps) {
-  // Build right element: view toggle + action button
+  const contentPadding = viewMode === "kanban" ? "px-4 pt-2 pb-4" : densityClasses[density].content;
+
   const rightElement = (
     <>
       {viewMode && onViewModeChange && (
@@ -67,43 +52,20 @@ export function FilteredListPage({
     </>
   );
 
-  const workspaceColor = workspace?.color || DEFAULT_WORKSPACE_COLOR;
-
   return (
-    <div className="flex flex-col h-full">
-      {/* Page Header with workspace context */}
-      {(title || workspace) && (
-        <div
-          className="shrink-0 h-14 px-4 flex items-center gap-3 border-b"
-          style={{ backgroundColor: workspace ? `color-mix(in srgb, ${workspaceColor} 3%, transparent)` : undefined }}
-        >
-          {workspace && (
-            <Circle
-              className="size-3 shrink-0"
-              style={{ color: workspaceColor }}
-              fill={workspaceColor}
-            />
-          )}
-          {title && <h1 className="text-base font-semibold">{title}</h1>}
-          {workspace && (
-            <Badge variant="outline" className="text-xs font-normal">
-              {workspace.name}
-            </Badge>
-          )}
-        </div>
-      )}
+    <div className="flex flex-col h-full overflow-hidden bg-background">
+      <PageHeader title={title} workspace={workspace} density={density} />
 
-      <EntityFilterBar
+      <FilterBar
         filters={filters}
         count={count}
         countLabel={countLabel}
         rightElement={rightElement}
+        density={density}
       />
 
       <ScrollArea className="flex-1">
-        <main className={viewMode === "kanban" ? "px-4 pt-2 pb-4" : "p-4"}>
-          {children}
-        </main>
+        <main className={contentPadding}>{children}</main>
       </ScrollArea>
 
       {modal}

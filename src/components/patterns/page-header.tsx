@@ -1,96 +1,72 @@
-
-/**
- * Page Header with Workspace Context
- *
- * Shows the page title with an optional workspace badge for explicit context.
- * Used on workspace-filtered pages (Tasks, Docs, Meetings).
- */
-
 import { Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { densityClasses, type Density, workspaceUiDefaults } from "@/lib/enterprise-ui";
 import type { Workspace } from "@/types";
 
-interface PageHeaderProps {
-  /** Page title */
-  title: string;
-  /** Current workspace for context badge */
-  workspace?: Workspace | null;
-  /** Additional content (filters, actions) */
-  children?: React.ReactNode;
-  /** Optional subtitle */
-  subtitle?: string;
+interface WorkspaceContextBadgeProps {
+  workspace: Workspace;
+  className?: string;
 }
 
-// Default color when workspace has no color set
-const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
-
-export function PageHeader({
-  title,
-  workspace,
-  children,
-  subtitle,
-}: PageHeaderProps) {
-  const workspaceColor = workspace?.color || DEFAULT_WORKSPACE_COLOR;
+export function WorkspaceContextBadge({ workspace, className }: WorkspaceContextBadgeProps) {
+  const color = workspace.color || workspaceUiDefaults.color;
 
   return (
-    <div
-      className="shrink-0 border-b"
-      style={{ backgroundColor: workspace ? `color-mix(in srgb, ${workspaceColor} 3%, transparent)` : undefined }}
-    >
-      {/* Main header row */}
-      <div className="h-14 px-4 flex items-center gap-3">
-        {/* Workspace color indicator */}
-        {workspace && (
-          <Circle
-            className="size-3 shrink-0"
-            style={{ color: workspaceColor }}
-            fill={workspaceColor}
-          />
-        )}
-
-        {/* Title */}
-        <h1 className="text-base font-semibold">{title}</h1>
-
-        {/* Workspace badge */}
-        {workspace && (
-          <Badge variant="outline" className="text-xs font-normal">
-            {workspace.name}
-          </Badge>
-        )}
-
-        {/* Optional subtitle */}
-        {subtitle && (
-          <span className="text-sm text-muted-foreground">{subtitle}</span>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Actions slot */}
-        {children}
-      </div>
+    <div className={cn("inline-flex items-center gap-2", className)}>
+      <Circle className="size-3 shrink-0" style={{ color }} fill={color} />
+      <Badge variant="outline" className="text-xs font-normal">
+        {workspace.name}
+      </Badge>
     </div>
   );
 }
 
-/**
- * Simpler header without workspace context
- * Used for Personal pages and Settings
- */
-export function SimplePageHeader({
-  title,
-  children,
-}: {
+interface PageHeaderProps {
   title: string;
-  children?: React.ReactNode;
-}) {
+  workspace?: Workspace | null;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  density?: Density;
+  className?: string;
+}
+
+export function PageHeader({
+  title,
+  workspace,
+  subtitle,
+  actions,
+  density = "regular",
+  className,
+}: PageHeaderProps) {
+  const headerHeight = densityClasses[density].header;
+
   return (
-    <div className="shrink-0 border-b">
-      <div className="h-14 px-4 flex items-center gap-3">
-        <h1 className="text-base font-semibold">{title}</h1>
+    <header className={cn("shrink-0 border-b border-border/80 px-4", headerHeight, className)}>
+      <div className="h-full flex items-center gap-3">
+        <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+        {workspace && <WorkspaceContextBadge workspace={workspace} />}
+        {subtitle && <span className="text-sm text-muted-foreground">{subtitle}</span>}
         <div className="flex-1" />
-        {children}
+        {actions}
       </div>
+    </header>
+  );
+}
+
+interface SectionBarProps {
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  density?: Density;
+  className?: string;
+}
+
+export function SectionBar({ left, right, density = "regular", className }: SectionBarProps) {
+  const sectionHeight = densityClasses[density].section;
+
+  return (
+    <div className={cn("shrink-0 border-b border-border/80 px-4", sectionHeight, className)}>
+      <div className="h-full flex items-center justify-between gap-3">{left}<div className="flex items-center gap-2">{right}</div></div>
     </div>
   );
 }

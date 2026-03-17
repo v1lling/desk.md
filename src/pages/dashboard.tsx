@@ -12,64 +12,57 @@ import {
 } from "@/stores";
 import { useNavigate } from "react-router-dom";
 import { Circle, CheckCircle2, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
 import type { ActiveTask, WorkspaceSummary } from "@/lib/desk/dashboard";
+import { PageHeader } from "@/components/patterns/page-header";
+import { DataCard } from "@/components/ui/data-card";
+import { DataRow } from "@/components/ui/data-row";
+import { DenseList } from "@/components/ui/dense-list";
 
-// Default color for workspaces without a color
-const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
+const DEFAULT_WORKSPACE_COLOR = "#64748b";
 
 function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
 
   const handleTaskClick = (task: ActiveTask) => {
-    // Set the workspace context and navigate to tasks
     setCurrentWorkspaceId(task.workspaceId);
     navigate(`/tasks?open=${task.id}`);
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3 min-h-[200px]">
+    <DataCard>
       <div className="flex items-center gap-2 mb-2">
         <Loader2 className="size-4 text-orange-500" />
         <h2 className="text-base font-medium">Focus</h2>
-        <span className="text-xs text-muted-foreground">
-          {tasks.length} in progress
-        </span>
+        <span className="text-xs text-muted-foreground">{tasks.length} in progress</span>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
-          <Loader2 className="size-4 animate-spin mr-2" />
-          Loading...
-        </div>
+        <LoadingState label="tasks" display="inline" className="py-8" />
       ) : tasks.length === 0 ? (
-        <div className="py-6 text-center text-muted-foreground text-sm">
-          No tasks in progress
-        </div>
+        <EmptyState title="No tasks in progress" display="inline" className="py-8" />
       ) : (
-        <div className="space-y-0.5">
+        <DenseList>
           {tasks.map((task) => (
-            <button
-              key={`${task.workspaceId}-${task.id}`}
-              onClick={() => handleTaskClick(task)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent/50 transition-colors text-left"
-            >
-              <Circle
-                className="size-2 shrink-0"
-                style={{ color: task.workspaceColor || DEFAULT_WORKSPACE_COLOR }}
-                fill={task.workspaceColor || DEFAULT_WORKSPACE_COLOR}
-              />
-              <span className="flex-1 truncate">{task.title}</span>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {task.workspaceName}
-              </span>
+            <button key={`${task.workspaceId}-${task.id}`} onClick={() => handleTaskClick(task)} className="w-full text-left">
+              <DataRow density="regular">
+                <Circle
+                  className="size-2 shrink-0"
+                  style={{ color: task.workspaceColor || DEFAULT_WORKSPACE_COLOR }}
+                  fill={task.workspaceColor || DEFAULT_WORKSPACE_COLOR}
+                />
+                <span className="flex-1 truncate text-sm">{task.title}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{task.workspaceName}</span>
+              </DataRow>
             </button>
           ))}
-        </div>
+        </DenseList>
       )}
-    </div>
+    </DataCard>
   );
 }
 
@@ -86,50 +79,46 @@ function WorkspacesWidget({
   );
 
   const handleWorkspaceClick = (summary: WorkspaceSummary) => {
-    // Set the workspace context and navigate to tasks
     setCurrentWorkspaceId(summary.workspaceId);
     navigate("/tasks");
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3">
+    <DataCard>
       <div className="flex items-center gap-2 mb-2">
         <CheckCircle2 className="size-4 text-blue-500" />
         <h2 className="text-base font-medium">Workspaces</h2>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
-          <Loader2 className="size-4 animate-spin mr-2" />
-          Loading...
-        </div>
+        <LoadingState label="workspaces" display="inline" className="py-8" />
       ) : summaries.length === 0 ? (
-        <div className="py-6 text-center text-muted-foreground text-sm">
-          No workspaces yet
-        </div>
+        <EmptyState title="No workspaces yet" display="inline" className="py-8" />
       ) : (
-        <div className="space-y-1.5">
+        <DenseList className="space-y-1.5">
           {summaries.map((summary) => (
             <button
               key={summary.workspaceId}
               onClick={() => handleWorkspaceClick(summary)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-muted/30 hover:bg-accent/50 transition-colors"
+              className="w-full"
             >
-              <Circle
-                className="size-3 shrink-0"
-                style={{ color: summary.color || DEFAULT_WORKSPACE_COLOR }}
-                fill={summary.color || DEFAULT_WORKSPACE_COLOR}
-              />
-              <span className="flex-1 text-left truncate font-medium">{summary.name}</span>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {summary.completedTasks}/{summary.totalTasks}
-              </span>
-              <ProgressBar percent={summary.completionPercent} />
+              <DataRow className="bg-muted/35">
+                <Circle
+                  className="size-3 shrink-0"
+                  style={{ color: summary.color || DEFAULT_WORKSPACE_COLOR }}
+                  fill={summary.color || DEFAULT_WORKSPACE_COLOR}
+                />
+                <span className="flex-1 text-left truncate font-medium text-sm">{summary.name}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {summary.completedTasks}/{summary.totalTasks}
+                </span>
+                <ProgressBar percent={summary.completionPercent} />
+              </DataRow>
             </button>
           ))}
-        </div>
+        </DenseList>
       )}
-    </div>
+    </DataCard>
   );
 }
 
@@ -156,7 +145,6 @@ export default function DashboardPage() {
   const { data: workspaceSummaries = [], isLoading: summariesLoading } =
     useWorkspaceSummaries();
 
-  // Triage detail modal state
   const [triageModalOpen, setTriageModalOpen] = useState(false);
   const [triagedTask, setTriagedTask] = useState<Task | null>(null);
   const [triageDestination, setTriageDestination] = useState<TriageDestination | null>(null);
@@ -174,19 +162,15 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="h-14 border-b border-border flex items-center px-4">
-        <h1 className="text-base font-semibold">Dashboard</h1>
-      </header>
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeader title="Dashboard" />
 
       <ScrollArea className="flex-1">
         <main className="p-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl">
-            {/* Row 1: Capture + Focus */}
             <CaptureWidget onTriageComplete={handleTriageComplete} />
             <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
 
-            {/* Row 2: Workspaces (spans full width on larger screens) */}
             <div className="lg:col-span-2">
               <WorkspacesWidget
                 summaries={workspaceSummaries}

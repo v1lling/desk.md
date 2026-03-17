@@ -1,17 +1,17 @@
 import { useState, useMemo, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
-import { EntityFilterBar } from "@/components/ui/entity-filter-bar";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
-import { FolderKanban, Plus, Circle } from "lucide-react";
+import { FolderKanban, Plus, Calendar } from "lucide-react";
 import type { Meeting } from "@/types";
 import { Link } from "react-router-dom";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Calendar } from "lucide-react";
+import { PageHeader } from "@/components/patterns/page-header";
+import { SectionGroup } from "@/components/ui/section-group";
 
 export default function MeetingsPage() {
   const currentWorkspace = useCurrentWorkspace();
@@ -23,24 +23,20 @@ export default function MeetingsPage() {
   const [showNewMeeting, setShowNewMeeting] = useState(false);
   const [filterProject, setFilterProject] = useState<string>("all");
 
-  // Handle ?open= query param from search navigation
   useOpenFromQuery(meetings, openMeeting, "/meetings");
 
   const handleMeetingClick = (meeting: Meeting) => {
     openMeeting(meeting);
   };
 
-  // Filter meetings by project
   const filteredMeetings = useMemo(() => {
     if (filterProject === "all") return meetings;
     return meetings.filter((meeting) => meeting.projectId === filterProject);
   }, [meetings, filterProject]);
 
-  // Group meetings by project for display
   const getProjectId = useCallback((meeting: Meeting) => meeting.projectId, []);
   const groupedMeetings = useGroupedItems(filteredMeetings, getProjectId);
 
-  // Project name with fallback for unassigned
   const getDisplayProjectName = useCallback(
     (projectId: string) => {
       if (projectId === "_unassigned") return "No project";
@@ -49,32 +45,16 @@ export default function MeetingsPage() {
     [getProjectName]
   );
 
-  // Prepare filter options
   const projectOptions = useMemo(
     () => projects.map((p) => ({ value: p.id, label: p.name })),
     [projects]
   );
 
-  const workspaceColor = currentWorkspace?.color || "#64748b";
-
   return (
-    <div className="flex flex-col h-full">
-      {/* Page Header with workspace context */}
-      {currentWorkspace && (
-        <div className="shrink-0 h-12 px-4 flex items-center gap-3 border-b">
-          <Circle
-            className="size-3 shrink-0"
-            style={{ color: workspaceColor }}
-            fill={workspaceColor}
-          />
-          <h1 className="text-base font-semibold">Meetings</h1>
-          <Badge variant="outline" className="text-xs font-normal">
-            {currentWorkspace.name}
-          </Badge>
-        </div>
-      )}
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeader title="Meetings" workspace={currentWorkspace} />
 
-      <EntityFilterBar
+      <FilterBar
         filters={[
           {
             id: "project",
@@ -99,7 +79,7 @@ export default function MeetingsPage() {
       <ScrollArea className="flex-1">
         <main className="p-4">
           {isLoading ? (
-            <LoadingState label="meetings" />
+            <LoadingState label="meetings" display="inline" />
           ) : filteredMeetings.length === 0 ? (
             <EmptyState
               icon={Calendar}
@@ -109,30 +89,26 @@ export default function MeetingsPage() {
                   ? "Try selecting a different project or create a new meeting"
                   : "Create your first meeting note to get started"
               }
+              display="inline"
             />
           ) : filterProject === "all" ? (
-            // Grouped view when showing all
-            <div className="space-y-8">
+            <div className="space-y-4">
               {Object.entries(groupedMeetings).map(([projectId, projectMeetings]) => (
-                <div key={projectId}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                    <Link
-                      to={`/projects/${projectId}/tasks`}
-                      className="font-medium hover:underline"
-                    >
+                <SectionGroup
+                  key={projectId}
+                  icon={<FolderKanban className="h-4 w-4" />}
+                  title={
+                    <Link to={`/projects/${projectId}/tasks`} className="hover:underline">
                       {getDisplayProjectName(projectId)}
                     </Link>
-                    <Badge variant="outline" className="ml-2">
-                      {projectMeetings.length}
-                    </Badge>
-                  </div>
+                  }
+                  count={projectMeetings.length}
+                >
                   <MeetingList meetings={projectMeetings} onMeetingClick={handleMeetingClick} />
-                </div>
+                </SectionGroup>
               ))}
             </div>
           ) : (
-            // Simple list when filtered
             <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />
           )}
         </main>

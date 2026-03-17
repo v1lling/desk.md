@@ -1,4 +1,3 @@
-
 import {
   Select,
   SelectContent,
@@ -7,13 +6,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { densityClasses, type Density } from "@/lib/enterprise-ui";
 
 export interface FilterOption {
   value: string;
   label: string;
 }
 
-export interface FilterConfig {
+export interface FilterBarConfig {
   id: string;
   label: string;
   value: string;
@@ -23,28 +23,27 @@ export interface FilterConfig {
   width?: string;
 }
 
-interface EntityFilterBarProps {
-  filters: FilterConfig[];
+interface FilterBarProps {
+  filters: FilterBarConfig[];
   count: number;
   countLabel: string;
   className?: string;
-  /** Optional element to render on the right side (e.g., view toggle) */
   rightElement?: React.ReactNode;
+  density?: Density;
 }
 
-/**
- * Reusable filter bar for entity lists (tasks, notes, meetings)
- * Provides a consistent UI for filtering across the app
- */
-export function EntityFilterBar({
+export function FilterBar({
   filters,
   count,
   countLabel,
   className,
   rightElement,
-}: EntityFilterBarProps) {
+  density = "regular",
+}: FilterBarProps) {
+  const rowHeight = densityClasses[density].section;
+
   return (
-    <div className={cn("px-4 py-2 border-b flex items-center gap-3 flex-wrap", className)}>
+    <div className={cn("px-4 border-b border-border/80 flex items-center gap-3 flex-wrap", rowHeight, className)}>
       {filters.map((filter) => (
         <div key={filter.id} className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">{filter.label}:</span>

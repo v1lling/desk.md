@@ -1,5 +1,4 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
@@ -12,19 +11,14 @@ export function UpdateSection() {
   if (!isTauri()) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Updates
-        </CardTitle>
-        <CardDescription>
-          Check for new versions of Desk
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsSection
+      icon={<Download className="h-4 w-4" />}
+      title="Updates"
+      description="Check for new versions of Desk"
+    >
+      <div className="space-y-3">
         {status === "idle" && !error && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <p className="text-sm">No updates available</p>
               <p className="text-xs text-muted-foreground">You're on the latest version</p>
@@ -81,7 +75,7 @@ export function UpdateSection() {
             </Button>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }

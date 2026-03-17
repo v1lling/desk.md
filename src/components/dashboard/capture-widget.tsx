@@ -1,6 +1,8 @@
 
 import { useState } from "react";
 import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -134,14 +136,9 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 
       {/* Task List */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-6 text-muted-foreground">
-          <Loader2 className="size-4 animate-spin mr-2" />
-          Loading...
-        </div>
+        <LoadingState label="tasks" display="inline" className="py-6" />
       ) : !hasTasks ? (
-        <div className="py-6 text-center text-muted-foreground text-sm">
-          Capture tasks quickly, triage later
-        </div>
+        <EmptyState title="Capture tasks quickly, triage later" display="inline" className="py-6" />
       ) : (
         <ScrollArea className="max-h-[280px]">
           <div className="space-y-1.5">

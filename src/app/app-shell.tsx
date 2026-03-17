@@ -5,6 +5,7 @@ import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useSettingsStore } from "@/stores/settings";
+import { useTabStore } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
 
@@ -14,8 +15,9 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [hydrated, setHydrated] = useState(false);
-  const [hasTitleBar, setHasTitleBar] = useState(false);
+  const [hasMacTrafficLights, setHasMacTrafficLights] = useState(false);
   const setupCompleted = useSettingsStore((state) => state.setupCompleted);
+  const tabCount = useTabStore((state) => state.tabs.length);
 
   const {
     width: sidebarWidth,
@@ -26,11 +28,12 @@ export function AppShell({ children }: AppShellProps) {
     handleDoubleClick,
     toggleCollapsed,
   } = useSidebarResize();
+  const RESIZE_HANDLE_WIDTH = 4; // matches ResizeHandle w-1
 
   // Wait for hydration to avoid flash of wrong content
   useEffect(() => {
     setHydrated(true);
-    setHasTitleBar(needsTrafficLightPadding());
+    setHasMacTrafficLights(needsTrafficLightPadding());
   }, []);
 
   // Show nothing until hydrated (prevents flash)
@@ -49,14 +52,25 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Window drag region - spans full width on macOS */}
-      {hasTitleBar && (
-        <div
-          data-tauri-drag-region
-          className="h-8 shrink-0 bg-sidebar border-b border-sidebar-border/50"
-        />
-      )}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div
+        className="h-10 shrink-0 border-b border-border/80 bg-muted/15 grid"
+        style={{ gridTemplateColumns: `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)` }}
+      >
+        <div className="h-full relative">
+          <div data-tauri-drag-region className="h-full w-full" />
+          {hasMacTrafficLights && (
+            <div data-tauri-drag-region className="absolute inset-y-0 left-0 w-[84px]" />
+          )}
+        </div>
+        <div data-tauri-drag-region className="h-full" />
+        <div className="h-full min-w-0">
+          {tabCount > 1 ? <TabBar inTitleBar /> : <div data-tauri-drag-region className="h-full w-full" />}
+        </div>
+      </div>
+      <div
+        className="grid flex-1 min-h-0 overflow-hidden"
+        style={{ gridTemplateColumns: `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)` }}
+      >
         <Sidebar
           width={sidebarWidth}
           isCollapsed={isCollapsed}
@@ -68,8 +82,7 @@ export function AppShell({ children }: AppShellProps) {
           onResizeEnd={handleResizeEnd}
           onDoubleClick={handleDoubleClick}
         />
-        <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <TabBar />
+        <main className="min-w-0 min-h-0 overflow-hidden flex flex-col">
           <TabContent>{children}</TabContent>
         </main>
       </div>

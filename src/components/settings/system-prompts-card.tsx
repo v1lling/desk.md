@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ScrollText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAISettingsStore } from "@/stores/ai";
@@ -33,24 +32,18 @@ export function SystemPromptsCard() {
   const { perTypeInstructions, setPerTypeInstructions } = useAISettingsStore();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ScrollText className="h-5 w-5" />
-          System Prompts
-        </CardTitle>
-        <CardDescription>
-          View the default instructions given to the AI for each interaction type and add your own per-type instructions.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <CollapsiblePrompt label="View base context (included in all prompts)" content={BASE_CONTEXT} />
+    <SettingsSection
+      icon={<ScrollText className="h-4 w-4" />}
+      title="System Prompts"
+      description="View the default instructions given to the AI for each interaction type and add your own per-type instructions."
+    >
+      <div className="divide-y divide-border/40">
+        <div className="pb-4">
+          <CollapsiblePrompt label="View base context (included in all prompts)" content={BASE_CONTEXT} />
+        </div>
 
-        <Separator />
-
-        {USER_FACING_PROMPTS.map(({ purpose, label, description, defaultPrompt }, index) => (
-          <div key={purpose}>
-            {index > 0 && <Separator className="mb-4" />}
+        {USER_FACING_PROMPTS.map(({ purpose, label, description, defaultPrompt }) => (
+          <div key={purpose} className="py-4">
             <div className="space-y-3">
               <div>
                 <Label>{label}</Label>
@@ -74,10 +67,12 @@ export function SystemPromptsCard() {
           </div>
         ))}
 
-        <p className="text-xs text-muted-foreground">
-          Per-type instructions are combined with your global custom instructions above.
-        </p>
-      </CardContent>
-    </Card>
+        <div className="pt-4">
+          <p className="text-xs text-muted-foreground">
+            Per-type instructions are combined with your global custom instructions above.
+          </p>
+        </div>
+      </div>
+    </SettingsSection>
   );
 }

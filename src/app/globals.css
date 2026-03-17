@@ -52,6 +52,23 @@
   --font-geist-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-geist-mono: "Geist Mono Variable", ui-monospace, monospace;
   --radius: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-row: 0.5rem;
+
+  /* Enterprise spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  /* Elevation + motion */
+  --elevation-1: 0 1px 2px oklch(0 0 0 / 0.08);
+  --elevation-2: 0 6px 18px oklch(0 0 0 / 0.08);
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
 
   /* Refined light theme - warm neutral with subtle depth */
   --background: oklch(0.985 0.002 90);
@@ -148,6 +165,8 @@
   --sidebar-accent-foreground: oklch(0.95 0.005 90);
   --sidebar-border: oklch(0.25 0.01 260);
   --sidebar-ring: oklch(0.55 0.15 250);
+  --elevation-1: 0 1px 2px oklch(0 0 0 / 0.25);
+  --elevation-2: 0 8px 24px oklch(0 0 0 / 0.35);
 }
 
 @layer base {

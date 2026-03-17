@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -112,102 +111,81 @@ export function DataTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Data Storage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderOpen className="h-5 w-5" />
-            Data Storage
-          </CardTitle>
-          <CardDescription>
-            Where your projects and files are stored
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="data-path">Data folder path</Label>
-            <div className="flex gap-2">
-              <Input
-                id="data-path"
-                value={pendingPath || dataPath}
-                onChange={(e) => setPendingPath(e.target.value)}
-                placeholder="~/Desk"
-                className="font-mono text-sm"
-              />
-              <Button
-                variant="outline"
-                onClick={handleCheckDataPath}
-                disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
-              >
-                {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Change
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All your workspaces, projects, tasks, and notes are stored as markdown files in this folder.
-            </p>
+      <SettingsSection
+        icon={<FolderOpen className="h-4 w-4" />}
+        title="Data Storage"
+        description="Where your projects and files are stored"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="data-path">Data folder path</Label>
+          <div className="flex gap-2">
+            <Input
+              id="data-path"
+              value={pendingPath || dataPath}
+              onChange={(e) => setPendingPath(e.target.value)}
+              placeholder="~/Desk"
+              className="font-mono text-sm"
+            />
+            <Button
+              variant="outline"
+              onClick={handleCheckDataPath}
+              disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
+            >
+              {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Change
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-muted-foreground">
+            All your workspaces, projects, tasks, and notes are stored as markdown files in this folder.
+          </p>
+        </div>
+      </SettingsSection>
 
       {/* Workspaces Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspaces</CardTitle>
-          <CardDescription>
-            Your configured workspaces
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {workspaces.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No workspaces configured yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {workspaces.map((workspace) => (
+      <SettingsSection title="Workspaces" description="Your configured workspaces">
+        {workspaces.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No workspaces configured yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {workspaces.map((workspace) => (
+              <div
+                key={workspace.id}
+                className="flex items-center gap-3 p-2 rounded-md border"
+              >
                 <div
-                  key={workspace.id}
-                  className="flex items-center gap-3 p-2 rounded-md border"
-                >
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: workspace.color || "#6366f1" }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{workspace.name}</p>
-                    {workspace.description && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {workspace.description}
-                      </p>
-                    )}
-                  </div>
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: workspace.color || "#6366f1" }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{workspace.name}</p>
+                  {workspace.description && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {workspace.description}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        )}
+      </SettingsSection>
 
       {/* Reset Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RotateCcw className="h-5 w-5" />
-            Reset
-          </CardTitle>
-          <CardDescription>
-            Reset application settings to defaults
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
-            Reset All Settings
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            This will reset all settings and show the setup wizard again. Your data files will not be deleted.
-          </p>
-        </CardContent>
-      </Card>
+      <SettingsSection
+        icon={<RotateCcw className="h-4 w-4" />}
+        title="Reset"
+        description="Reset application settings to defaults"
+        variant="inset"
+      >
+        <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
+          Reset All Settings
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          This will reset all settings and show the setup wizard again. Your data files will not be deleted.
+        </p>
+      </SettingsSection>
 
       {/* Reset Settings Confirmation Dialog */}
       <ConfirmDialog
