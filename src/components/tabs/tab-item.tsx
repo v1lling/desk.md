@@ -62,6 +62,10 @@ export const TabItem = memo(function TabItem({
 
   const widthClass = isMainTab ? "w-[140px]" : "w-[160px]";
 
+  const deskColorStyle = isDeskTab && workspaceColor && isActive
+    ? { backgroundColor: `${workspaceColor}18` }
+    : undefined;
+
   return (
     <TabContextMenu
       tab={tab}
@@ -73,10 +77,13 @@ export const TabItem = memo(function TabItem({
         onClick={onActivate}
         onMouseDown={handleMouseDown}
         title={tab.title}
+        style={deskColorStyle}
         className={cn(
           "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-t-lg border border-transparent px-3 text-xs transition-colors",
           widthClass,
-          isActive
+          isDeskTab && workspaceColor && isActive
+            ? "border-border/80 border-b-background shadow-[0_-1px_0_rgba(0,0,0,0.02)] text-foreground"
+            : isActive
             ? "bg-background text-foreground border-border/80 border-b-background shadow-[0_-1px_0_rgba(0,0,0,0.02)]"
             : "text-muted-foreground/85 hover:text-foreground hover:bg-muted/35",
           isMainTab && "font-medium"

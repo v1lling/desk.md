@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { Bot, Home } from "lucide-react";
+import { Bot, Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
+import { useSettingsStore } from "@/stores/settings";
 import type { TabType } from "@/stores/tabs";
 import { TabItem } from "./tab-item";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
@@ -14,12 +15,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const MAX_VISIBLE_DESKTOP = 8;
-const MAX_VISIBLE_MOBILE = 5;
+const TAB_CONTENT_WIDTH = 160; // px per content tab (w-[160px])
+const TAB_MAIN_WIDTH = 140;   // px per main tab (desk, ai)
+const TAB_GAP = 4;            // gap-1 between tabs
+const OVERFLOW_BTN_WIDTH = 50; // approximate width of the overflow button
+const SEPARATOR_WIDTH = 9;    // separator + margins
 
-const SYSTEM_TAB_ICONS: Partial<Record<TabType, React.ElementType>> = {
+const TAB_ICONS: Record<TabType, React.ElementType> = {
   desk: Home,
   ai: Bot,
+  doc: FileText,
+  task: CheckSquare,
+  meeting: Calendar,
+  email: Mail,
 };
 
 const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects/"];
@@ -67,7 +75,8 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   const requestSaveAndClose = useTabStore((state) => state.requestSaveAndClose);
   const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
   const currentWorkspace = useCurrentWorkspace();
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+  const sidebarWidth = useSettingsStore((state) => state.sidebarWidth);
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{
     open: boolean;
@@ -78,14 +87,9 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   const [closeOthersTargetTabId, setCloseOthersTargetTabId] = useState<string | null>(null);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDesktop(e.matches);
-    };
-
-    setIsDesktop(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    const handler = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
   }, []);
 
   const projectId = pathname.startsWith("/projects/") ? (params.id ?? null) : null;
@@ -234,10 +238,15 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   );
 
   const { visibleTabs, overflowTabs } = useMemo(() => {
-    const maxVisible = isDesktop ? MAX_VISIBLE_DESKTOP : MAX_VISIBLE_MOBILE;
+    const containerWidth = windowWidth - sidebarWidth - 4 - 8; // 4=resize handle, 8=pr-2
     const contentTabs = tabs.filter(
       (tab) => tab.type !== "desk" && tab.type !== "ai"
     );
+    // Calculate how many content tabs fit in the available width.
+    // Reserve space for main tabs, separator, and overflow button.
+    const mainTabCount = tabs.filter((t) => t.type === "desk" || t.type === "ai").length;
+    const reserved = mainTabCount * (TAB_MAIN_WIDTH + TAB_GAP) + SEPARATOR_WIDTH + OVERFLOW_BTN_WIDTH;
+    const maxVisible = Math.max(1, Math.floor((containerWidth - reserved) / (TAB_CONTENT_WIDTH + TAB_GAP)));
     if (contentTabs.length <= maxVisible) {
       return { visibleTabs: contentTabs, overflowTabs: [] };
     }
@@ -259,7 +268,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
     const nextOverflowTabs = contentTabs.filter((tab) => !visibleTabIds.has(tab.id));
 
     return { visibleTabs: nextVisibleTabs, overflowTabs: nextOverflowTabs };
-  }, [tabs, activeTabId, isDesktop]);
+  }, [tabs, activeTabId, windowWidth, sidebarWidth]);
 
   const mainTabs = useMemo(() => {
     const order: TabType[] = ["desk", "ai"];
@@ -303,8 +312,8 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
     : "h-9 bg-muted/20 border-b border-border/80 flex items-end shrink-0";
 
   const innerClasses = inTitleBar
-    ? "w-full h-full flex items-center gap-1 pr-2 overflow-hidden"
-    : "w-full h-full flex items-end gap-1 px-2 overflow-hidden";
+    ? "w-full h-full flex items-center gap-1 pr-2"
+    : "w-full h-full flex items-end gap-1 px-2";
 
   return (
     <>
@@ -330,7 +339,11 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
             </>
           )}
 
-          <div className={inTitleBar ? "flex items-center h-full gap-1 min-w-0" : "flex items-end h-full gap-1 min-w-0"}>
+          {mainTabs.length > 0 && visibleTabs.length > 0 && (
+            <div className="w-px h-5 bg-border/60 shrink-0 self-center mx-0.5" />
+          )}
+
+          <div className={inTitleBar ? "flex items-center h-full gap-1 overflow-hidden shrink-0" : "flex items-end h-full gap-1 flex-1 min-w-0 overflow-hidden"}>
             {visibleTabs.map((tab) => (
               <TabItem
                 key={tab.id}
@@ -351,34 +364,39 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-8 px-2 text-xs rounded-t-md text-muted-foreground/80 hover:text-foreground hover:bg-muted/30 transition-colors shrink-0"
-                  title={`${overflowTabs.length} hidden tabs`}
+                  className="h-7 flex items-center gap-1 px-2 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors shrink-0 text-xs font-medium"
+                  title={`${overflowTabs.length} more tabs`}
                 >
-                  +{overflowTabs.length}
+                  <span>+{overflowTabs.length}</span>
+                  <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-64"
-              >
+              <DropdownMenuContent align="end" className="w-64">
                 {overflowTabs.map((tab) => {
-                  const Icon = SYSTEM_TAB_ICONS[tab.type];
-                  const isSystemTab = tab.type === "desk" || tab.type === "ai";
+                  const Icon = TAB_ICONS[tab.type];
+                  const isActive = tab.id === activeTabId;
                   return (
                     <DropdownMenuItem
                       key={tab.id}
                       onSelect={() => handleActivate(tab.id)}
-                      className="gap-2"
+                      className="gap-2 group/item"
                     >
-                      {isSystemTab && Icon ? (
-                        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <span className="w-3.5 shrink-0" />
-                      )}
-                      <span className="truncate flex-1">{tab.title}</span>
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className={`truncate flex-1 ${isActive ? "font-medium" : ""}`}>{tab.title}</span>
                       {tab.isDirty && (
-                        <span className="text-muted-foreground/60 shrink-0 text-[10px] leading-none">
-                          •
+                        <span className="text-muted-foreground/60 shrink-0 text-[10px] leading-none">•</span>
+                      )}
+                      {!tab.isPinned && (
+                        <span
+                          role="button"
+                          tabIndex={-1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClose(tab.id);
+                          }}
+                          className="ml-1 p-0.5 rounded opacity-0 group-hover/item:opacity-60 hover:!opacity-100 hover:bg-accent transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
                         </span>
                       )}
                     </DropdownMenuItem>

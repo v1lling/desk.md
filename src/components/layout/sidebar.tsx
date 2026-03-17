@@ -5,16 +5,13 @@
 import { cn } from "@/lib/utils";
 import {
   Settings,
-  ChevronLeft,
   CheckSquare,
   Calendar,
   Home,
-  Search,
   Bot,
   FileText,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
 import { useDocs } from "@/stores/content";
@@ -28,7 +25,6 @@ import { SidebarNavRow } from "./sidebar-nav-row";
 interface SidebarProps {
   width: number;
   isCollapsed: boolean;
-  onToggle?: () => void;
   isDragging?: boolean;
 }
 
@@ -36,7 +32,7 @@ function Divider() {
   return <div className="h-px bg-sidebar-border/60 my-2 mx-2" />;
 }
 
-export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarProps) {
+export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   const { pathname } = useLocation();
   const currentWorkspace = useCurrentWorkspace();
   const workspaceId = currentWorkspace?.id || null;
@@ -63,55 +59,6 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
       )}
       style={{ width: `${width}px` }}
     >
-      <div className="shrink-0 p-2 flex items-center gap-1.5 border-b border-sidebar-border/60">
-        {!collapsed ? (
-          <>
-            <button
-              onClick={() => {
-                const event = new KeyboardEvent("keydown", {
-                  key: "k",
-                  metaKey: true,
-                  bubbles: true,
-                });
-                document.dispatchEvent(event);
-              }}
-              className="flex-1 flex items-center gap-2 px-2.5 py-1 rounded-md bg-sidebar-accent/35 text-sidebar-foreground/60 text-sm hover:bg-sidebar-accent/60 hover:text-sidebar-foreground/80 transition-colors"
-            >
-              <Search className="size-3.5" />
-              <span className="flex-1 text-left text-xs">Search...</span>
-              <kbd className="text-[10px] font-medium bg-sidebar-accent/50 px-1 py-0.5 rounded">
-                ⌘K
-              </kbd>
-            </button>
-            {onToggle && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggle}
-                className="size-7 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-            )}
-          </>
-        ) : (
-          <button
-            onClick={() => {
-              const event = new KeyboardEvent("keydown", {
-                key: "k",
-                metaKey: true,
-                bubbles: true,
-              });
-              document.dispatchEvent(event);
-            }}
-            className="w-full flex items-center justify-center py-1 rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground/70 transition-colors"
-            title="Search (⌘K)"
-          >
-            <Search className="size-4" />
-          </button>
-        )}
-      </div>
-
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className="px-2 py-2 space-y-1 shrink-0">
           <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" />
@@ -149,16 +96,6 @@ export function Sidebar({ width, isCollapsed, onToggle, isDragging }: SidebarPro
         />
         <SidebarNavRow to="/settings" label="Settings" icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" />
 
-        {collapsed && onToggle && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="w-full h-7 mt-1 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
-          >
-            <ChevronLeft className="size-3.5 rotate-180" />
-          </Button>
-        )}
       </div>
 
       <WorkspaceSelector isCollapsed={collapsed} />

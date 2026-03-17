@@ -8,6 +8,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { useTabStore } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
+import { Search } from "lucide-react";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -26,7 +27,6 @@ export function AppShell({ children }: AppShellProps) {
     handleResize,
     handleResizeEnd,
     handleDoubleClick,
-    toggleCollapsed,
   } = useSidebarResize();
   const RESIZE_HANDLE_WIDTH = 4; // matches ResizeHandle w-1
 
@@ -56,10 +56,22 @@ export function AppShell({ children }: AppShellProps) {
         className="h-10 shrink-0 border-b border-border/80 bg-muted/15 grid"
         style={{ gridTemplateColumns: `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)` }}
       >
-        <div className="h-full relative">
-          <div data-tauri-drag-region className="h-full w-full" />
+        <div className="h-full relative flex items-center overflow-hidden">
           {hasMacTrafficLights && (
             <div data-tauri-drag-region className="absolute inset-y-0 left-0 w-[84px]" />
+          )}
+          <div data-tauri-drag-region className="flex-1 h-full" />
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={() => {
+                document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+              }}
+              title="Search (⌘K)"
+              className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
         <div data-tauri-drag-region className="h-full" />
@@ -74,7 +86,6 @@ export function AppShell({ children }: AppShellProps) {
         <Sidebar
           width={sidebarWidth}
           isCollapsed={isCollapsed}
-          onToggle={toggleCollapsed}
           isDragging={isDragging}
         />
         <ResizeHandle
