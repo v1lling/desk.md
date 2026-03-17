@@ -17,7 +17,6 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
 import type { ActiveTask, WorkspaceSummary } from "@/lib/desk/dashboard";
-import { PageHeader } from "@/components/patterns/page-header";
 import { DataCard } from "@/components/ui/data-card";
 import { DataRow } from "@/components/ui/data-row";
 import { DenseList } from "@/components/ui/dense-list";
@@ -163,8 +162,6 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeader title="Dashboard" />
-
       <ScrollArea className="flex-1">
         <main className="p-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl">

@@ -40,7 +40,7 @@ export function UpdateSection() {
         {status === "available" && updateInfo && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-emerald-500" />
               <p className="text-sm font-medium">
                 Version {updateInfo.version} available
               </p>

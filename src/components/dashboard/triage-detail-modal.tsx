@@ -98,7 +98,7 @@ export function TriageDetailModal({
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Check className="size-5 text-green-500" />
+            <Check className="size-5 text-emerald-500" />
             Task Moved
           </DialogTitle>
           <DialogDescription asChild>

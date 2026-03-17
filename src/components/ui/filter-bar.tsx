@@ -48,7 +48,7 @@ export function FilterBar({
         <div key={filter.id} className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">{filter.label}:</span>
           <Select value={filter.value} onValueChange={filter.onChange}>
-            <SelectTrigger className={cn("h-7 text-xs", filter.width || "w-[160px]")}>
+            <SelectTrigger size="xs" className={cn("text-xs", filter.width || "w-[160px]")}>
               <SelectValue placeholder={filter.allLabel || "All"} />
             </SelectTrigger>
             <SelectContent>

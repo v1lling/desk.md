@@ -2,7 +2,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings, Bot, Brain, FolderOpen, FileText } from "lucide-react";
 import { GeneralTab, AITab, ContextTab, DataTab, TemplatesTab } from "@/components/settings";
 import { TabbedPage, TabsContent, type TabConfig } from "@/components/patterns";
-import { PageHeader } from "@/components/patterns/page-header";
 
 const tabs: TabConfig[] = [
   { value: "general", label: "General", icon: <Settings className="h-3.5 w-3.5" /> },
@@ -15,7 +14,6 @@ const tabs: TabConfig[] = [
 export default function SettingsPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeader title="Settings" />
       <TabbedPage tabs={tabs} defaultTab="general">
         <TabsContent value="general" className="flex-1 min-h-0">
           <ScrollArea className="h-full">

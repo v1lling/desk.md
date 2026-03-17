@@ -3,13 +3,9 @@ import { FilterBar, type FilterBarConfig } from "@/components/ui/filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { PageHeader } from "./page-header";
 import { densityClasses, type Density } from "@/lib/enterprise-ui";
-import type { Workspace } from "@/types";
 
 interface FilteredListPageProps {
-  title: string;
-  workspace?: Workspace | null;
   actionLabel?: string;
   onAction?: () => void;
   filters: FilterBarConfig[];
@@ -23,8 +19,6 @@ interface FilteredListPageProps {
 }
 
 export function FilteredListPage({
-  title,
-  workspace,
   actionLabel,
   onAction,
   filters,
@@ -54,8 +48,6 @@ export function FilteredListPage({
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      <PageHeader title={title} workspace={workspace} density={density} />
-
       <FilterBar
         filters={filters}
         count={count}

@@ -10,7 +10,6 @@ import type { Meeting } from "@/types";
 import { Link } from "react-router-dom";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/patterns/page-header";
 import { SectionGroup } from "@/components/ui/section-group";
 
 export default function MeetingsPage() {
@@ -52,8 +51,6 @@ export default function MeetingsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeader title="Meetings" workspace={currentWorkspace} />
-
       <FilterBar
         filters={[
           {

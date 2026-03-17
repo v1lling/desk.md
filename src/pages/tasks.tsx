@@ -52,8 +52,6 @@ export default function TasksPage() {
 
   return (
     <FilteredListPage
-      title="Tasks"
-      workspace={currentWorkspace}
       actionLabel="New Task"
       onAction={() => setShowNewTask(true)}
       filters={[

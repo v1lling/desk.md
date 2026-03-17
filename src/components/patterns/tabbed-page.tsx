@@ -43,7 +43,7 @@ export function TabbedPage({
       onValueChange={handleTabChange}
       className="flex-1 flex flex-col min-h-0 overflow-hidden"
     >
-      <div className="px-4 h-14 flex items-center justify-between border-b border-border/80 bg-muted/15">
+      <div className="px-4 h-11 flex items-center justify-between border-b border-border/80 bg-muted/15">
         <TabsPrimitive.List className="flex items-center gap-1.5">
           {tabs.map((tab) => (
             <TabsPrimitive.Trigger

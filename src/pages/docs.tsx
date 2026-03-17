@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
 import { useProjects, useCurrentWorkspace, WORKSPACE_LEVEL_PROJECT_ID } from "@/stores";
-import { PageHeader } from "@/components/patterns/page-header";
 import { StatePanel } from "@/components/ui/state-panel";
 
 export default function DocsPage() {
@@ -54,8 +53,6 @@ export default function DocsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeader title="Docs" workspace={currentWorkspace} />
-
       <main className="flex-1 h-full overflow-hidden">
         <ContentExplorer scopes={scopes} defaultScopeId={WORKSPACE_LEVEL_PROJECT_ID} />
       </main>

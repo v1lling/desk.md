@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/patterns/page-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "@/components/ai/chat-message";
 import { ConversationList } from "@/components/ai/conversation-list";
@@ -215,8 +214,6 @@ export function AIChatEditor() {
       <ConversationList className="w-[240px] shrink-0" />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <PageHeader title="Assistant" density="regular" />
-
         <div className="px-6 pt-3 shrink-0">
           {isRunning && (
             <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={cancelRun}>

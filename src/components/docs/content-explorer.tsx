@@ -367,12 +367,14 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     >
       {/* Header - hidden when hideToolbar is true */}
       {!hideToolbar && (
-        <div className="shrink-0 px-6 py-4 border-b flex items-center gap-3">
+        <div className="shrink-0 h-11 px-4 border-b border-border/80 flex items-center gap-3">
           {/* Scope dropdown or title */}
           {showDropdown ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Scope:</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                   <span className="truncate">{selectedScope?.label}</span>
                   <ChevronDown className="size-4 shrink-0 opacity-50" />
                 </Button>
@@ -400,6 +402,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           ) : (
             <h2 className="text-sm font-medium">{selectedScope?.label}</h2>
           )}

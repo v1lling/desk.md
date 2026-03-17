@@ -5,23 +5,11 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TaskStatus, TaskPriority } from "@/types";
-import { priorityTextColors } from "@/lib/design-tokens";
-
-// Status configuration
-const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
-  backlog: { label: "Backlog", color: "text-slate-600 dark:text-slate-400" },
-  todo: { label: "To Do", color: "text-muted-foreground" },
-  doing: { label: "In Progress", color: "text-blue-600 dark:text-blue-400" },
-  waiting: { label: "Waiting", color: "text-amber-600 dark:text-amber-400" },
-  done: { label: "Done", color: "text-green-600 dark:text-green-400" },
-};
-
-const statusOptions: TaskStatus[] = ["backlog", "todo", "doing", "waiting", "done"];
+import { priorityTextColors, taskStatusTextColors, taskStatusLabels, taskStatusOrder } from "@/lib/design-tokens";
 
 const priorityConfig: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: "High", color: priorityTextColors.high },
@@ -83,18 +71,18 @@ export function MetadataToolbar({
       {status !== undefined && onStatusChange && (
         <div className="flex items-center">
           <Select value={status} onValueChange={(v) => onStatusChange(v as TaskStatus)}>
-            <SelectTrigger className="h-7 border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50">
+            <SelectTrigger size="xs" className="border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50">
               <span className="flex items-center gap-1.5">
-                <Circle className={cn("h-3 w-3 fill-current", statusConfig[status].color)} />
-                <span>{statusConfig[status].label}</span>
+                <Circle className={cn("h-3 w-3 fill-current", taskStatusTextColors[status])} />
+                <span>{taskStatusLabels[status]}</span>
               </span>
             </SelectTrigger>
             <SelectContent>
-              {statusOptions.map((s) => (
+              {taskStatusOrder.map((s) => (
                 <SelectItem key={s} value={s}>
                   <span className="flex items-center gap-2">
-                    <Circle className={cn("h-3 w-3 fill-current", statusConfig[s].color)} />
-                    {statusConfig[s].label}
+                    <Circle className={cn("h-3 w-3 fill-current", taskStatusTextColors[s])} />
+                    {taskStatusLabels[s]}
                   </span>
                 </SelectItem>
               ))}
@@ -115,7 +103,7 @@ export function MetadataToolbar({
             value={priority}
             onValueChange={(v) => onPriorityChange(v as TaskPriority | "none")}
           >
-            <SelectTrigger className="h-7 border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50">
+            <SelectTrigger size="xs" className="border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50">
               <span className={cn(
                 "flex items-center gap-1.5",
                 priority !== "none" ? priorityConfig[priority as TaskPriority].color : "text-muted-foreground"
@@ -148,7 +136,7 @@ export function MetadataToolbar({
       {projectId !== undefined && onProjectChange && (
         <div className="flex items-center">
           <Select value={projectId} onValueChange={onProjectChange}>
-            <SelectTrigger className="h-7 border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50 max-w-[150px]">
+            <SelectTrigger size="xs" className="border-none bg-transparent shadow-none px-2 gap-1.5 text-xs font-medium hover:bg-muted/50 max-w-[150px]">
               <FolderKanban className="h-3 w-3 text-muted-foreground shrink-0" />
               <span className="truncate">
                 {selectedProject?.name || "No project"}
