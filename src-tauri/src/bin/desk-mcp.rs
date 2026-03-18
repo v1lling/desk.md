@@ -15,12 +15,13 @@ struct ToolDef {
 fn tool_definitions() -> Vec<ToolDef> {
     vec![
         ToolDef {
-            name: "desk_list",
-            description: "List files and folders relative to Desk data root.",
+            name: "desk_tree",
+            description: "Get the workspace file tree. Returns ALL files and directories as a flat list with workspace-relative paths (usable with desk_read). Also returns project ID-to-name mappings. Without a path argument this returns the complete tree — if truncated is false, you have everything; do NOT re-call for subdirectories. Only use path to drill into a subdirectory when the full tree was truncated.",
             input_schema: json!({
               "type": "object",
               "properties": {
-                "path": { "type": "string" }
+                "workspace_id": { "type": "string" },
+                "path": { "type": "string", "description": "Optional subdirectory to scope the tree to (workspace-relative)." }
               }
             }),
         },
@@ -44,19 +45,6 @@ fn tool_definitions() -> Vec<ToolDef> {
               "properties": {
                 "query": { "type": "string" },
                 "path": { "type": "string" }
-              }
-            }),
-        },
-        ToolDef {
-            name: "desk_index_search",
-            description: "Search WORKSPACE_CONTEXT summaries for relevant documents.",
-            input_schema: json!({
-              "type": "object",
-              "required": ["query"],
-              "properties": {
-                "query": { "type": "string" },
-                "workspace_id": { "type": "string" },
-                "limit": { "type": "number" }
               }
             }),
         },
@@ -220,12 +208,16 @@ fn error_call_result(message: &str) -> Value {
 
 fn handle_tool_call(name: &str, arguments: &Value) -> Value {
     let result = match name {
-        "desk_list" => {
+        "desk_tree" => {
+            let workspace_id = arguments
+                .get("workspace_id")
+                .and_then(Value::as_str)
+                .map(str::to_string);
             let path = arguments
                 .get("path")
                 .and_then(Value::as_str)
                 .map(str::to_string);
-            mcp_core::desk_list(path)
+            mcp_core::desk_tree(workspace_id, path)
                 .and_then(|r| serde_json::to_value(r).map_err(|e| e.to_string()))
         }
         "desk_read" => {
@@ -252,26 +244,6 @@ fn handle_tool_call(name: &str, arguments: &Value) -> Value {
                 .map(str::to_string);
             match query {
                 Ok(query) => mcp_core::desk_search(query, path)
-                    .and_then(|r| serde_json::to_value(r).map_err(|e| e.to_string())),
-                Err(err) => Err(err),
-            }
-        }
-        "desk_index_search" => {
-            let query = arguments
-                .get("query")
-                .and_then(Value::as_str)
-                .ok_or_else(|| "desk_index_search requires 'query'".to_string())
-                .map(str::to_string);
-            let workspace_id = arguments
-                .get("workspace_id")
-                .and_then(Value::as_str)
-                .map(str::to_string);
-            let limit = arguments
-                .get("limit")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize);
-            match query {
-                Ok(query) => mcp_core::desk_index_search(query, workspace_id, limit)
                     .and_then(|r| serde_json::to_value(r).map_err(|e| e.to_string())),
                 Err(err) => Err(err),
             }
@@ -553,9 +525,9 @@ fn run_self_test() -> i32 {
             .unwrap_or_else(|err| format!("workspace_info:error:{}", err)),
     );
     checks.push(
-        mcp_core::desk_list(None)
-            .map(|_| "list:ok".to_string())
-            .unwrap_or_else(|err| format!("list:error:{}", err)),
+        mcp_core::desk_tree(None, None)
+            .map(|_| "tree:ok".to_string())
+            .unwrap_or_else(|err| format!("tree:error:{}", err)),
     );
 
     let payload = json!({

@@ -1,9 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { jsonSchema, tool, type ToolSet } from "ai";
 import { z } from "zod/v4";
-import { createAIService } from "@/lib/ai/service";
-import { selectFiles } from "@/lib/context-index/selector";
 import { useContextIndexStore } from "@/stores/context-index";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
 import type { AIProviderType } from "@/lib/ai/types";
 
 export interface ApprovalRequest {
@@ -27,66 +26,6 @@ interface ToolContext {
   workspaceId: string;
   providerType: AIProviderType;
   approval: ApprovalCallbacks;
-}
-
-function relevanceToScore(relevance: "high" | "medium" | "low"): number {
-  switch (relevance) {
-    case "high":
-      return 100;
-    case "medium":
-      return 70;
-    case "low":
-      return 40;
-  }
-}
-
-async function runCatalogSelectorSearch(
-  ctx: ToolContext,
-  query: string,
-  limit: number
-): Promise<{
-  workspace_id: string;
-  source: string;
-  query: string;
-  results: Array<{ path: string; title: string; summary: string; score: number }>;
-} | null> {
-  const index = useContextIndexStore.getState().getIndex(ctx.workspaceId);
-  if (!index || index.entries.length === 0) {
-    return null;
-  }
-
-  try {
-    const aiService = createAIService({ providerType: ctx.providerType });
-    const selections = await selectFiles(query, index, {
-      maxFiles: limit,
-      aiService,
-    });
-
-    const byPath = new Map(index.entries.map((entry) => [entry.path, entry]));
-    const results = selections
-      .map((selection) => {
-        const entry = byPath.get(selection.path);
-        if (!entry) return null;
-        return {
-          path: entry.path,
-          title: entry.title || entry.path,
-          summary: entry.summary || "",
-          score: relevanceToScore(selection.relevance),
-        };
-      })
-      .filter((result): result is { path: string; title: string; summary: string; score: number } => !!result)
-      .slice(0, limit);
-
-    return {
-      workspace_id: ctx.workspaceId,
-      source: "context_index_ai_selector",
-      query,
-      results,
-    };
-  } catch (error) {
-    console.warn("[assistant] Catalog selector failed, falling back to desk_index_search:", error);
-    return null;
-  }
 }
 
 function workspacePath(workspaceId: string, path?: string): string {
@@ -164,29 +103,89 @@ async function runReadTool(
 
 export function createAssistantTools(ctx: ToolContext): ToolSet {
   const tools: ToolSet = {
-    desk_list: tool({
-      description: "List files and folders inside the current workspace.",
+    desk_tree: tool({
+      description:
+        "Get the workspace file tree. Returns ALL files and directories as a flat list with workspace-relative paths (usable with desk_read). Also returns project ID-to-name mappings. Without a path argument this returns the complete tree — if truncated is false, you have everything; do NOT re-call for subdirectories. Only use path to drill into a subdirectory when the full tree was truncated.",
       inputSchema: jsonSchema<{ path?: string }>({
         type: "object",
         properties: {
-          path: { type: "string" },
+          path: { type: "string", description: "Optional subdirectory to scope the tree to (workspace-relative). Omit for full workspace." },
         },
       }),
       execute: async (args) => {
-        return runReadTool(ctx, "desk_list", (args as { path?: string }) as Record<string, unknown>, async () => {
-          const path = workspacePath(ctx.workspaceId, (args as { path?: string }).path);
-          return invoke("desk_list", { path });
+        return runReadTool(ctx, "desk_tree", (args as { path?: string }) as Record<string, unknown>, async () => {
+          return invoke("desk_tree", {
+            workspaceId: ctx.workspaceId,
+            path: (args as { path?: string }).path,
+          });
+        });
+      },
+    }),
+
+    desk_catalog: tool({
+      description:
+        "Get the AI-curated workspace catalog with summaries. Returns path, type, title, summary, date, and metadata for each indexed file — sorted newest-first. Use this to understand file contents and decide what to desk_read. May be stale if index hasn't been rebuilt recently. For recency or structural queries, prefer desk_tree.",
+      inputSchema: jsonSchema<Record<string, never>>({
+        type: "object",
+        properties: {},
+      }),
+      execute: async () => {
+        return runReadTool(ctx, "desk_catalog", {}, async () => {
+          const index = useContextIndexStore.getState().getIndex(ctx.workspaceId);
+          if (!index || index.entries.length === 0) {
+            return {
+              workspace_id: ctx.workspaceId,
+              entries: [],
+              total: 0,
+              message: "No index built yet. Use desk_tree for file listing.",
+            };
+          }
+
+          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+
+          const sorted = [...index.entries]
+            .filter((e) => {
+              if (aiignoreEntries.length > 0 && isPathExcludedByAIIgnore(e.path, aiignoreEntries)) {
+                return false;
+              }
+              return true;
+            })
+            .sort((a, b) => {
+              const dateA = a.date ?? a.created ?? "";
+              const dateB = b.date ?? b.created ?? "";
+              return dateB.localeCompare(dateA);
+            });
+
+          return {
+            workspace_id: ctx.workspaceId,
+            built_at: index.builtAt,
+            total: sorted.length,
+            entries: sorted.map((e) => ({
+              path: e.path,
+              type: e.type,
+              title: e.title,
+              summary: e.summary,
+              date: e.date ?? e.created?.split("T")[0],
+              ...(e.status && { status: e.status }),
+              ...(e.priority && { priority: e.priority }),
+              ...(e.projectName && { project: e.projectName }),
+            })),
+          };
         });
       },
     }),
 
     desk_read: tool({
-      description: "Read a text file inside the current workspace.",
+      description: "Read the full content of a workspace file. Use after desk_tree or desk_catalog to read candidate files before making factual claims.",
       inputSchema: z.object({
         path: z.string().min(1),
       }),
       execute: async (args) => {
         return runReadTool(ctx, "desk_read", args as Record<string, unknown>, async () => {
+          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+          if (isPathExcludedByAIIgnore(args.path, aiignoreEntries)) {
+            return { ok: false, error: "excluded", message: "This file is excluded from AI access." };
+          }
           const path = workspacePath(ctx.workspaceId, args.path);
           return invoke("desk_read", { path });
         });
@@ -194,7 +193,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_search: tool({
-      description: "Search text inside files of the current workspace.",
+      description: "Full-text search across workspace files. Use for specific text, quotes, or keywords — not for workspace/client names that are already the current workspace scope.",
       inputSchema: z.object({
         query: z.string().min(1),
         path: z.string().optional(),
@@ -202,38 +201,26 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       execute: async (args) => {
         return runReadTool(ctx, "desk_search", args as Record<string, unknown>, async () => {
           const path = workspacePath(ctx.workspaceId, args.path);
-          return invoke("desk_search", { query: args.query, path });
-        });
-      },
-    }),
-
-    desk_index_search: tool({
-      description: "Search the workspace context catalog for relevant files.",
-      inputSchema: z.object({
-        query: z.string().min(1),
-        limit: z.number().int().positive().max(20).optional(),
-      }),
-      execute: async (args) => {
-        return runReadTool(ctx, "desk_index_search", args as Record<string, unknown>, async () => {
-          const query = args.query.trim();
-          const limit = args.limit ?? 8;
-
-          // Assistant-first path: LLM selector over the local catalog (legacy behavior parity).
-          const selected = await runCatalogSelectorSearch(ctx, query, limit);
-          if (selected) return selected;
-
-          // Fallback path: Rust-side lexical search over WORKSPACE_CONTEXT.
-          return invoke("desk_index_search", {
-            query,
-            workspaceId: ctx.workspaceId,
-            limit,
-          });
+          const result = await invoke("desk_search", { query: args.query, path }) as {
+            matches?: Array<{ path: string }>;
+          };
+          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+          if (aiignoreEntries.length > 0 && Array.isArray(result.matches)) {
+            const wsPrefix = `workspaces/${ctx.workspaceId}/`;
+            result.matches = result.matches.filter(
+              (m) => !isPathExcludedByAIIgnore(
+                m.path.startsWith(wsPrefix) ? m.path.slice(wsPrefix.length) : m.path,
+                aiignoreEntries
+              )
+            );
+          }
+          return result;
         });
       },
     }),
 
     desk_workspace_info: tool({
-      description: "Get metadata for the active workspace and projects.",
+      description: "Get workspace name, ID, and all project names with their IDs. Call this first when you need project IDs for creating tasks, meetings, or docs.",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {} }),
       execute: async () => {
         return runReadTool(ctx, "desk_workspace_info", {}, async () => {
@@ -243,7 +230,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_create_task: tool({
-      description: "Create a task in a project (or _unassigned). Requires approval.",
+      description: "Create a task in a project or _unassigned. Use desk_workspace_info first to get the project ID. Requires approval.",
       inputSchema: z.object({
         project_id: z.string().min(1),
         title: z.string().min(1),
@@ -291,7 +278,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_create_meeting: tool({
-      description: "Create a meeting note in a project (or _unassigned). Requires approval.",
+      description: "Create a meeting note in a project or _unassigned. Use desk_workspace_info first to get the project ID. Requires approval.",
       inputSchema: z.object({
         project_id: z.string().min(1),
         title: z.string().min(1),
@@ -333,7 +320,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_create_doc: tool({
-      description: "Create a document in project/workspace scope. Requires approval.",
+      description: "Create a document in a project or at workspace level. Use desk_workspace_info first to get the project ID. Requires approval.",
       inputSchema: z.object({
         project_id: z.string().optional(),
         title: z.string().min(1),
@@ -372,7 +359,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
   // Provider-native web search: enabled only when explicitly supported.
   if (ctx.providerType === "openai") {
     tools.web_search = tool({
-      description: "Web search (provider support dependent).",
+      description: "Search the web for current information or public data not available in the workspace.",
       inputSchema: z.object({ query: z.string().min(1) }),
       execute: async (args) =>
         runReadTool(ctx, "web_search", args as Record<string, unknown>, async () => ({

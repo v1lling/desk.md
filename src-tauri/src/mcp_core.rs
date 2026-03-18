@@ -1,33 +1,23 @@
 use crate::app_config;
 use serde::Serialize;
-use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
-const MAX_LIST_ENTRIES: usize = 200;
 const MAX_READ_CHARS: usize = 20_000;
 const MAX_SEARCH_RESULTS: usize = 100;
 const MAX_SEARCH_DEPTH: usize = 8;
-const MAX_INDEX_RESULTS: usize = 20;
-const MAX_INDEX_SUMMARY_CHARS: usize = 300;
+const MAX_TREE_ENTRIES: usize = 500;
+
+const TREE_EXCLUDED_FILES: &[&str] = &[
+    "AGENTS.md",
+    "WORKSPACE_CONTEXT.md",
+    "workspace.md",
+    "project.md",
+];
 
 static DATA_ROOT: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ListEntry {
-    pub name: String,
-    pub entry_type: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct DeskListResult {
-    pub path: String,
-    pub total: usize,
-    pub truncated: bool,
-    pub entries: Vec<ListEntry>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DeskReadResult {
@@ -54,22 +44,6 @@ pub struct DeskSearchResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct IndexSearchHit {
-    pub path: String,
-    pub title: String,
-    pub summary: String,
-    pub score: i32,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct DeskIndexSearchResult {
-    pub workspace_id: String,
-    pub source: String,
-    pub query: String,
-    pub results: Vec<IndexSearchHit>,
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct WorkspaceInfo {
     pub id: String,
     pub name: String,
@@ -80,6 +54,28 @@ pub struct WorkspaceInfo {
 pub struct DeskWorkspaceInfoResult {
     pub data_root: String,
     pub workspaces: Vec<WorkspaceInfo>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TreeEntry {
+    pub path: String,
+    pub entry_type: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TreeProjectInfo {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeskTreeResult {
+    pub workspace_id: String,
+    pub projects: Vec<TreeProjectInfo>,
+    pub total: usize,
+    pub truncated: bool,
+    pub entries: Vec<TreeEntry>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -186,44 +182,6 @@ fn to_relative_string(path: &Path) -> String {
         .unwrap_or(path)
         .to_string_lossy()
         .replace('\\', "/")
-}
-
-pub fn desk_list(path: Option<String>) -> Result<DeskListResult, String> {
-    let target = scoped_path(path.as_deref().unwrap_or("."))?;
-    ensure_within_root(&target)?;
-
-    let mut entries: Vec<ListEntry> = fs::read_dir(&target)
-        .map_err(|e| format!("Failed to read directory: {}", e))?
-        .filter_map(|entry| entry.ok())
-        .filter_map(|entry| {
-            let kind = entry.file_type().ok()?;
-            let entry_type = if kind.is_dir() {
-                "dir".to_string()
-            } else if kind.is_file() {
-                "file".to_string()
-            } else {
-                "other".to_string()
-            };
-            Some(ListEntry {
-                name: entry.file_name().to_string_lossy().to_string(),
-                entry_type,
-            })
-        })
-        .collect();
-
-    entries.sort_by(|a, b| a.name.cmp(&b.name));
-    let total = entries.len();
-    let truncated = total > MAX_LIST_ENTRIES;
-    if truncated {
-        entries.truncate(MAX_LIST_ENTRIES);
-    }
-
-    Ok(DeskListResult {
-        path: to_relative_string(&target),
-        total,
-        truncated,
-        entries,
-    })
 }
 
 pub fn desk_read(path: String) -> Result<DeskReadResult, String> {
@@ -375,158 +333,6 @@ fn choose_workspace_id(explicit: Option<String>) -> Result<String, String> {
         .ok_or_else(|| "No workspaces found".to_string())
 }
 
-fn tokenize_query(raw: &str) -> Vec<String> {
-    const STOP_WORDS: &[&str] = &[
-        "a", "an", "and", "are", "as", "at", "be", "by", "do", "for", "from", "how", "i", "in",
-        "is", "it", "know", "of", "on", "or", "that", "the", "this", "to", "was", "what", "when",
-        "where", "which", "who", "why", "with", "you", "your",
-    ];
-
-    raw.to_lowercase()
-        .split(|c: char| !c.is_alphanumeric())
-        .filter(|token| token.len() > 1 && !STOP_WORDS.contains(token))
-        .map(|s| s.to_string())
-        .collect()
-}
-
-fn score_hit(query_terms: &[String], query_phrase: &str, path: &str, title: &str, summary: &str) -> i32 {
-    if query_terms.is_empty() {
-        return 0;
-    }
-
-    let path_l = path.to_lowercase();
-    let title_l = title.to_lowercase();
-    let summary_l = summary.to_lowercase();
-    let mut score = 0i32;
-
-    // Phrase matches are strong intent signals.
-    if !query_phrase.is_empty() {
-        if title_l.contains(query_phrase) {
-            score += 24;
-        }
-        if path_l.contains(query_phrase) {
-            score += 16;
-        }
-        if summary_l.contains(query_phrase) {
-            score += 12;
-        }
-    }
-
-    for term in query_terms {
-        if title_l.contains(term) {
-            score += 8;
-        }
-        if path_l.contains(term) {
-            score += 6;
-        }
-        if summary_l.contains(term) {
-            score += 3;
-        }
-    }
-
-    // Slight bias to project docs for project-level questions.
-    if query_terms.iter().any(|t| t == "project") && path_l.contains("/projects/") {
-        score += 4;
-    }
-
-    score
-}
-
-pub fn desk_index_search(
-    query: String,
-    workspace_id: Option<String>,
-    limit: Option<usize>,
-) -> Result<DeskIndexSearchResult, String> {
-    let q = query.trim().to_string();
-    if q.is_empty() {
-        return Err("Query cannot be empty".to_string());
-    }
-
-    let workspace_id = choose_workspace_id(workspace_id)?;
-    let workspace_path = get_data_root().join("workspaces").join(&workspace_id);
-    let context_path = workspace_path.join("WORKSPACE_CONTEXT.md");
-    let source = "workspace_context".to_string();
-
-    if !context_path.exists() {
-        return Ok(DeskIndexSearchResult {
-            workspace_id,
-            source,
-            query: q,
-            results: Vec::new(),
-        });
-    }
-
-    let context = fs::read_to_string(&context_path)
-        .map_err(|e| format!("Failed to read WORKSPACE_CONTEXT.md: {}", e))?;
-
-    let mut hits = Vec::new();
-    let mut current_path = String::new();
-    let mut title = String::new();
-    let mut summary = String::new();
-
-    let query_terms = tokenize_query(&q);
-    let query_phrase = query_terms.join(" ");
-
-    for line in context.lines() {
-        if let Some(rest) = line.strip_prefix("### ") {
-            if !current_path.is_empty() {
-                let score = score_hit(&query_terms, &query_phrase, &current_path, &title, &summary);
-                if score > 0 {
-                    hits.push(IndexSearchHit {
-                        path: current_path.clone(),
-                        title: if title.is_empty() {
-                            current_path.clone()
-                        } else {
-                            title.clone()
-                        },
-                        summary: summary.chars().take(MAX_INDEX_SUMMARY_CHARS).collect(),
-                        score,
-                    });
-                }
-            }
-            current_path = rest.trim().to_string();
-            title.clear();
-            summary.clear();
-            continue;
-        }
-        if let Some(rest) = line.strip_prefix("- Title: ") {
-            title = rest.trim().to_string();
-            continue;
-        }
-        if let Some(rest) = line.strip_prefix("- Summary: ") {
-            summary = rest.trim().to_string();
-            continue;
-        }
-    }
-
-    if !current_path.is_empty() {
-        let score = score_hit(&query_terms, &query_phrase, &current_path, &title, &summary);
-        if score > 0 {
-            hits.push(IndexSearchHit {
-                path: current_path.clone(),
-                title: if title.is_empty() {
-                    current_path.clone()
-                } else {
-                    title.clone()
-                },
-                summary: summary.chars().take(MAX_INDEX_SUMMARY_CHARS).collect(),
-                score,
-            });
-        }
-    }
-
-    hits.sort_by_key(|h| (Reverse(h.score), h.path.clone()));
-    let max = limit.unwrap_or(8).min(MAX_INDEX_RESULTS);
-    hits.truncate(max);
-
-    Ok(DeskIndexSearchResult {
-        workspace_id,
-        source,
-        query: q,
-        results: hits,
-    })
-}
-
 fn parse_frontmatter_name(path: &Path, fallback: &str) -> String {
     let content = match fs::read_to_string(path) {
         Ok(v) => v,
@@ -618,6 +424,169 @@ pub fn desk_workspace_info(
     Ok(DeskWorkspaceInfoResult {
         data_root: root.to_string_lossy().to_string(),
         workspaces,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// desk_tree
+// ---------------------------------------------------------------------------
+
+fn load_aiignore_patterns(path: &Path) -> Vec<String> {
+    match fs::read_to_string(path) {
+        Ok(content) => content
+            .lines()
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn is_aiignore_excluded(rel: &str, patterns: &[String]) -> bool {
+    for pattern in patterns {
+        if rel == pattern {
+            return true;
+        }
+        if pattern.ends_with('/') && rel.starts_with(pattern.as_str()) {
+            return true;
+        }
+        if let Some(ext) = pattern.strip_prefix('*') {
+            if rel.ends_with(ext) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn walk_tree(
+    base: &Path,
+    current: &Path,
+    aiignore: &[String],
+    out: &mut Vec<TreeEntry>,
+) {
+    if out.len() >= MAX_TREE_ENTRIES {
+        return;
+    }
+
+    let mut dir_entries: Vec<_> = match fs::read_dir(current) {
+        Ok(entries) => entries.flatten().collect(),
+        Err(_) => return,
+    };
+    dir_entries.sort_by_key(|e| e.file_name());
+
+    for entry in dir_entries {
+        if out.len() >= MAX_TREE_ENTRIES {
+            return;
+        }
+
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        // Skip hidden files/dirs
+        if name.starts_with('.') {
+            continue;
+        }
+
+        // Skip internal metadata files
+        if TREE_EXCLUDED_FILES.contains(&name.as_str()) {
+            continue;
+        }
+
+        let rel_path = path
+            .strip_prefix(base)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        // Check .aiignore
+        if !aiignore.is_empty() && is_aiignore_excluded(&rel_path, aiignore) {
+            continue;
+        }
+
+        let is_dir = path.is_dir();
+
+        out.push(TreeEntry {
+            path: rel_path,
+            entry_type: if is_dir {
+                "dir".to_string()
+            } else {
+                "file".to_string()
+            },
+            name,
+        });
+
+        if is_dir {
+            walk_tree(base, &path, aiignore, out);
+        }
+    }
+}
+
+pub fn desk_tree(workspace_id: Option<String>, path: Option<String>) -> Result<DeskTreeResult, String> {
+    let workspace_id = choose_workspace_id(workspace_id)?;
+    let workspace_path = get_data_root().join("workspaces").join(&workspace_id);
+
+    if !workspace_path.exists() {
+        return Err(format!("Workspace '{}' not found", workspace_id));
+    }
+
+    // Load .aiignore patterns
+    let aiignore = load_aiignore_patterns(&workspace_path.join(".aiignore"));
+
+    // Collect project metadata
+    let mut projects = Vec::new();
+    let projects_dir = workspace_path.join("projects");
+    if projects_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&projects_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if !p.is_dir() {
+                    continue;
+                }
+                let id = entry.file_name().to_string_lossy().to_string();
+                if id.starts_with('.') {
+                    continue;
+                }
+                let project_md = p.join("project.md");
+                let name = parse_frontmatter_name(&project_md, &id);
+                projects.push(TreeProjectInfo { id, name });
+            }
+        }
+    }
+    projects.sort_by(|a, b| a.name.cmp(&b.name));
+
+    // Determine walk root: full workspace or scoped subdirectory
+    let walk_root = if let Some(ref sub) = path {
+        let trimmed = sub.trim().trim_start_matches('/');
+        if trimmed.is_empty() || trimmed == "." {
+            workspace_path.clone()
+        } else {
+            let scoped = workspace_path.join(trimmed);
+            if !scoped.exists() {
+                return Err(format!("Path '{}' not found in workspace", trimmed));
+            }
+            scoped
+        }
+    } else {
+        workspace_path.clone()
+    };
+
+    // Walk the workspace tree
+    let mut entries = Vec::new();
+    walk_tree(&workspace_path, &walk_root, &aiignore, &mut entries);
+
+    let total = entries.len();
+    let truncated = total > MAX_TREE_ENTRIES;
+    if truncated {
+        entries.truncate(MAX_TREE_ENTRIES);
+    }
+
+    Ok(DeskTreeResult {
+        workspace_id,
+        projects,
+        total,
+        truncated,
+        entries,
     })
 }
 

@@ -41,10 +41,10 @@ function inferContentType(path: string): "doc" | "task" | "meeting" {
 
 function getToolLabel(toolName: string): string {
   const labels: Record<string, string> = {
-    desk_index_search: "Find relevant files",
+    desk_tree: "Browse workspace",
+    desk_catalog: "Browse catalog",
     desk_read: "Read file",
     desk_search: "Search files",
-    desk_list: "List files",
     desk_workspace_info: "Get workspace info",
     desk_create_task: "Create task",
     desk_update_task: "Update task",
@@ -58,28 +58,24 @@ function getToolLabel(toolName: string): string {
 }
 
 function extractSources(item: AssistantToolEvent): AIMessageSource[] {
-  if (item.toolName !== "desk_index_search") return [];
+  if (item.toolName !== "desk_read") return [];
+  if (item.status !== "success") return [];
   if (!item.result || typeof item.result !== "object") return [];
 
-  const result = item.result as {
-    workspace_id?: string;
-    results?: Array<{ path?: string; title?: string; score?: number }>;
-  };
-  if (!Array.isArray(result.results)) return [];
-  const numericScores = result.results
-    .map((entry) => (typeof entry.score === "number" ? entry.score : 0))
-    .filter((score) => score > 0);
-  const maxScore = numericScores.length > 0 ? Math.max(...numericScores) : 1;
+  const result = item.result as { path?: string };
+  if (typeof result.path !== "string") return [];
 
-  return result.results
-    .filter((entry) => typeof entry.path === "string" && typeof entry.title === "string")
-    .map((entry) => ({
-      docPath: entry.path as string,
-      title: entry.title as string,
-      contentType: inferContentType(entry.path as string),
-      score: typeof entry.score === "number" ? entry.score / maxScore : undefined,
-      workspaceId: typeof result.workspace_id === "string" ? result.workspace_id : undefined,
-    }));
+  const filename = result.path.split("/").pop() ?? result.path;
+  const title = filename
+    .replace(/^\d{4}-\d{2}-\d{2}-/, "")
+    .replace(/\.md$/, "")
+    .replace(/-/g, " ");
+
+  return [{
+    docPath: result.path,
+    title,
+    contentType: inferContentType(result.path),
+  }];
 }
 
 function InlineToolActivity({
@@ -114,12 +110,16 @@ function InlineToolActivity({
         <div key={item.id} className="text-xs rounded-md border bg-background/70 px-2 py-1.5 space-y-1">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{getToolLabel(item.toolName)}</span>
-            <span className="text-[11px] text-muted-foreground">{item.status.replace("_", " ")}</span>
+            {item.status === "proposed" || item.status === "waiting_approval" ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
+            ) : (
+              <span className="text-[11px] text-muted-foreground">{item.status.replace("_", " ")}</span>
+            )}
           </div>
           {extractSources(item).length > 0 && (
             <SourcesDisplay
               sources={extractSources(item)}
-              label="Files:"
+              label="File:"
               className="px-0.5"
             />
           )}
@@ -178,6 +178,11 @@ export function AIChatEditor() {
     perTypeInstructions[activeMode]
   );
 
+  // Show thinking bubble when running but no tools fired yet and no text streaming
+  const lastMsg = messages[messages.length - 1];
+  const showThinkingBubble =
+    isRunning && lastMsg?.role === "assistant" && !lastMsg.content && liveToolTimeline.length === 0;
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -214,15 +219,6 @@ export function AIChatEditor() {
       <ConversationList className="w-[240px] shrink-0" />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <div className="px-6 pt-3 shrink-0">
-          {isRunning && (
-            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={cancelRun}>
-              <StopCircle className="h-3 w-3" />
-              Cancel
-            </Button>
-          )}
-        </div>
-
         <ScrollArea className="flex-1 min-h-0">
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-4">
             {!isConfigured && (
@@ -281,13 +277,15 @@ export function AIChatEditor() {
                     {message.role === "assistant" && message.toolEvents && message.toolEvents.length > 0 && (
                       <InlineToolActivity items={message.toolEvents} showDetails={showToolDetails} />
                     )}
-                    <ChatMessage message={message} />
                     {index === messages.length - 1 && isRunning && liveToolTimeline.length > 0 && (
                       <InlineToolActivity items={liveToolTimeline} showDetails={showToolDetails} />
                     )}
+                    {!(index === messages.length - 1 && isRunning && !message.content) && (
+                      <ChatMessage message={message} />
+                    )}
                   </div>
                 ))}
-                {isRunning && messages[messages.length - 1]?.role !== "assistant" && (
+                {showThinkingBubble && (
                   <div className="flex gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
                       <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -295,7 +293,7 @@ export function AIChatEditor() {
                     <div className="rounded-lg px-3 py-2 text-sm bg-muted max-w-[80%]">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Thinking...</span>
+                        <span>Thinking…</span>
                       </div>
                     </div>
                   </div>
@@ -327,22 +325,45 @@ export function AIChatEditor() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-              <div className="flex-1">
+            <form onSubmit={handleSubmit}>
+              <div className="rounded-lg border bg-background overflow-hidden transition-colors focus-within:border-ring/50">
                 <Textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask Assistant... (Enter to send, Shift+Enter for newline)"
+                  placeholder="Ask Assistant… (Enter to send, Shift+Enter for newline)"
                   disabled={isRunning}
-                  className="w-full min-h-[88px] max-h-[220px] resize-none text-sm"
+                  className="w-full min-h-[88px] max-h-[220px] resize-none text-sm border-0 shadow-none focus-visible:ring-0 focus-visible:border-transparent rounded-none"
                   rows={3}
                 />
+                <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/20">
+                  {isRunning ? (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Working…</span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground/40">Enter to send</span>
+                  )}
+                  {isRunning ? (
+                    <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={cancelRun}>
+                      <StopCircle className="h-3 w-3" />
+                      Cancel
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!input.trim() || !isConfigured}
+                      className="h-7 gap-1.5 text-xs"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      Send
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Button type="submit" size="icon" disabled={!input.trim() || isRunning} className="shrink-0">
-                <Send className="h-4 w-4" />
-              </Button>
             </form>
           </div>
         </div>

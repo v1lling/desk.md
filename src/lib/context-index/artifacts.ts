@@ -13,7 +13,11 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
   lines.push("## Catalog");
   lines.push("");
 
-  const entries = [...index.entries].sort((a, b) => a.path.localeCompare(b.path));
+  const entries = [...index.entries].sort((a, b) => {
+    const dateA = a.date ?? a.created ?? '';
+    const dateB = b.date ?? b.created ?? '';
+    return dateB.localeCompare(dateA); // newest first
+  });
   for (const entry of entries) {
     const meta: string[] = [entry.type];
     if (entry.projectName) meta.push(`project=${entry.projectName}`);

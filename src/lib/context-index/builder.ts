@@ -307,21 +307,3 @@ export async function buildWorkspaceIndex(
 
   return { index, result };
 }
-
-/**
- * Format an index as a compact catalog for the file selection AI call.
- */
-export function formatIndexForPrompt(index: WorkspaceIndex): string {
-  return index.entries
-    .map((e) => {
-      let meta: string = e.type;
-      if (e.type === "task" && (e.status || e.priority)) {
-        meta = `task [${[e.status, e.priority].filter(Boolean).join(", ")}]`;
-      }
-      if (e.type === "meeting" && e.date) {
-        meta = `meeting (${e.date})`;
-      }
-      return `${e.path} | ${meta} | ${e.title} | ${e.summary}`;
-    })
-    .join("\n");
-}

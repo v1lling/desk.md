@@ -30,10 +30,9 @@ pub struct McpSelfTestResult {
 
 fn tool_names() -> Vec<String> {
     vec![
-        "desk_list".to_string(),
+        "desk_tree".to_string(),
         "desk_read".to_string(),
         "desk_search".to_string(),
-        "desk_index_search".to_string(),
         "desk_workspace_info".to_string(),
         "desk_create_task".to_string(),
         "desk_update_task".to_string(),
@@ -192,8 +191,8 @@ pub fn mcp_self_test(app_handle: tauri::AppHandle) -> Result<McpSelfTestResult, 
 }
 
 #[tauri::command]
-pub fn desk_list(path: Option<String>) -> Result<mcp_core::DeskListResult, String> {
-    mcp_core::desk_list(path)
+pub fn desk_tree(workspace_id: Option<String>, path: Option<String>) -> Result<mcp_core::DeskTreeResult, String> {
+    mcp_core::desk_tree(workspace_id, path)
 }
 
 #[tauri::command]
@@ -207,15 +206,6 @@ pub fn desk_search(
     path: Option<String>,
 ) -> Result<mcp_core::DeskSearchResult, String> {
     mcp_core::desk_search(query, path)
-}
-
-#[tauri::command]
-pub fn desk_index_search(
-    query: String,
-    workspace_id: Option<String>,
-    limit: Option<usize>,
-) -> Result<mcp_core::DeskIndexSearchResult, String> {
-    mcp_core::desk_index_search(query, workspace_id, limit)
 }
 
 #[tauri::command]
