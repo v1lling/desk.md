@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
@@ -175,6 +175,20 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     return "idle" as const;
   }, [saveStatus]);
 
+  // Scroll-aware border on sticky header
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolled(!entry.isIntersecting),
+      { threshold: 1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Render states (deleted, moved, loading, not found)
   const renderState = EditorRenderStates({
     fileDeleted,
@@ -206,10 +220,12 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         onAIInclusionChange={handleAIInclusionChange}
         isInExcludedFolder={aiExclusionState.isInExcludedFolder}
         excludedFolderPath={aiExclusionState.excludedFolderPath}
+        scrolled={scrolled}
       />
 
       <ScrollArea className="flex-1 min-h-0">
-        <div className="max-w-4xl mx-auto px-6 py-6">
+        <div ref={sentinelRef} className="h-0" />
+        <div className="max-w-4xl mx-auto px-6 pt-2 pb-6">
           <FolderBreadcrumb path={doc.path} />
 
           <MetadataToolbar
@@ -218,22 +234,22 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
-          <div className="mt-6">
-            {isEditorReady ? (
-              <RichTextEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Write your doc in markdown..."
-                minHeight="400px"
-                onInternalLinkClick={handleInternalLinkClick}
-              />
-            ) : (
-              <div className="h-[400px] border rounded-lg flex items-center justify-center bg-muted/10">
-                <LoadingState label="editor" />
-              </div>
-            )}
-          </div>
+          <div className="h-px bg-border/40 my-4" />
 
+          {isEditorReady ? (
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Write your doc in markdown..."
+              minHeight="400px"
+              borderless
+              onInternalLinkClick={handleInternalLinkClick}
+            />
+          ) : (
+            <div className="h-[400px] flex items-center justify-center">
+              <LoadingState label="editor" />
+            </div>
+          )}
         </div>
       </ScrollArea>
 

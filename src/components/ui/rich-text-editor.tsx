@@ -53,6 +53,8 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  /** When true, removes border and inner ScrollArea for seamless embedding */
+  borderless?: boolean;
   onInternalLinkClick?: (link: NoteLink) => void;
 }
 
@@ -75,6 +77,7 @@ export function RichTextEditor({
   placeholder = "Write something...",
   className,
   minHeight = "300px",
+  borderless = false,
   onInternalLinkClick,
 }: RichTextEditorProps) {
   const [showLinkPicker, setShowLinkPicker] = useState(false);
@@ -267,6 +270,21 @@ export function RichTextEditor({
 
   if (!editor) {
     return null;
+  }
+
+  if (borderless) {
+    return (
+      <div className={cn("overflow-hidden", className)} style={{ minHeight }}>
+        <div className="py-1" onKeyDown={handleKeyDown}>
+          <EditorContent editor={editor} />
+        </div>
+        <NoteLinkPicker
+          open={showLinkPicker}
+          onOpenChange={setShowLinkPicker}
+          onSelect={handleNoteLinkSelect}
+        />
+      </div>
+    );
   }
 
   return (

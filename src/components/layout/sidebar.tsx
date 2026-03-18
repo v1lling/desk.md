@@ -54,7 +54,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-full min-h-0 bg-sidebar border-r border-sidebar-border/70",
+        "flex flex-col h-full min-h-0 bg-sidebar",
         !isDragging && "transition-[width] duration-200"
       )}
       style={{ width: `${width}px` }}

@@ -75,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </div>
         <div data-tauri-drag-region className="h-full" />
-        <div className="h-full min-w-0">
+        <div className="h-full min-w-0 -ml-0.5">
           {tabCount > 1 ? <TabBar inTitleBar /> : <div data-tauri-drag-region className="h-full w-full" />}
         </div>
       </div>

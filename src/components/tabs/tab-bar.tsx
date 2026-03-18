@@ -308,11 +308,11 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   }
 
   const barClasses = inTitleBar
-    ? "h-full flex items-center"
+    ? "h-full flex items-end"
     : "h-9 bg-muted/20 border-b border-border/80 flex items-end shrink-0";
 
   const innerClasses = inTitleBar
-    ? "w-full h-full flex items-center gap-1 pr-2"
+    ? "w-full h-full flex items-end gap-1 pr-2 translate-y-px"
     : "w-full h-full flex items-end gap-1 px-2";
 
   return (
@@ -343,7 +343,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
             <div className="w-px h-5 bg-border/60 shrink-0 self-center mx-0.5" />
           )}
 
-          <div className={inTitleBar ? "flex items-center h-full gap-1 overflow-hidden shrink-0" : "flex items-end h-full gap-1 flex-1 min-w-0 overflow-hidden"}>
+          <div className={inTitleBar ? "flex items-end h-full gap-1 overflow-hidden shrink-0" : "flex items-end h-full gap-1 flex-1 min-w-0 overflow-hidden"}>
             {visibleTabs.map((tab) => (
               <TabItem
                 key={tab.id}
@@ -405,6 +405,8 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
+          {inTitleBar && <div data-tauri-drag-region className="flex-1 h-full min-w-0" />}
         </div>
       </div>
 

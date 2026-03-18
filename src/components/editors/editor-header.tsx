@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SaveStatusIndicator, type SaveStatus } from "@/components/ui/save-status";
 import { Trash2, Sparkles, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EditorHeaderProps {
   title: string;
@@ -20,6 +21,8 @@ interface EditorHeaderProps {
   isInExcludedFolder?: boolean;
   /** Path of the excluded folder (for tooltip) */
   excludedFolderPath?: string;
+  /** Whether content is scrolled (shows bottom border) */
+  scrolled?: boolean;
 }
 
 export function EditorHeader({
@@ -34,6 +37,7 @@ export function EditorHeader({
   onAIInclusionChange,
   isInExcludedFolder,
   excludedFolderPath,
+  scrolled,
 }: EditorHeaderProps) {
   // Determine if toggle should be disabled
   const isToggleDisabled = isInExcludedFolder;
@@ -50,65 +54,74 @@ export function EditorHeader({
   };
 
   return (
-    <div className="flex items-center gap-3 px-6 py-3 border-b border-border/30 bg-background shrink-0">
-      <Input
-        value={title}
-        onChange={(e) => onTitleChange(e.target.value)}
-        placeholder={placeholder}
-        className="text-lg font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent flex-1"
-      />
-      <SaveStatusIndicator status={saveStatus} />
-      {onSave && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onSave}
-          disabled={!isDirty || saveStatus === "saving"}
-          title={isDirty ? "Save (⌘S)" : "No changes to save"}
-          className={`h-8 w-8 shrink-0 ${
-            isDirty
-              ? "text-primary hover:text-primary/80"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Save className="h-4 w-4" />
-        </Button>
+    <div
+      className={cn(
+        "shrink-0 bg-background transition-[border-color] duration-150",
+        scrolled ? "border-b border-border/40" : "border-b border-transparent"
       )}
-      {onAIInclusionChange && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => !isToggleDisabled && onAIInclusionChange(!aiIncluded)}
-          disabled={isToggleDisabled}
-          title={getTooltipText()}
-          className={`h-8 w-8 shrink-0 ${
-            isToggleDisabled
-              ? "text-muted-foreground/50 cursor-not-allowed"
-              : aiIncluded
-              ? "text-primary hover:text-primary/80"
-              : "text-muted-foreground hover:text-muted-foreground/80"
-          }`}
-        >
-          {aiIncluded && !isInExcludedFolder ? (
-            <Sparkles className="h-4 w-4" />
-          ) : (
-            <span className="relative">
-              <Sparkles className="h-4 w-4" />
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-[18px] h-[2px] bg-current rotate-45 rounded-full" />
+    >
+      <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
+        <Input
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder={placeholder}
+          className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent flex-1"
+        />
+        <SaveStatusIndicator status={saveStatus} />
+        {onSave && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSave}
+            disabled={!isDirty || saveStatus === "saving"}
+            title={isDirty ? "Save (⌘S)" : "No changes to save"}
+            className={cn(
+              "h-7 w-7 shrink-0",
+              isDirty
+                ? "text-primary hover:text-primary/80"
+                : "text-muted-foreground/50"
+            )}
+          >
+            <Save className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {onAIInclusionChange && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => !isToggleDisabled && onAIInclusionChange(!aiIncluded)}
+            disabled={isToggleDisabled}
+            title={getTooltipText()}
+            className={cn(
+              "h-7 w-7 shrink-0",
+              isToggleDisabled
+                ? "text-muted-foreground/30 cursor-not-allowed"
+                : aiIncluded
+                ? "text-muted-foreground/60 hover:text-foreground"
+                : "text-muted-foreground/40 hover:text-muted-foreground/70"
+            )}
+          >
+            {aiIncluded && !isInExcludedFolder ? (
+              <Sparkles className="h-3.5 w-3.5" />
+            ) : (
+              <span className="relative">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-[16px] h-[1.5px] bg-current rotate-45 rounded-full" />
+                </span>
               </span>
-            </span>
-          )}
+            )}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onDelete}
+          className="h-7 w-7 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 shrink-0"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
-      )}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onDelete}
-        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      </div>
     </div>
   );
 }
