@@ -19,6 +19,8 @@ import { useWorkspaces } from "@/stores";
 import { useSettingsStore } from "@/stores/settings";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
 import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
+import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
+import { getProjects } from "@/lib/desk/projects";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
 
@@ -65,6 +67,10 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
         );
         setIndex(workspace.id, index);
         await writeWorkspaceContextArtifact(index);
+        // Refresh per-workspace agent files (project list may have changed)
+        getProjects(workspace.id).then((projects) =>
+          writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
+        ).catch(() => {});
 
         if (!accumulatedResult) {
           accumulatedResult = result;
@@ -82,6 +88,8 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
       if (accumulatedResult) {
         setIndexResult(accumulatedResult);
         toast.success(`Index built: ${accumulatedResult.totalFiles} files across ${workspaces.length} workspaces`);
+        // Refresh top-level agent files
+        writeTopLevelAgentFiles(workspaces).catch(() => {});
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

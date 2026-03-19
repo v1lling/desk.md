@@ -12,6 +12,7 @@ const MAX_TREE_ENTRIES: usize = 500;
 
 const TREE_EXCLUDED_FILES: &[&str] = &[
     "AGENTS.md",
+    "CLAUDE.md",
     "WORKSPACE_CONTEXT.md",
     "workspace.md",
     "project.md",

@@ -17,10 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown, Plus, Circle, Check } from "lucide-react";
+import { ChevronsUpDown, Plus, Circle, Check, Pencil } from "lucide-react";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
 import { useSettingsStore } from "@/stores/settings";
 import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
+import { EditWorkspaceModal } from "@/components/workspaces/edit-workspace-modal";
 
 interface WorkspaceSelectorProps {
   isCollapsed?: boolean;
@@ -34,6 +35,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
   const currentWorkspace = useCurrentWorkspace();
   const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Loading state
   if (isLoading) {
@@ -89,7 +91,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               // Expanded: show full selector
               <Button
                 variant="ghost"
-                className="w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
+                className="group w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Circle
@@ -101,7 +103,29 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                     {currentWorkspace?.name || "Select Workspace"}
                   </span>
                 </div>
-                <ChevronsUpDown className="size-4 opacity-50 shrink-0 transition-opacity hover:opacity-100" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 rounded transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setShowEditModal(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setShowEditModal(true);
+                      }
+                    }}
+                    title="Edit workspace"
+                  >
+                    <Pencil className="size-3.5" />
+                  </span>
+                  <ChevronsUpDown className="size-4 opacity-50 transition-opacity" />
+                </div>
               </Button>
             )}
           </DropdownMenuTrigger>
@@ -151,6 +175,14 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
         open={showNewWorkspaceModal}
         onClose={() => setShowNewWorkspaceModal(false)}
       />
+
+      {currentWorkspace && (
+        <EditWorkspaceModal
+          open={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          workspace={currentWorkspace}
+        />
+      )}
     </>
   );
 }

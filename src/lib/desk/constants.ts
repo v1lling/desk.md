@@ -53,6 +53,7 @@ export const WORKSPACE_LEVEL_PROJECT_ID = "_workspace" as const;
 
 export const FILE_NAMES = {
   WORKSPACE_MD: "workspace.md",
+  CLAUDE_MD: "CLAUDE.md",
   AGENTS_MD: "AGENTS.md",
   WORKSPACE_CONTEXT_MD: "WORKSPACE_CONTEXT.md",
   PROJECT_MD: "project.md",

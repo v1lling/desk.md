@@ -16,33 +16,13 @@ import {
 } from "./tauri-fs";
 import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES, isPersonalWorkspace } from "./constants";
+import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
 
 interface WorkspaceFrontmatter {
   name: string;
   description?: string;
   color?: string;
   created: string;
-}
-
-function buildAgentsFile(workspace: Pick<Workspace, "id" | "name">): string {
-  const lines: string[] = [];
-  lines.push("# AGENTS");
-  lines.push("");
-  lines.push("## Role");
-  lines.push("You are an assistant working with the Desk data workspace.");
-  lines.push("");
-  lines.push("## Workspace Context");
-  lines.push(`Read and use ${FILE_NAMES.WORKSPACE_CONTEXT_MD} in this workspace for a curated file catalog.`);
-  lines.push("");
-  lines.push("## Safety");
-  lines.push("- Do not assume facts not present in workspace files.");
-  lines.push("- Prefer citing exact file paths when making claims.");
-  lines.push("");
-  lines.push("## Workspace");
-  lines.push(`Name: ${workspace.name}`);
-  lines.push(`ID: ${workspace.id}`);
-  lines.push("");
-  return `${lines.join("\n").trim()}\n`;
 }
 
 /**
@@ -186,7 +166,11 @@ ${workspace.description || ""}
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
-  await writeTextFile(await joinPath(workspacePath, FILE_NAMES.AGENTS_MD), buildAgentsFile(workspace));
+
+  // Generate agent context files (CLAUDE.md + AGENTS.md)
+  await writePerWorkspaceAgentFiles(data.id, workspace, []);
+  // Update top-level files with new workspace list (fire-and-forget)
+  getWorkspaces().then((workspaces) => writeTopLevelAgentFiles(workspaces)).catch(() => {});
 
   return workspace;
 }
@@ -306,8 +290,9 @@ Private tasks, docs, and projects.
     await writeTextFile(workspaceFilePath, fileContent);
   }
 
-  const agentsFilePath = await joinPath(personalPath, FILE_NAMES.AGENTS_MD);
-  if (!(await exists(agentsFilePath))) {
-    await writeTextFile(agentsFilePath, buildAgentsFile(PERSONAL_WORKSPACE));
-  }
+  // Generate agent context files (CLAUDE.md + AGENTS.md) for Personal workspace
+  await writePerWorkspaceAgentFiles(SPECIAL_DIRS.PERSONAL, PERSONAL_WORKSPACE, []);
+
+  // Regenerate top-level agent files on startup
+  getWorkspaces().then((workspaces) => writeTopLevelAgentFiles(workspaces)).catch(() => {});
 }

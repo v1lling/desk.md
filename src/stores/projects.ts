@@ -1,6 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Project, ProjectStatus } from "@/types";
 import * as projectLib from "@/lib/desk/projects";
+import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
+import { getWorkspace } from "@/lib/desk/workspaces";
+
+/** Regenerate per-workspace agent files when projects change */
+function regenerateWorkspaceAgentFiles(workspaceId: string) {
+  Promise.all([getWorkspace(workspaceId), projectLib.getProjects(workspaceId)])
+    .then(([ws, projects]) => {
+      if (ws) writePerWorkspaceAgentFiles(workspaceId, ws, projects);
+    })
+    .catch(() => {});
+}
 
 // Query keys
 export const projectKeys = {
@@ -70,6 +81,7 @@ export function useCreateProject() {
       queryClient.invalidateQueries({
         queryKey: projectKeys.byWorkspace(newProject.workspaceId),
       });
+      regenerateWorkspaceAgentFiles(newProject.workspaceId);
     },
   });
 }
@@ -95,6 +107,7 @@ export function useUpdateProject() {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(variables.workspaceId),
         });
+        regenerateWorkspaceAgentFiles(variables.workspaceId);
       }
     },
   });
@@ -114,6 +127,7 @@ export function useDeleteProject() {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(result.workspaceId),
         });
+        regenerateWorkspaceAgentFiles(result.workspaceId);
       }
     },
   });

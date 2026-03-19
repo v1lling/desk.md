@@ -6,8 +6,8 @@
 
 ```bash
 npm run dev          # Browser with mock data (port 3001)
-npm run tauri:dev    # Desktop with real file system + MCP plugin
-npm run tauri:build  # Production build (no MCP)
+npm run tauri:dev    # Desktop with real file system
+npm run tauri:build  # Production build
 ```
 
 ## Core Concept
@@ -55,7 +55,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
-| `src/lib/rag/` | RAG/Embeddings: Vector-based context retrieval (alternative to Smart Index) |
+| `src/lib/assistant/` | Multi-turn agent orchestrator with tools and approval gate |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
 | `src/components/patterns/` | Page-level layout patterns |
@@ -131,23 +131,16 @@ open "desk://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4
 
 **Flow:** Email opens in session-only tab → user links to project → AI drafts reply → copy to clipboard → return to Outlook → "Insert Reply from Desk" button opens threaded reply form
 
-## AI Context Strategies
+## AI Context
 
-AI Chat and email drafts use context retrieval to find relevant docs. Users choose a strategy in Settings > Context:
-
-| Strategy | How It Works | Pros | Cons |
-|----------|-------------|------|------|
-| **Smart Index** | AI-summarized file catalog → AI selects relevant files → full content passed to AI | No embeddings needed, understands file structure | Requires AI call for file selection |
-| **Embeddings (RAG)** | Vector embeddings via Ollama/OpenAI/Voyage → KNN similarity search | Fast retrieval, proven approach | Requires embedding provider setup |
-| **None** | No automatic context | Fastest | No context awareness |
+The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_read). External agents use the generated `CLAUDE.md` and `WORKSPACE_CONTEXT.md` files.
 
 **Key files:**
 | Directory | Purpose |
 |-----------|---------|
-| `src/stores/context.ts` | Context strategy settings (Zustand, persisted) |
-| `src/hooks/use-context-search.ts` | Unified search hook (branches on strategy) |
-| `src/lib/context-index/` | Smart Index: builder, selector, types |
-| `src/lib/rag/` | RAG: chunker, aiignore, reindex, validation |
+| `src/lib/context-index/` | Smart Index: builder, indexer, artifacts, agent context |
+| `src/lib/context-index/agent-context.ts` | Generates CLAUDE.md + AGENTS.md for external agents |
+| `src/stores/context.ts` | Context settings (Zustand, persisted) |
 | `src/stores/context-index.ts` | Smart Index data store |
 
 ## UI Patterns
@@ -310,20 +303,20 @@ pipx install appicongen
 - **Single user**: No migration code or backward compatibility needed
 - All path strings must use `PATH_SEGMENTS.*` and `SPECIAL_DIRS.*` from `constants.ts`
 
-## MCP Plugin
+## External AI Agent Support
 
-The `tauri-plugin-mcp` dependency uses a **local path** outside the repo. To make CI work, a no-op stub is committed at `tauri-plugin-mcp/`. It's behind a Cargo feature flag:
+Desk generates `CLAUDE.md` and `AGENTS.md` files automatically so external AI agents (Claude CLI, Codex, etc.) can understand and work with Desk data without any special tooling.
 
-- **`npm run tauri:dev`** → passes `--features mcp` → MCP enabled (stub or real plugin)
-- **`npm run tauri:build`** / CI → no `--features mcp` → MCP skipped, stub just satisfies Cargo resolution
+**Generated files:**
+- `~/Desk/CLAUDE.md` — Top-level: lists all workspaces, explains directory structure, frontmatter schemas, how to create/edit items
+- `~/Desk/workspaces/{id}/CLAUDE.md` — Per-workspace: workspace info, project listing, pointer to catalog
+- `~/Desk/workspaces/{id}/WORKSPACE_CONTEXT.md` — AI-generated file catalog with summaries (from Smart Index)
 
-**For full MCP locally**, replace the stub with a symlink to the real plugin:
-```bash
-rm -rf tauri-plugin-mcp
-ln -s /Users/sascha/Development/tauri-plugin-mcp tauri-plugin-mcp
-```
+**Regeneration triggers:** workspace create/update/delete, project create/update/delete, index rebuild, app startup.
 
-Key files: `src-tauri/Cargo.toml` (`[features]`), `src-tauri/src/lib.rs` (`#[cfg(feature = "mcp")]`)
+**Key files:**
+- `src/lib/context-index/agent-context.ts` — Generates CLAUDE.md + AGENTS.md content
+- `src/lib/context-index/artifacts.ts` — Generates WORKSPACE_CONTEXT.md
 
 ## CI/CD & Releases
 

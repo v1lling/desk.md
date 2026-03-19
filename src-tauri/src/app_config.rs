@@ -7,17 +7,9 @@ const CONFIG_FILE_NAME: &str = "config.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
-pub struct McpConfig {
-    pub server_name: String,
-    pub transport: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(default)]
 pub struct SharedConfig {
     pub version: u32,
     pub data_path: String,
-    pub mcp: Option<McpConfig>,
 }
 
 pub fn config_file_path() -> Result<PathBuf, String> {
@@ -74,12 +66,6 @@ pub fn store_data_path(data_path: &str) -> Result<(), String> {
     let mut config = read_shared_config()?;
     config.version = 1;
     config.data_path = data_path.to_string();
-    if config.mcp.is_none() {
-        config.mcp = Some(McpConfig {
-            server_name: "Desk".to_string(),
-            transport: "stdio".to_string(),
-        });
-    }
     write_shared_config(&config)
 }
 

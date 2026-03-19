@@ -5,8 +5,8 @@ use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_fs::FsExt;
 
 pub mod app_config;
-mod mcp;
-pub mod mcp_core;
+pub mod desk_commands;
+mod desk_tools;
 mod secrets;
 
 // Flag to track if close has been confirmed by frontend
@@ -121,7 +121,7 @@ fn open_in_terminal(path: String) -> Result<(), String> {
 #[tauri::command]
 fn expand_fs_scope(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
     let p = std::path::PathBuf::from(&path);
-    mcp_core::set_data_root(p.clone());
+    desk_commands::set_data_root(p.clone());
     app_config::store_data_path(&path)?;
     app_handle
         .fs_scope()
@@ -145,18 +145,16 @@ pub fn run() {
             open_file_with_default_app,
             reveal_in_finder,
             open_in_terminal,
-            mcp::mcp_status,
-            mcp::mcp_self_test,
-            mcp::desk_tree,
-            mcp::desk_read,
-            mcp::desk_search,
-            mcp::desk_workspace_info,
-            mcp::desk_create_task,
-            mcp::desk_update_task,
-            mcp::desk_create_meeting,
-            mcp::desk_update_meeting,
-            mcp::desk_create_doc,
-            mcp::desk_update_doc,
+            desk_tools::desk_tree,
+            desk_tools::desk_read,
+            desk_tools::desk_search,
+            desk_tools::desk_workspace_info,
+            desk_tools::desk_create_task,
+            desk_tools::desk_update_task,
+            desk_tools::desk_create_meeting,
+            desk_tools::desk_update_meeting,
+            desk_tools::desk_create_doc,
+            desk_tools::desk_update_doc,
             secrets::secret_get,
             secrets::secret_set,
             secrets::secret_delete,
@@ -164,8 +162,8 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            let initial_root = mcp_core::resolve_data_root(None);
-            mcp_core::set_data_root(initial_root);
+            let initial_root = desk_commands::resolve_data_root(None);
+            desk_commands::set_data_root(initial_root);
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(

@@ -5,13 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Eye, EyeOff, KeyRound, Cable } from "lucide-react";
+import { Bot, Eye, EyeOff, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
 import type { AIProviderType } from "@/lib/ai/types";
 import { getSecret, setSecret } from "@/lib/ai/secrets";
-import { getMcpStatus, runMcpSelfTest, type McpStatus } from "@/lib/mcp";
 import { SystemPromptsCard } from "./system-prompts-card";
 
 function AIUsageStats() {
@@ -230,157 +229,6 @@ export function AITab() {
       </SettingsSection>
 
       <SystemPromptsCard />
-      <McpStatusCard />
     </div>
-  );
-}
-
-function McpStatusCard() {
-  const [status, setStatus] = useState<McpStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isRunningSelfTest, setIsRunningSelfTest] = useState(false);
-  const [selfTestOutput, setSelfTestOutput] = useState<string>("");
-  const [activeSnippet, setActiveSnippet] = useState<"claude" | "codex" | "gemini">("claude");
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const next = await getMcpStatus();
-        if (!cancelled) {
-          setStatus(next);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          toast.error(`Failed to load MCP status: ${String(error)}`);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const currentSnippet = status
-    ? activeSnippet === "claude"
-      ? status.claude_config_snippet
-      : activeSnippet === "codex"
-        ? status.codex_config_snippet
-        : status.gemini_config_snippet
-    : "";
-
-  const handleCopy = async () => {
-    if (!currentSnippet) {
-      toast.error("No MCP config snippet available");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(currentSnippet);
-      toast.success("MCP config copied");
-    } catch (error) {
-      toast.error(`Failed to copy MCP config: ${String(error)}`);
-    }
-  };
-
-  const handleSelfTest = async () => {
-    setIsRunningSelfTest(true);
-    setSelfTestOutput("");
-    try {
-      const result = await runMcpSelfTest();
-      setSelfTestOutput(result.output || "(no output)");
-      if (result.ok) {
-        toast.success("MCP self-test passed");
-      } else {
-        toast.error("MCP self-test failed");
-      }
-    } catch (error) {
-      toast.error(`MCP self-test failed: ${String(error)}`);
-    } finally {
-      setIsRunningSelfTest(false);
-    }
-  };
-
-  return (
-    <SettingsSection
-      icon={<Cable className="h-4 w-4" />}
-      title="Advanced: MCP Interoperability"
-      description="External CLI integration. Assistant uses direct in-app tools; MCP is optional for power users."
-      variant="inset"
-    >
-      <div className="space-y-4">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading MCP status...</p>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Transport</p>
-                <p className="text-sm font-medium">{status?.transport || "-"}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Server Command</p>
-                <p className="text-sm font-mono break-all">{status?.command || "-"}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Data Root</p>
-                <p className="text-sm font-mono break-all">{status?.data_root || "-"}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Shared Config</p>
-                <p className="text-sm font-mono break-all">{status?.shared_config_path || "-"}</p>
-              </div>
-            </div>
-            {!status?.available && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                desk-mcp sidecar binary not found at the resolved command path. Build or bundle the sidecar to enable one-click self-test.
-              </p>
-            )}
-
-            <div className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">Config snippet</p>
-                <div className="flex gap-1">
-                  <Button size="sm" variant={activeSnippet === "claude" ? "default" : "outline"} onClick={() => setActiveSnippet("claude")}>
-                    Claude
-                  </Button>
-                  <Button size="sm" variant={activeSnippet === "codex" ? "default" : "outline"} onClick={() => setActiveSnippet("codex")}>
-                    Codex
-                  </Button>
-                  <Button size="sm" variant={activeSnippet === "gemini" ? "default" : "outline"} onClick={() => setActiveSnippet("gemini")}>
-                    Gemini
-                  </Button>
-                </div>
-              </div>
-              <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto">
-{currentSnippet || "{}"}
-              </pre>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={handleSelfTest} disabled={isRunningSelfTest}>
-                  {isRunningSelfTest ? "Testing..." : "Run self-test"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleCopy}>
-                  Copy config
-                </Button>
-              </div>
-            </div>
-            {selfTestOutput && (
-              <div className="rounded-lg border p-3 space-y-2">
-                <p className="text-xs text-muted-foreground">Self-test output</p>
-                <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto whitespace-pre-wrap">
-{selfTestOutput}
-                </pre>
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              External MCP workflows run in your CLI. In-app Assistant uses direct tool calls instead of MCP transport.
-            </div>
-          </div>
-        )}
-      </div>
-    </SettingsSection>
   );
 }
