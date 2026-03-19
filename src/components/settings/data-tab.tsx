@@ -14,7 +14,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FolderOpen, Loader2, CheckCircle2, FolderPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useSettingsStore } from "@/stores/settings";
-import { useWorkspaces } from "@/stores/workspaces";
 import { useQueryClient } from "@tanstack/react-query";
 import { getWorkspaces, isTauri, expandFsScope } from "@/lib/desk";
 import type { Workspace } from "@/types";
@@ -29,7 +28,6 @@ export function DataTab() {
   } = useSettingsStore();
 
   const queryClient = useQueryClient();
-  const { data: workspaces = [] } = useWorkspaces();
 
   // State for data path change dialog
   const [pendingPath, setPendingPath] = useState("");
@@ -141,35 +139,6 @@ export function DataTab() {
             All your workspaces, projects, tasks, and notes are stored as markdown files in this folder.
           </p>
         </div>
-      </SettingsSection>
-
-      {/* Workspaces Overview */}
-      <SettingsSection title="Workspaces" description="Your configured workspaces">
-        {workspaces.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No workspaces configured yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {workspaces.map((workspace) => (
-              <div
-                key={workspace.id}
-                className="flex items-center gap-3 p-2 rounded-md border"
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: workspace.color || "#6366f1" }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{workspace.name}</p>
-                  {workspace.description && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {workspace.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </SettingsSection>
 
       {/* Reset Settings */}

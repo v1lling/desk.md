@@ -72,9 +72,8 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
     <>
       <div className={cn("px-2 py-3.5 border-t border-sidebar-border", isCollapsed && "px-1")}>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            {isCollapsed ? (
-              // Collapsed: just show color dot
+          {isCollapsed ? (
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
@@ -87,48 +86,39 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                   fill={fillColor}
                 />
               </Button>
-            ) : (
-              // Expanded: show full selector
+            </DropdownMenuTrigger>
+          ) : (
+            // Expanded: trigger + edit button side by side
+            <div className="group flex items-center gap-0.5">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex-1 min-w-0 justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg rounded-r-none bg-sidebar-accent/30 border border-sidebar-border/50 border-r-0 transition-all hover:border-sidebar-border shadow-sm"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Circle
+                      className="size-3.5 shrink-0"
+                      style={{ color: fillColor }}
+                      fill={fillColor}
+                    />
+                    <span className="font-medium truncate text-sidebar-foreground">
+                      {currentWorkspace?.name || "Select Workspace"}
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
               <Button
                 variant="ghost"
-                className="group w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
+                size="icon"
+                className="h-11 w-9 shrink-0 rounded-lg rounded-l-none bg-sidebar-accent/30 border border-sidebar-border/50 border-l-0 opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:bg-sidebar-accent/80 transition-all shadow-sm"
+                onClick={() => setShowEditModal(true)}
+                title="Edit workspace"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Circle
-                    className="size-3.5 shrink-0"
-                    style={{ color: fillColor }}
-                    fill={fillColor}
-                  />
-                  <span className="font-medium truncate text-sidebar-foreground">
-                    {currentWorkspace?.name || "Select Workspace"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 rounded transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setShowEditModal(true);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setShowEditModal(true);
-                      }
-                    }}
-                    title="Edit workspace"
-                  >
-                    <Pencil className="size-3.5" />
-                  </span>
-                  <ChevronsUpDown className="size-4 opacity-50 transition-opacity" />
-                </div>
+                <Pencil className="size-3.5 text-muted-foreground" />
               </Button>
-            )}
-          </DropdownMenuTrigger>
+            </div>
+          )}
 
           <DropdownMenuContent
             align="start"
