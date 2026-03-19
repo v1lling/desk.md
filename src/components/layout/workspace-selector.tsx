@@ -89,7 +89,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
             </DropdownMenuTrigger>
           ) : (
             // Expanded: trigger + edit button side by side
-            <div className="group flex items-center gap-0.5">
+            <div className="flex items-center gap-0.5">
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -111,7 +111,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-11 w-9 shrink-0 rounded-lg rounded-l-none bg-sidebar-accent/30 border border-sidebar-border/50 border-l-0 opacity-0 group-hover:opacity-100 hover:!opacity-100 hover:bg-sidebar-accent/80 transition-all shadow-sm"
+                className="h-11 w-9 shrink-0 rounded-lg rounded-l-none bg-sidebar-accent/30 border border-sidebar-border/50 border-l-0 hover:bg-sidebar-accent/80 transition-all shadow-sm"
                 onClick={() => setShowEditModal(true)}
                 title="Edit workspace"
               >
