@@ -7,6 +7,7 @@ import {
   Settings,
   CheckSquare,
   Calendar,
+  CalendarDays,
   Home,
   Bot,
   FileText,
@@ -62,6 +63,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className="px-2 py-2 space-y-1 shrink-0">
           <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" />
+          <SidebarNavRow to="/planner" label="My Week" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" />
 
           <Divider />
 

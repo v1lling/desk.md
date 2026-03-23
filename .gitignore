@@ -54,4 +54,7 @@ yarn-error.log*
 # Outlook add-in
 outlook-addin/node_modules
 .agtx/
+
+# Claude local data
 .claude/
+.claude-refactor-log/

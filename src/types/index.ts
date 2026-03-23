@@ -139,3 +139,20 @@ export interface ProjectViewState {
 }
 
 export type TaskViewMode = 'list' | 'kanban';
+
+// ── Week Planner ────────────────────────────────────────────────────
+
+/** A block of time allocated to a workspace on a specific day */
+export interface WorkspaceBlock {
+  id: string;                  // crypto.randomUUID() for drag-drop identity
+  workspaceId: string;
+  notes?: string;
+  taskIds: string[];           // Ordered list of task IDs planned within this block
+}
+
+/** A weekly plan (Mon–Sun of a given week) */
+export interface WeekPlan {
+  weekOf: string;              // ISO date of Monday, e.g. "2026-03-23"
+  showWeekends: boolean;
+  days: Record<string, WorkspaceBlock[]>;  // Keyed by ISO date
+}

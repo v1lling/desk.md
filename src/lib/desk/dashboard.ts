@@ -117,3 +117,54 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
 }
 
 // Note: Personal summary is now included in workspace summaries since Personal is a workspace
+
+/**
+ * Get all plannable tasks across all workspaces (todo, doing, waiting).
+ * Used by the planner board and week view.
+ */
+export async function getAllWorkspaceTasks(): Promise<ActiveTask[]> {
+  const workspaces = await getWorkspaces();
+  const allTasks: ActiveTask[] = [];
+
+  const workspaceTasksPromises = workspaces.map(async (workspace) => {
+    const tasks = await getTasks(workspace.id);
+    return tasks
+      .filter(
+        (task) =>
+          task.status === "todo" ||
+          task.status === "doing" ||
+          task.status === "waiting"
+      )
+      .map((task) => ({
+        ...task,
+        workspaceName: workspace.name,
+        workspaceColor: workspace.color,
+      }));
+  });
+
+  const workspaceTasksResults = await Promise.all(workspaceTasksPromises);
+  workspaceTasksResults.forEach((tasks) => allTasks.push(...tasks));
+
+  // Also fetch plannable capture tasks
+  const personalWorkspace = workspaces.find(
+    (w) => w.id === PERSONAL_WORKSPACE_ID
+  );
+  const captureTasks = await getCaptureTasks();
+  const plannableCapture = captureTasks
+    .filter(
+      (task) =>
+        task.status === "todo" ||
+        task.status === "doing" ||
+        task.status === "waiting"
+    )
+    .map((task) => ({
+      ...task,
+      workspaceName: personalWorkspace?.name || "Personal",
+      workspaceColor: personalWorkspace?.color,
+    }));
+
+  allTasks.push(...plannableCapture);
+  allTasks.sort((a, b) => b.created.localeCompare(a.created));
+
+  return allTasks;
+}

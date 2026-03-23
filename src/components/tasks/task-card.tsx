@@ -10,7 +10,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
 } from "@/components/ui/context-menu";
-import { Calendar, GripVertical, FolderKanban, Star } from "lucide-react";
+import { Calendar, Circle, GripVertical, FolderKanban, Star } from "lucide-react";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { priorityColors } from "@/lib/design-tokens";
@@ -26,6 +26,8 @@ interface TaskCardProps {
   onToggleHighlight?: () => void;
   /** Workspace color for highlight background */
   workspaceColor?: string;
+  /** Workspace name for cross-workspace views */
+  workspaceName?: string;
 }
 
 export function TaskCard({
@@ -36,6 +38,7 @@ export function TaskCard({
   isHighlighted,
   onToggleHighlight,
   workspaceColor,
+  workspaceName,
 }: TaskCardProps) {
   const {
     attributes,
@@ -81,6 +84,20 @@ export function TaskCard({
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
           <div className="flex-1 min-w-0 cursor-pointer">
+            {workspaceName && (
+              <div className="flex items-center gap-1 mb-1">
+                <Circle
+                  className="h-2 w-2 shrink-0"
+                  style={{
+                    color: workspaceColor || "#64748b",
+                    fill: workspaceColor || "#64748b",
+                  }}
+                />
+                <span className="text-[11px] text-muted-foreground truncate">
+                  {workspaceName}
+                </span>
+              </div>
+            )}
             {showProject && projectName && (
               <div className="flex items-center gap-1 mb-1.5">
                 <FolderKanban className="h-3 w-3 text-muted-foreground" />

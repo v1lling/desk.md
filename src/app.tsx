@@ -10,6 +10,7 @@ import DocsPage from "./pages/docs";
 import MeetingsPage from "./pages/meetings";
 import SettingsPage from "./pages/settings";
 import ProjectViewPage from "./pages/project-view";
+import PlannerPage from "./pages/planner";
 
 function ProjectRootRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,7 @@ export function App() {
           <AppShell>
             <Routes>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/planner" element={<PlannerPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
