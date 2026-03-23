@@ -207,6 +207,31 @@ export async function readDir(path: string): Promise<DirEntry[]> {
   }));
 }
 
+export interface FileStat {
+  birthtime: Date | null;  // File creation time
+  mtime: Date | null;      // File modification time
+  size: number;
+}
+
+/**
+ * Get file metadata (creation time, modification time, size)
+ */
+export async function fileStat(path: string): Promise<FileStat | null> {
+  if (!isTauri()) return null;
+
+  try {
+    const fs = await getTauriFsModule();
+    const info = await fs.stat(path);
+    return {
+      birthtime: info.birthtime,
+      mtime: info.mtime,
+      size: info.size,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Join path segments
  */

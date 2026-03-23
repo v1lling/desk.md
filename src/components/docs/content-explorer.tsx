@@ -15,16 +15,19 @@ import { NewDocModal } from "./new-doc-modal";
 import { ContentDropZone } from "./content-drop-zone";
 import {
   useContentTree,
+  useWorkspaceOverviewShell,
   useCreateFolder,
   useRenameFolder,
   useDeleteFolder,
   useDeleteDoc,
+  useUpdateDoc,
   useDeleteAsset,
   useExpandedFolders,
   useImportFiles,
   useOpenTab,
   useFolderAIStates,
   useMoveDoc,
+  useMoveFolder,
   PERSONAL_WORKSPACE_ID,
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -34,6 +37,7 @@ import { isMarkdownFile } from "@/lib/desk/file-utils";
 import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
 import { getDocsPath } from "@/lib/desk/paths";
 import { isTauri } from "@/lib/desk/tauri-fs";
+import { OVERVIEW_PROJECT_KEY } from "@/lib/desk/constants";
 
 export interface ContentExplorerScope {
   id: string;
@@ -89,12 +93,21 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     [scopes, selectedScopeId]
   );
 
-  // Content tree data for selected scope
-  const { data: tree = [], isLoading } = useContentTree(
+  // Overview mode: workspace-level scope shows workspace docs + project folders
+  const isOverviewMode = selectedScope?.isWorkspaceLevel === true;
+
+  // Content tree data — use overview shell for workspace scope, scoped tree otherwise
+  const { data: overviewTree = [], isLoading: overviewLoading } =
+    useWorkspaceOverviewShell(isOverviewMode ? selectedScope?.workspaceId : null);
+
+  const { data: scopedTree = [], isLoading: scopedLoading } = useContentTree(
     selectedScope?.scope || "personal",
-    selectedScope?.workspaceId,
-    selectedScope?.projectId
+    isOverviewMode ? undefined : selectedScope?.workspaceId,
+    isOverviewMode ? undefined : selectedScope?.projectId
   );
+
+  const tree = isOverviewMode ? overviewTree : scopedTree;
+  const isLoading = isOverviewMode ? overviewLoading : scopedLoading;
 
   // Count docs and assets in tree (using shared utility functions)
   const docCount = useMemo(() => extractDocs(tree).length, [tree]);
@@ -128,7 +141,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   // Expanded folders state - use PERSONAL_WORKSPACE_ID for personal scope
   const { expandedFolders, setExpandedFolders } = useExpandedFolders(
     selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_WORKSPACE_ID : null),
-    selectedScope?.projectId || null
+    isOverviewMode ? OVERVIEW_PROJECT_KEY : selectedScope?.projectId || null
   );
 
   // Compute base path for "Reveal in Finder" functionality
@@ -151,9 +164,11 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const renameFolder = useRenameFolder();
   const deleteFolder = useDeleteFolder();
   const deleteDoc = useDeleteDoc();
+  const updateDoc = useUpdateDoc();
   const deleteAsset = useDeleteAsset();
   const importFiles = useImportFiles();
   const moveDoc = useMoveDoc();
+  const moveFolder = useMoveFolder();
   const { openDoc } = useOpenTab();
 
   // Local state
@@ -230,6 +245,30 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
       });
     },
     [selectedScope, moveDoc]
+  );
+
+  // Move folder to a different parent folder
+  const handleMoveFolder = useCallback(
+    async (fromPath: string, toParentPath: string) => {
+      if (!selectedScope) return;
+      await moveFolder.mutateAsync({
+        scope: selectedScope.scope,
+        fromPath,
+        toParentPath,
+        workspaceId: selectedScope.workspaceId,
+        projectId: selectedScope.projectId,
+      });
+    },
+    [selectedScope, moveFolder]
+  );
+
+  // Rename doc (title only)
+  const handleRenameDoc = useCallback(
+    async (doc: Doc, newTitle: string) => {
+      await updateDoc.mutateAsync({ doc, updates: { title: newTitle } });
+      toast.success("Renamed");
+    },
+    [updateDoc]
   );
 
   // Selection and doc operations
@@ -440,7 +479,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
 
       {/* Content tree - full width */}
       <ContentTree
-        className="flex-1 min-h-0 px-6 py-4"
+        className="flex-1 min-h-0"
         nodes={tree}
         isLoading={isLoading}
         selectedDocId={selectedDocId}
@@ -460,6 +499,9 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         basePath={basePath}
         onMoveDoc={handleMoveDoc}
         allFolderPaths={folderPaths}
+        onRenameDoc={handleRenameDoc}
+        onMoveFolder={handleMoveFolder}
+        workspaceId={selectedScope?.workspaceId}
       />
 
       {/* New doc modal */}

@@ -3,6 +3,7 @@ import type { Project, ProjectStatus } from "@/types";
 import * as projectLib from "@/lib/desk/projects";
 import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
 import { getWorkspace } from "@/lib/desk/workspaces";
+import { contentKeys } from "./content";
 
 /** Regenerate per-workspace agent files when projects change */
 function regenerateWorkspaceAgentFiles(workspaceId: string) {
@@ -81,6 +82,9 @@ export function useCreateProject() {
       queryClient.invalidateQueries({
         queryKey: projectKeys.byWorkspace(newProject.workspaceId),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.overview(newProject.workspaceId),
+      });
       regenerateWorkspaceAgentFiles(newProject.workspaceId);
     },
   });
@@ -107,6 +111,9 @@ export function useUpdateProject() {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(variables.workspaceId),
         });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.overview(variables.workspaceId),
+        });
         regenerateWorkspaceAgentFiles(variables.workspaceId);
       }
     },
@@ -126,6 +133,9 @@ export function useDeleteProject() {
       if (result.success) {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(result.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.overview(result.workspaceId),
         });
         regenerateWorkspaceAgentFiles(result.workspaceId);
       }

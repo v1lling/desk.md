@@ -57,6 +57,8 @@ export interface Doc {
   created: string;
   content: string;
   preview?: string;        // First ~100 chars
+  fileCreated?: string;    // OS file creation time (ISO)
+  fileModified?: string;   // OS file modification time (ISO)
 }
 
 // Folder in the content tree (can contain docs and assets)
@@ -64,6 +66,10 @@ export interface ContentFolder {
   name: string;
   path: string;            // Relative path (e.g., "tech" or "tech/api")
   children: FileTreeNode[];
+  isProject?: boolean;     // True when this represents a project in workspace overview
+  projectId?: string;      // Project ID (for project folders in overview)
+  docCount?: number;       // Doc count for project folder header
+  assetCount?: number;     // Asset count for project folder header
 }
 
 // Asset - non-markdown file (metadata only, opens externally)
@@ -74,6 +80,8 @@ export interface Asset {
   workspaceId: string;
   filePath: string;        // Full absolute path
   extension: string;       // File extension without dot (e.g., "pdf", "png")
+  fileCreated?: string;    // OS file creation time (ISO)
+  fileModified?: string;   // OS file modification time (ISO)
 }
 
 // Tree node - folder, doc, or asset

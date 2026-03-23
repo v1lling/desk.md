@@ -46,6 +46,12 @@ export const PERSONAL_WORKSPACE_ID = "_personal" as const;
  */
 export const WORKSPACE_LEVEL_PROJECT_ID = "_workspace" as const;
 
+/**
+ * Virtual project ID used for expanded-folders persistence in overview mode.
+ * Must not collide with real project IDs.
+ */
+export const OVERVIEW_PROJECT_KEY = "__overview__" as const;
+
 // =============================================================================
 // FILE NAMES
 // Standard file names used in the project structure

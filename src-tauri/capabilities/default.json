@@ -88,6 +88,18 @@
       ]
     },
     {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        { "path": "$HOME" },
+        { "path": "$HOME/*" },
+        { "path": "$HOME/**" },
+        { "path": "$HOME/**/*" },
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/*" },
+        { "path": "$HOME/**/.*/**/*" }
+      ]
+    },
+    {
       "identifier": "fs:allow-watch",
       "allow": [
         { "path": "$HOME/**" },

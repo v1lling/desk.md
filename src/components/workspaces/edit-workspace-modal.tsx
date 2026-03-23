@@ -16,7 +16,7 @@ import { useUpdateWorkspace, useDeleteWorkspace } from "@/stores/workspaces";
 import { useSettingsStore } from "@/stores/settings";
 import { isPersonalWorkspace, SPECIAL_DIRS } from "@/lib/desk/constants";
 import { toast } from "sonner";
-import { workspaceColorOptions } from "@/lib/design-tokens";
+import { ColorPicker } from "@/components/ui/color-picker";
 import type { Workspace } from "@/types";
 
 interface EditWorkspaceModalProps {
@@ -34,14 +34,14 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
 
   const [name, setName] = useState(workspace.name);
   const [description, setDescription] = useState(workspace.description || "");
-  const [color, setColor] = useState(workspace.color || workspaceColorOptions[0].value);
+  const [color, setColor] = useState(workspace.color || "#3b82f6");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Sync form state when workspace prop changes
   useEffect(() => {
     setName(workspace.name);
     setDescription(workspace.description || "");
-    setColor(workspace.color || workspaceColorOptions[0].value);
+    setColor(workspace.color || "#3b82f6");
   }, [workspace]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,22 +117,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
             </FormField>
 
             <FormField label="Color">
-              <div className="flex gap-2 flex-wrap">
-                {workspaceColorOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setColor(opt.value)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      color === opt.value
-                        ? "border-foreground scale-110"
-                        : "border-transparent hover:scale-105"
-                    }`}
-                    style={{ backgroundColor: opt.value }}
-                    title={opt.label}
-                  />
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={setColor} />
             </FormField>
 
             <div className="flex justify-end gap-2 pt-2">

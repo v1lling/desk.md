@@ -13,6 +13,9 @@ export const contentKeys = {
   // Tree keys for scoped content trees
   tree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
     [...contentKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
+  // Workspace overview tree (workspace content + project folders)
+  overview: (workspaceId: string) =>
+    [...contentKeys.byWorkspace(workspaceId), "overview-tree"] as const,
 };
 
 /**
@@ -245,6 +248,18 @@ export function useContentTree(
 }
 
 /**
+ * Hook to fetch workspace overview shell (workspace content + project folder stubs).
+ * Project content is loaded lazily via useContentTree when folders are expanded.
+ */
+export function useWorkspaceOverviewShell(workspaceId?: string | null) {
+  return useQuery({
+    queryKey: contentKeys.overview(workspaceId || ""),
+    queryFn: () => contentLib.getWorkspaceOverviewShell(workspaceId!),
+    enabled: !!workspaceId,
+  });
+}
+
+/**
  * Hook to create a folder in the content tree
  */
 export function useCreateFolder() {
@@ -324,6 +339,38 @@ export function useDeleteFolder() {
       workspaceId?: string;
       projectId?: string;
     }) => contentLib.deleteFolder(scope, folderPath, workspaceId, projectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.tree(
+          variables.scope,
+          variables.workspaceId,
+          variables.projectId
+        ),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to move a folder to a new parent folder
+ */
+export function useMoveFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      scope,
+      fromPath,
+      toParentPath,
+      workspaceId,
+      projectId,
+    }: {
+      scope: ContentScope;
+      fromPath: string;
+      toParentPath: string;
+      workspaceId?: string;
+      projectId?: string;
+    }) => contentLib.moveFolder(scope, fromPath, toParentPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(

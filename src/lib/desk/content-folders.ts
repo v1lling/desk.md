@@ -87,6 +87,51 @@ export async function renameFolder(
 }
 
 /**
+ * Move a folder to a new parent folder.
+ * e.g. moveFolder("tech", "archive") moves "tech" → "archive/tech"
+ * moveFolder("archive/tech", "") moves "archive/tech" → "tech" (root)
+ */
+export async function moveFolder(
+  scope: ContentScope,
+  fromPath: string,
+  toParentPath: string,
+  workspaceId?: string,
+  projectId?: string
+): Promise<boolean> {
+  // Prevent moving into itself or descendants
+  if (toParentPath === fromPath || toParentPath.startsWith(fromPath + "/")) {
+    return false;
+  }
+
+  const folderName = fromPath.includes("/")
+    ? fromPath.split("/").pop()!
+    : fromPath;
+
+  const newPath = toParentPath ? `${toParentPath}/${folderName}` : folderName;
+
+  if (newPath === fromPath) return false;
+
+  if (!isTauri()) {
+    return true;
+  }
+
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const oldFullPath = await joinPath(basePath, fromPath);
+  const newFullPath = await joinPath(basePath, newPath);
+
+  // Ensure target parent exists
+  if (toParentPath) {
+    const parentFullPath = await joinPath(basePath, toParentPath);
+    if (!(await exists(parentFullPath))) {
+      await mkdir(parentFullPath);
+    }
+  }
+
+  await rename(oldFullPath, newFullPath);
+  return true;
+}
+
+/**
  * Delete a folder and all its contents
  */
 export async function deleteFolder(

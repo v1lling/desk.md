@@ -23,6 +23,95 @@ import { cn } from "@/lib/utils";
 import { getFileCategory } from "@/lib/desk/file-utils";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { toast } from "sonner";
+import type { FileTreeNode } from "@/types";
+
+// ── Date Formatting ─────────────────────────────────────────────────
+
+export function formatRelativeDate(dateStr: string | undefined): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  // Same year: "Jan 15"
+  if (date.getFullYear() === now.getFullYear()) {
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  // Different year: "Jan 2024"
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+// ── Sorting ─────────────────────────────────────────────────────────
+
+export type DocSortBy = "name" | "created" | "modified";
+
+/**
+ * Sort tree nodes recursively. Folders always come first, sorted alphabetically.
+ * Docs/assets are sorted by the given criteria.
+ */
+export function sortNodes(
+  nodes: FileTreeNode[],
+  sortBy: DocSortBy,
+  direction: "asc" | "desc"
+): FileTreeNode[] {
+  const sorted = [...nodes].sort((a, b) => {
+    // Project folders always last
+    const aIsProject = a.type === "folder" && a.folder.isProject;
+    const bIsProject = b.type === "folder" && b.folder.isProject;
+    if (aIsProject && !bIsProject) return 1;
+    if (!aIsProject && bIsProject) return -1;
+    if (aIsProject && bIsProject) return a.folder.name.localeCompare(b.folder.name);
+
+    // Regular folders first
+    if (a.type === "folder" && b.type !== "folder") return -1;
+    if (a.type !== "folder" && b.type === "folder") return 1;
+
+    // Regular folders always alphabetically
+    if (a.type === "folder" && b.type === "folder") {
+      return a.folder.name.localeCompare(b.folder.name);
+    }
+
+    // Docs and assets
+    let cmp = 0;
+    if (sortBy === "name") {
+      const nameA = a.type === "doc" ? a.doc.title : a.type === "asset" ? a.asset.id : "";
+      const nameB = b.type === "doc" ? b.doc.title : b.type === "asset" ? b.asset.id : "";
+      cmp = nameA.localeCompare(nameB);
+    } else if (sortBy === "created") {
+      const dateA = (a.type === "doc" ? a.doc.fileCreated : a.type === "asset" ? a.asset.fileCreated : undefined) || "";
+      const dateB = (b.type === "doc" ? b.doc.fileCreated : b.type === "asset" ? b.asset.fileCreated : undefined) || "";
+      cmp = dateA.localeCompare(dateB);
+    } else if (sortBy === "modified") {
+      const dateA = (a.type === "doc" ? a.doc.fileModified : a.type === "asset" ? a.asset.fileModified : undefined) || "";
+      const dateB = (b.type === "doc" ? b.doc.fileModified : b.type === "asset" ? b.asset.fileModified : undefined) || "";
+      cmp = dateA.localeCompare(dateB);
+    }
+    return direction === "desc" ? -cmp : cmp;
+  });
+
+  // Recursively sort folder children (skip project folders)
+  return sorted.map(node => {
+    if (node.type === "folder" && !node.folder.isProject) {
+      return {
+        ...node,
+        folder: {
+          ...node.folder,
+          children: sortNodes(node.folder.children, sortBy, direction),
+        },
+      };
+    }
+    return node;
+  });
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -219,8 +308,17 @@ export function buildDocMenuItems(opts: {
   moveToFolders: string[];
   onMoveToFolder?: (toPath: string) => void;
   onDeleteDoc?: () => void;
+  onRenameDoc?: () => void;
 }): MenuItem[] {
   const items: MenuItem[] = [];
+
+  if (opts.onRenameDoc) {
+    items.push({
+      icon: <Pencil className="size-4 mr-2" />,
+      label: "Rename",
+      onClick: opts.onRenameDoc,
+    });
+  }
 
   if (opts.onMoveToFolder && opts.moveToFolders.length > 0) {
     const submenuItems: { icon: ReactNode; label: string; onClick: () => void }[] = [];

@@ -1,7 +1,8 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { FolderPlus, FileText, Loader2, Search, X } from "lucide-react";
+import { toast } from "sonner";
+import { FolderPlus, FileText, Loader2, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,10 +15,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContentTreeItem } from "./content-tree-item";
+import { sortNodes, type DocSortBy } from "./tree-item-utils";
 import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
+import { Folder } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -28,6 +37,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
+import type { ContentFolder } from "@/types";
 
 /**
  * Recursively filter tree nodes based on search query.
@@ -41,6 +51,13 @@ function filterNodes(nodes: FileTreeNode[], query: string): FileTreeNode[] {
 
   for (const node of nodes) {
     if (node.type === "folder") {
+      // Project folders (lazy loaded): only match on name, don't recurse into empty children
+      if (node.folder.isProject) {
+        if (node.folder.name.toLowerCase().includes(lowerQuery)) {
+          result.push(node);
+        }
+        continue;
+      }
       // Recursively filter folder children
       const filteredChildren = filterNodes(node.folder.children, query);
       // Include folder if it has matching children OR if folder name matches
@@ -54,8 +71,11 @@ function filterNodes(nodes: FileTreeNode[], query: string): FileTreeNode[] {
         });
       }
     } else if (node.type === "doc") {
-      // Include doc if title matches
-      if (node.doc.title.toLowerCase().includes(lowerQuery)) {
+      // Include doc if title or content matches
+      if (
+        node.doc.title.toLowerCase().includes(lowerQuery) ||
+        node.doc.content?.toLowerCase().includes(lowerQuery)
+      ) {
         result.push(node);
       }
     } else if (node.type === "asset") {
@@ -67,6 +87,79 @@ function filterNodes(nodes: FileTreeNode[], query: string): FileTreeNode[] {
   }
 
   return result;
+}
+
+/**
+ * Extract all docs from a tree (recursive).
+ */
+function extractDocsFromNodes(nodes: FileTreeNode[]): Doc[] {
+  const docs: Doc[] = [];
+  for (const node of nodes) {
+    if (node.type === "doc") {
+      docs.push(node.doc);
+    } else if (node.type === "folder") {
+      docs.push(...extractDocsFromNodes(node.folder.children));
+    }
+  }
+  return docs;
+}
+
+/**
+ * Compute a flat index map for visible tree nodes (respects folder expansion).
+ * Used for zebra striping, keyboard navigation, and range selection.
+ */
+function computeVisibleIndices(
+  nodes: FileTreeNode[],
+  expandedFolders: Set<string>
+): Map<string, number> {
+  const map = new Map<string, number>();
+  let index = 0;
+  function walk(nodes: FileTreeNode[]) {
+    for (const node of nodes) {
+      map.set(getNodeKey(node), index++);
+      if (node.type === "folder" && expandedFolders.has(node.folder.path)) {
+        walk(node.folder.children);
+      }
+    }
+  }
+  walk(nodes);
+  return map;
+}
+
+/**
+ * Compute a flat ordered list of visible nodes (respects folder expansion).
+ * Used for keyboard navigation and range selection.
+ */
+function computeVisibleList(
+  nodes: FileTreeNode[],
+  expandedFolders: Set<string>
+): FileTreeNode[] {
+  const list: FileTreeNode[] = [];
+  function walk(nodes: FileTreeNode[]) {
+    for (const node of nodes) {
+      list.push(node);
+      if (node.type === "folder" && expandedFolders.has(node.folder.path)) {
+        walk(node.folder.children);
+      }
+    }
+  }
+  walk(nodes);
+  return list;
+}
+
+/**
+ * Get the parent folder path for a node.
+ */
+function getParentFolderPath(node: FileTreeNode): string | null {
+  if (node.type === "folder") {
+    const path = node.folder.path;
+    const lastSlash = path.lastIndexOf("/");
+    return lastSlash >= 0 ? path.substring(0, lastSlash) : null;
+  }
+  if (node.type === "doc" && node.doc.path?.includes("/")) {
+    return node.doc.path.substring(0, node.doc.path.lastIndexOf("/"));
+  }
+  return null;
 }
 
 /**
@@ -110,6 +203,12 @@ interface ContentTreeProps {
   onMoveDoc?: (docId: string, fromPath: string, toPath: string) => Promise<void>;
   /** All folder paths for "Move to" menu */
   allFolderPaths?: string[];
+  /** Callback when a doc is renamed */
+  onRenameDoc?: (doc: Doc, newTitle: string) => Promise<void>;
+  /** Callback when a folder is moved to another folder */
+  onMoveFolder?: (fromPath: string, toParentPath: string) => Promise<void>;
+  /** Workspace ID (needed for lazy-loading project folder content) */
+  workspaceId?: string;
 }
 
 export function ContentTree({
@@ -133,13 +232,32 @@ export function ContentTree({
   basePath,
   onMoveDoc,
   allFolderPaths,
+  onRenameDoc,
+  onMoveFolder,
+  workspaceId,
 }: ContentTreeProps) {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Sort state
+  const [sortBy, setSortBy] = useState<DocSortBy>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Inline rename state
+  const [renamingItemId, setRenamingItemId] = useState<string | null>(null);
+
+  // Multi-select state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [lastClickedItemId, setLastClickedItemId] = useState<string | null>(null);
+
+  // Keyboard navigation state
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+
   // Drag and drop state
   const [activeDoc, setActiveDoc] = useState<Doc | null>(null);
+  const [activeFolder, setActiveFolder] = useState<ContentFolder | null>(null);
   const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
 
   // DnD sensors
@@ -153,9 +271,11 @@ export function ContentTree({
 
   // Drag handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const docData = event.active.data.current?.doc as Doc | undefined;
-    if (docData) {
-      setActiveDoc(docData);
+    const data = event.active.data.current;
+    if (data?.type === "folder") {
+      setActiveFolder(data.folder as ContentFolder);
+    } else if (data?.doc) {
+      setActiveDoc(data.doc as Doc);
     }
   }, []);
 
@@ -174,36 +294,60 @@ export function ContentTree({
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDoc(null);
+    setActiveFolder(null);
     setDropTargetPath(null);
 
-    if (!over || !onMoveDoc) return;
+    if (!over) return;
 
-    const doc = active.data.current?.doc as Doc | undefined;
-    if (!doc) return;
+    const data = active.data.current;
 
     // Determine target folder path
     const targetPath = over.data.current?.folderPath as string | undefined;
     const toPath = targetPath ?? (over.id === "root-drop" ? "" : null);
-
     if (toPath === null) return;
 
-    // Get current folder path from doc.path
-    const fromPath = doc.path?.includes("/")
-      ? doc.path.substring(0, doc.path.lastIndexOf("/"))
-      : "";
+    // Handle folder drag
+    if (data?.type === "folder" && onMoveFolder) {
+      const folder = data.folder as ContentFolder;
+      const fromParent = folder.path.includes("/")
+        ? folder.path.substring(0, folder.path.lastIndexOf("/"))
+        : "";
 
-    // Don't move if same folder
-    if (fromPath === toPath) return;
+      // Don't move if same parent or dropping onto self
+      if (fromParent === toPath || folder.path === toPath) return;
+      // Don't allow moving into own descendants
+      if (toPath.startsWith(folder.path + "/")) return;
 
-    try {
-      await onMoveDoc(doc.id, fromPath, toPath);
-    } catch (error) {
-      console.error("Failed to move doc:", error);
+      try {
+        await onMoveFolder(folder.path, toPath);
+        toast.success(`Moved to ${toPath || "root"}`);
+      } catch (error) {
+        console.error("Failed to move folder:", error);
+        toast.error("Failed to move folder");
+      }
+      return;
     }
-  }, [onMoveDoc]);
+
+    // Handle doc drag
+    if (data?.doc && onMoveDoc) {
+      const doc = data.doc as Doc;
+      const fromPath = doc.path?.includes("/")
+        ? doc.path.substring(0, doc.path.lastIndexOf("/"))
+        : "";
+
+      if (fromPath === toPath) return;
+
+      try {
+        await onMoveDoc(doc.id, fromPath, toPath);
+      } catch (error) {
+        console.error("Failed to move doc:", error);
+      }
+    }
+  }, [onMoveDoc, onMoveFolder]);
 
   const handleDragCancel = useCallback(() => {
     setActiveDoc(null);
+    setActiveFolder(null);
     setDropTargetPath(null);
   }, []);
 
@@ -213,7 +357,7 @@ export function ContentTree({
   );
 
   // Store expanded folders before search to restore after
-  const [preSearchExpandedFolders, setPreSearchExpandedFolders] = useState<string[] | null>(null);
+  const preSearchExpandedFoldersRef = useRef<string[] | null>(null);
 
   // Convert controlled array to Set for consistent usage
   const expandedFolders = controlledExpandedFolders
@@ -233,28 +377,48 @@ export function ContentTree({
     }
   }, [controlledExpandedFolders, onExpandedFoldersChange]);
 
-  // Filter nodes based on search query
+  // Filter and sort nodes
   const filteredNodes = useMemo(
-    () => filterNodes(nodes, searchQuery),
-    [nodes, searchQuery]
+    () => sortNodes(filterNodes(nodes, searchQuery), sortBy, sortDir),
+    [nodes, searchQuery, sortBy, sortDir]
   );
+
+  // Compute flat visible indices for zebra striping
+  const visibleIndices = useMemo(
+    () => computeVisibleIndices(filteredNodes, expandedFolders),
+    [filteredNodes, expandedFolders]
+  );
+
+  // Compute flat visible list for keyboard navigation
+  const visibleList = useMemo(
+    () => computeVisibleList(filteredNodes, expandedFolders),
+    [filteredNodes, expandedFolders]
+  );
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!focusedItemId || !treeContainerRef.current) return;
+    const el = treeContainerRef.current.querySelector(`[data-tree-item-id="${CSS.escape(focusedItemId)}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [focusedItemId]);
+
 
   // Auto-expand all folders when searching, restore when search clears
   useEffect(() => {
     if (searchQuery.trim()) {
       // Save current expanded state before searching (only once when search starts)
-      if (preSearchExpandedFolders === null) {
-        setPreSearchExpandedFolders(Array.from(expandedFolders));
+      if (preSearchExpandedFoldersRef.current === null) {
+        preSearchExpandedFoldersRef.current = Array.from(expandedFolders);
       }
       // Expand all folders in filtered results
       const allPaths = getAllFolderPaths(filteredNodes);
       setExpandedFolders(new Set(allPaths));
-    } else if (preSearchExpandedFolders !== null) {
+    } else if (preSearchExpandedFoldersRef.current !== null) {
       // Restore previous expanded state when search clears
-      setExpandedFolders(new Set(preSearchExpandedFolders));
-      setPreSearchExpandedFolders(null);
+      setExpandedFolders(new Set(preSearchExpandedFoldersRef.current));
+      preSearchExpandedFoldersRef.current = null;
     }
-  }, [searchQuery, filteredNodes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchQuery, filteredNodes, expandedFolders, setExpandedFolders]);
 
   // Clear search handler
   const handleClearSearch = useCallback(() => {
@@ -269,17 +433,29 @@ export function ContentTree({
     }
   }, [handleClearSearch]);
 
-  // Modal state for creating/renaming folders
+  // Modal state for creating folders (rename now uses inline)
   const [folderModal, setFolderModal] = useState<{
-    mode: "create" | "rename";
-    parentPath: string; // For create, this is parent. For rename, this is the folder path.
-    currentName?: string;
+    mode: "create";
+    parentPath: string;
   } | null>(null);
   const [folderName, setFolderName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<{ path: string } | null>(null);
+
+  // Wrap onSelectDoc/onSelectFolder to clear multi-selection on plain clicks
+  const handleSelectDoc = useCallback((doc: Doc) => {
+    setSelectedItems(new Set());
+    setLastClickedItemId(`doc-${doc.id}`);
+    onSelectDoc?.(doc);
+  }, [onSelectDoc]);
+
+  const handleSelectFolder = useCallback((folderPath: string) => {
+    setSelectedItems(new Set());
+    setLastClickedItemId(`folder-${folderPath}`);
+    onSelectFolder?.(folderPath);
+  }, [onSelectFolder]);
 
   const toggleFolder = useCallback((path: string) => {
     setExpandedFolders((prev) => {
@@ -305,15 +481,156 @@ export function ContentTree({
     setExpandedFolders((prev) => new Set([...prev, parentPath]));
   };
 
+  // Inline rename: folder rename now triggers inline mode via renamingItemId
   const handleRenameFolder = (path: string) => {
-    const name = path.includes("/") ? path.split("/").pop()! : path;
-    setFolderModal({ mode: "rename", parentPath: path, currentName: name });
-    setFolderName(name);
+    setRenamingItemId(`folder-${path}`);
   };
 
-  const handleDeleteFolder = (path: string) => {
+  // Handle inline rename commit for both docs and folders
+  const handleCommitRename = useCallback(async (itemId: string, newName: string) => {
+    setRenamingItemId(null);
+    if (itemId.startsWith("folder-")) {
+      const folderPath = itemId.slice("folder-".length);
+      if (onRenameFolder) {
+        try {
+          await onRenameFolder(folderPath, newName);
+        } catch (error) {
+          console.error("Failed to rename folder:", error);
+          toast.error("Failed to rename folder");
+        }
+      }
+    } else if (itemId.startsWith("doc-")) {
+      const docId = itemId.slice("doc-".length);
+      if (onRenameDoc) {
+        // Find the doc from the tree
+        const allDocs = extractDocsFromNodes(filteredNodes);
+        const doc = allDocs.find(d => d.id === docId);
+        if (doc) {
+          try {
+            await onRenameDoc(doc, newName);
+          } catch (error) {
+            console.error("Failed to rename doc:", error);
+            toast.error("Failed to rename doc");
+          }
+        }
+      }
+    }
+  }, [onRenameFolder, onRenameDoc, filteredNodes]);
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingItemId(null);
+  }, []);
+
+  // Multi-select click handler (Cmd+click toggle, Shift+click range)
+  const handleItemClick = useCallback((itemId: string, event: React.MouseEvent) => {
+    if (event.metaKey || event.ctrlKey) {
+      // Cmd/Ctrl+click: toggle item in selection
+      setSelectedItems(prev => {
+        const next = new Set(prev);
+        if (next.has(itemId)) {
+          next.delete(itemId);
+        } else {
+          next.add(itemId);
+        }
+        return next;
+      });
+      setLastClickedItemId(itemId);
+      setFocusedItemId(itemId);
+    } else if (event.shiftKey && lastClickedItemId) {
+      // Shift+click: range select from lastClickedItemId to itemId
+      const keys = visibleList.map(n => getNodeKey(n));
+      const startIdx = keys.indexOf(lastClickedItemId);
+      const endIdx = keys.indexOf(itemId);
+      if (startIdx >= 0 && endIdx >= 0) {
+        const [from, to] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+        setSelectedItems(prev => {
+          const next = new Set(prev);
+          for (let i = from; i <= to; i++) {
+            next.add(keys[i]);
+          }
+          return next;
+        });
+      }
+      setFocusedItemId(itemId);
+    }
+  }, [lastClickedItemId, visibleList]);
+
+  const handleDeleteFolder = useCallback((path: string) => {
     setDeleteConfirm({ path });
-  };
+  }, []);
+
+  // Keyboard navigation handler (must be after toggleFolder & handleDeleteFolder)
+  const handleTreeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (renamingItemId) return;
+    if (e.target === searchInputRef.current) return;
+
+    const currentIdx = focusedItemId
+      ? visibleList.findIndex(n => getNodeKey(n) === focusedItemId)
+      : -1;
+    const currentNode = currentIdx >= 0 ? visibleList[currentIdx] : null;
+
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const nextIdx = currentIdx < visibleList.length - 1 ? currentIdx + 1 : 0;
+        setFocusedItemId(getNodeKey(visibleList[nextIdx]));
+        break;
+      }
+      case "ArrowUp": {
+        e.preventDefault();
+        const prevIdx = currentIdx > 0 ? currentIdx - 1 : visibleList.length - 1;
+        setFocusedItemId(getNodeKey(visibleList[prevIdx]));
+        break;
+      }
+      case "ArrowRight": {
+        e.preventDefault();
+        if (currentNode?.type === "folder" && !expandedFolders.has(currentNode.folder.path)) {
+          toggleFolder(currentNode.folder.path);
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        e.preventDefault();
+        if (currentNode?.type === "folder" && expandedFolders.has(currentNode.folder.path)) {
+          toggleFolder(currentNode.folder.path);
+        } else if (currentNode) {
+          const parentPath = getParentFolderPath(currentNode);
+          if (parentPath !== null) {
+            setFocusedItemId(`folder-${parentPath}`);
+          }
+        }
+        break;
+      }
+      case "Enter": {
+        e.preventDefault();
+        if (currentNode?.type === "folder") {
+          handleSelectFolder(currentNode.folder.path);
+          toggleFolder(currentNode.folder.path);
+        } else if (currentNode?.type === "doc") {
+          handleSelectDoc(currentNode.doc);
+        }
+        break;
+      }
+      case "F2": {
+        e.preventDefault();
+        if (focusedItemId) {
+          setRenamingItemId(focusedItemId);
+        }
+        break;
+      }
+      case "Delete":
+      case "Backspace": {
+        if (currentNode?.type === "folder" && onDeleteFolder) {
+          e.preventDefault();
+          handleDeleteFolder(currentNode.folder.path);
+        } else if (currentNode?.type === "doc" && onDeleteDoc) {
+          e.preventDefault();
+          onDeleteDoc(currentNode.doc);
+        }
+        break;
+      }
+    }
+  }, [focusedItemId, visibleList, expandedFolders, renamingItemId, toggleFolder, handleSelectFolder, handleSelectDoc, onDeleteFolder, onDeleteDoc, handleDeleteFolder]);
 
   const handleDeleteFolderConfirm = async () => {
     if (deleteConfirm && onDeleteFolder) {
@@ -327,15 +644,13 @@ export function ContentTree({
 
     setIsSubmitting(true);
     try {
-      if (folderModal.mode === "create" && onCreateFolder) {
+      if (onCreateFolder) {
         const fullPath = folderModal.parentPath
           ? `${folderModal.parentPath}/${folderName.trim()}`
           : folderName.trim();
         await onCreateFolder(folderModal.parentPath, folderName.trim());
         // Expand the new folder
         setExpandedFolders((prev) => new Set([...prev, fullPath]));
-      } else if (folderModal.mode === "rename" && onRenameFolder) {
-        await onRenameFolder(folderModal.parentPath, folderName.trim());
       }
       setFolderModal(null);
     } finally {
@@ -352,13 +667,18 @@ export function ContentTree({
   }
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div
+      className={cn("flex flex-col h-full", className)}
+      tabIndex={0}
+      onKeyDown={handleTreeKeyDown}
+      ref={treeContainerRef}
+    >
       {/* Tree container with visual structure */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Toolbar header */}
-        <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b">
+        <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b">
           {/* Search input */}
-          <div className="relative flex-1 max-w-[200px]">
+          <div className="relative flex-1 max-w-[240px]">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             <Input
               ref={searchInputRef}
@@ -380,6 +700,43 @@ export function ContentTree({
               </Button>
             )}
           </div>
+
+          {/* Sort dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                title="Sort"
+              >
+                <ChevronsUpDown className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                onClick={() => { setSortBy("name"); setSortDir(prev => sortBy === "name" ? (prev === "asc" ? "desc" : "asc") : "asc"); }}
+                className={cn(sortBy === "name" && "bg-accent")}
+              >
+                {sortBy === "name" && sortDir === "desc" ? <ArrowUpAZ className="size-4 mr-2" /> : <ArrowDownAZ className="size-4 mr-2" />}
+                Name {sortBy === "name" ? (sortDir === "asc" ? "A-Z" : "Z-A") : ""}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setSortBy("created"); setSortDir(prev => sortBy === "created" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
+                className={cn(sortBy === "created" && "bg-accent")}
+              >
+                {sortBy === "created" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
+                Created {sortBy === "created" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setSortBy("modified"); setSortDir(prev => sortBy === "modified" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
+                className={cn(sortBy === "modified" && "bg-accent")}
+              >
+                {sortBy === "modified" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
+                Modified {sortBy === "modified" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Spacer */}
           <div className="flex-1" />
@@ -440,7 +797,7 @@ export function ContentTree({
                 />
               </div>
             ) : (
-              <div className="py-2 px-1">
+              <div className="py-1 px-2">
                 {filteredNodes.map((node) => (
                   <ContentTreeItem
                     key={getNodeKey(node)}
@@ -448,8 +805,8 @@ export function ContentTree({
                     selectedDocId={selectedDocId}
                     selectedFolderPath={selectedFolderPath}
                     expandedFolders={expandedFolders}
-                    onSelectDoc={onSelectDoc}
-                    onSelectFolder={onSelectFolder}
+                    onSelectDoc={handleSelectDoc}
+                    onSelectFolder={handleSelectFolder}
                     onToggleFolder={toggleFolder}
                     onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
                     onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
@@ -460,10 +817,21 @@ export function ContentTree({
                     onToggleFolderAI={onToggleFolderAI}
                     folderAIStates={folderAIStates}
                     basePath={basePath}
-                    isDraggable={!!onMoveDoc}
+                    isDraggable={!!(onMoveDoc || onMoveFolder)}
                     dropTargetPath={dropTargetPath}
                     allFolderPaths={allFolderPaths}
                     onMoveDocToFolder={onMoveDoc}
+                    workspaceId={workspaceId}
+                    sortBy={sortBy}
+                    sortDir={sortDir}
+                    visibleIndices={visibleIndices}
+                    renamingItemId={renamingItemId}
+                    onStartRename={setRenamingItemId}
+                    onCommitRename={handleCommitRename}
+                    onCancelRename={handleCancelRename}
+                    focusedItemId={focusedItemId}
+                    selectedItems={selectedItems}
+                    onItemClick={handleItemClick}
                   />
                 ))}
               </div>
@@ -478,6 +846,12 @@ export function ContentTree({
                 <span className="text-sm truncate max-w-[200px]">{activeDoc.title}</span>
               </div>
             )}
+            {activeFolder && (
+              <div className="inline-flex items-center gap-1 py-1 px-2 rounded-md bg-accent shadow-lg">
+                <Folder className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm font-medium truncate max-w-[200px]">{activeFolder.name}</span>
+              </div>
+            )}
           </DragOverlay>
         </DndContext>
       </div>
@@ -489,11 +863,9 @@ export function ContentTree({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {folderModal?.mode === "create" ? "New Folder" : "Rename Folder"}
-            </DialogTitle>
+            <DialogTitle>New Folder</DialogTitle>
             <DialogDescription className="sr-only">
-              {folderModal?.mode === "create" ? "Create a new folder" : "Rename the selected folder"}
+              Create a new folder
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -508,7 +880,7 @@ export function ContentTree({
               }}
               autoFocus
             />
-            {folderModal?.mode === "create" && folderModal.parentPath && (
+            {folderModal?.parentPath && (
               <p className="text-sm text-muted-foreground mt-2">
                 Creating in: {folderModal.parentPath}
               </p>
@@ -525,7 +897,7 @@ export function ContentTree({
               {isSubmitting ? (
                 <Loader2 className="size-4 animate-spin mr-2" />
               ) : null}
-              {folderModal?.mode === "create" ? "Create" : "Rename"}
+              Create
             </Button>
           </DialogFooter>
         </DialogContent>

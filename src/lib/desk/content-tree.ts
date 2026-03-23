@@ -4,11 +4,12 @@
 import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
 import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./parser";
-import { isTauri, readDir, mkdir, joinPath, exists } from "./tauri-fs";
+import { isTauri, readDir, mkdir, joinPath, exists, fileStat } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
+import { getProjects } from "./projects";
 
 interface DocFrontmatter {
   title: string;
@@ -105,6 +106,11 @@ async function buildContentTreeRecursive(
         ? `${relativePath}/${file.name}`
         : file.name;
 
+      // Get OS file dates
+      const stats = await fileStat(filePath);
+      const fileCreated = stats?.birthtime?.toISOString();
+      const fileModified = stats?.mtime?.toISOString();
+
       nodes.push({
         type: "doc",
         doc: {
@@ -117,6 +123,8 @@ async function buildContentTreeRecursive(
           created: normalizeDate(data.created),
           content: body,
           preview: generatePreview(body),
+          fileCreated,
+          fileModified,
         },
       });
     } catch (e) {
@@ -133,6 +141,11 @@ async function buildContentTreeRecursive(
       ? `${relativePath}/${file.name}`
       : file.name;
 
+    // Get OS file dates
+    const stats = await fileStat(filePath);
+    const fileCreated = stats?.birthtime?.toISOString();
+    const fileModified = stats?.mtime?.toISOString();
+
     nodes.push({
       type: "asset",
       asset: {
@@ -142,6 +155,8 @@ async function buildContentTreeRecursive(
         workspaceId,
         filePath,
         extension: ext || '',
+        fileCreated,
+        fileModified,
       },
     });
   }
@@ -292,4 +307,66 @@ export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]
 
   allDocs.sort((a, b) => b.created.localeCompare(a.created));
   return allDocs;
+}
+
+/**
+ * Get a workspace overview shell: workspace-level content + project folder stubs.
+ * Project folders have children: [] — content is loaded lazily by the component on expand.
+ */
+export async function getWorkspaceOverviewShell(workspaceId: string): Promise<FileTreeNode[]> {
+  if (!isTauri()) {
+    // Mock mode: workspace docs + project folder stubs
+    const workspaceDocs = mockDocs.filter(
+      (doc) => doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID
+    );
+    const workspaceNodes: FileTreeNode[] = workspaceDocs.map((doc) => ({ type: "doc" as const, doc }));
+
+    // Get unique project IDs and count docs per project
+    const projectDocs = mockDocs.filter(
+      (doc) => doc.workspaceId === workspaceId && doc.projectId !== WORKSPACE_LEVEL_PROJECT_ID
+    );
+    const projectCounts = new Map<string, number>();
+    for (const doc of projectDocs) {
+      projectCounts.set(doc.projectId, (projectCounts.get(doc.projectId) || 0) + 1);
+    }
+    const projectFolders: FileTreeNode[] = Array.from(projectCounts.entries()).map(([projectId, count]) => ({
+      type: "folder" as const,
+      folder: {
+        name: projectId,
+        path: `_project/${projectId}`,
+        children: [],  // Lazy loaded on expand
+        isProject: true,
+        projectId,
+        docCount: count,
+        assetCount: 0,
+      },
+    }));
+
+    return [...workspaceNodes, ...projectFolders];
+  }
+
+  // 1. Get workspace-level tree (small, fast)
+  const workspaceTree = await getContentTree("workspace", workspaceId);
+
+  // 2. Get project metadata (counts already computed by getProjects)
+  const projects = await getProjects(workspaceId);
+  const activeProjects = projects
+    .filter((p) => p.status !== "archived")
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // 3. Create shell folder nodes — NO getContentTree calls per project
+  const projectFolders: FileTreeNode[] = activeProjects.map((project) => ({
+    type: "folder" as const,
+    folder: {
+      name: project.name,
+      path: `_project/${project.id}`,
+      children: [],  // Lazy loaded on expand
+      isProject: true,
+      projectId: project.id,
+      docCount: project.docCount ?? 0,
+      assetCount: 0,
+    },
+  }));
+
+  return [...workspaceTree, ...projectFolders];
 }

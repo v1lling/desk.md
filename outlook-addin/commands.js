@@ -18,8 +18,6 @@ Office.onReady(function () {
 function openInDesk(event) {
   const item = Office.context.mailbox.item;
 
-  console.log("[Desk Add-in] Starting email extraction...");
-
   // Get email body (async)
   item.body.getAsync(Office.CoercionType.Text, function (bodyResult) {
     if (bodyResult.status !== Office.AsyncResultStatus.Succeeded) {
@@ -30,7 +28,6 @@ function openInDesk(event) {
     }
 
     const body = bodyResult.value || "";
-    console.log("[Desk Add-in] Email body length:", body.length);
 
     // Build email data object
     const emailData = {
@@ -70,21 +67,12 @@ function openInDesk(event) {
       emailData.messageId = item.itemId;
     }
 
-    console.log("[Desk Add-in] Email data:", {
-      subject: emailData.subject,
-      from: emailData.from.email,
-      bodyLength: emailData.body.length,
-    });
-
     try {
       // Encode as base64 and build deep link
       const jsonStr = JSON.stringify(emailData);
       const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
       // URL-encode the base64 because it can contain + which becomes space in URLs
       const deepLink = "desk://email?data=" + encodeURIComponent(base64);
-
-      console.log("[Desk Add-in] Deep link length:", deepLink.length);
-      console.log("[Desk Add-in] Deep link preview:", deepLink.substring(0, 100) + "...");
 
       // Open deep link
       window.open(deepLink, "_blank");

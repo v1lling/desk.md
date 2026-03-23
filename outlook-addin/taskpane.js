@@ -87,9 +87,9 @@ function openInDesk() {
 
   try {
     // Encode as base64
-    var jsonStr = JSON.stringify(emailData);
-    var base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    var deepLink = "desk://email?data=" + encodeURIComponent(base64);
+    const jsonStr = JSON.stringify(emailData);
+    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    const deepLink = "desk://email?data=" + encodeURIComponent(base64);
 
     // Open deep link
     window.open(deepLink, "_blank");

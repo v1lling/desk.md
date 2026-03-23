@@ -24,8 +24,8 @@ import { getDocsPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
 
 // Re-export all from split modules
-export { getNodeKey, getContentTree, extractDocs, extractAssets, extractFolderPaths, getAllDocs, getAllDocsForWorkspace } from "./content-tree";
-export { createFolder, renameFolder, deleteFolder } from "./content-folders";
+export { getNodeKey, getContentTree, extractDocs, extractAssets, extractFolderPaths, getAllDocs, getAllDocsForWorkspace, getWorkspaceOverviewShell } from "./content-tree";
+export { createFolder, renameFolder, deleteFolder, moveFolder } from "./content-folders";
 export { moveDocToProject, moveDoc } from "./content-move";
 export { createDocInFolder, importFiles } from "./content-import";
 

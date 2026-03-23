@@ -38,6 +38,30 @@ export const PERSONAL_WORKSPACE: Workspace = {
 };
 
 /**
+ * Read Personal workspace metadata from disk, falling back to defaults
+ */
+async function getPersonalWorkspaceFromDisk(): Promise<Workspace> {
+  if (!isTauri()) return PERSONAL_WORKSPACE;
+
+  try {
+    const deskPath = await getDeskPath();
+    const workspacePath = await joinPath(
+      deskPath, PATH_SEGMENTS.WORKSPACES, SPECIAL_DIRS.PERSONAL, FILE_NAMES.WORKSPACE_MD
+    );
+    const content = await readTextFile(workspacePath);
+    const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
+
+    return {
+      ...PERSONAL_WORKSPACE,
+      description: data.description ?? PERSONAL_WORKSPACE.description,
+      color: data.color || PERSONAL_WORKSPACE.color,
+    };
+  } catch {
+    return PERSONAL_WORKSPACE;
+  }
+}
+
+/**
  * Get all workspaces (including Personal)
  * Personal workspace is always first in the list
  */
@@ -52,7 +76,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 
   // Check if workspaces directory exists
   if (!(await exists(workspacesPath))) {
-    return [PERSONAL_WORKSPACE];
+    return [await getPersonalWorkspaceFromDisk()];
   }
 
   const entries = await readDir(workspacesPath);
@@ -60,7 +84,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 
   for (const entry of entries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
-      // Skip _personal - we'll add it as PERSONAL_WORKSPACE
+      // Skip _personal - we'll read it separately
       if (isPersonalWorkspace(entry.name)) {
         continue;
       }
@@ -84,7 +108,8 @@ export async function getWorkspaces(): Promise<Workspace[]> {
   }
 
   // Personal always first, then client workspaces sorted alphabetically
-  return [PERSONAL_WORKSPACE, ...workspaces.sort((a, b) => a.name.localeCompare(b.name))];
+  const personal = await getPersonalWorkspaceFromDisk();
+  return [personal, ...workspaces.sort((a, b) => a.name.localeCompare(b.name))];
 }
 
 /**
@@ -93,7 +118,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
   // Personal workspace is always available
   if (isPersonalWorkspace(workspaceId)) {
-    return PERSONAL_WORKSPACE;
+    return getPersonalWorkspaceFromDisk();
   }
 
   if (!isTauri()) {

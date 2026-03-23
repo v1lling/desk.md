@@ -17,6 +17,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { slugify } from "@/lib/desk/parser";
 import { toast } from "sonner";
 import { workspaceColorOptions } from "@/lib/design-tokens";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 interface NewWorkspaceModalProps {
   open: boolean;
@@ -104,22 +105,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
           </FormField>
 
           <FormField label="Color">
-            <div className="flex gap-2 flex-wrap">
-              {workspaceColorOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setColor(opt.value)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    color === opt.value
-                      ? "border-foreground scale-110"
-                      : "border-transparent hover:scale-105"
-                  }`}
-                  style={{ backgroundColor: opt.value }}
-                  title={opt.label}
-                />
-              ))}
-            </div>
+            <ColorPicker value={color} onChange={setColor} />
           </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
