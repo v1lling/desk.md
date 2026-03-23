@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Workspace } from "@/types";
 import * as workspaceLib from "@/lib/desk/workspaces";
 import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
-import { useSettingsStore } from "./settings";
+import { useNavigationStore } from "./navigation";
 
 // Query keys
 export const workspaceKeys = {
@@ -102,6 +102,6 @@ export function useDeleteWorkspace() {
  */
 export function useCurrentWorkspace() {
   const { data: workspaces = [] } = useWorkspaces();
-  const currentWorkspaceId = useSettingsStore((state) => state.currentWorkspaceId);
+  const currentWorkspaceId = useNavigationStore((state) => state.currentWorkspaceId);
   return workspaces.find((workspace) => workspace.id === currentWorkspaceId) || workspaces[0] || null;
 }

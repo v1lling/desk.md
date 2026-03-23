@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { useContextStore } from "@/stores/context";
 import { useContextIndexStore } from "@/stores/context-index";
 import { useWorkspaces } from "@/stores";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
 import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
 import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
@@ -33,7 +33,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
   } = useContextStore();
-  const currentWorkspaceId = useSettingsStore((s) => s.currentWorkspaceId);
+  const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
 
   const { indexes, setIndex, isBuilding, setIsBuilding } = useContextIndexStore();
   const { data: workspaces = [] } = useWorkspaces();

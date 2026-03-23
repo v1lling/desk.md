@@ -13,7 +13,7 @@ import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2 } from "lucide-react";
 import { useUpdateWorkspace, useDeleteWorkspace } from "@/stores/workspaces";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { isPersonalWorkspace, SPECIAL_DIRS } from "@/lib/desk/constants";
 import { toast } from "sonner";
 import { ColorPicker } from "@/components/ui/color-picker";
@@ -28,7 +28,7 @@ interface EditWorkspaceModalProps {
 export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceModalProps) {
   const updateWorkspace = useUpdateWorkspace();
   const deleteWorkspace = useDeleteWorkspace();
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
 
   const isPersonal = isPersonalWorkspace(workspace.id);
 

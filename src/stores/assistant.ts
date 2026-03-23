@@ -9,7 +9,7 @@ import type {
   AssistantTurnMode,
   AssistantToolEvent,
 } from "@/lib/assistant/types";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { DEFAULT_MODELS } from "@/lib/ai/models";
 import { formatEmailAddress, type IncomingEmail } from "@/lib/email/types";
@@ -104,7 +104,7 @@ export const useAssistantStore = create<AssistantState>()(
       createConversation: (options) => {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
-        const workspaceId = options?.workspaceId ?? useSettingsStore.getState().currentWorkspaceId;
+        const workspaceId = options?.workspaceId ?? useNavigationStore.getState().currentWorkspaceId;
 
         const conversation: AssistantConversation = {
           id,
@@ -161,7 +161,7 @@ export const useAssistantStore = create<AssistantState>()(
         const mode = options?.mode || baseConversation.mode || "chat";
 
         const historyForModel = baseConversation.messages;
-        const workspaceId = baseConversation.workspaceId ?? useSettingsStore.getState().currentWorkspaceId;
+        const workspaceId = baseConversation.workspaceId ?? useNavigationStore.getState().currentWorkspaceId;
         if (!workspaceId) {
           set({ error: "No active workspace selected." });
           return;

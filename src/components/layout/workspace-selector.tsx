@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronsUpDown, Plus, Circle, Check, Pencil } from "lucide-react";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
 import { EditWorkspaceModal } from "@/components/workspaces/edit-workspace-modal";
 
@@ -33,7 +33,7 @@ const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
 export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProps) {
   const { data: workspaces = [], isLoading } = useWorkspaces();
   const currentWorkspace = useCurrentWorkspace();
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 

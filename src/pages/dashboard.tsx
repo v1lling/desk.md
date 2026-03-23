@@ -8,7 +8,7 @@ import {
 import {
   useActiveTasks,
   useWorkspaceSummaries,
-  useSettingsStore,
+  useNavigationStore,
 } from "@/stores";
 import { useNavigate } from "react-router-dom";
 import { Circle, CheckCircle2, Loader2 } from "lucide-react";
@@ -25,7 +25,7 @@ const DEFAULT_WORKSPACE_COLOR = "#64748b";
 
 function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
   const navigate = useNavigate();
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
 
   const handleTaskClick = (task: ActiveTask) => {
     setCurrentWorkspaceId(task.workspaceId);
@@ -73,7 +73,7 @@ function WorkspacesWidget({
   isLoading: boolean;
 }) {
   const navigate = useNavigate();
-  const setCurrentWorkspaceId = useSettingsStore(
+  const setCurrentWorkspaceId = useNavigationStore(
     (state) => state.setCurrentWorkspaceId
   );
 

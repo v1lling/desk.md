@@ -210,6 +210,10 @@ All app metadata lives in `~/Desk/.desk/` for organization and consistency:
 ├── .desk/                   ← All app metadata
 │   ├── index/
 │   │   └── indexes.json     ← Smart Index (all workspaces in one file)
+│   ├── usage/
+│   │   └── ai-usage.json   ← AI usage records (90-day rolling)
+│   ├── planner/
+│   │   └── weeks.json      ← Week planner data
 │   └── rag/
 │       └── vectors.db       ← RAG vector database (SQLite)
 └── workspaces/
@@ -219,7 +223,7 @@ All app metadata lives in `~/Desk/.desk/` for organization and consistency:
 ```
 
 **Rules:**
-- **App-level metadata** → `.desk/` subdirectories (indexes, databases)
+- **App-level metadata** → `.desk/` subdirectories (indexes, usage, planner)
 - **Workspace-specific config** → Root of workspace directory (`.aiignore`, `.view.json`)
 - **User content** → Regular `.md` files with YAML frontmatter
 - **Naming**: Use `.desk/` for app metadata, dot-prefix (`.aiignore`) for hidden config
@@ -230,9 +234,14 @@ All app metadata lives in `~/Desk/.desk/` for organization and consistency:
 |-----------|---------|--------|
 | User Content | Filesystem | Must backup, sync, persist |
 | Derived Indexes | Filesystem (`.desk/`) | Expensive to rebuild, should sync |
-| App Settings | localStorage | Small, app-specific, no sync needed |
-| Secrets | **TODO: Keychain** | Security (currently localStorage, needs encryption) |
-| Session State | localStorage | UI-only, OK to lose |
+| Growing Data | Filesystem (`.desk/`) | AI usage, planner — too large for localStorage |
+| Boot Config | localStorage (`desk-boot`) | Sync read at startup, duplicated to Rust config |
+| User Preferences | localStorage (`desk-preferences`) | Sync read, reactive UI |
+| Navigation State | localStorage (`desk-navigation`) | Current workspace selection |
+| AI Settings | localStorage (`desk-ai-settings-v2`) | Provider config, custom instructions |
+| Session State | localStorage (`desk-tabs`, `desk-assistant`) | UI-only, OK to lose |
+| Rust Boot Config | OS config dir (`config.json`) | Rust needs `data_path` before WebView |
+| Secrets | OS Keychain | API keys (macOS) |
 | View Preferences | Filesystem (`.view.json`) | Per-workspace/project UI state |
 
 **No Backwards Compatibility:** Single user, no migration code needed. Just delete and rebuild.

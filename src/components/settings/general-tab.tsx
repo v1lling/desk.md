@@ -12,10 +12,10 @@ import { Palette, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateSection } from "./update-section";
 import {
-  useSettingsStore,
+  usePreferencesStore,
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_DEFAULT_WIDTH,
-} from "@/stores/settings";
+} from "@/stores/preferences";
 
 export function GeneralTab() {
   const {
@@ -23,7 +23,7 @@ export function GeneralTab() {
     sidebarWidth,
     setTheme,
     setSidebarWidth,
-  } = useSettingsStore();
+  } = usePreferencesStore();
 
   const isCollapsed = sidebarWidth <= SIDEBAR_COLLAPSED_WIDTH;
 

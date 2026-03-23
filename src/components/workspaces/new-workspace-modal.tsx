@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
 import { Loader2 } from "lucide-react";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { slugify } from "@/lib/desk/parser";
 import { toast } from "sonner";
 import { workspaceColorOptions } from "@/lib/design-tokens";
@@ -26,7 +26,7 @@ interface NewWorkspaceModalProps {
 
 export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
   const createWorkspace = useCreateWorkspace();
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

@@ -107,15 +107,6 @@ export interface Meeting {
   preview?: string;        // First ~100 chars
 }
 
-// App configuration
-export interface DeskConfig {
-  dataPath: string;
-  currentWorkspaceId: string | null;
-  theme: 'light' | 'dark' | 'system';
-  sidebarWidth: number;  // pixels (56 = collapsed, 224 = default)
-  setupCompleted: boolean;
-}
-
 // API response wrapper
 export interface ApiResponse<T> {
   success: boolean;

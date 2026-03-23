@@ -47,8 +47,8 @@ async function getTauriPathModule() {
  */
 export async function getDeskPath(): Promise<string> {
   // Import settings store dynamically to avoid circular dependencies
-  const { useSettingsStore } = await import("@/stores/settings");
-  const dataPath = useSettingsStore.getState().dataPath || "~/Desk";
+  const { useBootStore } = await import("@/stores/boot");
+  const dataPath = useBootStore.getState().dataPath || "~/Desk";
 
   if (!isTauri()) {
     // Browser mode uses mock data from arrays, this path is only for display purposes

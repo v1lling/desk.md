@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/layout";
 import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
-import { useSettingsStore } from "@/stores/settings";
+import { useBootStore } from "@/stores/boot";
 import { useTabStore } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
@@ -17,7 +17,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [hydrated, setHydrated] = useState(false);
   const [hasMacTrafficLights, setHasMacTrafficLights] = useState(false);
-  const setupCompleted = useSettingsStore((state) => state.setupCompleted);
+  const setupCompleted = useBootStore((state) => state.setupCompleted);
   const tabCount = useTabStore((state) => state.tabs.length);
 
   const {

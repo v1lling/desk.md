@@ -4,7 +4,7 @@ import { Bot, Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useProject } from "@/stores/projects";
-import { useSettingsStore } from "@/stores/settings";
+import { usePreferencesStore } from "@/stores/preferences";
 import type { TabType } from "@/stores/tabs";
 import { TabItem } from "./tab-item";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
@@ -75,7 +75,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   const requestSaveAndClose = useTabStore((state) => state.requestSaveAndClose);
   const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
   const currentWorkspace = useCurrentWorkspace();
-  const sidebarWidth = useSettingsStore((state) => state.sidebarWidth);
+  const sidebarWidth = usePreferencesStore((state) => state.sidebarWidth);
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{

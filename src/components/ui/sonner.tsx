@@ -6,11 +6,11 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useSettingsStore } from "@/stores/settings"
+import { usePreferencesStore } from "@/stores/preferences"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const theme = useSettingsStore((state) => state.theme) || "system"
+  const theme = usePreferencesStore((state) => state.theme) || "system"
 
   return (
     <Sonner

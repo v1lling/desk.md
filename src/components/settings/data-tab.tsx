@@ -13,19 +13,17 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FolderOpen, Loader2, CheckCircle2, FolderPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { useSettingsStore } from "@/stores/settings";
+import { useBootStore } from "@/stores/boot";
+import { usePreferencesStore } from "@/stores/preferences";
+import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { getWorkspaces, isTauri, expandFsScope } from "@/lib/desk";
 import type { Workspace } from "@/types";
 
 export function DataTab() {
-  const {
-    dataPath,
-    setDataPath,
-    setCurrentWorkspaceId,
-    setSetupCompleted,
-    reset,
-  } = useSettingsStore();
+  const { dataPath, setDataPath, setSetupCompleted, reset: resetBoot } = useBootStore();
+  const { reset: resetPreferences } = usePreferencesStore();
+  const { setCurrentWorkspaceId, reset: resetNavigation } = useNavigationStore();
 
   const queryClient = useQueryClient();
 
@@ -37,7 +35,9 @@ export function DataTab() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleResetConfirm = () => {
-    reset();
+    resetBoot();
+    resetPreferences();
+    resetNavigation();
     queryClient.invalidateQueries();
     const root = document.documentElement;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;

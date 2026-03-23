@@ -24,7 +24,7 @@ import {
   type SearchResult,
   type SearchItemType,
 } from "@/lib/desk/search-index";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { useOpenTab } from "@/stores/tabs";
 
 const TYPE_ICONS: Record<SearchItemType, React.ReactNode> = {
@@ -46,7 +46,7 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const navigate = useNavigate();
-  const currentWorkspaceId = useSettingsStore((state) => state.currentWorkspaceId);
+  const currentWorkspaceId = useNavigationStore((state) => state.currentWorkspaceId);
 
   // Handle keyboard shortcut
   useEffect(() => {

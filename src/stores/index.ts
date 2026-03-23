@@ -1,5 +1,7 @@
 // ── Settings ────────────────────────────────────────────────────────
-export { useSettingsStore } from "./settings";
+export { useBootStore } from "./boot";
+export { usePreferencesStore } from "./preferences";
+export { useNavigationStore } from "./navigation";
 
 // ── Workspaces ──────────────────────────────────────────────────────
 export {

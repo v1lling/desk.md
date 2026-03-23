@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSettingsStore } from "@/stores/settings";
+import { useBootStore } from "@/stores/boot";
+import { useNavigationStore } from "@/stores/navigation";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding, expandFsScope } from "@/lib/desk";
 import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
@@ -36,9 +37,9 @@ export function SetupWizard() {
     setHasTitleBarPadding(needsTrafficLightPadding());
   }, []);
 
-  const setSettingsDataPath = useSettingsStore((state) => state.setDataPath);
-  const setSetupCompleted = useSettingsStore((state) => state.setSetupCompleted);
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setSettingsDataPath = useBootStore((state) => state.setDataPath);
+  const setSetupCompleted = useBootStore((state) => state.setSetupCompleted);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
   const createWorkspace = useCreateWorkspace();
 
   const handleBrowseFolder = async () => {

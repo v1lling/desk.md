@@ -1,18 +1,18 @@
 import { useCallback, useState } from "react";
 import {
-  useSettingsStore,
+  usePreferencesStore,
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
-} from "@/stores/settings";
+} from "@/stores/preferences";
 
 // Below this width, snap to collapsed
 const SNAP_TO_COLLAPSED_THRESHOLD = 100;
 
 export function useSidebarResize() {
-  const sidebarWidth = useSettingsStore((state) => state.sidebarWidth);
-  const setSidebarWidth = useSettingsStore((state) => state.setSidebarWidth);
+  const sidebarWidth = usePreferencesStore((state) => state.sidebarWidth);
+  const setSidebarWidth = usePreferencesStore((state) => state.setSidebarWidth);
 
   // Track width during drag (before snapping)
   const [dragWidth, setDragWidth] = useState<number | null>(null);

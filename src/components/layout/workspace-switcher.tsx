@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronsUpDown, Plus, Circle } from "lucide-react";
 import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
-import { useSettingsStore } from "@/stores/settings";
+import { useNavigationStore } from "@/stores/navigation";
 import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
 
 interface WorkspaceSwitcherProps {
@@ -36,7 +36,7 @@ function WorkspaceDot({ color, size = "sm" }: { color?: string; size?: "sm" | "l
 export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps) {
   const { data: workspaces = [], isLoading } = useWorkspaces();
   const currentWorkspace = useCurrentWorkspace();
-  const setCurrentWorkspaceId = useSettingsStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
 
   if (isLoading || !currentWorkspace) {

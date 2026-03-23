@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AIProviderType, AIPurpose, AIUsage, AIUsageRecord } from "@/lib/ai";
+import { createFileStorage } from "./file-storage";
 
 // =============================================================================
 // AI Settings Store (persisted)
@@ -73,16 +74,23 @@ export const useAIUsageStore = create<AIUsageState>()(
     (set, get) => ({
       records: [],
       addRecord: (record) =>
-        set((state) => ({
-          records: [
-            ...state.records,
-            {
-              ...record,
-              id: crypto.randomUUID(),
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        })),
+        set((state) => {
+          // Prune records older than 90 days
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 90);
+          const cutoffStr = cutoff.toISOString();
+          const pruned = state.records.filter((r) => r.timestamp > cutoffStr);
+          return {
+            records: [
+              ...pruned,
+              {
+                ...record,
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          };
+        }),
       clearRecords: () => set({ records: [] }),
       getStats: () => {
         const records = get().records;
@@ -116,6 +124,7 @@ export const useAIUsageStore = create<AIUsageState>()(
     }),
     {
       name: "desk-ai-usage",
+      storage: createFileStorage<AIUsageState>("usage", "ai-usage.json"),
     }
   )
 );

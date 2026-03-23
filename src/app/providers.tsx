@@ -1,7 +1,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
-import { useSettingsStore } from "@/stores/settings";
+import { usePreferencesStore } from "@/stores/preferences";
 import { isTauri, initDeskDirectory, expandFsScope } from "@/lib/desk";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
@@ -12,6 +12,11 @@ import { useContextIndexSync } from "@/hooks/use-context-index-sync";
 import { useSecretHydration } from "@/hooks/use-secret-hydration";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { toast } from "sonner";
+
+// Clean up legacy localStorage key from the old monolithic settings store
+localStorage.removeItem("desk-settings");
+// Clean up legacy AI usage from localStorage (now filesystem-backed)
+localStorage.removeItem("desk-ai-usage");
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -150,7 +155,7 @@ function WindowCloseProvider({ children }: { children: React.ReactNode }) {
 }
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSettingsStore((state) => state.theme);
+  const theme = usePreferencesStore((state) => state.theme);
 
   useEffect(() => {
     const root = document.documentElement;
