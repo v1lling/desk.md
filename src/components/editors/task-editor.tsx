@@ -274,7 +274,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
             />
           ) : (
             <div className="h-[400px] flex items-center justify-center">
-              <LoadingState label="editor" />
+              <LoadingState label="editor" display="inline" />
             </div>
           )}
         </div>

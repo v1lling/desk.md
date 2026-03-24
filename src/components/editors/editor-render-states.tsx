@@ -53,7 +53,7 @@ export function EditorRenderStates({
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
-        <LoadingState label={entityLabel} />
+        <LoadingState label={entityLabel} display="inline" />
       </div>
     );
   }

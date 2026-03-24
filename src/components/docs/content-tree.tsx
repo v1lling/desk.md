@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { FolderPlus, FileText, Loader2, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown } from "lucide-react";
+import { FolderPlus, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,16 +15,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContentTreeItem } from "./content-tree-item";
 import { sortNodes, type DocSortBy } from "./tree-item-utils";
-import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
+import type { Doc, FileTreeNode, Asset } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
 import { Folder } from "lucide-react";
 import {
@@ -209,6 +203,18 @@ interface ContentTreeProps {
   onMoveFolder?: (fromPath: string, toParentPath: string) => Promise<void>;
   /** Workspace ID (needed for lazy-loading project folder content) */
   workspaceId?: string;
+  /** Controlled search query (lifted to parent for header placement) */
+  searchQuery?: string;
+  /** Callback when search query changes */
+  onSearchChange?: (query: string) => void;
+  /** Controlled sort field */
+  sortBy?: DocSortBy;
+  /** Callback when sort field changes */
+  onSortByChange?: (sortBy: DocSortBy) => void;
+  /** Controlled sort direction */
+  sortDir?: "asc" | "desc";
+  /** Callback when sort direction changes */
+  onSortDirChange?: (sortDir: "asc" | "desc") => void;
 }
 
 export function ContentTree({
@@ -235,14 +241,25 @@ export function ContentTree({
   onRenameDoc,
   onMoveFolder,
   workspaceId,
+  searchQuery: controlledSearchQuery,
+  onSearchChange,
+  sortBy: controlledSortBy,
+  onSortByChange,
+  sortDir: controlledSortDir,
+  onSortDirChange,
 }: ContentTreeProps) {
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Search state — controlled if props provided, otherwise local
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+  const searchQuery = controlledSearchQuery ?? localSearchQuery;
+  const setSearchQuery = onSearchChange ?? setLocalSearchQuery;
 
-  // Sort state
-  const [sortBy, setSortBy] = useState<DocSortBy>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Sort state — controlled if props provided, otherwise local
+  const [localSortBy, setLocalSortBy] = useState<DocSortBy>("name");
+  const [localSortDir, setLocalSortDir] = useState<"asc" | "desc">("asc");
+  const sortBy = controlledSortBy ?? localSortBy;
+  const setSortBy = onSortByChange ?? setLocalSortBy;
+  const sortDir = controlledSortDir ?? localSortDir;
+  const setSortDir = onSortDirChange ?? setLocalSortDir;
 
   // Inline rename state
   const [renamingItemId, setRenamingItemId] = useState<string | null>(null);
@@ -420,19 +437,6 @@ export function ContentTree({
     }
   }, [searchQuery, filteredNodes, expandedFolders, setExpandedFolders]);
 
-  // Clear search handler
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-    searchInputRef.current?.focus();
-  }, []);
-
-  // Keyboard shortcut: Escape to clear search
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      handleClearSearch();
-    }
-  }, [handleClearSearch]);
-
   // Modal state for creating folders (rename now uses inline)
   const [folderModal, setFolderModal] = useState<{
     mode: "create";
@@ -562,7 +566,8 @@ export function ContentTree({
   // Keyboard navigation handler (must be after toggleFolder & handleDeleteFolder)
   const handleTreeKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (renamingItemId) return;
-    if (e.target === searchInputRef.current) return;
+    // Skip keyboard nav when an input is focused (e.g. search in parent)
+    if (e.target instanceof HTMLInputElement) return;
 
     const currentIdx = focusedItemId
       ? visibleList.findIndex(n => getNodeKey(n) === focusedItemId)
@@ -675,103 +680,39 @@ export function ContentTree({
     >
       {/* Tree container with visual structure */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        {/* Toolbar header */}
-        <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b">
-          {/* Search input */}
-          <div className="relative flex-1 max-w-[240px]">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search docs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="h-7 pl-7 pr-7 text-xs"
-            />
-            {searchQuery && (
+        {/* Toolbar - action buttons */}
+        {(onCreateFolder || onCreateDoc) && (
+          <div className="shrink-0 flex items-center gap-1 px-4 py-1.5">
+            {onCreateFolder && (
               <Button
                 variant="ghost"
-                size="icon"
-                className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 text-muted-foreground hover:text-foreground"
-                onClick={handleClearSearch}
+                size="sm"
+                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  if (selectedFolderPath) {
+                    handleNewSubfolder(selectedFolderPath);
+                  } else {
+                    handleNewRootFolder();
+                  }
+                }}
               >
-                <X className="size-3.5" />
+                <FolderPlus className="size-4" />
+                <span className="text-xs">Folder</span>
+              </Button>
+            )}
+            {onCreateDoc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => onCreateDoc(selectedFolderPath || undefined)}
+              >
+                <FileText className="size-4" />
+                <span className="text-xs">Doc</span>
               </Button>
             )}
           </div>
-
-          {/* Sort dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground hover:text-foreground"
-                title="Sort"
-              >
-                <ChevronsUpDown className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                onClick={() => { setSortBy("name"); setSortDir(prev => sortBy === "name" ? (prev === "asc" ? "desc" : "asc") : "asc"); }}
-                className={cn(sortBy === "name" && "bg-accent")}
-              >
-                {sortBy === "name" && sortDir === "desc" ? <ArrowUpAZ className="size-4 mr-2" /> : <ArrowDownAZ className="size-4 mr-2" />}
-                Name {sortBy === "name" ? (sortDir === "asc" ? "A-Z" : "Z-A") : ""}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => { setSortBy("created"); setSortDir(prev => sortBy === "created" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
-                className={cn(sortBy === "created" && "bg-accent")}
-              >
-                {sortBy === "created" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
-                Created {sortBy === "created" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => { setSortBy("modified"); setSortDir(prev => sortBy === "modified" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
-                className={cn(sortBy === "modified" && "bg-accent")}
-              >
-                {sortBy === "modified" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
-                Modified {sortBy === "modified" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Action buttons */}
-          {onCreateFolder && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                // Create in selected folder if one is selected, otherwise at root
-                if (selectedFolderPath) {
-                  handleNewSubfolder(selectedFolderPath);
-                } else {
-                  handleNewRootFolder();
-                }
-              }}
-            >
-              <FolderPlus className="size-4" />
-              <span className="text-xs">Folder</span>
-            </Button>
-          )}
-          {onCreateDoc && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
-              onClick={() => onCreateDoc(selectedFolderPath || undefined)}
-            >
-              <FileText className="size-4" />
-              <span className="text-xs">Doc</span>
-            </Button>
-          )}
-        </div>
+        )}
 
         {/* Tree content - scrollable with drag and drop */}
         <DndContext
@@ -798,42 +739,57 @@ export function ContentTree({
               </div>
             ) : (
               <div className="py-1 px-2">
-                {filteredNodes.map((node) => (
-                  <ContentTreeItem
-                    key={getNodeKey(node)}
-                    node={node}
-                    selectedDocId={selectedDocId}
-                    selectedFolderPath={selectedFolderPath}
-                    expandedFolders={expandedFolders}
-                    onSelectDoc={handleSelectDoc}
-                    onSelectFolder={handleSelectFolder}
-                    onToggleFolder={toggleFolder}
-                    onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
-                    onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
-                    onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
-                    onNewDocInFolder={onCreateDoc}
-                    onDeleteDoc={onDeleteDoc}
-                    onDeleteAsset={onDeleteAsset}
-                    onToggleFolderAI={onToggleFolderAI}
-                    folderAIStates={folderAIStates}
-                    basePath={basePath}
-                    isDraggable={!!(onMoveDoc || onMoveFolder)}
-                    dropTargetPath={dropTargetPath}
-                    allFolderPaths={allFolderPaths}
-                    onMoveDocToFolder={onMoveDoc}
-                    workspaceId={workspaceId}
-                    sortBy={sortBy}
-                    sortDir={sortDir}
-                    visibleIndices={visibleIndices}
-                    renamingItemId={renamingItemId}
-                    onStartRename={setRenamingItemId}
-                    onCommitRename={handleCommitRename}
-                    onCancelRename={handleCancelRename}
-                    focusedItemId={focusedItemId}
-                    selectedItems={selectedItems}
-                    onItemClick={handleItemClick}
-                  />
-                ))}
+                {filteredNodes.map((node, index) => {
+                  // Insert a subtle divider before the first project folder
+                  const isProjectFolder = node.type === "folder" && node.folder.isProject;
+                  const prevNode = index > 0 ? filteredNodes[index - 1] : null;
+                  const showProjectDivider = isProjectFolder &&
+                    (prevNode === null || !(prevNode.type === "folder" && prevNode.folder.isProject));
+
+                  return (
+                    <div key={getNodeKey(node)}>
+                      {showProjectDivider && (
+                        <div className="flex items-center gap-2 px-2 pt-2.5 pb-1">
+                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">Projects</span>
+                          <div className="flex-1 h-px bg-border/50" />
+                        </div>
+                      )}
+                      <ContentTreeItem
+                        node={node}
+                        selectedDocId={selectedDocId}
+                        selectedFolderPath={selectedFolderPath}
+                        expandedFolders={expandedFolders}
+                        onSelectDoc={handleSelectDoc}
+                        onSelectFolder={handleSelectFolder}
+                        onToggleFolder={toggleFolder}
+                        onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
+                        onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
+                        onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
+                        onNewDocInFolder={onCreateDoc}
+                        onDeleteDoc={onDeleteDoc}
+                        onDeleteAsset={onDeleteAsset}
+                        onToggleFolderAI={onToggleFolderAI}
+                        folderAIStates={folderAIStates}
+                        basePath={basePath}
+                        isDraggable={!!(onMoveDoc || onMoveFolder)}
+                        dropTargetPath={dropTargetPath}
+                        allFolderPaths={allFolderPaths}
+                        onMoveDocToFolder={onMoveDoc}
+                        workspaceId={workspaceId}
+                        sortBy={sortBy}
+                        sortDir={sortDir}
+                        visibleIndices={visibleIndices}
+                        renamingItemId={renamingItemId}
+                        onStartRename={setRenamingItemId}
+                        onCommitRename={handleCommitRename}
+                        onCancelRename={handleCancelRename}
+                        focusedItemId={focusedItemId}
+                        selectedItems={selectedItems}
+                        onItemClick={handleItemClick}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </ScrollArea>

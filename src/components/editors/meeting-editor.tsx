@@ -278,7 +278,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
             />
           ) : (
             <div className="h-[400px] flex items-center justify-center">
-              <LoadingState label="editor" />
+              <LoadingState label="editor" display="inline" />
             </div>
           )}
         </div>

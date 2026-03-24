@@ -1,9 +1,9 @@
 /**
- * PlannerPage — "My Week" with Board and Week views
+ * PlannerPage — Planner with Week and All Tasks views
  */
 
 import { useState } from "react";
-import { CalendarDays, LayoutGrid } from "lucide-react";
+import { CalendarDays, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -25,24 +25,8 @@ export default function PlannerPage() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
       <header className="shrink-0 border-b border-border/60 h-11 px-4 flex items-center gap-3">
-        <h1 className="text-sm font-semibold text-foreground/90">My Week</h1>
-
-        {/* Board / Week toggle */}
+        {/* Week / All Tasks toggle */}
         <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-muted/50 border border-border/40">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-7 px-2.5 rounded-md transition-colors text-xs gap-1.5",
-              view === "board"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-transparent"
-            )}
-            onClick={() => setView("board")}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Board
-          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -56,6 +40,20 @@ export default function PlannerPage() {
           >
             <CalendarDays className="h-3.5 w-3.5" />
             Week
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 px-2.5 rounded-md transition-colors text-xs gap-1.5",
+              view === "board"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+            )}
+            onClick={() => setView("board")}
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            All Tasks
           </Button>
         </div>
 

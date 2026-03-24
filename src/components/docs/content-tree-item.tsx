@@ -268,11 +268,14 @@ function FolderNode({
     onDeleteFolder,
   }), [isProject, folder.path, fullFolderPath, isAIIncluded, basePath, onNewDocInFolder, onNewSubfolder, onToggleFolderAI, onRenameFolder, handleStartRename, onDeleteFolder]);
 
+  // Strip aria-disabled from drag attributes for project folders (they're not draggable but still clickable)
+  const { 'aria-disabled': _ariaDisabled, ...cleanDragAttrs } = dragAttrs;
+
   return (
     <div
       className="relative"
       ref={mergedRef}
-      {...dragAttrs}
+      {...cleanDragAttrs}
       {...dragListeners}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >

@@ -13,10 +13,12 @@ import {
   FileText,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
-import { useDocs } from "@/stores/content";
+import { useWorkspaceOverviewShell } from "@/stores/content";
 import { useMeetings } from "@/stores/meetings";
+import { extractDocs, extractAssets } from "@/lib/desk/content";
 import { ProjectsList } from "./projects-list";
 import { WorkspaceSelector } from "./workspace-selector";
 import { useOpenTab } from "@/stores/tabs";
@@ -39,11 +41,23 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   const workspaceId = currentWorkspace?.id || null;
 
   const { data: tasks = [] } = useTasks(workspaceId);
-  const { data: docs = [] } = useDocs(workspaceId);
+  const { data: overviewTree = [] } = useWorkspaceOverviewShell(workspaceId);
   const { data: meetings = [] } = useMeetings(workspaceId);
 
   const activeTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "backlog").length;
-  const docCount = docs.length;
+  const totalFiles = useMemo(() => {
+    let count = 0;
+    for (const node of overviewTree) {
+      if (node.type === "doc" || node.type === "asset") {
+        count++;
+      } else if (node.type === "folder" && node.folder.isProject) {
+        count += (node.folder.docCount ?? 0) + (node.folder.assetCount ?? 0);
+      } else if (node.type === "folder") {
+        count += extractDocs([node]).length + extractAssets([node]).length;
+      }
+    }
+    return count;
+  }, [overviewTree]);
   const meetingCount = meetings.length;
 
   const { openAI } = useOpenTab();
@@ -63,7 +77,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className="px-2 py-2 space-y-1 shrink-0">
           <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" />
-          <SidebarNavRow to="/planner" label="My Week" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" />
+          <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" />
 
           <Divider />
 
@@ -75,7 +89,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
 
           <div className="space-y-0.5">
             <SidebarNavRow to="/tasks" label="Tasks" icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} />
-            <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={docCount} />
+            <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} />
             <SidebarNavRow to="/meetings" label="Meetings" icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} />
           </div>
 

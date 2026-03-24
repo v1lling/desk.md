@@ -1,18 +1,19 @@
 
-import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect } from "react";
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Plus, Upload } from "lucide-react";
+import { Plus, Upload, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ContentTree } from "./content-tree";
 import { NewDocModal } from "./new-doc-modal";
 import { ContentDropZone } from "./content-drop-zone";
+import type { DocSortBy } from "./tree-item-utils";
 import {
   useContentTree,
   useWorkspaceOverviewShell,
@@ -37,7 +38,6 @@ import { isMarkdownFile } from "@/lib/desk/file-utils";
 import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
 import { getDocsPath } from "@/lib/desk/paths";
 import { isTauri } from "@/lib/desk/tauri-fs";
-import { OVERVIEW_PROJECT_KEY } from "@/lib/desk/constants";
 
 export interface ContentExplorerScope {
   id: string;
@@ -62,8 +62,6 @@ interface ContentExplorerProps {
   scopes: ContentExplorerScope[];
   /** Initially selected scope ID */
   defaultScopeId?: string;
-  /** Callback when scope changes */
-  onScopeChange?: (scopeId: string) => void;
   /** Class name for the container */
   className?: string;
   /** Hide the toolbar (scope selector, doc count, action buttons). Use ref methods to trigger actions externally. */
@@ -79,7 +77,6 @@ interface ContentExplorerProps {
 export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerProps>(function ContentExplorer({
   scopes,
   defaultScopeId,
-  onScopeChange,
   className,
   hideToolbar,
 }, ref) {
@@ -109,9 +106,22 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const tree = isOverviewMode ? overviewTree : scopedTree;
   const isLoading = isOverviewMode ? overviewLoading : scopedLoading;
 
-  // Count docs and assets in tree (using shared utility functions)
-  const docCount = useMemo(() => extractDocs(tree).length, [tree]);
-  const assetCount = useMemo(() => extractAssets(tree).length, [tree]);
+  // Total file count — workspace-level docs/assets + project stub counts
+  const totalFiles = useMemo(() => {
+    let count = 0;
+    for (const node of tree) {
+      if (node.type === "doc" || node.type === "asset") {
+        count++;
+      } else if (node.type === "folder" && node.folder.isProject) {
+        // Project stubs have pre-computed counts (children are lazy-loaded)
+        count += (node.folder.docCount ?? 0) + (node.folder.assetCount ?? 0);
+      } else if (node.type === "folder") {
+        // Regular folders: count recursively
+        count += extractDocs([node]).length + extractAssets([node]).length;
+      }
+    }
+    return count;
+  }, [tree]);
 
   // Extract folder paths for AI state tracking
   const folderPaths = useMemo(() => extractFolderPaths(tree), [tree]);
@@ -139,9 +149,10 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   );
 
   // Expanded folders state - use PERSONAL_WORKSPACE_ID for personal scope
+  // Overview mode stores expanded folders at workspace level (null projectId)
   const { expandedFolders, setExpandedFolders } = useExpandedFolders(
     selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_WORKSPACE_ID : null),
-    isOverviewMode ? OVERVIEW_PROJECT_KEY : selectedScope?.projectId || null
+    isOverviewMode ? null : selectedScope?.projectId || null
   );
 
   // Compute base path for "Reveal in Finder" functionality
@@ -158,6 +169,24 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
       selectedScope.projectId
     ).then(setBasePath).catch(() => setBasePath(undefined));
   }, [selectedScope]);
+
+  // Search and sort state (lifted from ContentTree for header placement)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<DocSortBy>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+    searchInputRef.current?.focus();
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setSearchQuery("");
+      searchInputRef.current?.focus();
+    }
+  }, []);
 
   // Mutations
   const createFolder = useCreateFolder();
@@ -179,15 +208,6 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null);
   const [deleteDocConfirm, setDeleteDocConfirm] = useState<Doc | null>(null);
   const [deleteAssetConfirm, setDeleteAssetConfirm] = useState<Asset | null>(null);
-
-  // Handle scope change
-  const handleScopeChange = useCallback(
-    (scopeId: string) => {
-      setSelectedScopeId(scopeId);
-      onScopeChange?.(scopeId);
-    },
-    [onScopeChange]
-  );
 
   // Folder operations
   const handleCreateFolder = useCallback(
@@ -388,8 +408,6 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     input.click();
   }, [handleFilesDropped]);
 
-  const showDropdown = scopes.length > 1;
-
   // Expose import/newDoc methods via ref for external controls
   useImperativeHandle(ref, () => ({
     triggerImport: handleImportClick,
@@ -406,50 +424,71 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     >
       {/* Header - hidden when hideToolbar is true */}
       {!hideToolbar && (
-        <div className="shrink-0 h-11 px-4 border-b border-border/80 flex items-center gap-3">
-          {/* Scope dropdown or title */}
-          {showDropdown ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">Scope:</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
-                  <span className="truncate">{selectedScope?.label}</span>
-                  <ChevronDown className="size-4 shrink-0 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {scopes.map((scope, index) => {
-                  const nextScope = scopes[index + 1];
-                  const showSeparator =
-                    scope.isWorkspaceLevel && nextScope && !nextScope.isWorkspaceLevel;
+        <div className="shrink-0 h-11 px-4 border-b border-border/80 flex items-center gap-2">
+          {/* Search input */}
+          <div className="relative flex-1 max-w-[220px]">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search docs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="h-7 pl-7 pr-7 text-xs"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 text-muted-foreground hover:text-foreground"
+                onClick={handleClearSearch}
+              >
+                <X className="size-3.5" />
+              </Button>
+            )}
+          </div>
 
-                  return (
-                    <div key={scope.id}>
-                      <DropdownMenuItem
-                        onClick={() => handleScopeChange(scope.id)}
-                        className={cn(
-                          selectedScopeId === scope.id && "bg-accent",
-                          scope.isWorkspaceLevel && "font-medium"
-                        )}
-                      >
-                        {scope.label}
-                      </DropdownMenuItem>
-                      {showSeparator && <DropdownMenuSeparator />}
-                    </div>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            </div>
-          ) : (
-            <h2 className="text-sm font-medium">{selectedScope?.label}</h2>
-          )}
+          {/* Sort dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                title="Sort"
+              >
+                <ChevronsUpDown className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                onClick={() => { setSortBy("name"); setSortDir(prev => sortBy === "name" ? (prev === "asc" ? "desc" : "asc") : "asc"); }}
+                className={cn(sortBy === "name" && "bg-accent")}
+              >
+                {sortBy === "name" && sortDir === "desc" ? <ArrowUpAZ className="size-4 mr-2" /> : <ArrowDownAZ className="size-4 mr-2" />}
+                Name {sortBy === "name" ? (sortDir === "asc" ? "A-Z" : "Z-A") : ""}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setSortBy("created"); setSortDir(prev => sortBy === "created" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
+                className={cn(sortBy === "created" && "bg-accent")}
+              >
+                {sortBy === "created" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
+                Created {sortBy === "created" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setSortBy("modified"); setSortDir(prev => sortBy === "modified" ? (prev === "asc" ? "desc" : "asc") : "desc"); }}
+                className={cn(sortBy === "modified" && "bg-accent")}
+              >
+                {sortBy === "modified" && sortDir === "asc" ? <ArrowUp01 className="size-4 mr-2" /> : <ArrowDown01 className="size-4 mr-2" />}
+                Modified {sortBy === "modified" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {/* Doc count */}
-          <span className="text-xs text-muted-foreground">
-            {docCount} {docCount === 1 ? "doc" : "docs"}
-            {assetCount > 0 && `, ${assetCount} ${assetCount === 1 ? "file" : "files"}`}
+          {/* File count */}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {totalFiles} {totalFiles === 1 ? "file" : "files"}
           </span>
 
           {/* Spacer */}
@@ -502,6 +541,12 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         onRenameDoc={handleRenameDoc}
         onMoveFolder={handleMoveFolder}
         workspaceId={selectedScope?.workspaceId}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortDir={sortDir}
+        onSortDirChange={setSortDir}
       />
 
       {/* New doc modal */}

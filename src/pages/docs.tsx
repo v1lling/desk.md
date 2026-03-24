@@ -1,17 +1,16 @@
 import { useMemo } from "react";
 import { ContentExplorer, type ContentExplorerScope } from "@/components/docs";
-import { useProjects, useCurrentWorkspace, WORKSPACE_LEVEL_PROJECT_ID } from "@/stores";
+import { useCurrentWorkspace, WORKSPACE_LEVEL_PROJECT_ID } from "@/stores";
 import { StatePanel } from "@/components/ui/state-panel";
 
 export default function DocsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
 
   const scopes: ContentExplorerScope[] = useMemo(() => {
     if (!currentWorkspaceId || !currentWorkspace) return [];
 
-    const scopeList: ContentExplorerScope[] = [
+    return [
       {
         id: WORKSPACE_LEVEL_PROJECT_ID,
         label: `${currentWorkspace.name} (Workspace)`,
@@ -20,23 +19,7 @@ export default function DocsPage() {
         isWorkspaceLevel: true,
       },
     ];
-
-    const sortedProjects = [...projects].sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-
-    for (const project of sortedProjects) {
-      scopeList.push({
-        id: project.id,
-        label: project.name,
-        scope: "project",
-        workspaceId: currentWorkspaceId,
-        projectId: project.id,
-      });
-    }
-
-    return scopeList;
-  }, [currentWorkspaceId, currentWorkspace, projects]);
+  }, [currentWorkspaceId, currentWorkspace]);
 
   if (!currentWorkspaceId || !currentWorkspace) {
     return (
