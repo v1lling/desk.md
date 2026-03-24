@@ -1,5 +1,6 @@
 /**
- * AddBlockButton — Click to pick a workspace, instantly creates a block
+ * AddBlockButton — Click to pick a workspace, creates a time-aware block.
+ * Finds the largest available time gap in the day and fills it.
  */
 
 import { useState } from "react";
@@ -10,23 +11,46 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { usePlannerStore } from "@/stores/planner";
+import { usePreferencesStore } from "@/stores/preferences";
 import { useWorkspaces } from "@/stores/workspaces";
+import { findLargestGap } from "@/lib/desk/planner";
+import type { WorkspaceBlock } from "@/types";
 
 interface AddBlockButtonProps {
   date: string;
   weekOf: string;
+  blocks?: WorkspaceBlock[];
+  /** Compact mode — small icon only, for use in day headers */
+  compact?: boolean;
 }
 
-export function AddBlockButton({ date, weekOf }: AddBlockButtonProps) {
+export function AddBlockButton({ date, weekOf, blocks = [], compact }: AddBlockButtonProps) {
   const [open, setOpen] = useState(false);
   const { data: workspaces = [] } = useWorkspaces();
   const addBlock = usePlannerStore((s) => s.addBlock);
+  const workDayStartHour = usePreferencesStore((s) => s.workDayStartHour);
+  const workDayEndHour = usePreferencesStore((s) => s.workDayEndHour);
 
   const handleSelect = (workspaceId: string) => {
+    const workStart = workDayStartHour * 60;
+    const workEnd = workDayEndHour * 60;
+
+    // Find the largest available gap — need at least 30 min
+    const gap = findLargestGap(blocks, workStart, workEnd);
+    if (gap.end - gap.start < 30) {
+      setOpen(false);
+      return;
+    }
+
+    const startMinute = gap.start;
+    const endMinute = gap.end;
+
     addBlock(weekOf, date, {
       id: crypto.randomUUID(),
       workspaceId,
       taskIds: [],
+      startMinute,
+      endMinute,
     });
     setOpen(false);
   };
@@ -34,9 +58,15 @@ export function AddBlockButton({ date, weekOf }: AddBlockButtonProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="w-full py-1.5 rounded-lg border border-dashed border-muted-foreground/20 text-[11px] text-muted-foreground/60 hover:border-muted-foreground/40 hover:text-muted-foreground transition-colors">
-          <Plus className="h-3 w-3 inline-block mr-1" />
-          Add block
+        <button
+          className={
+            compact
+              ? "p-0.5 rounded text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 transition-colors"
+              : "px-2 py-1 rounded border border-dashed border-muted-foreground/20 text-[10px] text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground transition-colors whitespace-nowrap"
+          }
+        >
+          <Plus className={compact ? "h-3.5 w-3.5" : "h-3 w-3 inline-block mr-0.5"} />
+          {!compact && "Add"}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-44 p-1" align="start">

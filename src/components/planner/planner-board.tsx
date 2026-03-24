@@ -1,6 +1,6 @@
 /**
  * PlannerBoard — Read-only cross-workspace task overview
- * Shows all plannable tasks (todo/doing/waiting) across workspaces
+ * Shows tasks across workspaces with toggleable backlog/done columns
  */
 
 import { useMemo, useState } from "react";
@@ -10,21 +10,22 @@ import {
   Circle,
   Clock,
   ChevronRight,
+  Eye,
+  EyeOff,
   Flag,
-  FolderKanban,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
 import {
   taskStatusTextColors,
-  taskStatusLabels,
   priorityTextColors,
 } from "@/lib/design-tokens";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useAllWorkspaceTasks } from "@/stores/planner";
+import { useAllWorkspaceTasksAllStatuses } from "@/stores/planner";
+import { useWorkspaces } from "@/stores/workspaces";
 import { useOpenTab } from "@/stores/tabs";
 import type { TaskStatus, TaskPriority } from "@/types";
 import type { ActiveTask } from "@/lib/desk/dashboard";
@@ -38,12 +39,14 @@ const statusIcons = {
 } as const;
 
 const statusConfig: Record<string, { label: string; color: string }> = {
+  backlog: { label: "Backlog", color: "bg-slate-500/50" },
   todo: { label: "To Do", color: "bg-muted-foreground/50" },
   doing: { label: "In Progress", color: "bg-blue-500" },
   waiting: { label: "Waiting", color: "bg-amber-500" },
+  done: { label: "Done", color: "bg-emerald-500" },
 };
 
-const BOARD_STATUSES: TaskStatus[] = ["todo", "doing", "waiting"];
+const CORE_STATUSES: TaskStatus[] = ["todo", "doing", "waiting"];
 
 interface PlannerBoardProps {
   viewMode: "kanban" | "list";
@@ -51,8 +54,11 @@ interface PlannerBoardProps {
 }
 
 export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
-  const { data: allTasks = [], isLoading } = useAllWorkspaceTasks();
+  const { data: allTasks = [], isLoading } = useAllWorkspaceTasksAllStatuses();
+  const { data: workspaces = [] } = useWorkspaces();
   const { openTask } = useOpenTab();
+  const [showBacklog, setShowBacklog] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
   const filteredTasks = useMemo(() => {
     if (filterWorkspace === "all") return allTasks;
@@ -61,9 +67,11 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
 
   const groupedTasks = useMemo(() => {
     const groups: Record<string, ActiveTask[]> = {
+      backlog: [],
       todo: [],
       doing: [],
       waiting: [],
+      done: [],
     };
     for (const task of filteredTasks) {
       if (groups[task.status]) {
@@ -72,6 +80,15 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
     }
     return groups;
   }, [filteredTasks]);
+
+  const activeStatuses: TaskStatus[] = useMemo(
+    () => [
+      ...(showBacklog ? (["backlog"] as TaskStatus[]) : []),
+      ...CORE_STATUSES,
+      ...(showDone ? (["done"] as TaskStatus[]) : []),
+    ],
+    [showBacklog, showDone]
+  );
 
   const handleTaskClick = (task: ActiveTask) => {
     openTask({
@@ -91,27 +108,76 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
   }
 
   if (filteredTasks.length === 0) {
+    const wsName =
+      filterWorkspace !== "all"
+        ? workspaces.find((w) => w.id === filterWorkspace)?.name
+        : null;
+
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <EmptyState title="No active tasks" />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <EmptyState
+          title={wsName ? `No tasks in ${wsName}` : "No active tasks"}
+          description={
+            wsName
+              ? "Tasks assigned to this workspace will appear here"
+              : "Tasks from all workspaces will appear here"
+          }
+          display="inline"
+        />
       </div>
     );
   }
 
-  if (viewMode === "list") {
-    return (
-      <BoardListView
-        tasks={groupedTasks}
-        onTaskClick={handleTaskClick}
-      />
-    );
-  }
-
   return (
-    <BoardKanbanView
-      tasks={groupedTasks}
-      onTaskClick={handleTaskClick}
-    />
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Toggle buttons for backlog/done */}
+      <div className="shrink-0 px-6 pt-3 flex items-center gap-2">
+        <button
+          onClick={() => setShowBacklog((prev) => !prev)}
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 hover:bg-slate-500/20 transition-colors text-[12px] font-medium"
+          title={showBacklog ? "Hide Backlog column" : "Show Backlog column"}
+        >
+          {showBacklog ? (
+            <EyeOff className="h-3 w-3" />
+          ) : (
+            <Eye className="h-3 w-3" />
+          )}
+          <span>Backlog</span>
+          <span className="tabular-nums opacity-70">
+            {groupedTasks.backlog.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setShowDone((prev) => !prev)}
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors text-[12px] font-medium"
+          title={showDone ? "Hide Done column" : "Show Done column"}
+        >
+          {showDone ? (
+            <EyeOff className="h-3 w-3" />
+          ) : (
+            <Eye className="h-3 w-3" />
+          )}
+          <span>Done</span>
+          <span className="tabular-nums opacity-70">
+            {groupedTasks.done.length}
+          </span>
+        </button>
+      </div>
+
+      {viewMode === "list" ? (
+        <BoardListView
+          tasks={groupedTasks}
+          statuses={activeStatuses}
+          onTaskClick={handleTaskClick}
+        />
+      ) : (
+        <BoardKanbanView
+          tasks={groupedTasks}
+          statuses={activeStatuses}
+          onTaskClick={handleTaskClick}
+        />
+      )}
+    </div>
   );
 }
 
@@ -119,20 +185,25 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
 
 function BoardKanbanView({
   tasks,
+  statuses,
   onTaskClick,
 }: {
   tasks: Record<string, ActiveTask[]>;
+  statuses: TaskStatus[];
   onTaskClick: (task: ActiveTask) => void;
 }) {
   return (
     <ScrollArea className="flex-1 min-h-0" orientation="horizontal">
-      <div className="grid grid-flow-col auto-cols-[280px] gap-4 p-6 min-h-full">
-        {BOARD_STATUSES.map((status) => {
+      <div className="grid grid-flow-col auto-cols-[280px] gap-4 p-6 h-full">
+        {statuses.map((status) => {
           const config = statusConfig[status];
           const statusTasks = tasks[status] || [];
 
           return (
-            <div key={status} className="flex flex-col h-full min-w-[280px]">
+            <div
+              key={status}
+              className="flex flex-col h-full min-w-[280px] min-h-0"
+            >
               <div className="flex items-center gap-2 mb-3 px-1 shrink-0">
                 <div className={cn("w-2 h-2 rounded-full", config.color)} />
                 <h3 className="font-semibold text-[13px] text-foreground/80">
@@ -142,8 +213,8 @@ function BoardKanbanView({
                   {statusTasks.length}
                 </span>
               </div>
-              <div className="rounded-xl p-2 bg-muted/20 flex-1">
-                <div className="space-y-2">
+              <ScrollArea className="flex-1 min-h-0 rounded-xl bg-muted/20">
+                <div className="p-2 space-y-2">
                   {statusTasks.map((task) => (
                     <BoardTaskCard
                       key={task.id}
@@ -151,13 +222,13 @@ function BoardKanbanView({
                       onClick={() => onTaskClick(task)}
                     />
                   ))}
+                  {statusTasks.length === 0 && (
+                    <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
+                      No tasks
+                    </div>
+                  )}
                 </div>
-                {statusTasks.length === 0 && (
-                  <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
-                    No tasks
-                  </div>
-                )}
-              </div>
+              </ScrollArea>
             </div>
           );
         })}
@@ -170,9 +241,11 @@ function BoardKanbanView({
 
 function BoardListView({
   tasks,
+  statuses,
   onTaskClick,
 }: {
   tasks: Record<string, ActiveTask[]>;
+  statuses: TaskStatus[];
   onTaskClick: (task: ActiveTask) => void;
 }) {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
@@ -191,7 +264,7 @@ function BoardListView({
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="p-6 space-y-6 max-w-3xl">
-        {BOARD_STATUSES.map((status) => {
+        {statuses.map((status) => {
           const statusTasks = tasks[status] || [];
           if (statusTasks.length === 0) return null;
           const config = statusConfig[status];
@@ -260,7 +333,9 @@ function BoardTaskCard({
       }}
       onClick={onClick}
     >
-      {task.priority === "high" && <div className="h-0.5 bg-rose-400 -mt-3.5 -mx-3.5 mb-3 rounded-t-lg" />}
+      {task.priority === "high" && (
+        <div className="h-0.5 bg-rose-400 -mt-3.5 -mx-3.5 mb-3 rounded-t-lg" />
+      )}
       <div className="flex items-center gap-1 mb-1">
         <Circle
           className="h-2 w-2 shrink-0"

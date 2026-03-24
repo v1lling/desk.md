@@ -139,11 +139,12 @@ export interface WorkspaceBlock {
   workspaceId: string;
   notes?: string;
   taskIds: string[];           // Ordered list of task IDs planned within this block
+  startMinute: number;         // Minutes from midnight (e.g., 540 = 9:00)
+  endMinute: number;           // Minutes from midnight (e.g., 1080 = 18:00)
 }
 
 /** A weekly plan (Mon–Sun of a given week) */
 export interface WeekPlan {
   weekOf: string;              // ISO date of Monday, e.g. "2026-03-23"
-  showWeekends: boolean;
   days: Record<string, WorkspaceBlock[]>;  // Keyed by ISO date
 }

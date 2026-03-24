@@ -7,7 +7,10 @@ import { persist } from "zustand/middleware";
 import { useQuery } from "@tanstack/react-query";
 import type { WeekPlan, WorkspaceBlock } from "@/types";
 import { createFileStorage } from "./file-storage";
-import { getAllWorkspaceTasks } from "@/lib/desk/dashboard";
+import {
+  getAllWorkspaceTasks,
+  getAllWorkspaceTasksAllStatuses,
+} from "@/lib/desk/dashboard";
 
 // ── Zustand store for week plans ────────────────────────────────────
 
@@ -23,14 +26,20 @@ interface PlannerState {
     blockId: string,
     updates: Partial<Pick<WorkspaceBlock, "notes">>
   ) => void;
+  updateBlockTime: (
+    weekOf: string,
+    day: string,
+    blockId: string,
+    startMinute: number,
+    endMinute: number
+  ) => void;
   moveBlock: (
     weekOf: string,
     fromDay: string,
     toDay: string,
     blockId: string,
-    toIndex: number
+    startMinute: number
   ) => void;
-  reorderBlocks: (weekOf: string, day: string, blockIds: string[]) => void;
   addTaskToBlock: (
     weekOf: string,
     day: string,
@@ -51,11 +60,10 @@ interface PlannerState {
     toBlockId: string,
     taskId: string
   ) => void;
-  setShowWeekends: (weekOf: string, show: boolean) => void;
 }
 
 function emptyWeekPlan(weekOf: string): WeekPlan {
-  return { weekOf, showWeekends: false, days: {} };
+  return { weekOf, days: {} };
 }
 
 function updateDayBlocks(
@@ -121,37 +129,44 @@ export const usePlannerStore = create<PlannerState>()(
           )
         ),
 
-      moveBlock: (weekOf, fromDay, toDay, blockId, toIndex) =>
+      updateBlockTime: (weekOf, day, blockId, startMinute, endMinute) =>
+        set((s) =>
+          updatePlan(s, weekOf, (plan) =>
+            updateDayBlocks(plan, day, (blocks) =>
+              blocks.map((b) =>
+                b.id === blockId ? { ...b, startMinute, endMinute } : b
+              )
+            )
+          )
+        ),
+
+      moveBlock: (weekOf, fromDay, toDay, blockId, startMinute) =>
         set((s) => {
           const plan = s.weekPlans[weekOf] || emptyWeekPlan(weekOf);
           const fromBlocks = plan.days[fromDay] || [];
           const block = fromBlocks.find((b) => b.id === blockId);
           if (!block) return s;
 
+          const duration = block.endMinute - block.startMinute;
+          const movedBlock = {
+            ...block,
+            startMinute,
+            endMinute: startMinute + duration,
+          };
+
           let updated = updateDayBlocks(plan, fromDay, (blocks) =>
             blocks.filter((b) => b.id !== blockId)
           );
 
-          updated = updateDayBlocks(updated, toDay, (blocks) => {
-            const result = [...blocks];
-            result.splice(toIndex, 0, block);
-            return result;
-          });
+          updated = updateDayBlocks(updated, toDay, (blocks) => [
+            ...blocks,
+            movedBlock,
+          ]);
 
           return {
             weekPlans: { ...s.weekPlans, [weekOf]: updated },
           };
         }),
-
-      reorderBlocks: (weekOf, day, blockIds) =>
-        set((s) =>
-          updatePlan(s, weekOf, (plan) =>
-            updateDayBlocks(plan, day, (blocks) => {
-              const byId = new Map(blocks.map((b) => [b.id, b]));
-              return blockIds.map((id) => byId.get(id)!).filter(Boolean);
-            })
-          )
-        ),
 
       addTaskToBlock: (weekOf, day, blockId, taskId) =>
         set((s) =>
@@ -203,10 +218,6 @@ export const usePlannerStore = create<PlannerState>()(
           };
         }),
 
-      setShowWeekends: (weekOf, show) =>
-        set((s) =>
-          updatePlan(s, weekOf, (plan) => ({ ...plan, showWeekends: show }))
-        ),
     }),
     {
       name: "planner-store",
@@ -221,6 +232,8 @@ export const usePlannerStore = create<PlannerState>()(
 export const plannerKeys = {
   all: ["planner"] as const,
   allTasks: () => [...plannerKeys.all, "allTasks"] as const,
+  allTasksAllStatuses: () =>
+    [...plannerKeys.all, "allTasksAllStatuses"] as const,
 };
 
 /**
@@ -230,6 +243,17 @@ export function useAllWorkspaceTasks() {
   return useQuery({
     queryKey: plannerKeys.allTasks(),
     queryFn: () => getAllWorkspaceTasks(),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook to fetch ALL tasks across all workspaces (all statuses including backlog/done)
+ */
+export function useAllWorkspaceTasksAllStatuses() {
+  return useQuery({
+    queryKey: plannerKeys.allTasksAllStatuses(),
+    queryFn: () => getAllWorkspaceTasksAllStatuses(),
     staleTime: 30_000,
   });
 }

@@ -1,9 +1,7 @@
 /**
- * MiniTaskItem — Compact task row for inside workspace blocks and unscheduled pool
- * Can be made draggable via the `draggableId` prop
+ * MiniTaskItem — Compact task row for inside workspace blocks
  */
 
-import { useDraggable } from "@dnd-kit/core";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { taskStatusColors } from "@/lib/design-tokens";
@@ -13,46 +11,21 @@ interface MiniTaskItemProps {
   task: ActiveTask;
   onClick?: () => void;
   onRemove?: () => void;
-  /** dnd-kit draggable ID (e.g. "pool-task:abc" or "task:abc"). Enables dragging. */
-  draggableId?: string;
-  /** Use muted monochrome dot instead of status-colored dot */
-  monochrome?: boolean;
 }
 
-export function MiniTaskItem({
-  task,
-  onClick,
-  onRemove,
-  draggableId,
-  monochrome,
-}: MiniTaskItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    isDragging,
-  } = useDraggable({
-    id: draggableId || `nondrag-${task.id}`,
-    disabled: !draggableId,
-    data: { type: "task", taskId: task.id },
-  });
-
+export function MiniTaskItem({ task, onClick, onRemove }: MiniTaskItemProps) {
   return (
     <div
-      ref={draggableId ? setNodeRef : undefined}
       className={cn(
         "group flex items-center gap-1.5 px-1.5 py-1 rounded text-xs",
-        "hover:bg-muted/40 transition-colors",
-        draggableId ? "cursor-grab" : "cursor-pointer",
-        isDragging && "opacity-40"
+        "hover:bg-muted/40 transition-colors cursor-pointer"
       )}
-      onClick={!isDragging ? onClick : undefined}
-      {...(draggableId ? { ...attributes, ...listeners } : {})}
+      onClick={onClick}
     >
       <div
         className={cn(
           "w-1.5 h-1.5 rounded-full shrink-0",
-          monochrome ? "bg-muted-foreground/40" : taskStatusColors[task.status]
+          taskStatusColors[task.status]
         )}
       />
       <span className="truncate flex-1">{task.title}</span>

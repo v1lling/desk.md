@@ -120,50 +120,60 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
 
 /**
  * Get all plannable tasks across all workspaces (todo, doing, waiting).
- * Used by the planner board and week view.
+ * Used by the planner week view.
  */
 export async function getAllWorkspaceTasks(): Promise<ActiveTask[]> {
+  return getAllWorkspaceTasksByStatus(["todo", "doing", "waiting"]);
+}
+
+/**
+ * Get ALL tasks across all workspaces (all statuses).
+ * Used by the planner board when backlog/done columns are visible.
+ */
+export async function getAllWorkspaceTasksAllStatuses(): Promise<ActiveTask[]> {
+  return getAllWorkspaceTasksByStatus();
+}
+
+/**
+ * Internal: fetch cross-workspace tasks, optionally filtered by status.
+ * When no statuses provided, returns all tasks.
+ */
+async function getAllWorkspaceTasksByStatus(
+  statuses?: string[]
+): Promise<ActiveTask[]> {
   const workspaces = await getWorkspaces();
   const allTasks: ActiveTask[] = [];
 
   const workspaceTasksPromises = workspaces.map(async (workspace) => {
     const tasks = await getTasks(workspace.id);
-    return tasks
-      .filter(
-        (task) =>
-          task.status === "todo" ||
-          task.status === "doing" ||
-          task.status === "waiting"
-      )
-      .map((task) => ({
-        ...task,
-        workspaceName: workspace.name,
-        workspaceColor: workspace.color,
-      }));
+    const filtered = statuses
+      ? tasks.filter((task) => statuses.includes(task.status))
+      : tasks;
+    return filtered.map((task) => ({
+      ...task,
+      workspaceName: workspace.name,
+      workspaceColor: workspace.color,
+    }));
   });
 
   const workspaceTasksResults = await Promise.all(workspaceTasksPromises);
   workspaceTasksResults.forEach((tasks) => allTasks.push(...tasks));
 
-  // Also fetch plannable capture tasks
+  // Also fetch capture tasks
   const personalWorkspace = workspaces.find(
     (w) => w.id === PERSONAL_WORKSPACE_ID
   );
   const captureTasks = await getCaptureTasks();
-  const plannableCapture = captureTasks
-    .filter(
-      (task) =>
-        task.status === "todo" ||
-        task.status === "doing" ||
-        task.status === "waiting"
-    )
-    .map((task) => ({
-      ...task,
-      workspaceName: personalWorkspace?.name || "Personal",
-      workspaceColor: personalWorkspace?.color,
-    }));
+  const filteredCapture = statuses
+    ? captureTasks.filter((task) => statuses.includes(task.status))
+    : captureTasks;
+  const enrichedCapture = filteredCapture.map((task) => ({
+    ...task,
+    workspaceName: personalWorkspace?.name || "Personal",
+    workspaceColor: personalWorkspace?.color,
+  }));
 
-  allTasks.push(...plannableCapture);
+  allTasks.push(...enrichedCapture);
   allTasks.sort((a, b) => b.created.localeCompare(a.created));
 
   return allTasks;

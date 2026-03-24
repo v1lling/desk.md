@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Plus, Upload, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown } from "lucide-react";
+import { Plus, Upload, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown, FolderOpen, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +13,7 @@ import {
 import { ContentTree } from "./content-tree";
 import { NewDocModal } from "./new-doc-modal";
 import { ContentDropZone } from "./content-drop-zone";
-import type { DocSortBy } from "./tree-item-utils";
+import { revealInFinder, type DocSortBy } from "./tree-item-utils";
 import {
   useContentTree,
   useWorkspaceOverviewShell,
@@ -30,7 +30,9 @@ import {
   useMoveDoc,
   useMoveFolder,
   PERSONAL_WORKSPACE_ID,
+  contentKeys,
 } from "@/stores";
+import { useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Doc, ContentScope, Asset } from "@/types";
@@ -80,6 +82,8 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   className,
   hideToolbar,
 }, ref) {
+  const queryClient = useQueryClient();
+
   // Selected scope
   const [selectedScopeId, setSelectedScopeId] = useState(
     defaultScopeId || scopes[0]?.id
