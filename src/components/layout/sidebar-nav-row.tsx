@@ -62,7 +62,7 @@ export function SidebarNavRow({
 
   if (to) {
     return (
-      <Link to={to} className={baseClass} title={collapsed ? label : undefined}>
+      <Link to={to} onClick={onClick} className={baseClass} title={collapsed ? label : undefined}>
         {content}
       </Link>
     );

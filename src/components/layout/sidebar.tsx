@@ -13,7 +13,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
 import { useWorkspaceOverviewShell } from "@/stores/content";
@@ -62,7 +62,9 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
 
   const { openAI } = useOpenTab();
   const activeTabId = useTabStore((s) => s.activeTabId);
+  const setActiveTab = useTabStore((s) => s.setActiveTab);
   const isAssistantActive = activeTabId === "ai";
+  const switchToDesk = useCallback(() => setActiveTab("desk"), [setActiveTab]);
 
   const collapsed = isCollapsed;
 
@@ -76,8 +78,8 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
     >
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className="px-2 py-2 space-y-1 shrink-0">
-          <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" />
-          <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" />
+          <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" onClick={switchToDesk} />
+          <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 
           <Divider />
 
@@ -88,9 +90,9 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
           )}
 
           <div className="space-y-0.5">
-            <SidebarNavRow to="/tasks" label="Tasks" icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} />
-            <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} />
-            <SidebarNavRow to="/meetings" label="Meetings" icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} />
+            <SidebarNavRow to="/tasks" label="Tasks" icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} onClick={switchToDesk} />
+            <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} onClick={switchToDesk} />
+            <SidebarNavRow to="/meetings" label="Meetings" icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} onClick={switchToDesk} />
           </div>
 
           <Divider />
@@ -110,7 +112,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
           collapsed={collapsed}
           role="global"
         />
-        <SidebarNavRow to="/settings" label="Settings" icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" />
+        <SidebarNavRow to="/settings" label="Settings" icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 
       </div>
 

@@ -88,36 +88,24 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               </Button>
             </DropdownMenuTrigger>
           ) : (
-            // Expanded: trigger + edit button side by side
-            <div className="flex items-center gap-0.5">
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex-1 min-w-0 justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg rounded-r-none bg-sidebar-accent/30 border border-sidebar-border/50 border-r-0 transition-all hover:border-sidebar-border shadow-sm"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Circle
-                      className="size-3.5 shrink-0"
-                      style={{ color: fillColor }}
-                      fill={fillColor}
-                    />
-                    <span className="font-medium truncate text-sidebar-foreground">
-                      {currentWorkspace?.name || "Select Workspace"}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
-                </Button>
-              </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-11 w-9 shrink-0 rounded-lg rounded-l-none bg-sidebar-accent/30 border border-sidebar-border/50 border-l-0 hover:bg-sidebar-accent/80 transition-all shadow-sm"
-                onClick={() => setShowEditModal(true)}
-                title="Edit workspace"
+                className="w-full justify-between px-3 h-11 hover:bg-sidebar-accent/80 rounded-lg bg-sidebar-accent/30 border border-sidebar-border/50 transition-all hover:border-sidebar-border shadow-sm"
               >
-                <Pencil className="size-3.5 text-muted-foreground" />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Circle
+                    className="size-3.5 shrink-0"
+                    style={{ color: fillColor }}
+                    fill={fillColor}
+                  />
+                  <span className="font-medium truncate text-sidebar-foreground">
+                    {currentWorkspace?.name || "Select Workspace"}
+                  </span>
+                </div>
+                <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
               </Button>
-            </div>
+            </DropdownMenuTrigger>
           )}
 
           <DropdownMenuContent
@@ -144,7 +132,24 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                     fill={wsColor}
                   />
                   <span className="flex-1 truncate font-medium">{workspace.name}</span>
-                  {isSelected && <Check className="size-4 text-primary" />}
+                  {isSelected && (
+                    <div className="flex items-center gap-1">
+                      <span
+                        role="button"
+                        tabIndex={-1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setShowEditModal(true);
+                        }}
+                        className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 transition-colors"
+                        title="Edit workspace"
+                      >
+                        <Pencil className="size-3.5" />
+                      </span>
+                      <Check className="size-4 text-primary" />
+                    </div>
+                  )}
                 </DropdownMenuItem>
               );
             })}

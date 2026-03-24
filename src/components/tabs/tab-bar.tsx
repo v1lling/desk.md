@@ -303,9 +303,6 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tabs, activeTabId, handleClose, setActiveTab]);
 
-  if (tabs.length <= 1) {
-    return inTitleBar ? <div className="h-full" /> : null;
-  }
 
   const barClasses = inTitleBar
     ? "h-full flex items-end"
@@ -364,7 +361,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-7 flex items-center gap-1 px-2 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors shrink-0 text-xs font-medium"
+                  className="h-8 flex items-center gap-1 px-2 rounded-t-lg text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors shrink-0 text-xs font-medium"
                   title={`${overflowTabs.length} more tabs`}
                 >
                   <span>+{overflowTabs.length}</span>

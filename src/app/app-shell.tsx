@@ -5,7 +5,6 @@ import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useBootStore } from "@/stores/boot";
-import { useTabStore } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
 import { Search } from "lucide-react";
@@ -18,7 +17,6 @@ export function AppShell({ children }: AppShellProps) {
   const [hydrated, setHydrated] = useState(false);
   const [hasMacTrafficLights, setHasMacTrafficLights] = useState(false);
   const setupCompleted = useBootStore((state) => state.setupCompleted);
-  const tabCount = useTabStore((state) => state.tabs.length);
 
   const {
     width: sidebarWidth,
@@ -76,7 +74,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         <div data-tauri-drag-region className="h-full" />
         <div className="h-full min-w-0 -ml-0.5">
-          {tabCount > 1 ? <TabBar inTitleBar /> : <div data-tauri-drag-region className="h-full w-full" />}
+          <TabBar inTitleBar />
         </div>
       </div>
       <div

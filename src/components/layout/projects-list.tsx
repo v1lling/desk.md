@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,7 @@ import { useProjects } from "@/stores/projects";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { NewProjectModal } from "@/components/projects/new-project-modal";
 import { SidebarNavRow } from "./sidebar-nav-row";
+import { useTabStore } from "@/stores/tabs";
 
 type ProjectSection = "tasks" | "docs" | "meetings";
 
@@ -21,6 +22,8 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
 
   const { data: projects = [], isLoading } = useProjects(workspaceId);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const setActiveTab = useTabStore((s) => s.setActiveTab);
+  const switchToDesk = useCallback(() => setActiveTab("desk"), [setActiveTab]);
 
   const sortedProjects = useMemo(() => {
     return [...projects].sort((a, b) => a.name.localeCompare(b.name));
@@ -94,6 +97,7 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
                   <div key={project.id} className="space-y-0.5">
                     <Link
                       to={projectTo}
+                      onClick={switchToDesk}
                       title={project.name}
                       className={cn(
                         "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
@@ -114,9 +118,9 @@ export function ProjectsList({ isCollapsed = false }: ProjectsListProps) {
 
                     {isExpanded && (
                       <div className="ml-5 space-y-0.5">
-                        <SidebarNavRow to={`/projects/${project.id}/tasks`} label="Tasks" active={activeSection === "tasks"} role="subitem" count={activeTasks} />
-                        <SidebarNavRow to={`/projects/${project.id}/docs`} label="Docs" active={activeSection === "docs"} role="subitem" count={project.docCount} />
-                        <SidebarNavRow to={`/projects/${project.id}/meetings`} label="Meetings" active={activeSection === "meetings"} role="subitem" count={project.meetingCount} />
+                        <SidebarNavRow to={`/projects/${project.id}/tasks`} label="Tasks" active={activeSection === "tasks"} role="subitem" count={activeTasks} onClick={switchToDesk} />
+                        <SidebarNavRow to={`/projects/${project.id}/docs`} label="Docs" active={activeSection === "docs"} role="subitem" count={project.docCount} onClick={switchToDesk} />
+                        <SidebarNavRow to={`/projects/${project.id}/meetings`} label="Meetings" active={activeSection === "meetings"} role="subitem" count={project.meetingCount} onClick={switchToDesk} />
                       </div>
                     )}
                   </div>
