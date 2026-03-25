@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Plus, Upload, Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown, FolderOpen, RefreshCw } from "lucide-react";
+import { Search, X, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp01, ChevronsUpDown, FolderOpen, Upload, Plus, MoreHorizontal, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,10 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ContentTree } from "./content-tree";
+import { ContentTree, type ContentTreeRef } from "./content-tree";
 import { NewDocModal } from "./new-doc-modal";
 import { ContentDropZone } from "./content-drop-zone";
-import { revealInFinder, type DocSortBy } from "./tree-item-utils";
+import { type DocSortBy, revealInFinder } from "./tree-item-utils";
 import {
   useContentTree,
   useWorkspaceOverviewShell,
@@ -30,9 +30,7 @@ import {
   useMoveDoc,
   useMoveFolder,
   PERSONAL_WORKSPACE_ID,
-  contentKeys,
 } from "@/stores";
-import { useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Doc, ContentScope, Asset } from "@/types";
@@ -57,6 +55,8 @@ export interface ContentExplorerRef {
   triggerImport: () => void;
   /** Trigger new doc modal */
   triggerNewDoc: (folderPath?: string) => void;
+  /** Trigger root folder creation */
+  triggerNewRootFolder: () => void;
 }
 
 interface ContentExplorerProps {
@@ -82,7 +82,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   className,
   hideToolbar,
 }, ref) {
-  const queryClient = useQueryClient();
+  const contentTreeRef = useRef<ContentTreeRef>(null);
 
   // Selected scope
   const [selectedScopeId, setSelectedScopeId] = useState(
@@ -419,6 +419,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
       setNewDocFolderPath(folderPath);
       setShowNewDoc(true);
     },
+    triggerNewRootFolder: () => contentTreeRef.current?.triggerNewRootFolder(),
   }), [handleImportClick]);
 
   return (
@@ -428,7 +429,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     >
       {/* Header - hidden when hideToolbar is true */}
       {!hideToolbar && (
-        <div className="shrink-0 h-11 px-4 border-b border-border/80 flex items-center gap-2">
+        <div className="shrink-0 min-h-11 py-2 px-4 border-b border-border/80 flex items-center gap-3">
           {/* Search input */}
           <div className="relative flex-1 max-w-[220px]">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
@@ -490,38 +491,54 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* File count */}
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {totalFiles} {totalFiles === 1 ? "file" : "files"}
-          </span>
+          {/* Right section: overflow menu + count + primary action */}
+          <div className="ml-auto flex items-center gap-2">
+            {/* Secondary actions overflow menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground hover:text-foreground"
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => contentTreeRef.current?.triggerNewRootFolder()}>
+                  <FolderPlus className="size-4 mr-2" />
+                  New Folder
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleImportClick}>
+                  <Upload className="size-4 mr-2" />
+                  Import Files
+                </DropdownMenuItem>
+                {basePath && (
+                  <DropdownMenuItem onClick={() => revealInFinder(basePath)}>
+                    <FolderOpen className="size-4 mr-2" />
+                    Open in Finder
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {/* Spacer */}
-          <div className="flex-1" />
+            {/* File count */}
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {totalFiles} {totalFiles === 1 ? "file" : "files"}
+            </span>
 
-          {/* Actions */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleImportClick}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <Upload className="size-4" />
-            <span className="hidden sm:inline">Import</span>
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowNewDoc(true)}
-            className="gap-1.5"
-          >
-            <Plus className="size-4" />
-            <span>New Doc</span>
-          </Button>
+            {/* Primary action: New Doc */}
+            <Button size="sm" onClick={() => handleCreateDocInFolder(selectedFolderPath || undefined)}>
+              <Plus className="size-4 mr-1" />
+              New Doc
+            </Button>
+          </div>
         </div>
       )}
 
       {/* Content tree - full width */}
       <ContentTree
+        ref={contentTreeRef}
         className="flex-1 min-h-0"
         nodes={tree}
         isLoading={isLoading}

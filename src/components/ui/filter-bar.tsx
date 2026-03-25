@@ -43,7 +43,7 @@ export function FilterBar({
   const rowHeight = densityClasses[density].section;
 
   return (
-    <div className={cn("px-4 border-b border-border/80 flex items-center gap-3 flex-wrap", rowHeight, className)}>
+    <div className={cn("px-4 py-2 border-b border-border/80 flex items-center gap-3 flex-wrap", rowHeight, className)}>
       {filters.map((filter) => (
         <div key={filter.id} className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">{filter.label}:</span>

@@ -1,8 +1,8 @@
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { FolderPlus, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -217,7 +217,11 @@ interface ContentTreeProps {
   onSortDirChange?: (sortDir: "asc" | "desc") => void;
 }
 
-export function ContentTree({
+export interface ContentTreeRef {
+  triggerNewRootFolder: () => void;
+}
+
+export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function ContentTree({
   nodes,
   isLoading,
   selectedDocId,
@@ -247,7 +251,7 @@ export function ContentTree({
   onSortByChange,
   sortDir: controlledSortDir,
   onSortDirChange,
-}: ContentTreeProps) {
+}, ref) {
   // Search state — controlled if props provided, otherwise local
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const searchQuery = controlledSearchQuery ?? localSearchQuery;
@@ -478,6 +482,10 @@ export function ContentTree({
     setFolderName("");
   };
 
+  useImperativeHandle(ref, () => ({
+    triggerNewRootFolder: handleNewRootFolder,
+  }), [handleNewRootFolder]);
+
   const handleNewSubfolder = (parentPath: string) => {
     setFolderModal({ mode: "create", parentPath });
     setFolderName("");
@@ -680,39 +688,6 @@ export function ContentTree({
     >
       {/* Tree container with visual structure */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        {/* Toolbar - action buttons */}
-        {(onCreateFolder || onCreateDoc) && (
-          <div className="shrink-0 flex items-center gap-1 px-4 py-1.5">
-            {onCreateFolder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  if (selectedFolderPath) {
-                    handleNewSubfolder(selectedFolderPath);
-                  } else {
-                    handleNewRootFolder();
-                  }
-                }}
-              >
-                <FolderPlus className="size-4" />
-                <span className="text-xs">Folder</span>
-              </Button>
-            )}
-            {onCreateDoc && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1.5 text-muted-foreground hover:text-foreground"
-                onClick={() => onCreateDoc(selectedFolderPath || undefined)}
-              >
-                <FileText className="size-4" />
-                <span className="text-xs">Doc</span>
-              </Button>
-            )}
-          </div>
-        )}
 
         {/* Tree content - scrollable with drag and drop */}
         <DndContext
@@ -871,4 +846,4 @@ export function ContentTree({
       />
     </div>
   );
-}
+});

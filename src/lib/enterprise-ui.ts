@@ -9,21 +9,21 @@ export const densityClasses: Record<Density, {
 }> = {
   compact: {
     header: "h-12",
-    section: "h-10",
+    section: "min-h-10",
     content: "p-3",
     card: "rounded-lg p-3",
     row: "h-8 px-2.5",
   },
   regular: {
     header: "h-14",
-    section: "h-11",
+    section: "min-h-11",
     content: "p-4",
     card: "rounded-xl p-4",
     row: "h-9 px-3",
   },
   relaxed: {
     header: "h-14",
-    section: "h-11",
+    section: "min-h-11",
     content: "p-5",
     card: "rounded-xl p-5",
     row: "h-10 px-3.5",
