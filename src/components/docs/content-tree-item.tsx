@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight,
@@ -12,14 +12,17 @@ import {
 } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
-import type { Doc, FileTreeNode, ContentFolder, Asset } from "@/types";
-import { getNodeKey } from "@/lib/desk/content";
+import type { Doc, FileTreeNode, ContentFolder, Asset, ScopeOverride } from "@/types";
+import { getNodeKey, extractFolderPaths } from "@/lib/desk/content";
+import { getDocsPath } from "@/lib/desk/paths";
+import { isTauri } from "@/lib/desk/tauri-fs";
 import { useContentTree } from "@/stores";
 import {
   SparklesOff,
   getFileIcon,
   IndentGuides,
   openWithDefaultApp,
+  revealInFinder,
   buildFolderMenuItems,
   buildAssetMenuItems,
   buildDocMenuItems,
@@ -40,9 +43,9 @@ export interface ContentTreeItemProps {
   onSelectFolder?: (folderPath: string) => void;
   onToggleFolder: (path: string) => void;
   onRenameFolder?: (path: string) => void;
-  onDeleteFolder?: (path: string) => void;
-  onNewSubfolder?: (parentPath: string) => void;
-  onNewDocInFolder?: (folderPath: string) => void;
+  onDeleteFolder?: (path: string, scopeOverride?: ScopeOverride) => void;
+  onNewSubfolder?: (parentPath: string, scopeOverride?: ScopeOverride) => void;
+  onNewDocInFolder?: (folderPath: string, scopeOverride?: ScopeOverride) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onDeleteAsset?: (asset: Asset) => void;
   onToggleFolderAI?: (folderPath: string, currentlyIncluded: boolean) => void;
@@ -52,7 +55,7 @@ export interface ContentTreeItemProps {
   isDraggable?: boolean;
   dropTargetPath?: string | null;
   allFolderPaths?: string[];
-  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string) => Promise<void>;
+  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
   /** Map of node keys to their flat visible index (for zebra striping) */
   visibleIndices?: Map<string, number>;
   /** ID of item currently being renamed (null = none) */
@@ -60,7 +63,7 @@ export interface ContentTreeItemProps {
   /** Enter rename mode for an item */
   onStartRename?: (itemId: string) => void;
   /** Commit an inline rename (folder path or doc, plus new name) */
-  onCommitRename?: (itemId: string, newName: string) => void;
+  onCommitRename?: (itemId: string, newName: string, scopeOverride?: ScopeOverride) => void;
   /** Cancel rename mode */
   onCancelRename?: () => void;
   /** ID of the currently keyboard-focused item */
@@ -75,6 +78,8 @@ export interface ContentTreeItemProps {
   sortBy?: DocSortBy;
   /** Current sort direction */
   sortDir?: "asc" | "desc";
+  /** Scope override for project children in workspace overview mode */
+  projectScopeOverride?: ScopeOverride;
 }
 
 export function ContentTreeItem(props: ContentTreeItemProps) {
@@ -130,6 +135,7 @@ export function ContentTreeItem(props: ContentTreeItemProps) {
       focusedItemId={props.focusedItemId}
       selectedItems={props.selectedItems}
       onItemClick={props.onItemClick}
+      projectScopeOverride={props.projectScopeOverride}
     />
   );
 }
@@ -151,11 +157,42 @@ function ProjectFolderChildren({
 }) {
   const { data: projectTree = [], isLoading } = useContentTree("project", workspaceId, projectId);
 
+  // Compute project-specific basePath for Reveal in Finder / Copy Path
+  const [projectBasePath, setProjectBasePath] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!isTauri()) {
+      setProjectBasePath(undefined);
+      return;
+    }
+    getDocsPath("project", workspaceId, projectId)
+      .then(setProjectBasePath)
+      .catch(() => setProjectBasePath(undefined));
+  }, [workspaceId, projectId]);
+
+  // Extract folder paths for project children (for "Move to" submenu)
+  const projectFolderPaths = useMemo(() => extractFolderPaths(projectTree), [projectTree]);
+
+  const scopeOverride = useMemo<ScopeOverride>(
+    () => ({ scope: "project", workspaceId, projectId }),
+    [workspaceId, projectId]
+  );
+
   const sortBy = treeProps.sortBy ?? "name";
   const sortDir = treeProps.sortDir ?? "asc";
   const sortedTree = useMemo(
     () => sortNodes(projectTree, sortBy, sortDir),
     [projectTree, sortBy, sortDir]
+  );
+
+  // Override treeProps with project-scoped values
+  const projectTreeProps = useMemo<ContentTreeItemProps>(
+    () => ({
+      ...treeProps,
+      basePath: projectBasePath,
+      allFolderPaths: projectFolderPaths,
+      projectScopeOverride: scopeOverride,
+    }),
+    [treeProps, projectBasePath, projectFolderPaths, scopeOverride]
   );
 
   if (isLoading) {
@@ -186,7 +223,7 @@ function ProjectFolderChildren({
       {sortedTree.map((child: FileTreeNode) => (
         <ContentTreeItem
           key={getNodeKey(child)}
-          {...treeProps}
+          {...projectTreeProps}
           node={child}
           depth={depth + 1}
           isParentExcluded={isExcludedFromAI}
@@ -256,17 +293,43 @@ function FolderNode({
     onStartRename?.(folderItemId);
   }, [onStartRename, folderItemId]);
 
-  const menuItems = useMemo(() => isProject ? [] : buildFolderMenuItems({
-    folderPath: folder.path,
-    fullFolderPath,
-    isAIIncluded,
-    hasBasePath: !!basePath,
-    onNewDocInFolder,
-    onNewSubfolder,
-    onToggleFolderAI,
-    onRenameFolder: onRenameFolder ? handleStartRename : undefined,
-    onDeleteFolder,
-  }), [isProject, folder.path, fullFolderPath, isAIIncluded, basePath, onNewDocInFolder, onNewSubfolder, onToggleFolderAI, onRenameFolder, handleStartRename, onDeleteFolder]);
+  const scopeOverride = treeProps.projectScopeOverride;
+
+  const menuItems = useMemo(() => {
+    if (isProject) {
+      // Project folder stubs: minimal context menu with just "Reveal in Finder"
+      if (!folder.projectId || !treeProps.workspaceId) return [];
+      const wsId = treeProps.workspaceId;
+      const projId = folder.projectId;
+      return [{
+        icon: <FolderOpen className="size-4" />,
+        label: "Reveal in Finder",
+        onClick: async () => {
+          try {
+            const projectDocsPath = await getDocsPath("project", wsId, projId);
+            await revealInFinder(projectDocsPath);
+          } catch { /* ignore if path can't be resolved */ }
+        },
+      }];
+    }
+    return buildFolderMenuItems({
+      folderPath: folder.path,
+      fullFolderPath,
+      isAIIncluded,
+      hasBasePath: !!basePath,
+      onNewDocInFolder: onNewDocInFolder
+        ? (path: string) => onNewDocInFolder(path, scopeOverride)
+        : undefined,
+      onNewSubfolder: onNewSubfolder
+        ? (path: string) => onNewSubfolder(path, scopeOverride)
+        : undefined,
+      onToggleFolderAI,
+      onRenameFolder: onRenameFolder ? handleStartRename : undefined,
+      onDeleteFolder: onDeleteFolder
+        ? (path: string) => onDeleteFolder(path, scopeOverride)
+        : undefined,
+    });
+  }, [isProject, folder.path, folder.projectId, fullFolderPath, isAIIncluded, basePath, onNewDocInFolder, onNewSubfolder, onToggleFolderAI, onRenameFolder, handleStartRename, onDeleteFolder, scopeOverride, treeProps.workspaceId]);
 
   // Strip aria-disabled from drag attributes for project folders (they're not draggable but still clickable)
   const { 'aria-disabled': _ariaDisabled, ...cleanDragAttrs } = dragAttrs;
@@ -318,7 +381,7 @@ function FolderNode({
           {isRenaming ? (
             <InlineRenameInput
               currentName={folder.name}
-              onCommit={(newName) => onCommitRename?.(folderItemId, newName)}
+              onCommit={(newName) => onCommitRename?.(folderItemId, newName, scopeOverride)}
               onCancel={() => onCancelRename?.()}
             />
           ) : (
@@ -446,6 +509,7 @@ function DocNode({
   focusedItemId,
   selectedItems,
   onItemClick,
+  projectScopeOverride,
 }: {
   doc: Doc;
   depth: number;
@@ -456,15 +520,16 @@ function DocNode({
   allFolderPaths?: string[];
   onSelectDoc?: (doc: Doc) => void;
   onDeleteDoc?: (doc: Doc) => void;
-  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string) => Promise<void>;
+  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
   isOddRow: boolean;
   renamingItemId?: string | null;
   onStartRename?: (itemId: string) => void;
-  onCommitRename?: (itemId: string, newName: string) => void;
+  onCommitRename?: (itemId: string, newName: string, scopeOverride?: ScopeOverride) => void;
   onCancelRename?: () => void;
   focusedItemId?: string | null;
   selectedItems?: Set<string>;
   onItemClick?: (itemId: string, event: React.MouseEvent) => void;
+  projectScopeOverride?: ScopeOverride;
 }) {
   const docItemId = `doc-${doc.id}`;
   const isRenaming = renamingItemId === docItemId;
@@ -479,13 +544,13 @@ function DocNode({
   const handleMoveToFolder = useCallback(async (toPath: string) => {
     if (!onMoveDocToFolder) return;
     try {
-      await onMoveDocToFolder(doc.id, docFolderPath, toPath);
+      await onMoveDocToFolder(doc.id, docFolderPath, toPath, projectScopeOverride);
       toast.success(`Moved to ${toPath || "root"}`);
     } catch (error) {
       console.error("Failed to move doc:", error);
       toast.error("Failed to move doc");
     }
-  }, [doc.id, docFolderPath, onMoveDocToFolder]);
+  }, [doc.id, docFolderPath, onMoveDocToFolder, projectScopeOverride]);
 
   const handleStartRename = useCallback(() => {
     onStartRename?.(docItemId);
@@ -542,7 +607,7 @@ function DocNode({
           {isRenaming ? (
             <InlineRenameInput
               currentName={doc.title}
-              onCommit={(newName) => onCommitRename?.(docItemId, newName)}
+              onCommit={(newName) => onCommitRename?.(docItemId, newName, projectScopeOverride)}
               onCancel={() => onCancelRename?.()}
             />
           ) : (

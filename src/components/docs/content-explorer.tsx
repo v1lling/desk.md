@@ -33,7 +33,7 @@ import {
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import type { Doc, ContentScope, Asset } from "@/types";
+import type { Doc, ContentScope, Asset, ScopeOverride } from "@/types";
 import { isMarkdownFile } from "@/lib/desk/file-utils";
 import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
 import { getDocsPath } from "@/lib/desk/paths";
@@ -213,77 +213,92 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const [deleteDocConfirm, setDeleteDocConfirm] = useState<Doc | null>(null);
   const [deleteAssetConfirm, setDeleteAssetConfirm] = useState<Asset | null>(null);
 
+  // Helper to resolve effective scope (scopeOverride takes priority over selectedScope)
+  const resolveScope = useCallback(
+    (scopeOverride?: ScopeOverride) => {
+      if (scopeOverride) return scopeOverride;
+      if (!selectedScope) return null;
+      return { scope: selectedScope.scope, workspaceId: selectedScope.workspaceId, projectId: selectedScope.projectId };
+    },
+    [selectedScope]
+  );
+
   // Folder operations
   const handleCreateFolder = useCallback(
-    async (parentPath: string, name: string) => {
-      if (!selectedScope) return;
+    async (parentPath: string, name: string, scopeOverride?: ScopeOverride) => {
+      const scope = resolveScope(scopeOverride);
+      if (!scope) return;
       const fullPath = parentPath ? `${parentPath}/${name}` : name;
       await createFolder.mutateAsync({
-        scope: selectedScope.scope,
+        scope: scope.scope,
         folderPath: fullPath,
-        workspaceId: selectedScope.workspaceId,
-        projectId: selectedScope.projectId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       });
     },
-    [selectedScope, createFolder]
+    [resolveScope, createFolder]
   );
 
   const handleRenameFolder = useCallback(
-    async (path: string, newName: string) => {
-      if (!selectedScope) return;
+    async (path: string, newName: string, scopeOverride?: ScopeOverride) => {
+      const scope = resolveScope(scopeOverride);
+      if (!scope) return;
       await renameFolder.mutateAsync({
-        scope: selectedScope.scope,
+        scope: scope.scope,
         oldPath: path,
         newName,
-        workspaceId: selectedScope.workspaceId,
-        projectId: selectedScope.projectId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       });
     },
-    [selectedScope, renameFolder]
+    [resolveScope, renameFolder]
   );
 
   const handleDeleteFolder = useCallback(
-    async (path: string) => {
-      if (!selectedScope) return;
+    async (path: string, scopeOverride?: ScopeOverride) => {
+      const scope = resolveScope(scopeOverride);
+      if (!scope) return;
       await deleteFolder.mutateAsync({
-        scope: selectedScope.scope,
+        scope: scope.scope,
         folderPath: path,
-        workspaceId: selectedScope.workspaceId,
-        projectId: selectedScope.projectId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       });
     },
-    [selectedScope, deleteFolder]
+    [resolveScope, deleteFolder]
   );
 
   // Move doc to a different folder
   const handleMoveDoc = useCallback(
-    async (docId: string, fromPath: string, toPath: string) => {
-      if (!selectedScope) return;
+    async (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => {
+      const scope = resolveScope(scopeOverride);
+      if (!scope) return;
       await moveDoc.mutateAsync({
-        scope: selectedScope.scope,
+        scope: scope.scope,
         docId,
         fromPath,
         toPath,
-        workspaceId: selectedScope.workspaceId,
-        projectId: selectedScope.projectId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       });
     },
-    [selectedScope, moveDoc]
+    [resolveScope, moveDoc]
   );
 
   // Move folder to a different parent folder
   const handleMoveFolder = useCallback(
-    async (fromPath: string, toParentPath: string) => {
-      if (!selectedScope) return;
+    async (fromPath: string, toParentPath: string, scopeOverride?: ScopeOverride) => {
+      const scope = resolveScope(scopeOverride);
+      if (!scope) return;
       await moveFolder.mutateAsync({
-        scope: selectedScope.scope,
+        scope: scope.scope,
         fromPath,
         toParentPath,
-        workspaceId: selectedScope.workspaceId,
-        projectId: selectedScope.projectId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       });
     },
-    [selectedScope, moveFolder]
+    [resolveScope, moveFolder]
   );
 
   // Rename doc (title only)
@@ -346,14 +361,18 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     setDeleteAssetConfirm(null);
   }, [deleteAssetConfirm, deleteAsset]);
 
-  const handleCreateDocInFolder = useCallback((folderPath?: string) => {
+  const [newDocScopeOverride, setNewDocScopeOverride] = useState<ScopeOverride | undefined>();
+
+  const handleCreateDocInFolder = useCallback((folderPath?: string, scopeOverride?: ScopeOverride) => {
     setNewDocFolderPath(folderPath);
+    setNewDocScopeOverride(scopeOverride);
     setShowNewDoc(true);
   }, []);
 
   const handleNewDocClose = useCallback(() => {
     setShowNewDoc(false);
     setNewDocFolderPath(undefined);
+    setNewDocScopeOverride(undefined);
   }, []);
 
   // Handle file drop for import
@@ -574,9 +593,9 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
       <NewDocModal
         open={showNewDoc}
         onClose={handleNewDocClose}
-        defaultScope={selectedScope?.scope}
-        defaultWorkspaceId={selectedScope?.workspaceId}
-        defaultProjectId={selectedScope?.projectId}
+        defaultScope={newDocScopeOverride?.scope ?? selectedScope?.scope}
+        defaultWorkspaceId={newDocScopeOverride?.workspaceId ?? selectedScope?.workspaceId}
+        defaultProjectId={newDocScopeOverride?.projectId ?? selectedScope?.projectId}
         defaultFolderPath={newDocFolderPath}
       />
 

@@ -20,7 +20,14 @@ import {
   useOpenTab,
 } from "@/stores";
 import type { Task, Meeting } from "@/types";
-import { Plus, Upload } from "lucide-react";
+import { EditProjectModal } from "@/components/projects";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Upload, MoreHorizontal, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/lib/design-tokens";
 import { PageHeader, SectionBar } from "@/components/patterns/page-header";
@@ -88,6 +95,7 @@ function ProjectPageClient({
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewMeeting, setShowNewMeeting] = useState(false);
+  const [showEditProject, setShowEditProject] = useState(false);
   const contentExplorerRef = useRef<ContentExplorerRef>(null);
 
   useEffect(() => {
@@ -154,12 +162,27 @@ function ProjectPageClient({
         title={project.name}
         density="compact"
         actions={
-          <Badge
-            variant="outline"
-            className={cn("capitalize text-[10px] h-5", statusColors[project.status])}
-          >
-            {project.status}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge
+              variant="outline"
+              className={cn("capitalize text-[10px] h-5", statusColors[project.status])}
+            >
+              {project.status}
+            </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7 text-muted-foreground">
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowEditProject(true)}>
+                  <Pencil className="size-4 mr-2" />
+                  Edit Details
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         }
       />
 
@@ -242,6 +265,12 @@ function ProjectPageClient({
         open={showNewMeeting}
         onClose={() => setShowNewMeeting(false)}
         defaultProjectId={projectId}
+      />
+
+      <EditProjectModal
+        open={showEditProject}
+        onClose={() => setShowEditProject(false)}
+        project={project}
       />
     </div>
   );

@@ -18,7 +18,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContentTreeItem } from "./content-tree-item";
 import { sortNodes, type DocSortBy } from "./tree-item-utils";
-import type { Doc, FileTreeNode, Asset } from "@/types";
+import type { Doc, FileTreeNode, Asset, ScopeOverride } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
 import { Folder } from "lucide-react";
 import {
@@ -177,12 +177,12 @@ interface ContentTreeProps {
   selectedFolderPath?: string | null;
   onSelectDoc?: (doc: Doc) => void;
   onSelectFolder?: (folderPath: string) => void;
-  onCreateDoc?: (folderPath?: string) => void;
+  onCreateDoc?: (folderPath?: string, scopeOverride?: ScopeOverride) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onDeleteAsset?: (asset: Asset) => void;
-  onCreateFolder?: (parentPath: string, name: string) => Promise<void>;
-  onRenameFolder?: (path: string, newName: string) => Promise<void>;
-  onDeleteFolder?: (path: string) => Promise<void>;
+  onCreateFolder?: (parentPath: string, name: string, scopeOverride?: ScopeOverride) => Promise<void>;
+  onRenameFolder?: (path: string, newName: string, scopeOverride?: ScopeOverride) => Promise<void>;
+  onDeleteFolder?: (path: string, scopeOverride?: ScopeOverride) => Promise<void>;
   className?: string;
   // Optional controlled expanded state for persistence
   expandedFolders?: string[];
@@ -194,13 +194,13 @@ interface ContentTreeProps {
   /** Base path for docs directory (used for Reveal in Finder) */
   basePath?: string;
   /** Callback when a doc is moved to a folder */
-  onMoveDoc?: (docId: string, fromPath: string, toPath: string) => Promise<void>;
+  onMoveDoc?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
   /** All folder paths for "Move to" menu */
   allFolderPaths?: string[];
   /** Callback when a doc is renamed */
   onRenameDoc?: (doc: Doc, newTitle: string) => Promise<void>;
   /** Callback when a folder is moved to another folder */
-  onMoveFolder?: (fromPath: string, toParentPath: string) => Promise<void>;
+  onMoveFolder?: (fromPath: string, toParentPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
   /** Workspace ID (needed for lazy-loading project folder content) */
   workspaceId?: string;
   /** Controlled search query (lifted to parent for header placement) */
@@ -445,12 +445,13 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
   const [folderModal, setFolderModal] = useState<{
     mode: "create";
     parentPath: string;
+    scopeOverride?: ScopeOverride;
   } | null>(null);
   const [folderName, setFolderName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Delete confirmation state
-  const [deleteConfirm, setDeleteConfirm] = useState<{ path: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ path: string; scopeOverride?: ScopeOverride } | null>(null);
 
   // Wrap onSelectDoc/onSelectFolder to clear multi-selection on plain clicks
   const handleSelectDoc = useCallback((doc: Doc) => {
@@ -486,8 +487,8 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
     triggerNewRootFolder: handleNewRootFolder,
   }), [handleNewRootFolder]);
 
-  const handleNewSubfolder = (parentPath: string) => {
-    setFolderModal({ mode: "create", parentPath });
+  const handleNewSubfolder = (parentPath: string, scopeOverride?: ScopeOverride) => {
+    setFolderModal({ mode: "create", parentPath, scopeOverride });
     setFolderName("");
     // Expand parent folder
     setExpandedFolders((prev) => new Set([...prev, parentPath]));
@@ -499,13 +500,13 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
   };
 
   // Handle inline rename commit for both docs and folders
-  const handleCommitRename = useCallback(async (itemId: string, newName: string) => {
+  const handleCommitRename = useCallback(async (itemId: string, newName: string, scopeOverride?: ScopeOverride) => {
     setRenamingItemId(null);
     if (itemId.startsWith("folder-")) {
       const folderPath = itemId.slice("folder-".length);
       if (onRenameFolder) {
         try {
-          await onRenameFolder(folderPath, newName);
+          await onRenameFolder(folderPath, newName, scopeOverride);
         } catch (error) {
           console.error("Failed to rename folder:", error);
           toast.error("Failed to rename folder");
@@ -567,8 +568,8 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
     }
   }, [lastClickedItemId, visibleList]);
 
-  const handleDeleteFolder = useCallback((path: string) => {
-    setDeleteConfirm({ path });
+  const handleDeleteFolder = useCallback((path: string, scopeOverride?: ScopeOverride) => {
+    setDeleteConfirm({ path, scopeOverride });
   }, []);
 
   // Keyboard navigation handler (must be after toggleFolder & handleDeleteFolder)
@@ -647,7 +648,7 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
 
   const handleDeleteFolderConfirm = async () => {
     if (deleteConfirm && onDeleteFolder) {
-      await onDeleteFolder(deleteConfirm.path);
+      await onDeleteFolder(deleteConfirm.path, deleteConfirm.scopeOverride);
       setDeleteConfirm(null);
     }
   };
@@ -661,7 +662,7 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
         const fullPath = folderModal.parentPath
           ? `${folderModal.parentPath}/${folderName.trim()}`
           : folderName.trim();
-        await onCreateFolder(folderModal.parentPath, folderName.trim());
+        await onCreateFolder(folderModal.parentPath, folderName.trim(), folderModal.scopeOverride);
         // Expand the new folder
         setExpandedFolders((prev) => new Set([...prev, fullPath]));
       }

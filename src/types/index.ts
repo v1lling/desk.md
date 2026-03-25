@@ -93,6 +93,13 @@ export type FileTreeNode =
 // Content scope - where content (docs/assets) lives
 export type ContentScope = 'personal' | 'workspace' | 'project';
 
+/** Scope override for operations within project folders in workspace overview mode */
+export interface ScopeOverride {
+  scope: ContentScope;
+  workspaceId: string;
+  projectId: string;
+}
+
 // Meeting - lives under a project
 export interface Meeting {
   id: string;              // Filename without .md
