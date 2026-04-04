@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Bot, Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
-import { useProject } from "@/stores/projects";
 import { usePreferencesStore } from "@/stores/preferences";
 import type { TabType } from "@/stores/tabs";
 import { TabItem } from "./tab-item";
@@ -30,7 +29,7 @@ const TAB_ICONS: Record<TabType, React.ElementType> = {
   email: Mail,
 };
 
-const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects/"];
+const WORKSPACE_SCOPED_PREFIXES = ["/tasks", "/docs", "/meetings", "/projects"];
 
 function isWorkspaceScopedPage(pathname: string): boolean {
   return WORKSPACE_SCOPED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -38,18 +37,13 @@ function isWorkspaceScopedPage(pathname: string): boolean {
 
 function getPageName(
   pathname: string,
-  projectName?: string | null
 ): { title: string; isWorkspaceScoped: boolean } {
-  if (pathname.startsWith("/projects/")) {
-    const name = projectName || "Project";
-    return { title: name, isWorkspaceScoped: true };
-  }
-
   const pageMap: Record<string, string> = {
     "/": "Dashboard",
     "/tasks": "Tasks",
     "/docs": "Docs",
     "/meetings": "Meetings",
+    "/projects": "Projects",
     "/settings": "Settings",
   };
 
@@ -65,7 +59,6 @@ interface TabBarProps {
 
 export function TabBar({ inTitleBar = false }: TabBarProps) {
   const { pathname } = useLocation();
-  const params = useParams();
   const tabs = useTabStore((state) => state.tabs);
   const activeTabId = useTabStore((state) => state.activeTabId);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
@@ -92,9 +85,6 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
     return () => window.removeEventListener("resize", handler);
   }, []);
 
-  const projectId = pathname.startsWith("/projects/") ? (params.id ?? null) : null;
-  const { data: project } = useProject(currentWorkspace?.id || null, projectId);
-
   const prevPathnameRef = useRef(pathname);
 
   useEffect(() => {
@@ -105,9 +95,9 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   }, [pathname, setActiveTab]);
 
   useEffect(() => {
-    const { title } = getPageName(pathname, project?.name);
+    const { title } = getPageName(pathname);
     updateTab("desk", { title });
-  }, [pathname, project?.name, updateTab]);
+  }, [pathname, updateTab]);
 
   const deskWorkspaceColor = isWorkspaceScopedPage(pathname)
     ? currentWorkspace?.color

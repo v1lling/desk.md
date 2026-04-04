@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingList, NewMeetingModal } from "@/components/meetings";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -7,7 +8,6 @@ import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
 import { FolderKanban, Plus, Calendar } from "lucide-react";
 import type { Meeting } from "@/types";
-import { Link } from "react-router-dom";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionGroup } from "@/components/ui/section-group";
@@ -19,8 +19,20 @@ export default function MeetingsPage() {
   const { projects, getProjectName } = useProjectName(currentWorkspaceId);
   const { openMeeting } = useOpenTab();
 
+  // Initialize project filter from ?project= URL param (e.g., from /projects page)
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showNewMeeting, setShowNewMeeting] = useState(false);
-  const [filterProject, setFilterProject] = useState<string>("all");
+  const [filterProject, setFilterProject] = useState<string>(
+    searchParams.get("project") || "all"
+  );
+
+  // Clear URL param after initialization
+  useEffect(() => {
+    if (searchParams.has("project")) {
+      searchParams.delete("project");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useOpenFromQuery(meetings, openMeeting, "/meetings");
 
@@ -95,9 +107,13 @@ export default function MeetingsPage() {
                   key={projectId}
                   icon={<FolderKanban className="h-4 w-4" />}
                   title={
-                    <Link to={`/projects/${projectId}/tasks`} className="hover:underline">
+                    <button
+                      type="button"
+                      className="hover:underline cursor-pointer"
+                      onClick={() => setFilterProject(projectId)}
+                    >
                       {getDisplayProjectName(projectId)}
-                    </Link>
+                    </button>
                   }
                   count={projectMeetings.length}
                 >

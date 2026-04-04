@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { FolderKanban, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { FolderKanban, MoreHorizontal, Pencil, Trash2, CheckSquare, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,6 @@ export default function ProjectsPage() {
   const workspaceId = currentWorkspace?.id || null;
   const { data: projects = [], isLoading } = useProjects(workspaceId);
   const deleteProject = useDeleteProject();
-  const navigate = useNavigate();
 
   const [showNewProject, setShowNewProject] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -44,13 +43,6 @@ export default function ProjectsPage() {
     if (filterStatus === "all") return sorted;
     return sorted.filter((p) => p.status === filterStatus);
   }, [projects, filterStatus]);
-
-  const handleProjectClick = useCallback(
-    (project: Project) => {
-      navigate(`/projects/${project.id}/tasks`);
-    },
-    [navigate]
-  );
 
   const handleDelete = useCallback(async () => {
     if (!deletingProject || !workspaceId) return;
@@ -127,7 +119,6 @@ export default function ProjectsPage() {
             <ProjectRow
               key={project.id}
               project={project}
-              onClick={handleProjectClick}
               onEdit={setEditingProject}
               onDelete={setDeletingProject}
             />
@@ -140,12 +131,10 @@ export default function ProjectsPage() {
 
 function ProjectRow({
   project,
-  onClick,
   onEdit,
   onDelete,
 }: {
   project: Project;
-  onClick: (project: Project) => void;
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
 }) {
@@ -156,10 +145,7 @@ function ProjectRow({
     : 0;
 
   return (
-    <div
-      className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
-      onClick={() => onClick(project)}
-    >
+    <div className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors">
       <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
 
       <div className="flex-1 min-w-0">
@@ -183,23 +169,21 @@ function ProjectRow({
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <div className="hidden sm:flex items-center gap-2.5 text-xs text-muted-foreground">
-          {activeTasks > 0 && (
-            <span className="tabular-nums">
-              {activeTasks} {activeTasks === 1 ? "task" : "tasks"}
-            </span>
-          )}
-          {(project.docCount ?? 0) > 0 && (
-            <span className="tabular-nums">
-              {project.docCount} {project.docCount === 1 ? "doc" : "docs"}
-            </span>
-          )}
-          {(project.meetingCount ?? 0) > 0 && (
-            <span className="tabular-nums">
-              {project.meetingCount}{" "}
-              {project.meetingCount === 1 ? "meeting" : "meetings"}
-            </span>
-          )}
+        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+          <Link
+            to={`/tasks?project=${project.id}`}
+            className="inline-flex items-center gap-1 tabular-nums hover:text-foreground transition-colors"
+          >
+            <CheckSquare className="size-3" />
+            {activeTasks}
+          </Link>
+          <Link
+            to={`/meetings?project=${project.id}`}
+            className="inline-flex items-center gap-1 tabular-nums hover:text-foreground transition-colors"
+          >
+            <Calendar className="size-3" />
+            {project.meetingCount ?? 0}
+          </Link>
         </div>
 
         <DropdownMenu>
@@ -214,21 +198,13 @@ function ProjectRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(project);
-              }}
-            >
+            <DropdownMenuItem onClick={() => onEdit(project)}>
               <Pencil className="size-4 mr-2" />
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(project);
-              }}
+              onClick={() => onDelete(project)}
             >
               <Trash2 className="size-4 mr-2" />
               Delete

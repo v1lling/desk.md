@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { KanbanBoard, NewTaskModal, TaskListView } from "@/components/tasks";
 import { FilteredListPage } from "@/components/patterns";
 import { useTasks, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
@@ -15,9 +16,21 @@ export default function TasksPage() {
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, null, "kanban");
   const { openTask } = useOpenTab();
 
+  // Initialize project filter from ?project= URL param (e.g., from /projects page)
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showNewTask, setShowNewTask] = useState(false);
-  const [filterProject, setFilterProject] = useState<string>("all");
+  const [filterProject, setFilterProject] = useState<string>(
+    searchParams.get("project") || "all"
+  );
   const [filterPriority, setFilterPriority] = useState<string>("all");
+
+  // Clear URL param after initialization
+  useEffect(() => {
+    if (searchParams.has("project")) {
+      searchParams.delete("project");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle ?open= query param from search navigation
   useOpenFromQuery(tasks, openTask, "/tasks");

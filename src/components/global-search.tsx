@@ -125,7 +125,7 @@ export function GlobalSearch() {
           });
           break;
         case "project":
-          navigate(`/projects/${item.projectId}/tasks`);
+          navigate("/projects");
           break;
       }
     },
