@@ -3,6 +3,7 @@
  */
 
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Settings,
   CheckSquare,
@@ -11,6 +12,7 @@ import {
   Home,
   Bot,
   FileText,
+  FolderKanban,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useCallback, useMemo } from "react";
@@ -19,7 +21,7 @@ import { useTasks } from "@/stores/tasks";
 import { useWorkspaceOverviewShell } from "@/stores/content";
 import { useMeetings } from "@/stores/meetings";
 import { extractDocs, extractAssets } from "@/lib/desk/content";
-import { ProjectsList } from "./projects-list";
+import { useProjects } from "@/stores/projects";
 import { WorkspaceSelector } from "./workspace-selector";
 import { useOpenTab } from "@/stores/tabs";
 import { useTabStore } from "@/stores/tabs";
@@ -43,6 +45,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   const { data: tasks = [] } = useTasks(workspaceId);
   const { data: overviewTree = [] } = useWorkspaceOverviewShell(workspaceId);
   const { data: meetings = [] } = useMeetings(workspaceId);
+  const { data: projects = [] } = useProjects(workspaceId);
 
   const activeTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "backlog").length;
   const totalFiles = useMemo(() => {
@@ -59,6 +62,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
     return count;
   }, [overviewTree]);
   const meetingCount = meetings.length;
+  const projectCount = projects.length;
 
   const { openAI } = useOpenTab();
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -76,8 +80,8 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       )}
       style={{ width: `${width}px` }}
     >
-      <div className="flex-1 min-h-0 flex flex-col">
-        <nav className="px-2 py-2 space-y-1 shrink-0">
+      <ScrollArea className="flex-1 min-h-0">
+        <nav className="px-2 py-2 space-y-1">
           <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" onClick={switchToDesk} />
           <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 
@@ -93,15 +97,12 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
             <SidebarNavRow to="/tasks" label="Tasks" icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} onClick={switchToDesk} />
             <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} onClick={switchToDesk} />
             <SidebarNavRow to="/meetings" label="Meetings" icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} onClick={switchToDesk} />
+            <SidebarNavRow to="/projects" label="Projects" icon={FolderKanban} active={pathname.startsWith("/projects")} collapsed={collapsed} role="global" count={projectCount} onClick={switchToDesk} />
           </div>
 
           <Divider />
         </nav>
-
-        <div className="flex-1 min-h-0 px-2 pb-2">
-          <ProjectsList isCollapsed={collapsed} />
-        </div>
-      </div>
+      </ScrollArea>
 
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/60 space-y-0.5">
         <SidebarNavRow

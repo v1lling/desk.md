@@ -10,6 +10,7 @@ import DocsPage from "./pages/docs";
 import MeetingsPage from "./pages/meetings";
 import SettingsPage from "./pages/settings";
 import ProjectViewPage from "./pages/project-view";
+import ProjectsPage from "./pages/projects";
 import PlannerPage from "./pages/planner";
 
 function ProjectRootRedirect() {
@@ -35,6 +36,7 @@ export function App() {
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/projects/:id" element={<ProjectRootRedirect />} />
               <Route path="/projects/:id/:section" element={<ProjectViewPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
