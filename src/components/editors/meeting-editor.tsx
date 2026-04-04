@@ -5,6 +5,7 @@ import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
+import { EditorPathBar } from "./editor-path-bar";
 import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -236,6 +237,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
 
   return (
     <div className="flex flex-col h-full bg-background">
+      <EditorPathBar filePath={meeting?.filePath} />
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}

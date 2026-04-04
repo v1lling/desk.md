@@ -5,13 +5,13 @@ import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
+import { EditorPathBar } from "./editor-path-bar";
 import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface DocEditorProps {
@@ -19,27 +19,6 @@ interface DocEditorProps {
   workspaceId: string;
   projectId?: string;
   onClose: () => void;
-}
-
-function FolderBreadcrumb({ path }: { path?: string }) {
-  if (!path) return null;
-
-  const parts = path.split("/");
-  if (parts.length <= 1) return null;
-
-  const folderParts = parts.slice(0, -1);
-
-  return (
-    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-      <Folder className="size-3.5" />
-      {folderParts.map((part, index) => (
-        <span key={index} className="flex items-center gap-1">
-          {index > 0 && <ChevronRight className="size-3" />}
-          <span>{part}</span>
-        </span>
-      ))}
-    </div>
-  );
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
@@ -208,6 +187,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
   return (
     <div className="flex flex-col h-full bg-background">
+      <EditorPathBar filePath={doc.filePath} />
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}
@@ -226,8 +206,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       <ScrollArea className="flex-1 min-h-0">
         <div ref={sentinelRef} className="h-0" />
         <div className="max-w-4xl mx-auto px-6 pt-2 pb-6">
-          <FolderBreadcrumb path={doc.path} />
-
           <MetadataToolbar
             projectId={currentProjectId}
             onProjectChange={handleProjectChange}

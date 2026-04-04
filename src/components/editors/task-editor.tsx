@@ -5,6 +5,7 @@ import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
+import { EditorPathBar } from "./editor-path-bar";
 import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
@@ -241,6 +242,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
 
   return (
     <div className="flex flex-col h-full bg-background">
+      <EditorPathBar filePath={task?.filePath} />
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}
