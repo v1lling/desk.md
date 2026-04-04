@@ -1,12 +1,9 @@
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Plus, Trash2, Circle } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAssistantStore, type AssistantConversation as Conversation } from "@/stores/assistant";
-import { useWorkspaces } from "@/stores/workspaces";
-
-const DEFAULT_WORKSPACE_COLOR = "#64748b";
 
 interface ConversationListProps {
   className?: string;
@@ -18,13 +15,6 @@ export function ConversationList({ className }: ConversationListProps) {
   const createConversation = useAssistantStore((s) => s.createConversation);
   const setActiveConversation = useAssistantStore((s) => s.setActiveConversation);
   const deleteConversation = useAssistantStore((s) => s.deleteConversation);
-  const { data: workspaces = [] } = useWorkspaces();
-
-  const getWorkspaceColor = (workspaceId: string | null) => {
-    if (!workspaceId) return DEFAULT_WORKSPACE_COLOR;
-    const ws = workspaces.find((w) => w.id === workspaceId);
-    return ws?.color || DEFAULT_WORKSPACE_COLOR;
-  };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -59,7 +49,6 @@ export function ConversationList({ className }: ConversationListProps) {
               key={conv.id}
               conversation={conv}
               isActive={conv.id === activeConversationId}
-              workspaceColor={getWorkspaceColor(conv.workspaceId)}
               onClick={() => setActiveConversation(conv.id)}
               onDelete={(e) => handleDelete(e, conv.id)}
             />
@@ -73,13 +62,11 @@ export function ConversationList({ className }: ConversationListProps) {
 function ConversationItem({
   conversation,
   isActive,
-  workspaceColor,
   onClick,
   onDelete,
 }: {
   conversation: Conversation;
   isActive: boolean;
-  workspaceColor: string;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
@@ -97,11 +84,6 @@ function ConversationItem({
           : "hover:bg-accent/50 text-foreground/80"
       )}
     >
-      <Circle
-        className="size-2 shrink-0 mt-1.5"
-        style={{ color: workspaceColor }}
-        fill={workspaceColor}
-      />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium truncate">{conversation.title}</p>
         <p className="text-[10px] text-muted-foreground">{relativeDate}</p>

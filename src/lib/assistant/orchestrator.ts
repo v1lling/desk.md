@@ -9,7 +9,6 @@ import type { AssistantEvent, AssistantMessage, AssistantTurnMode } from "@/lib/
 interface RunAssistantOptions {
   message: string;
   history: AssistantMessage[];
-  workspaceId: string;
   providerType: AIProviderType;
   model: string;
   mode: AssistantTurnMode;
@@ -52,7 +51,6 @@ export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ 
   const model = providerDef.createModel(apiKey, options.model);
 
   const tools = createAssistantTools({
-    workspaceId: options.workspaceId,
     providerType: options.providerType,
     approval: {
       onToolProposed: (request) => {

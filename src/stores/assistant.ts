@@ -9,7 +9,6 @@ import type {
   AssistantTurnMode,
   AssistantToolEvent,
 } from "@/lib/assistant/types";
-import { useNavigationStore } from "@/stores/navigation";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { DEFAULT_MODELS } from "@/lib/ai/models";
 import { formatEmailAddress, type IncomingEmail } from "@/lib/email/types";
@@ -26,7 +25,7 @@ interface AssistantState {
   pendingApproval: AssistantPendingApproval | null;
   toolTimeline: AssistantToolEvent[];
 
-  createConversation: (options?: { title?: string; workspaceId?: string | null; mode?: AssistantTurnMode }) => string;
+  createConversation: (options?: { title?: string; mode?: AssistantTurnMode }) => string;
   setActiveConversation: (id: string | null) => void;
   deleteConversation: (id: string) => void;
   clearAllConversations: () => void;
@@ -104,13 +103,11 @@ export const useAssistantStore = create<AssistantState>()(
       createConversation: (options) => {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
-        const workspaceId = options?.workspaceId ?? useNavigationStore.getState().currentWorkspaceId;
 
         const conversation: AssistantConversation = {
           id,
           title: options?.title || "New Assistant",
           mode: options?.mode || "chat",
-          workspaceId,
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -161,11 +158,6 @@ export const useAssistantStore = create<AssistantState>()(
         const mode = options?.mode || baseConversation.mode || "chat";
 
         const historyForModel = baseConversation.messages;
-        const workspaceId = baseConversation.workspaceId ?? useNavigationStore.getState().currentWorkspaceId;
-        if (!workspaceId) {
-          set({ error: "No active workspace selected." });
-          return;
-        }
 
         const now = new Date().toISOString();
         const userMessage: AssistantMessage = {
@@ -203,7 +195,6 @@ export const useAssistantStore = create<AssistantState>()(
           const result = await runAssistantTurn({
             message: trimmed,
             history: historyForModel,
-            workspaceId,
             providerType: aiSettings.providerType,
             model: getActiveModel(),
             mode,

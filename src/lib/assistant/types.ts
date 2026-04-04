@@ -24,7 +24,6 @@ export interface AssistantConversation {
   id: string;
   title: string;
   mode?: AssistantTurnMode;
-  workspaceId: string | null;
   messages: AssistantMessage[];
   createdAt: string;
   updatedAt: string;
@@ -46,7 +45,6 @@ export interface AssistantPendingApproval {
 }
 
 export interface AssistantRunContext {
-  workspaceId: string;
   providerType: AIProviderType;
   model: string;
   mode: AssistantTurnMode;

@@ -23,7 +23,6 @@ export interface ApprovalCallbacks {
 }
 
 interface ToolContext {
-  workspaceId: string;
   providerType: AIProviderType;
   approval: ApprovalCallbacks;
 }
@@ -103,20 +102,28 @@ async function runReadTool(
 
 export function createAssistantTools(ctx: ToolContext): ToolSet {
   const tools: ToolSet = {
+    desk_workspace_info: tool({
+      description: "List all workspaces with their names, IDs, and project listings. Call this first to orient yourself.",
+      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {} }),
+      execute: async () => {
+        return runReadTool(ctx, "desk_workspace_info", {}, async () => {
+          return invoke("desk_workspace_info", {});
+        });
+      },
+    }),
+
     desk_tree: tool({
       description:
-        "Get the workspace file tree. Returns ALL files and directories as a flat list with workspace-relative paths (usable with desk_read). Also returns project ID-to-name mappings. Without a path argument this returns the complete tree — if truncated is false, you have everything; do NOT re-call for subdirectories. Only use path to drill into a subdirectory when the full tree was truncated.",
-      inputSchema: jsonSchema<{ path?: string }>({
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Optional subdirectory to scope the tree to (workspace-relative). Omit for full workspace." },
-        },
+        "Get a workspace's file tree. Returns ALL files and directories as a flat list with workspace-relative paths (usable with desk_read). Also returns project ID-to-name mappings. Without a path argument this returns the complete tree — if truncated is false, you have everything; do NOT re-call for subdirectories. Only use path to drill into a subdirectory when the full tree was truncated.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        path: z.string().optional(),
       }),
       execute: async (args) => {
-        return runReadTool(ctx, "desk_tree", (args as { path?: string }) as Record<string, unknown>, async () => {
+        return runReadTool(ctx, "desk_tree", args as Record<string, unknown>, async () => {
           return invoke("desk_tree", {
-            workspaceId: ctx.workspaceId,
-            path: (args as { path?: string }).path,
+            workspaceId: args.workspace_id,
+            path: args.path,
           });
         });
       },
@@ -125,23 +132,22 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     desk_catalog: tool({
       description:
         "Get the AI-curated workspace catalog with summaries. Returns path, type, title, summary, date, and metadata for each indexed file — sorted newest-first. Use this to understand file contents and decide what to desk_read. May be stale if index hasn't been rebuilt recently. For recency or structural queries, prefer desk_tree.",
-      inputSchema: jsonSchema<Record<string, never>>({
-        type: "object",
-        properties: {},
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
       }),
-      execute: async () => {
-        return runReadTool(ctx, "desk_catalog", {}, async () => {
-          const index = useContextIndexStore.getState().getIndex(ctx.workspaceId);
+      execute: async (args) => {
+        return runReadTool(ctx, "desk_catalog", args as Record<string, unknown>, async () => {
+          const index = useContextIndexStore.getState().getIndex(args.workspace_id);
           if (!index || index.entries.length === 0) {
             return {
-              workspace_id: ctx.workspaceId,
+              workspace_id: args.workspace_id,
               entries: [],
               total: 0,
               message: "No index built yet. Use desk_tree for file listing.",
             };
           }
 
-          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
 
           const sorted = [...index.entries]
             .filter((e) => {
@@ -157,7 +163,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
             });
 
           return {
-            workspace_id: ctx.workspaceId,
+            workspace_id: args.workspace_id,
             built_at: index.builtAt,
             total: sorted.length,
             entries: sorted.map((e) => ({
@@ -178,35 +184,37 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     desk_read: tool({
       description: "Read the full content of a workspace file. Use after desk_tree or desk_catalog to read candidate files before making factual claims.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         path: z.string().min(1),
       }),
       execute: async (args) => {
         return runReadTool(ctx, "desk_read", args as Record<string, unknown>, async () => {
-          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
           if (isPathExcludedByAIIgnore(args.path, aiignoreEntries)) {
             return { ok: false, error: "excluded", message: "This file is excluded from AI access." };
           }
-          const path = workspacePath(ctx.workspaceId, args.path);
+          const path = workspacePath(args.workspace_id, args.path);
           return invoke("desk_read", { path });
         });
       },
     }),
 
     desk_search: tool({
-      description: "Full-text search across workspace files. Use for specific text, quotes, or keywords — not for workspace/client names that are already the current workspace scope.",
+      description: "Full-text search across workspace files. Use for specific text, quotes, or keywords.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         query: z.string().min(1),
         path: z.string().optional(),
       }),
       execute: async (args) => {
         return runReadTool(ctx, "desk_search", args as Record<string, unknown>, async () => {
-          const path = workspacePath(ctx.workspaceId, args.path);
+          const path = workspacePath(args.workspace_id, args.path);
           const result = await invoke("desk_search", { query: args.query, path }) as {
             matches?: Array<{ path: string }>;
           };
-          const aiignoreEntries = await loadAIIgnoreEntries(ctx.workspaceId);
+          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
           if (aiignoreEntries.length > 0 && Array.isArray(result.matches)) {
-            const wsPrefix = `workspaces/${ctx.workspaceId}/`;
+            const wsPrefix = `workspaces/${args.workspace_id}/`;
             result.matches = result.matches.filter(
               (m) => !isPathExcludedByAIIgnore(
                 m.path.startsWith(wsPrefix) ? m.path.slice(wsPrefix.length) : m.path,
@@ -219,19 +227,10 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       },
     }),
 
-    desk_workspace_info: tool({
-      description: "Get workspace name, ID, and all project names with their IDs. Call this first when you need project IDs for creating tasks, meetings, or docs.",
-      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {} }),
-      execute: async () => {
-        return runReadTool(ctx, "desk_workspace_info", {}, async () => {
-          return invoke("desk_workspace_info", { workspaceId: ctx.workspaceId });
-        });
-      },
-    }),
-
     desk_create_task: tool({
-      description: "Create a task in a project or _unassigned. Use desk_workspace_info first to get the project ID. Requires approval.",
+      description: "Create a task in a project or _unassigned. Use desk_workspace_info first to get workspace and project IDs. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         project_id: z.string().min(1),
         title: z.string().min(1),
         status: z.enum(["backlog", "todo", "doing", "waiting", "done"]).optional(),
@@ -241,7 +240,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_create_task", args, async () => invoke("desk_create_task", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           projectId: args.project_id,
           title: args.title,
           status: args.status,
@@ -255,6 +254,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     desk_update_task: tool({
       description: "Update an existing task. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         task_id: z.string().min(1),
         project_id: z.string().optional(),
         title: z.string().optional(),
@@ -265,7 +265,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_update_task", args, async () => invoke("desk_update_task", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           taskId: args.task_id,
           projectId: args.project_id,
           title: args.title,
@@ -278,8 +278,9 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_create_meeting: tool({
-      description: "Create a meeting note in a project or _unassigned. Use desk_workspace_info first to get the project ID. Requires approval.",
+      description: "Create a meeting note in a project or _unassigned. Use desk_workspace_info first to get workspace and project IDs. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         project_id: z.string().min(1),
         title: z.string().min(1),
         date: z.string().optional(),
@@ -287,7 +288,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_create_meeting", args, async () => invoke("desk_create_meeting", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           projectId: args.project_id,
           title: args.title,
           date: args.date,
@@ -299,6 +300,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     desk_update_meeting: tool({
       description: "Update an existing meeting note. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         meeting_id: z.string().min(1),
         project_id: z.string().optional(),
         title: z.string().optional(),
@@ -308,7 +310,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_update_meeting", args, async () => invoke("desk_update_meeting", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           meetingId: args.meeting_id,
           projectId: args.project_id,
           title: args.title,
@@ -320,15 +322,16 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     }),
 
     desk_create_doc: tool({
-      description: "Create a document in a project or at workspace level. Use desk_workspace_info first to get the project ID. Requires approval.",
+      description: "Create a document in a project or at workspace level. Use desk_workspace_info first to get workspace and project IDs. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         project_id: z.string().optional(),
         title: z.string().min(1),
         content: z.string().optional(),
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_create_doc", args, async () => invoke("desk_create_doc", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           projectId: args.project_id,
           title: args.title,
           content: args.content,
@@ -339,6 +342,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
     desk_update_doc: tool({
       description: "Update an existing document. Requires approval.",
       inputSchema: z.object({
+        workspace_id: z.string().min(1),
         doc_id: z.string().min(1),
         project_id: z.string().optional(),
         title: z.string().optional(),
@@ -346,7 +350,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runMutationWithApproval(ctx, "desk_update_doc", args, async () => invoke("desk_update_doc", {
-          workspaceId: ctx.workspaceId,
+          workspaceId: args.workspace_id,
           docId: args.doc_id,
           projectId: args.project_id,
           title: args.title,

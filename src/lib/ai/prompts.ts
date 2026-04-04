@@ -20,16 +20,22 @@ Workspace structure:
 Files created by Desk are named YYYY-MM-DD-slug.md, but docs/ may also contain imported files with arbitrary names. Entity type is determined by directory (tasks/, docs/, meetings/), not filename.`;
 
 /**
+ * Shared tool-usage guidance included in all assistant modes.
+ */
+const TOOL_GUIDE = `Tool usage:
+- Call desk_workspace_info FIRST to discover all workspaces and their projects.
+- Use desk_tree to browse a workspace's file tree. Without a path argument it returns the COMPLETE tree. If truncated is false, you have everything — don't re-call for subdirectories. File paths contain dates and slugs — for recency or structural queries desk_tree alone is enough.
+- Use desk_catalog ONLY when you need content summaries to decide what to read (e.g. "docs about X"). Don't use it for recency or structural queries where desk_tree already answers.
+- Use desk_search for literal text/keyword search across file contents.
+- Use desk_read to get full file content before making factual claims. Call multiple desk_read in parallel when you need several files.
+- Before any mutation (create/update), briefly explain what you are about to change.
+- If a tool call is rejected, continue with alternatives.`;
+
+/**
  * Purpose-specific instructions (combined with BASE_CONTEXT)
  */
 const PURPOSE_PROMPTS: Record<Exclude<AIPurpose, "custom">, string> = {
-  chat: `Tool usage:
-- Call desk_tree FIRST. Without a path argument, it returns the COMPLETE workspace file tree. If the response has truncated: false, you have every file — do NOT call desk_tree again to look for items you already received. Use the path argument ONLY when the tree was truncated and you need a specific subdirectory. File paths already contain dates and slugs — for recency or structural queries, desk_tree alone is enough.
-- Call desk_catalog ONLY when you need content summaries to decide what to read — e.g. topic-based questions like "docs about X" or "meetings about Y". Do NOT call it for recency or structural queries where desk_tree file paths already answer the question.
-- Use desk_search for literal text/keyword search across file contents.
-- Use desk_read to get full file content before making factual claims. When you need multiple files, call desk_read for each in a single response (parallel tool calls).
-- Before any mutation, briefly explain what you are about to change.
-- If a tool call is rejected, continue with alternatives.
+  chat: `${TOOL_GUIDE}
 
 Constraints:
 - Desk is single-user and local-first. Don't assume assignees, teams, or cloud identities.
@@ -43,7 +49,9 @@ Constraints:
 - Plain text only: no markdown bold/italic/headers. Bullet lists and numbered lists are fine.
 - If the original email or reply intent is missing, ask one short follow-up before drafting.
 - Don't invent sender/recipient names or metadata.
-- Use retrieval tools only if workspace context (docs, tasks, meetings) would genuinely improve accuracy.`,
+
+${TOOL_GUIDE}
+Use tools when the user asks for workspace context or when referencing docs, tasks, or meetings would genuinely improve the reply.`,
 };
 
 /**
@@ -175,7 +183,7 @@ export function buildAssistantTurnUserMessage(
   options?: BuildAssistantTurnUserMessageOptions
 ): string {
   if (mode === "chat") {
-    return "Help me with this workspace.";
+    return "Hello!";
   }
 
   return buildDraftEmailUserMessage(options?.emailContext);
