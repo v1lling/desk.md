@@ -14,7 +14,6 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Textarea } from "@/components/ui/textarea";
 import { usePlannerStore } from "@/stores/planner";
 import { useOpenTab } from "@/stores/tabs";
 import {
@@ -24,6 +23,7 @@ import {
   blocksOverlap,
 } from "@/lib/desk/planner";
 import { MiniTaskItem } from "./mini-task-item";
+import { MiniNoteItem } from "./mini-note-item";
 import { TaskPickerPopover } from "./task-picker-popover";
 import type { WorkspaceBlock, Workspace } from "@/types";
 import type { ActiveTask } from "@/lib/desk/dashboard";
@@ -53,14 +53,15 @@ export function TimeBlock({
 }: TimeBlockProps) {
   const workspace = workspaces.find((w) => w.id === block.workspaceId);
   const removeBlock = usePlannerStore((s) => s.removeBlock);
-  const updateBlock = usePlannerStore((s) => s.updateBlock);
   const updateBlockTime = usePlannerStore((s) => s.updateBlockTime);
   const addTaskToBlock = usePlannerStore((s) => s.addTaskToBlock);
   const removeTaskFromBlock = usePlannerStore((s) => s.removeTaskFromBlock);
+  const addNoteToBlock = usePlannerStore((s) => s.addNoteToBlock);
+  const removeNoteFromBlock = usePlannerStore((s) => s.removeNoteFromBlock);
+  const updateNoteInBlock = usePlannerStore((s) => s.updateNoteInBlock);
   const { openTask } = useOpenTab();
 
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState(block.notes || "");
+  const [addingNote, setAddingNote] = useState(false);
 
   // Resize state — stored as local visual override, committed on mouseup
   const [resizePreview, setResizePreview] = useState<{
@@ -113,22 +114,8 @@ export function TimeBlock({
 
   const handleDelete = () => removeBlock(weekOf, day, block.id);
 
-  const handleEditNotes = () => {
-    setNotesValue(block.notes || "");
-    setEditingNotes(true);
-  };
-
-  const handleSaveNotes = () => {
-    updateBlock(weekOf, day, block.id, {
-      notes: notesValue.trim() || undefined,
-    });
-    setEditingNotes(false);
-  };
-
   const handleAddNote = (note: string) => {
-    const existing = block.notes || "";
-    const newNotes = existing ? `${existing}\n${note}` : note;
-    updateBlock(weekOf, day, block.id, { notes: newNotes });
+    addNoteToBlock(weekOf, day, block.id, note);
   };
 
   // ── Resize handling ──────────────────────────────────────────────
@@ -304,35 +291,51 @@ export function TimeBlock({
             )}
 
             {/* Notes — medium and full */}
-            {!isCompact && editingNotes ? (
-              <div className="mt-1 shrink-0" data-no-drag>
-                <Textarea
-                  value={notesValue}
-                  onChange={(e) => setNotesValue(e.target.value)}
-                  onBlur={handleSaveNotes}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSaveNotes();
-                    }
-                    if (e.key === "Escape") setEditingNotes(false);
-                  }}
-                  placeholder="Add a note..."
-                  rows={2}
-                  className="text-[11px] resize-none"
+            {!isCompact && block.notes && block.notes.length > 0 && (
+              <div className="mt-0.5 space-y-0.5 shrink-0" data-no-drag>
+                {block.notes
+                  .slice(0, isMedium ? 2 : undefined)
+                  .map((note, index) => (
+                    <MiniNoteItem
+                      key={`${block.id}-note-${index}`}
+                      note={note}
+                      onEdit={(newText) =>
+                        updateNoteInBlock(weekOf, day, block.id, index, newText)
+                      }
+                      onRemove={() =>
+                        removeNoteFromBlock(weekOf, day, block.id, index)
+                      }
+                    />
+                  ))}
+                {isMedium && block.notes.length > 2 && (
+                  <span className="text-[10px] text-muted-foreground pl-1.5">
+                    +{block.notes.length - 2} more
+                  </span>
+                )}
+              </div>
+            )}
+            {!isCompact && addingNote && (
+              <div className="mt-0.5 shrink-0" data-no-drag>
+                <input
+                  type="text"
+                  className="w-full text-xs px-1.5 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  placeholder="Type a note..."
                   autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                      addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
+                      setAddingNote(false);
+                    }
+                    if (e.key === "Escape") setAddingNote(false);
+                  }}
+                  onBlur={(e) => {
+                    if (e.currentTarget.value.trim()) {
+                      addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
+                    }
+                    setAddingNote(false);
+                  }}
                 />
               </div>
-            ) : (
-              !isCompact &&
-              block.notes && (
-                <p
-                  className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 cursor-pointer hover:text-foreground/70 transition-colors shrink-0"
-                  onClick={handleEditNotes}
-                >
-                  {block.notes}
-                </p>
-              )
             )}
 
             {/* Tasks — medium and full */}
@@ -391,9 +394,9 @@ export function TimeBlock({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={handleEditNotes}>
+        <ContextMenuItem onClick={() => setAddingNote(true)}>
           <StickyNote className="h-4 w-4" />
-          Edit notes
+          Add note
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

@@ -144,7 +144,7 @@ export type TaskViewMode = 'list' | 'kanban';
 export interface WorkspaceBlock {
   id: string;                  // crypto.randomUUID() for drag-drop identity
   workspaceId: string;
-  notes?: string;
+  notes?: string[];
   taskIds: string[];           // Ordered list of task IDs planned within this block
   startMinute: number;         // Minutes from midnight (e.g., 540 = 9:00)
   endMinute: number;           // Minutes from midnight (e.g., 1080 = 18:00)

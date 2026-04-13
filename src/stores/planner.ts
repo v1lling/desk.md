@@ -26,6 +26,25 @@ interface PlannerState {
     blockId: string,
     updates: Partial<Pick<WorkspaceBlock, "notes">>
   ) => void;
+  addNoteToBlock: (
+    weekOf: string,
+    day: string,
+    blockId: string,
+    note: string
+  ) => void;
+  removeNoteFromBlock: (
+    weekOf: string,
+    day: string,
+    blockId: string,
+    noteIndex: number
+  ) => void;
+  updateNoteInBlock: (
+    weekOf: string,
+    day: string,
+    blockId: string,
+    noteIndex: number,
+    text: string
+  ) => void;
   updateBlockTime: (
     weekOf: string,
     day: string,
@@ -60,6 +79,15 @@ interface PlannerState {
     toBlockId: string,
     taskId: string
   ) => void;
+}
+
+/** Migrate old string notes to string[] format on rehydration */
+function normalizeBlockNotes(block: WorkspaceBlock): WorkspaceBlock {
+  if (typeof block.notes === "string") {
+    const parts = (block.notes as unknown as string).split("\n").filter(Boolean);
+    return { ...block, notes: parts.length > 0 ? parts : undefined };
+  }
+  return block;
 }
 
 function emptyWeekPlan(weekOf: string): WeekPlan {
@@ -125,6 +153,46 @@ export const usePlannerStore = create<PlannerState>()(
           updatePlan(s, weekOf, (plan) =>
             updateDayBlocks(plan, day, (blocks) =>
               blocks.map((b) => (b.id === blockId ? { ...b, ...updates } : b))
+            )
+          )
+        ),
+
+      addNoteToBlock: (weekOf, day, blockId, note) =>
+        set((s) =>
+          updatePlan(s, weekOf, (plan) =>
+            updateDayBlocks(plan, day, (blocks) =>
+              blocks.map((b) =>
+                b.id === blockId
+                  ? { ...b, notes: [...(b.notes || []), note] }
+                  : b
+              )
+            )
+          )
+        ),
+
+      removeNoteFromBlock: (weekOf, day, blockId, noteIndex) =>
+        set((s) =>
+          updatePlan(s, weekOf, (plan) =>
+            updateDayBlocks(plan, day, (blocks) =>
+              blocks.map((b) => {
+                if (b.id !== blockId || !b.notes) return b;
+                const newNotes = b.notes.filter((_, i) => i !== noteIndex);
+                return { ...b, notes: newNotes.length > 0 ? newNotes : undefined };
+              })
+            )
+          )
+        ),
+
+      updateNoteInBlock: (weekOf, day, blockId, noteIndex, text) =>
+        set((s) =>
+          updatePlan(s, weekOf, (plan) =>
+            updateDayBlocks(plan, day, (blocks) =>
+              blocks.map((b) => {
+                if (b.id !== blockId || !b.notes) return b;
+                const newNotes = [...b.notes];
+                newNotes[noteIndex] = text;
+                return { ...b, notes: newNotes };
+              })
             )
           )
         ),
@@ -223,6 +291,15 @@ export const usePlannerStore = create<PlannerState>()(
       name: "planner-store",
       storage: createFileStorage<PlannerState>("planner", "weeks.json"),
       partialize: (state) => ({ weekPlans: state.weekPlans }) as PlannerState,
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        for (const weekOf in state.weekPlans) {
+          const plan = state.weekPlans[weekOf];
+          for (const day in plan.days) {
+            plan.days[day] = plan.days[day].map(normalizeBlockNotes);
+          }
+        }
+      },
     }
   )
 );
