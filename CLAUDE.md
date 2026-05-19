@@ -55,7 +55,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
-| `src/lib/assistant/` | Multi-turn agent orchestrator with tools and approval gate |
+| `src/lib/assistant/` | Multi-turn agent orchestrator with read-only tools (browse/search/read) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
 | `src/components/patterns/` | Page-level layout patterns |

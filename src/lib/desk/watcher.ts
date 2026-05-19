@@ -5,7 +5,8 @@
  * Used to keep the UI in sync when files are modified externally.
  */
 
-import { isTauri, getDeskPath } from "./tauri-fs";
+import { toast } from "sonner";
+import { isTauri, getDeskPath, exists } from "./tauri-fs";
 
 // Event types we care about
 export type WatchEventKind = "create" | "modify" | "remove" | "any";
@@ -111,6 +112,28 @@ function queueEvent(event: WatchEvent) {
  * Start watching the Desk directory
  * Safe to call multiple times - will only start once
  */
+function handleWatchEvent(event: unknown) {
+  const parsed = parseWatchEvent(event);
+  if (!parsed) return;
+
+  const filteredPaths = parsed.paths.filter(p =>
+    !p.includes(".DS_Store") &&
+    !p.includes("/.git/") &&
+    !p.includes("/.desk/") &&
+    !p.endsWith(".view.json")
+  );
+
+  if (filteredPaths.length > 0) {
+    queueEvent({ ...parsed, paths: filteredPaths });
+  }
+}
+
+async function attachWatcher(): Promise<void> {
+  const fs = await import("@tauri-apps/plugin-fs");
+  const deskPath = await getDeskPath();
+  unwatchFn = await fs.watch(deskPath, handleWatchEvent, { recursive: true });
+}
+
 export async function startWatching(): Promise<boolean> {
   if (!isTauri()) {
     console.log("[watcher] Not in Tauri mode, skipping file watcher");
@@ -122,37 +145,32 @@ export async function startWatching(): Promise<boolean> {
     return true;
   }
 
+  // On very first launch the Desk directory may not exist yet — retrying
+  // won't help, and toasting "watcher stopped" would just be noise.
+  const deskPath = await getDeskPath();
+  if (!(await exists(deskPath))) {
+    console.log("[watcher] Desk path does not exist yet, skipping watcher start:", deskPath);
+    return false;
+  }
+
   try {
-    const fs = await import("@tauri-apps/plugin-fs");
-    const deskPath = await getDeskPath();
-
-    console.log("[watcher] Starting to watch:", deskPath);
-
-    unwatchFn = await fs.watch(
-      deskPath,
-      (event) => {
-        const parsed = parseWatchEvent(event);
-        if (parsed) {
-          // Filter out .DS_Store and other system files
-          const filteredPaths = parsed.paths.filter(p =>
-            !p.includes(".DS_Store") &&
-            !p.includes(".git")
-          );
-
-          if (filteredPaths.length > 0) {
-            queueEvent({ ...parsed, paths: filteredPaths });
-          }
-        }
-      },
-      { recursive: true }
-    );
-
+    await attachWatcher();
     isWatching = true;
     console.log("[watcher] File watcher started successfully");
     return true;
   } catch (err) {
-    console.error("[watcher] Failed to start file watcher:", err);
-    return false;
+    console.error("[watcher] Failed to start file watcher (attempt 1):", err);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      await attachWatcher();
+      isWatching = true;
+      console.log("[watcher] File watcher started successfully on retry");
+      return true;
+    } catch (retryErr) {
+      console.error("[watcher] File watcher failed after retry:", retryErr);
+      toast.error("File watcher stopped — external edits won't sync until you restart Desk.");
+      return false;
+    }
   }
 }
 

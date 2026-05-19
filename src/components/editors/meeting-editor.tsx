@@ -83,6 +83,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     acceptPathChange,
     acknowledgeDeleted,
     save,
+    recover,
   } = useEditorSession({
     type: "meeting",
     entityId: meetingId,
@@ -232,6 +233,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     onClose,
     acknowledgePathChange,
     acknowledgeDeleted,
+    isDirty: contentDirty,
+    onRecover: recover,
   });
   if (renderState) return renderState;
 

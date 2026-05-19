@@ -4,12 +4,12 @@
 import type { Doc, DocKind, ContentScope } from "@/types";
 import { isMarkdownFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
-import { isTauri, joinPath } from "./tauri-fs";
+import { isTauri, joinPath, mkdir, writeTextFile, writeFile } from "./tauri-fs";
 import { writeMarkdownFile } from "./file-operations";
+import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
 import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
-import { mkdir } from "./tauri-fs";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
@@ -131,13 +131,13 @@ export async function importFiles(
     } else {
       if (isTauri()) {
         const targetPath = await joinPath(targetDir, file.name);
-        const fs = await import("@tauri-apps/plugin-fs");
 
         if (typeof file.content === 'string') {
-          await fs.writeTextFile(targetPath, file.content);
+          await writeTextFile(targetPath, file.content);
         } else {
-          await fs.writeFile(targetPath, file.content);
+          await writeFile(targetPath, file.content);
         }
+        getContentCache().invalidate(targetPath);
         importedAssets.push(file.name);
       }
     }

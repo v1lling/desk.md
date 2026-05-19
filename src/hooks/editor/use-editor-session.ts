@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@/stores/editor-event-bus";
 import { writeTextFile, readTextFile, isTauri } from "@/lib/desk/tauri-fs";
+import { writeMarkdownFile } from "@/lib/desk/file-operations";
 import { parseMarkdown, serializeMarkdown } from "@/lib/desk/parser";
 import type { EditorType } from "@/stores/open-editor-registry";
 
@@ -89,6 +90,8 @@ interface UseEditorSessionReturn {
   /** Accept a user-initiated path change (e.g., project move). Updates path without showing banner. */
   acceptPathChange: (newPath: string) => void;
   acknowledgeDeleted: () => void;
+  /** Re-create the file from in-memory edits after an external delete. */
+  recover: () => Promise<boolean>;
 }
 
 export function useEditorSession({
@@ -113,6 +116,9 @@ export function useEditorSession({
   const lastSavedRef = useRef<string>(initialContent);
   const currentPathRef = useRef<string | undefined>(filePath);
   const contentRef = useRef<string>(initialContent);
+  const lastFrontmatterRef = useRef<Record<string, unknown>>({});
+  const savingRef = useRef(false);
+  const recoveringRef = useRef(false);
 
   // Update path ref when it changes
   useEffect(() => {
@@ -154,12 +160,13 @@ export function useEditorSession({
     async function loadContent() {
       try {
         const fileContent = await readTextFile(filePath!);
-        const { content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
+        const { data: frontmatter, content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
         if (!cancelled) {
           const processedBody = preserveEmptyParagraphs(body);
           setContentState(processedBody);       // Editor gets markers
           lastSavedRef.current = body;           // CLEAN (for dirty comparison)
           contentRef.current = processedBody;    // WITH markers (what editor has)
+          lastFrontmatterRef.current = frontmatter; // Snapshot for delete-recovery
           // Update registry so file watcher knows our baseline content
           getRegistry().updateLastSaved(filePath!, body); // CLEAN (for watcher)
           setIsLoading(false);
@@ -192,13 +199,14 @@ export function useEditorSession({
     // Subscribe to external file change events
     const unsubscribe = subscribeToEditorEvents(filePath, {
       onContentUpdate: (newRawContent) => {
-        // External change - parse to extract body only
+        // External change - parse to extract body and frontmatter
         try {
-          const { content: newBody } = parseMarkdown<Record<string, unknown>>(newRawContent);
+          const { data: newFrontmatter, content: newBody } = parseMarkdown<Record<string, unknown>>(newRawContent);
           const processedBody = preserveEmptyParagraphs(newBody);
           setContentState(processedBody);          // Editor gets markers
           lastSavedRef.current = newBody;           // CLEAN
           contentRef.current = processedBody;       // WITH markers
+          lastFrontmatterRef.current = newFrontmatter; // Keep snapshot fresh
           // Update registry with external content (now our baseline)
           getRegistry().updateLastSaved(filePath!, newBody); // CLEAN
           setIsDirty(false);
@@ -239,6 +247,7 @@ export function useEditorSession({
   const save = useCallback(async (): Promise<boolean> => {
     const path = currentPathRef.current;
     if (!path || fileDeleted || pathChanged) return false;
+    if (savingRef.current) return false;
 
     const contentToSave = cleanEmptyParagraphs(contentRef.current);
 
@@ -248,6 +257,7 @@ export function useEditorSession({
       return true;
     }
 
+    savingRef.current = true;
     setSaveStatus("saving");
     try {
       // Preserve frontmatter by reading existing file, updating body, and rewriting
@@ -256,6 +266,7 @@ export function useEditorSession({
         try {
           const existingContent = await readTextFile(path);
           const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
+          lastFrontmatterRef.current = frontmatter;
           fullContent = serializeMarkdown(frontmatter, contentToSave);
         } catch {
           // File might not exist yet or read failed - just save body
@@ -277,8 +288,40 @@ export function useEditorSession({
       console.error("[editor-session] Save failed:", error);
       setSaveStatus("error");
       return false;
+    } finally {
+      savingRef.current = false;
     }
   }, [getRegistry, fileDeleted, pathChanged, onSaveComplete]);
+
+  // Recover: file was deleted externally but we still have unsaved edits.
+  // Re-create the file at the original path with the last-known frontmatter
+  // (snapshotted on load/save/external-update — any disk-only frontmatter edits
+  // made between deletion and recovery are lost).
+  const recover = useCallback(async (): Promise<boolean> => {
+    const path = currentPathRef.current;
+    if (!path || !fileDeleted) return false;
+    if (recoveringRef.current) return false;
+
+    recoveringRef.current = true;
+    const contentToSave = cleanEmptyParagraphs(contentRef.current);
+
+    try {
+      await writeMarkdownFile(path, lastFrontmatterRef.current, contentToSave);
+      lastSavedRef.current = contentToSave;
+      const registry = getRegistry();
+      registry.clearDeleted(path);
+      registry.updateLastSaved(path, contentToSave);
+      setFileDeleted(false);
+      setIsDirty(false);
+      setSaveStatus("idle");
+      return true;
+    } catch (e) {
+      console.error("[editor-session] Recover failed:", e);
+      return false;
+    } finally {
+      recoveringRef.current = false;
+    }
+  }, [fileDeleted, getRegistry]);
 
   // Acknowledge path change (external moves — shows banner first)
   const acknowledgePathChange = useCallback(() => {
@@ -321,5 +364,6 @@ export function useEditorSession({
     acknowledgePathChange,
     acceptPathChange,
     acknowledgeDeleted,
+    recover,
   };
 }

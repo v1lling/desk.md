@@ -88,6 +88,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     acceptPathChange,
     acknowledgeDeleted,
     save,
+    recover,
   } = useEditorSession({
     type: "task",
     entityId: taskId,
@@ -224,6 +225,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     onClose,
     acknowledgePathChange,
     acknowledgeDeleted,
+    isDirty: contentDirty,
+    onRecover: recover,
   });
   if (renderState) return renderState;
 

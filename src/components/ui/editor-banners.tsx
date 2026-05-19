@@ -49,13 +49,17 @@ export function FileMovedBanner({ newPath, onAcknowledge }: FileMovedBannerProps
 interface FileDeletedBannerProps {
   /** Called when user acknowledges the deletion (editor tab will close) */
   onClose: () => void;
+  /** Whether the editor still has unsaved in-memory edits that can be restored */
+  hasUnsavedEdits?: boolean;
+  /** Called when user wants to re-create the file from in-memory edits */
+  onRecover?: () => void;
 }
 
 /**
  * Banner shown when a file has been deleted while being edited.
- * User must acknowledge and the tab will close.
+ * If there are unsaved edits, offers to recover by re-creating the file.
  */
-export function FileDeletedBanner({ onClose }: FileDeletedBannerProps) {
+export function FileDeletedBanner({ onClose, hasUnsavedEdits, onRecover }: FileDeletedBannerProps) {
   return (
     <div className="h-full flex items-center justify-center bg-background">
       <div className="max-w-md text-center space-y-4 p-6">
@@ -67,10 +71,22 @@ export function FileDeletedBanner({ onClose }: FileDeletedBannerProps) {
           <p className="text-sm text-muted-foreground mt-1">
             This file has been deleted from the file system.
           </p>
+          {hasUnsavedEdits && (
+            <p className="text-sm text-muted-foreground mt-2">
+              You have unsaved edits. Restore them to re-create the file.
+            </p>
+          )}
         </div>
-        <Button variant="outline" onClick={onClose}>
-          Close Tab
-        </Button>
+        <div className="flex gap-2 justify-center">
+          {hasUnsavedEdits && onRecover && (
+            <Button onClick={onRecover}>
+              Restore from edits
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Close Tab
+          </Button>
+        </div>
       </div>
     </div>
   );

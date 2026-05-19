@@ -132,6 +132,19 @@ export async function writeTextFile(path: string, content: string): Promise<void
 }
 
 /**
+ * Write a binary file
+ */
+export async function writeFile(path: string, bytes: Uint8Array): Promise<void> {
+  if (!isTauri()) {
+    console.log("[mock] writeFile:", path, `${bytes.byteLength} bytes`);
+    return;
+  }
+
+  const fs = await getTauriFsModule();
+  await fs.writeFile(path, bytes);
+}
+
+/**
  * Create a directory (recursively)
  */
 export async function mkdir(path: string): Promise<void> {

@@ -17,6 +17,10 @@ interface EditorRenderStatesProps {
   onClose: () => void;
   acknowledgePathChange: () => void;
   acknowledgeDeleted: () => void;
+  /** True if the editor has unsaved edits that can be restored */
+  isDirty?: boolean;
+  /** Re-create the file from in-memory edits */
+  onRecover?: () => void;
 }
 
 export function EditorRenderStates({
@@ -29,10 +33,14 @@ export function EditorRenderStates({
   onClose,
   acknowledgePathChange,
   acknowledgeDeleted,
+  isDirty,
+  onRecover,
 }: EditorRenderStatesProps) {
   if (fileDeleted) {
     return (
       <FileDeletedBanner
+        hasUnsavedEdits={isDirty}
+        onRecover={onRecover}
         onClose={() => {
           acknowledgeDeleted();
           onClose();

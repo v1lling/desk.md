@@ -81,6 +81,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     acceptPathChange,
     acknowledgeDeleted,
     save,
+    recover,
   } = useEditorSession({
     type: "doc",
     entityId: docId,
@@ -179,6 +180,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     onClose,
     acknowledgePathChange,
     acknowledgeDeleted,
+    isDirty: contentDirty,
+    onRecover: recover,
   });
   if (renderState) return renderState;
 

@@ -18,7 +18,6 @@
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import {
   parseMarkdown,
-  serializeMarkdown,
   generateFilename,
   filenameToId,
   todayISO,
@@ -28,12 +27,15 @@ import {
   isTauri,
   readDir,
   readTextFile,
-  writeTextFile,
-  mkdir,
-  removeFile,
   exists,
   joinPath,
 } from "./tauri-fs";
+import {
+  writeMarkdownFile,
+  updateMarkdownFile,
+  deleteMarkdownFile,
+  moveMarkdownFile,
+} from "./file-operations";
 import { SPECIAL_DIRS, PERSONAL_WORKSPACE_ID } from "./constants";
 import { getCapturePath, getTasksPath } from "./paths";
 
@@ -59,7 +61,7 @@ export const mockCaptureTasks: Task[] = [
 // FRONTMATTER TYPES
 // ============================================================================
 
-interface TaskFrontmatter {
+interface TaskFrontmatter extends Record<string, unknown> {
   title: string;
   status: TaskStatus;
   priority?: TaskPriority;
@@ -148,8 +150,6 @@ export async function createCaptureTask(data: {
   }
 
   const capturePath = await getCapturePath();
-  await mkdir(capturePath);
-
   const filePath = await joinPath(capturePath, filename);
   task.filePath = filePath;
 
@@ -161,8 +161,7 @@ export async function createCaptureTask(data: {
     created: task.created,
   };
 
-  const fileContent = serializeMarkdown(frontmatter, task.content);
-  await writeTextFile(filePath, fileContent);
+  await writeMarkdownFile(filePath, frontmatter, task.content);
 
   return task;
 }
@@ -185,29 +184,28 @@ export async function updateCaptureTask(
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  const content = await readTextFile(task.filePath);
-  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+  const result = await updateMarkdownFile<TaskFrontmatter>(task.filePath, (data, body) => {
+    const updatedData: TaskFrontmatter = {
+      ...data,
+      ...(updates.title && { title: updates.title }),
+      ...(updates.status && { status: updates.status }),
+      ...(updates.priority !== undefined && { priority: updates.priority }),
+      ...(updates.due !== undefined && { due: updates.due }),
+    };
+    const updatedContent = updates.content !== undefined ? updates.content : body;
+    return { frontmatter: updatedData, content: updatedContent };
+  });
 
-  const updatedData: TaskFrontmatter = {
-    ...data,
-    ...(updates.title && { title: updates.title }),
-    ...(updates.status && { status: updates.status }),
-    ...(updates.priority !== undefined && { priority: updates.priority }),
-    ...(updates.due !== undefined && { due: updates.due }),
-  };
-
-  const updatedContent = updates.content !== undefined ? updates.content : body;
-  const fileContent = serializeMarkdown(updatedData, updatedContent);
-  await writeTextFile(task.filePath, fileContent);
+  if (!result) return null;
 
   return {
     ...task,
     ...updates,
-    title: updatedData.title,
-    status: updatedData.status,
-    priority: updatedData.priority,
-    due: updatedData.due,
-    content: updatedContent,
+    title: result.frontmatter.title,
+    status: result.frontmatter.status,
+    priority: result.frontmatter.priority,
+    due: result.frontmatter.due,
+    content: result.content,
   };
 }
 
@@ -226,8 +224,7 @@ export async function deleteCaptureTask(taskId: string): Promise<boolean> {
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return false;
 
-  await removeFile(task.filePath);
-  return true;
+  return deleteMarkdownFile(task.filePath);
 }
 
 /**
@@ -250,22 +247,12 @@ export async function moveCaptureToPersonal(taskId: string): Promise<Task | null
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  // Read content
-  const content = await readTextFile(task.filePath);
-  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-  // Write to Personal workspace's unassigned tasks
   const unassignedTasksPath = await getTasksPath(PERSONAL_WORKSPACE_ID, SPECIAL_DIRS.UNASSIGNED);
-  await mkdir(unassignedTasksPath);
-
   const filename = task.filePath.split("/").pop()!;
   const newFilePath = await joinPath(unassignedTasksPath, filename);
 
-  const fileContent = serializeMarkdown(data, body);
-  await writeTextFile(newFilePath, fileContent);
-
-  // Delete from capture
-  await removeFile(task.filePath);
+  const moved = await moveMarkdownFile(task.filePath, newFilePath);
+  if (!moved) return null;
 
   return {
     ...task,
@@ -299,22 +286,12 @@ export async function moveCaptureToWorkspace(
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  // Read content
-  const content = await readTextFile(task.filePath);
-  const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
-
-  // Build target path using centralized path builder
   const targetTasksPath = await getTasksPath(workspaceId, projectId);
-  await mkdir(targetTasksPath);
-
   const filename = task.filePath.split("/").pop()!;
   const newFilePath = await joinPath(targetTasksPath, filename);
 
-  const fileContent = serializeMarkdown(data, body);
-  await writeTextFile(newFilePath, fileContent);
-
-  // Delete from capture
-  await removeFile(task.filePath);
+  const moved = await moveMarkdownFile(task.filePath, newFilePath);
+  if (!moved) return null;
 
   return {
     ...task,

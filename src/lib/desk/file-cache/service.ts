@@ -35,6 +35,7 @@ class FileTreeService implements IFileTreeService {
   private deskRoot: string = "";
   private cache: ContentCache;
   private subscribers = new Map<string, Set<TreeChangeCallback>>();
+  private inflightReads = new Map<string, Promise<unknown>>();
 
   // In-memory tree cache (root node with children)
   private treeCache: TreeNode | null = null;
@@ -151,7 +152,11 @@ class FileTreeService implements IFileTreeService {
   }
 
   /**
-   * Get parsed file content with caching
+   * Get parsed file content with caching.
+   *
+   * The cache (and inflight-read dedupe) is keyed by absolute path only —
+   * callers must use a consistent parser per path. Racing two different
+   * parsers against the same path returns whichever ran first cast to `T`.
    */
   async getContent<T>(relativePath: string, parser?: ContentParser<T>): Promise<T | null> {
     await this.ensureInitialized();
@@ -172,18 +177,29 @@ class FileTreeService implements IFileTreeService {
       return cached.parsed;
     }
 
-    // Read from disk
+    // Dedupe concurrent reads of the same path
+    const inflight = this.inflightReads.get(absolutePath);
+    if (inflight) {
+      return inflight as Promise<T | null>;
+    }
+
+    const readPromise = (async (): Promise<T | null> => {
+      try {
+        const raw = await readTextFile(absolutePath);
+        const parsed = parser ? parser(raw, relativePath) : (raw as unknown as T);
+        this.cache.set(absolutePath, raw, parsed, Date.now());
+        return parsed;
+      } catch (error) {
+        console.error(`[FileTreeService] Failed to read: ${relativePath}`, error);
+        return null;
+      }
+    })();
+
+    this.inflightReads.set(absolutePath, readPromise);
     try {
-      const raw = await readTextFile(absolutePath);
-      const parsed = parser ? parser(raw, relativePath) : (raw as unknown as T);
-
-      // Cache the result
-      this.cache.set(absolutePath, raw, parsed, Date.now());
-
-      return parsed;
-    } catch (error) {
-      console.error(`[FileTreeService] Failed to read: ${relativePath}`, error);
-      return null;
+      return await readPromise;
+    } finally {
+      this.inflightReads.delete(absolutePath);
     }
   }
 
@@ -218,18 +234,29 @@ class FileTreeService implements IFileTreeService {
       return cached.parsed;
     }
 
-    // Read from disk
+    // Dedupe concurrent reads of the same path
+    const inflight = this.inflightReads.get(absolutePath);
+    if (inflight) {
+      return inflight as Promise<T | null>;
+    }
+
+    const readPromise = (async (): Promise<T | null> => {
+      try {
+        const raw = await readTextFile(absolutePath);
+        const parsed = parser ? parser(raw, absolutePath) : (raw as unknown as T);
+        this.cache.set(absolutePath, raw, parsed, Date.now());
+        return parsed;
+      } catch (error) {
+        console.error(`[FileTreeService] Failed to read: ${absolutePath}`, error);
+        return null;
+      }
+    })();
+
+    this.inflightReads.set(absolutePath, readPromise);
     try {
-      const raw = await readTextFile(absolutePath);
-      const parsed = parser ? parser(raw, absolutePath) : (raw as unknown as T);
-
-      // Cache the result
-      this.cache.set(absolutePath, raw, parsed, Date.now());
-
-      return parsed;
-    } catch (error) {
-      console.error(`[FileTreeService] Failed to read: ${absolutePath}`, error);
-      return null;
+      return await readPromise;
+    } finally {
+      this.inflightReads.delete(absolutePath);
     }
   }
 

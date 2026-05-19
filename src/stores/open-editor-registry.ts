@@ -49,6 +49,8 @@ interface OpenEditorRegistryState {
   // Clear path change flags (after editor acknowledges)
   acknowledgePathChange(oldPath: string): void;
   acknowledgeDeleted(path: string): void;
+  /** Clear the isDeleted flag after the editor has recovered the file from in-memory edits */
+  clearDeleted(path: string): void;
 }
 
 export const useOpenEditorRegistry = create<OpenEditorRegistryState>((set, get) => ({
@@ -149,6 +151,17 @@ export const useOpenEditorRegistry = create<OpenEditorRegistryState>((set, get) 
 
   acknowledgeDeleted(path) {
     get().unregister(path);
+  },
+
+  clearDeleted(path) {
+    set((state) => {
+      const sessions = new Map(state.sessions);
+      const session = sessions.get(path);
+      if (session) {
+        sessions.set(path, { ...session, isDeleted: false });
+      }
+      return { sessions };
+    });
   },
 }));
 
