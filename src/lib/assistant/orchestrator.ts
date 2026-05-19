@@ -3,7 +3,7 @@ import { getProviderDefinition } from "@/lib/ai/provider-registry";
 import { getSecret } from "@/lib/ai/secrets";
 import type { AIProviderType, AIUsage } from "@/lib/ai/types";
 import { buildAssistantSystemPrompt } from "@/lib/ai/prompts";
-import { createAssistantTools, type ApprovalRequest } from "@/lib/assistant/tool-core";
+import { createAssistantTools } from "@/lib/assistant/tool-core";
 import type { AssistantEvent, AssistantMessage, AssistantTurnMode } from "@/lib/assistant/types";
 
 interface RunAssistantOptions {
@@ -17,7 +17,6 @@ interface RunAssistantOptions {
   perAssistantInstructions?: string;
   signal?: AbortSignal;
   onEvent: (event: AssistantEvent) => void;
-  onApprovalRequest: (request: ApprovalRequest) => Promise<boolean>;
 }
 
 function toModelMessages(history: AssistantMessage[], message: string) {
@@ -51,24 +50,14 @@ export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ 
   const model = providerDef.createModel(apiKey, options.model);
 
   const tools = createAssistantTools({
-    providerType: options.providerType,
-    approval: {
-      onToolProposed: (request) => {
+    callbacks: {
+      onToolStarted: (event) => {
         options.onEvent({
-          type: "tool_call_proposed",
-          callId: request.callId,
-          toolName: request.toolName,
-          args: request.args,
+          type: "tool_call_started",
+          callId: event.callId,
+          toolName: event.toolName,
+          args: event.args,
         });
-      },
-      onToolWaitingApproval: async (request: ApprovalRequest) => {
-        options.onEvent({
-          type: "tool_call_waiting_approval",
-          callId: request.callId,
-          toolName: request.toolName,
-          args: request.args,
-        });
-        return options.onApprovalRequest(request);
       },
       onToolResult: (result) => {
         options.onEvent({

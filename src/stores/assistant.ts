@@ -5,7 +5,6 @@ import type {
   AssistantConversation,
   AssistantEvent,
   AssistantMessage,
-  AssistantPendingApproval,
   AssistantTurnMode,
   AssistantToolEvent,
 } from "@/lib/assistant/types";
@@ -22,7 +21,6 @@ interface AssistantState {
 
   isRunning: boolean;
   error: string | null;
-  pendingApproval: AssistantPendingApproval | null;
   toolTimeline: AssistantToolEvent[];
 
   createConversation: (options?: { title?: string; mode?: AssistantTurnMode }) => string;
@@ -34,13 +32,10 @@ interface AssistantState {
     options?: { mode?: AssistantTurnMode; forceNewConversation?: boolean; title?: string }
   ) => Promise<void>;
   startEmailDraft: (params: { email: IncomingEmail; instructions?: string }) => Promise<void>;
-  approvePendingTool: () => void;
-  rejectPendingTool: () => void;
   cancelRun: () => void;
 }
 
 let activeAbortController: AbortController | null = null;
-let approvalResolver: ((approved: boolean) => void) | null = null;
 
 export type { AssistantConversation };
 
@@ -97,7 +92,6 @@ export const useAssistantStore = create<AssistantState>()(
       activeConversationId: null,
       isRunning: false,
       error: null,
-      pendingApproval: null,
       toolTimeline: [],
 
       createConversation: (options) => {
@@ -119,7 +113,6 @@ export const useAssistantStore = create<AssistantState>()(
             conversations: next,
             activeConversationId: id,
             error: null,
-            pendingApproval: null,
             toolTimeline: [],
           };
         });
@@ -127,7 +120,7 @@ export const useAssistantStore = create<AssistantState>()(
         return id;
       },
 
-      setActiveConversation: (id) => set({ activeConversationId: id, error: null, pendingApproval: null, toolTimeline: [] }),
+      setActiveConversation: (id) => set({ activeConversationId: id, error: null, toolTimeline: [] }),
 
       deleteConversation: (id) =>
         set((state) => {
@@ -184,7 +177,6 @@ export const useAssistantStore = create<AssistantState>()(
           ),
           isRunning: true,
           error: null,
-          pendingApproval: null,
           toolTimeline: [],
         }));
 
@@ -202,18 +194,6 @@ export const useAssistantStore = create<AssistantState>()(
             customInstructions: aiSettings.customInstructions,
             perAssistantInstructions: aiSettings.perTypeInstructions[mode],
             signal: activeAbortController.signal,
-            onApprovalRequest: (request) => {
-              return new Promise((resolve) => {
-                approvalResolver = resolve;
-                set({
-                  pendingApproval: {
-                    callId: request.callId,
-                    toolName: request.toolName,
-                    args: request.args,
-                  },
-                });
-              });
-            },
             onEvent: (event: AssistantEvent) => {
               if (event.type === "assistant_text_delta") {
                 set((state) => ({
@@ -227,7 +207,7 @@ export const useAssistantStore = create<AssistantState>()(
                 return;
               }
 
-              if (event.type === "tool_call_proposed") {
+              if (event.type === "tool_call_started") {
                 set((state) => ({
                   toolTimeline: [
                     ...state.toolTimeline,
@@ -235,26 +215,15 @@ export const useAssistantStore = create<AssistantState>()(
                       id: event.callId,
                       toolName: event.toolName,
                       args: event.args,
-                      status: "proposed",
+                      status: "running",
                     },
                   ],
                 }));
                 return;
               }
 
-              if (event.type === "tool_call_waiting_approval") {
-                set((state) => ({
-                  toolTimeline: state.toolTimeline.map((item) =>
-                    item.id === event.callId ? { ...item, status: "waiting_approval" } : item
-                  ),
-                }));
-                return;
-              }
-
               if (event.type === "tool_call_result") {
                 set((state) => ({
-                  pendingApproval:
-                    state.pendingApproval?.callId === event.callId ? null : state.pendingApproval,
                   toolTimeline: state.toolTimeline.map((item) =>
                     item.id === event.callId
                       ? {
@@ -299,7 +268,6 @@ export const useAssistantStore = create<AssistantState>()(
               }))
             ),
             isRunning: false,
-            pendingApproval: null,
             toolTimeline: [],
           }));
         } catch (error) {
@@ -312,7 +280,6 @@ export const useAssistantStore = create<AssistantState>()(
                 ),
               })),
               isRunning: false,
-              pendingApproval: null,
             }));
           } else {
             set((state) => ({
@@ -323,13 +290,11 @@ export const useAssistantStore = create<AssistantState>()(
                 ),
               })),
               isRunning: false,
-              pendingApproval: null,
               error: String(error),
             }));
           }
         } finally {
           activeAbortController = null;
-          approvalResolver = null;
         }
       },
 
@@ -354,29 +319,7 @@ export const useAssistantStore = create<AssistantState>()(
         });
       },
 
-      approvePendingTool: () => {
-        if (!approvalResolver) return;
-        const resolver = approvalResolver;
-        approvalResolver = null;
-        set({ pendingApproval: null });
-        resolver(true);
-      },
-
-      rejectPendingTool: () => {
-        if (!approvalResolver) return;
-        const resolver = approvalResolver;
-        approvalResolver = null;
-        set({ pendingApproval: null });
-        resolver(false);
-      },
-
       cancelRun: () => {
-        if (approvalResolver) {
-          const resolver = approvalResolver;
-          approvalResolver = null;
-          resolver(false);
-        }
-
         if (activeAbortController) {
           activeAbortController.abort();
           activeAbortController = null;
@@ -384,7 +327,6 @@ export const useAssistantStore = create<AssistantState>()(
 
         set({
           isRunning: false,
-          pendingApproval: null,
         });
       },
     }),

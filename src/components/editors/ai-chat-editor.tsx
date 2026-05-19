@@ -4,8 +4,6 @@ import {
   MessageSquare,
   Mail,
   Loader2,
-  Check,
-  Ban,
   StopCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -110,10 +108,10 @@ function InlineToolActivity({
         <div key={item.id} className="text-xs rounded-md border bg-background/70 px-2 py-1.5 space-y-1">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{getToolLabel(item.toolName)}</span>
-            {item.status === "proposed" || item.status === "waiting_approval" ? (
+            {item.status === "running" ? (
               <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
             ) : (
-              <span className="text-[11px] text-muted-foreground">{item.status.replace("_", " ")}</span>
+              <span className="text-[11px] text-muted-foreground">{item.status}</span>
             )}
           </div>
           {extractSources(item).length > 0 && (
@@ -163,9 +161,6 @@ export function AIChatEditor() {
   const isRunning = useAssistantStore((s) => s.isRunning);
   const error = useAssistantStore((s) => s.error);
   const cancelRun = useAssistantStore((s) => s.cancelRun);
-  const pendingApproval = useAssistantStore((s) => s.pendingApproval);
-  const approvePendingTool = useAssistantStore((s) => s.approvePendingTool);
-  const rejectPendingTool = useAssistantStore((s) => s.rejectPendingTool);
   const liveToolTimeline = useAssistantStore((s) => s.toolTimeline);
 
   const { providerType, providerConfigured, customInstructions, perTypeInstructions } = useAISettingsStore();
@@ -306,25 +301,6 @@ export function AIChatEditor() {
 
         <div className="border-t shrink-0 bg-background">
           <div className="max-w-2xl mx-auto px-6 py-4">
-            {pendingApproval && (
-              <div className="rounded-md border border-amber-400/40 bg-amber-500/10 p-3 space-y-2 mb-3">
-                <p className="text-sm font-medium">Approval required: {pendingApproval.toolName}</p>
-                <pre className="text-xs bg-background/70 rounded p-2 overflow-x-auto max-h-40">
-{JSON.stringify(pendingApproval.args, null, 2)}
-                </pre>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" className="h-7 gap-1" onClick={approvePendingTool}>
-                    <Check className="h-3 w-3" />
-                    Approve
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 gap-1" onClick={rejectPendingTool}>
-                    <Ban className="h-3 w-3" />
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit}>
               <div className="rounded-lg border bg-background overflow-hidden transition-colors focus-within:border-ring/50">
                 <Textarea

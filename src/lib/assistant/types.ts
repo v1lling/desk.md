@@ -16,7 +16,7 @@ export interface AssistantToolEvent {
   id: string;
   toolName: string;
   args: unknown;
-  status: "proposed" | "waiting_approval" | "success" | "error";
+  status: "running" | "success" | "error";
   result?: unknown;
 }
 
@@ -31,18 +31,11 @@ export interface AssistantConversation {
 
 export type AssistantEvent =
   | { type: "assistant_text_delta"; text: string }
-  | { type: "tool_call_proposed"; callId: string; toolName: string; args: unknown }
-  | { type: "tool_call_waiting_approval"; callId: string; toolName: string; args: unknown }
+  | { type: "tool_call_started"; callId: string; toolName: string; args: unknown }
   | { type: "tool_call_result"; callId: string; toolName: string; ok: boolean; result: unknown }
   | { type: "assistant_done"; usage?: AIUsage }
   | { type: "assistant_error"; message: string }
   | { type: "assistant_cancelled" };
-
-export interface AssistantPendingApproval {
-  callId: string;
-  toolName: string;
-  args: unknown;
-}
 
 export interface AssistantRunContext {
   providerType: AIProviderType;
