@@ -1,15 +1,22 @@
 /**
  * Content Tree - Tree building, extraction, and flat doc access
  */
-import type { Doc, FileTreeNode, ContentScope, Asset } from "@/types";
+import type { Doc, DocKind, FileTreeNode, ContentScope, Asset } from "@/types";
 import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./parser";
 import { isTauri, readDir, mkdir, joinPath, exists, fileStat } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getProjectsPath } from "./paths";
+import { getDocsPath, getAIDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
+
+/** Resolve base path for docs or ai-docs based on kind */
+function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
+  return kind === "ai"
+    ? getAIDocsPath(scope, workspaceId, projectId)
+    : getDocsPath(scope, workspaceId, projectId);
+}
 
 interface DocFrontmatter {
   title: string;
@@ -38,7 +45,8 @@ async function buildContentTreeRecursive(
   relativePath: string,
   _scope: ContentScope,
   workspaceId: string,
-  projectId: string
+  projectId: string,
+  kind: DocKind = "human"
 ): Promise<FileTreeNode[]> {
   const currentPath = relativePath
     ? await joinPath(basePath, relativePath)
@@ -70,7 +78,8 @@ async function buildContentTreeRecursive(
       folderRelPath,
       _scope,
       workspaceId,
-      projectId
+      projectId,
+      kind
     );
 
     nodes.push({
@@ -125,6 +134,7 @@ async function buildContentTreeRecursive(
           preview: generatePreview(body),
           fileCreated,
           fileModified,
+          kind,
         },
       });
     } catch (e) {
@@ -170,10 +180,12 @@ async function buildContentTreeRecursive(
 export async function getContentTree(
   scope: ContentScope,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<FileTreeNode[]> {
   if (!isTauri()) {
     const filtered = mockDocs.filter((doc) => {
+      if ((doc.kind ?? "human") !== kind) return false;
       if (scope === "personal") return doc.workspaceId === PERSONAL_WORKSPACE_ID;
       if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
@@ -185,17 +197,20 @@ export async function getContentTree(
     }));
   }
 
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
 
-  // Ensure docs directory exists
-  await mkdir(basePath);
+  // Skip directories that haven't been created yet — first write will create them.
+  if (!(await exists(basePath))) {
+    return [];
+  }
 
   return buildContentTreeRecursive(
     basePath,
     "",
     scope,
     workspaceId || PERSONAL_WORKSPACE_ID,
-    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID)
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
+    kind
   );
 }
 
@@ -265,9 +280,10 @@ export function extractFolderPaths(nodes: FileTreeNode[]): string[] {
 export async function getAllDocs(
   scope: ContentScope,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<Doc[]> {
-  const tree = await getContentTree(scope, workspaceId, projectId);
+  const tree = await getContentTree(scope, workspaceId, projectId, kind);
   const docs = extractDocs(tree);
   docs.sort((a, b) => b.created.localeCompare(a.created));
   return docs;
@@ -276,15 +292,17 @@ export async function getAllDocs(
 /**
  * Get all docs for a workspace across all projects (includes nested folders)
  */
-export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]> {
+export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind = "human"): Promise<Doc[]> {
   if (!isTauri()) {
-    return mockDocs.filter((doc) => doc.workspaceId === workspaceId);
+    return mockDocs.filter(
+      (doc) => doc.workspaceId === workspaceId && (doc.kind ?? "human") === kind
+    );
   }
 
   const allDocs: Doc[] = [];
 
   // 1. Get workspace-level docs
-  const workspaceDocs = await getAllDocs("workspace", workspaceId);
+  const workspaceDocs = await getAllDocs("workspace", workspaceId, undefined, kind);
   allDocs.push(...workspaceDocs);
 
   // 2. Get all project docs
@@ -295,14 +313,14 @@ export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]
 
     for (const entry of projectEntries) {
       if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
-        const projectDocs = await getAllDocs("project", workspaceId, entry.name);
+        const projectDocs = await getAllDocs("project", workspaceId, entry.name, kind);
         allDocs.push(...projectDocs);
       }
     }
   }
 
   // 3. Get unassigned docs
-  const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED);
+  const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED, kind);
   allDocs.push(...unassignedDocs);
 
   allDocs.sort((a, b) => b.created.localeCompare(a.created));
@@ -313,15 +331,18 @@ export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]
  * Get a workspace overview shell: workspace-level content + project folder stubs.
  * Project folders have children: [] — content is loaded lazily by the component on expand.
  */
-export async function getWorkspaceOverviewShell(workspaceId: string): Promise<FileTreeNode[]> {
+export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKind = "human"): Promise<FileTreeNode[]> {
   if (!isTauri()) {
-    // Mock mode: workspace docs + project folder stubs
+    // Mock mode: workspace docs + project folder stubs, filtered to the requested kind
     const workspaceDocs = mockDocs.filter(
-      (doc) => doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID
+      (doc) =>
+        doc.workspaceId === workspaceId &&
+        doc.projectId === WORKSPACE_LEVEL_PROJECT_ID &&
+        (doc.kind ?? "human") === kind
     );
     const workspaceNodes: FileTreeNode[] = workspaceDocs.map((doc) => ({ type: "doc" as const, doc }));
 
-    // Get unique project IDs and count docs per project
+    // Get unique project IDs and count docs per project (across both kinds — counts are kind-agnostic in the project stub)
     const projectDocs = mockDocs.filter(
       (doc) => doc.workspaceId === workspaceId && doc.projectId !== WORKSPACE_LEVEL_PROJECT_ID
     );
@@ -345,8 +366,8 @@ export async function getWorkspaceOverviewShell(workspaceId: string): Promise<Fi
     return [...workspaceNodes, ...projectFolders];
   }
 
-  // 1. Get workspace-level tree (small, fast)
-  const workspaceTree = await getContentTree("workspace", workspaceId);
+  // 1. Get workspace-level tree for the given kind
+  const workspaceTree = await getContentTree("workspace", workspaceId, undefined, kind);
 
   // 2. Get project metadata (counts already computed by getProjects)
   const projects = await getProjects(workspaceId);
@@ -355,6 +376,8 @@ export async function getWorkspaceOverviewShell(workspaceId: string): Promise<Fi
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // 3. Create shell folder nodes — NO getContentTree calls per project
+  // Note: docCount from project metadata only counts human docs.
+  // AI doc counts would need a separate query; for now stubs show human counts.
   const projectFolders: FileTreeNode[] = activeProjects.map((project) => ({
     type: "folder" as const,
     folder: {

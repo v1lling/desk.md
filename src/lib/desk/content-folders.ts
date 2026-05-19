@@ -1,12 +1,18 @@
 /**
  * Content Folders - Folder CRUD operations within the content tree
  */
-import type { ContentFolder, ContentScope } from "@/types";
+import type { ContentFolder, ContentScope, DocKind } from "@/types";
 import { isTauri, removeDir, rename, mkdir, joinPath, exists } from "./tauri-fs";
 import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath } from "./paths";
+import { getDocsPath, getAIDocsPath } from "./paths";
 
 import { getContentTree } from "./content-tree";
+
+function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
+  return kind === "ai"
+    ? getAIDocsPath(scope, workspaceId, projectId)
+    : getDocsPath(scope, workspaceId, projectId);
+}
 
 /**
  * Create a new folder in the content tree
@@ -15,9 +21,10 @@ export async function createFolder(
   scope: ContentScope,
   folderPath: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<ContentFolder> {
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   await mkdir(fullPath);
@@ -41,9 +48,10 @@ export async function renameFolder(
   oldPath: string,
   newName: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<ContentFolder> {
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, oldPath);
 
   const pathParts = oldPath.split("/");
@@ -62,7 +70,8 @@ export async function renameFolder(
   const tree = await getContentTree(
     scope,
     workspaceId || PERSONAL_WORKSPACE_ID,
-    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID)
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
+    kind
   );
 
   // Find the renamed folder in the tree
@@ -96,7 +105,8 @@ export async function moveFolder(
   fromPath: string,
   toParentPath: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<boolean> {
   // Prevent moving into itself or descendants
   if (toParentPath === fromPath || toParentPath.startsWith(fromPath + "/")) {
@@ -115,7 +125,7 @@ export async function moveFolder(
     return true;
   }
 
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, fromPath);
   const newFullPath = await joinPath(basePath, newPath);
 
@@ -138,13 +148,14 @@ export async function deleteFolder(
   scope: ContentScope,
   folderPath: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<boolean> {
   if (!isTauri()) {
     return true;
   }
 
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   if (!(await exists(fullPath))) {

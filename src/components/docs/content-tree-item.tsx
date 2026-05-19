@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight,
@@ -9,11 +9,13 @@ import {
   FolderOpen,
   FolderKanban,
   Loader2,
+  Plus,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
-import type { Doc, FileTreeNode, ContentFolder, Asset, ScopeOverride } from "@/types";
-import { getNodeKey, extractFolderPaths } from "@/lib/desk/content";
+import type { Doc, DocKind, FileTreeNode, ContentFolder, Asset, ScopeOverride } from "@/types";
+import { getNodeKey, extractFolderPaths, extractDocs } from "@/lib/desk/content";
 import { getDocsPath } from "@/lib/desk/paths";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { useContentTree } from "@/stores";
@@ -45,7 +47,7 @@ export interface ContentTreeItemProps {
   onRenameFolder?: (path: string) => void;
   onDeleteFolder?: (path: string, scopeOverride?: ScopeOverride) => void;
   onNewSubfolder?: (parentPath: string, scopeOverride?: ScopeOverride) => void;
-  onNewDocInFolder?: (folderPath: string, scopeOverride?: ScopeOverride) => void;
+  onNewDocInFolder?: (folderPath?: string, scopeOverride?: ScopeOverride, kind?: DocKind) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onDeleteAsset?: (asset: Asset) => void;
   onToggleFolderAI?: (folderPath: string, currentlyIncluded: boolean) => void;
@@ -55,7 +57,16 @@ export interface ContentTreeItemProps {
   isDraggable?: boolean;
   dropTargetPath?: string | null;
   allFolderPaths?: string[];
-  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
+  onMoveDocToFolder?: (
+    docId: string,
+    fromPath: string,
+    toPath: string,
+    fromKind: DocKind,
+    toKind: DocKind,
+    scopeOverride?: ScopeOverride
+  ) => Promise<void>;
+  /** Kind of the section this subtree belongs to (drives drop-target kind and context-menu move target kind) */
+  sectionKind?: DocKind;
   /** Map of node keys to their flat visible index (for zebra striping) */
   visibleIndices?: Map<string, number>;
   /** ID of item currently being renamed (null = none) */
@@ -127,6 +138,7 @@ export function ContentTreeItem(props: ContentTreeItemProps) {
       onSelectDoc={props.onSelectDoc}
       onDeleteDoc={props.onDeleteDoc}
       onMoveDocToFolder={props.onMoveDocToFolder}
+      sectionKind={props.sectionKind}
       isOddRow={isOddRow}
       renamingItemId={props.renamingItemId}
       onStartRename={props.onStartRename}
@@ -155,7 +167,9 @@ function ProjectFolderChildren({
   depth: number;
   isExcludedFromAI: boolean;
 }) {
-  const { data: projectTree = [], isLoading } = useContentTree("project", workspaceId, projectId);
+  const { data: humanTree = [], isLoading: humanLoading } = useContentTree("project", workspaceId, projectId, "human");
+  const { data: aiTree = [], isLoading: aiLoading } = useContentTree("project", workspaceId, projectId, "ai");
+  const isLoading = humanLoading || aiLoading;
 
   // Compute project-specific basePath for Reveal in Finder / Copy Path
   const [projectBasePath, setProjectBasePath] = useState<string | undefined>(undefined);
@@ -170,7 +184,7 @@ function ProjectFolderChildren({
   }, [workspaceId, projectId]);
 
   // Extract folder paths for project children (for "Move to" submenu)
-  const projectFolderPaths = useMemo(() => extractFolderPaths(projectTree), [projectTree]);
+  const projectFolderPaths = useMemo(() => extractFolderPaths([...humanTree, ...aiTree]), [humanTree, aiTree]);
 
   const scopeOverride = useMemo<ScopeOverride>(
     () => ({ scope: "project", workspaceId, projectId }),
@@ -179,21 +193,60 @@ function ProjectFolderChildren({
 
   const sortBy = treeProps.sortBy ?? "name";
   const sortDir = treeProps.sortDir ?? "asc";
-  const sortedTree = useMemo(
-    () => sortNodes(projectTree, sortBy, sortDir),
-    [projectTree, sortBy, sortDir]
-  );
+  const sortedHumanTree = useMemo(() => sortNodes(humanTree, sortBy, sortDir), [humanTree, sortBy, sortDir]);
+  const sortedAITree = useMemo(() => sortNodes(aiTree, sortBy, sortDir), [aiTree, sortBy, sortDir]);
+  const humanDocCount = useMemo(() => extractDocs(humanTree).length, [humanTree]);
+  const aiDocCount = useMemo(() => extractDocs(aiTree).length, [aiTree]);
 
-  // Override treeProps with project-scoped values
-  const projectTreeProps = useMemo<ContentTreeItemProps>(
-    () => ({
-      ...treeProps,
-      basePath: projectBasePath,
-      allFolderPaths: projectFolderPaths,
-      projectScopeOverride: scopeOverride,
-    }),
-    [treeProps, projectBasePath, projectFolderPaths, scopeOverride]
-  );
+  // Section expansion state — use virtual paths for tracking
+  const docsSectionPath = `_project/${projectId}/_section/docs`;
+  const aiDocsSectionPath = `_project/${projectId}/_section/ai-docs`;
+  const { expandedFolders, onToggleFolder } = treeProps;
+
+  // Auto-expand project sections on first render
+  // Auto-expand only the "Docs" section on first render (AI Docs collapsed by default)
+  const autoExpandedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !autoExpandedRef.current && (humanTree.length > 0 || aiTree.length > 0)) {
+      autoExpandedRef.current = true;
+      if (!expandedFolders.has(docsSectionPath)) {
+        onToggleFolder(docsSectionPath);
+      }
+    }
+  }, [isLoading, humanTree, aiTree, expandedFolders, onToggleFolder, docsSectionPath]);
+
+  const isDocsExpanded = expandedFolders.has(docsSectionPath);
+  const isAIDocsExpanded = expandedFolders.has(aiDocsSectionPath);
+
+  // Drop targets for the section headers themselves (project-section root).
+  // Dropping a doc here moves it to the project's docs/ or ai-docs/ root.
+  const { setNodeRef: setHumanSectionDropRef } = useDroppable({
+    id: `drop-section-${docsSectionPath}`,
+    data: { folderPath: "", kind: "human" as DocKind },
+  });
+  const { setNodeRef: setAISectionDropRef } = useDroppable({
+    id: `drop-section-${aiDocsSectionPath}`,
+    data: { folderPath: "", kind: "ai" as DocKind },
+  });
+
+  // Override treeProps with project-scoped values. `sectionKind` flows down so
+  // droppables and context-menu moves know which kind they live under.
+  const makeProjectTreeProps = useCallback((kind: DocKind): ContentTreeItemProps => ({
+    ...treeProps,
+    basePath: projectBasePath,
+    allFolderPaths: projectFolderPaths,
+    projectScopeOverride: scopeOverride,
+    sectionKind: kind,
+    // Wrap onNewDocInFolder to always pass kind
+    onNewDocInFolder: treeProps.onNewDocInFolder
+      ? (folderPath?: string, so?: ScopeOverride) => treeProps.onNewDocInFolder!(folderPath, so ?? scopeOverride, kind)
+      : undefined,
+  }), [treeProps, projectBasePath, projectFolderPaths, scopeOverride]);
+
+  const humanTreeProps = useMemo(() => makeProjectTreeProps("human"), [makeProjectTreeProps]);
+  const aiTreeProps = useMemo(() => makeProjectTreeProps("ai"), [makeProjectTreeProps]);
+
+  const sectionPadding = (depth + 1) * 16 + 8;
 
   if (isLoading) {
     return (
@@ -207,28 +260,109 @@ function ProjectFolderChildren({
     );
   }
 
-  if (sortedTree.length === 0) {
-    return (
-      <div
-        className="h-7 flex items-center text-xs text-muted-foreground italic"
-        style={{ paddingLeft: (depth + 1) * 16 + 28 }}
-      >
-        No docs yet
-      </div>
-    );
-  }
-
   return (
     <>
-      {sortedTree.map((child: FileTreeNode) => (
-        <ContentTreeItem
-          key={getNodeKey(child)}
-          {...projectTreeProps}
-          node={child}
-          depth={depth + 1}
-          isParentExcluded={isExcludedFromAI}
-        />
-      ))}
+      {/* Docs section */}
+      <div ref={setHumanSectionDropRef}>
+        <div
+          className="flex items-center gap-1.5 pt-2 pb-1 cursor-pointer group"
+          style={{ paddingLeft: sectionPadding }}
+          onClick={() => onToggleFolder(docsSectionPath)}
+        >
+          <ChevronRight className={cn("size-3 text-muted-foreground/50 transition-transform", isDocsExpanded && "rotate-90")} />
+          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">
+            Docs
+          </span>
+          {humanDocCount > 0 && (
+            <span className="text-[10px] text-muted-foreground/50">{humanDocCount}</span>
+          )}
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              treeProps.onNewDocInFolder?.(undefined, scopeOverride, "human");
+            }}
+            title="New Doc"
+          >
+            <Plus className="size-3" />
+          </Button>
+        </div>
+        {isDocsExpanded && sortedHumanTree.length > 0 && (
+          <div>
+            {sortedHumanTree.map((child: FileTreeNode) => (
+              <ContentTreeItem
+                key={getNodeKey(child)}
+                {...humanTreeProps}
+                node={child}
+                depth={depth + 1}
+                isParentExcluded={isExcludedFromAI}
+              />
+            ))}
+          </div>
+        )}
+        {isDocsExpanded && sortedHumanTree.length === 0 && (
+          <div
+            className="py-1.5 text-xs text-muted-foreground/50"
+            style={{ paddingLeft: (depth + 2) * 16 + 8 }}
+          >
+            No docs yet
+          </div>
+        )}
+      </div>
+
+      {/* AI Docs section */}
+      <div ref={setAISectionDropRef}>
+        <div
+          className="flex items-center gap-1.5 pt-2 pb-1 cursor-pointer group"
+          style={{ paddingLeft: sectionPadding }}
+          onClick={() => onToggleFolder(aiDocsSectionPath)}
+        >
+          <ChevronRight className={cn("size-3 text-muted-foreground/50 transition-transform", isAIDocsExpanded && "rotate-90")} />
+          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">
+            AI Docs
+          </span>
+          {aiDocCount > 0 && (
+            <span className="text-[10px] text-muted-foreground/50">{aiDocCount}</span>
+          )}
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              treeProps.onNewDocInFolder?.(undefined, scopeOverride, "ai");
+            }}
+            title="New AI Doc"
+          >
+            <Plus className="size-3" />
+          </Button>
+        </div>
+        {isAIDocsExpanded && sortedAITree.length > 0 && (
+          <div>
+            {sortedAITree.map((child: FileTreeNode) => (
+              <ContentTreeItem
+                key={getNodeKey(child)}
+                {...aiTreeProps}
+                node={child}
+                depth={depth + 1}
+                isParentExcluded={isExcludedFromAI}
+              />
+            ))}
+          </div>
+        )}
+        {isAIDocsExpanded && sortedAITree.length === 0 && (
+          <div
+            className="py-1.5 text-xs text-muted-foreground/50"
+            style={{ paddingLeft: (depth + 2) * 16 + 8 }}
+          >
+            No AI docs yet
+          </div>
+        )}
+      </div>
     </>
   );
 }
@@ -273,13 +407,13 @@ function FolderNode({
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `drop-folder-${folder.path}`,
-    data: { folderPath: folder.path },
+    data: { folderPath: folder.path, kind: treeProps.sectionKind },
     disabled: isProject,
   });
 
   const { attributes: dragAttrs, listeners: dragListeners, setNodeRef: setDragRef, isDragging } = useDraggable({
     id: `drag-folder-${folder.path}`,
-    data: { folder, type: "folder" },
+    data: { folder, type: "folder", kind: treeProps.sectionKind },
     disabled: isProject || !treeProps.isDraggable,
   });
 
@@ -297,11 +431,24 @@ function FolderNode({
 
   const menuItems = useMemo(() => {
     if (isProject) {
-      // Project folder stubs: minimal context menu with just "Reveal in Finder"
       if (!folder.projectId || !treeProps.workspaceId) return [];
       const wsId = treeProps.workspaceId;
       const projId = folder.projectId;
-      return [{
+      const projScope: ScopeOverride = { scope: "project", workspaceId: wsId, projectId: projId };
+      const items = [];
+      if (onNewDocInFolder) {
+        items.push({
+          icon: <FileText className="size-4" />,
+          label: "New Doc",
+          onClick: () => onNewDocInFolder(undefined, projScope, "human"),
+        });
+        items.push({
+          icon: <FileText className="size-4" />,
+          label: "New AI Doc",
+          onClick: () => onNewDocInFolder(undefined, projScope, "ai"),
+        });
+      }
+      items.push({
         icon: <FolderOpen className="size-4" />,
         label: "Reveal in Finder",
         onClick: async () => {
@@ -310,7 +457,8 @@ function FolderNode({
             await revealInFinder(projectDocsPath);
           } catch { /* ignore if path can't be resolved */ }
         },
-      }];
+      });
+      return items;
     }
     return buildFolderMenuItems({
       folderPath: folder.path,
@@ -398,7 +546,7 @@ function FolderNode({
               <SparklesOff className="size-3 text-muted-foreground shrink-0" />
             </span>
           )}
-          {!isProject && !isRenaming && <TreeItemDropdown items={menuItems} open={showMenu} onOpenChange={setShowMenu} />}
+          {!isRenaming && <TreeItemDropdown items={menuItems} open={showMenu} onOpenChange={setShowMenu} />}
         </div>
       </TreeItemMenus>
 
@@ -510,6 +658,7 @@ function DocNode({
   selectedItems,
   onItemClick,
   projectScopeOverride,
+  sectionKind,
 }: {
   doc: Doc;
   depth: number;
@@ -520,7 +669,15 @@ function DocNode({
   allFolderPaths?: string[];
   onSelectDoc?: (doc: Doc) => void;
   onDeleteDoc?: (doc: Doc) => void;
-  onMoveDocToFolder?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
+  onMoveDocToFolder?: (
+    docId: string,
+    fromPath: string,
+    toPath: string,
+    fromKind: DocKind,
+    toKind: DocKind,
+    scopeOverride?: ScopeOverride
+  ) => Promise<void>;
+  sectionKind?: DocKind;
   isOddRow: boolean;
   renamingItemId?: string | null;
   onStartRename?: (itemId: string) => void;
@@ -543,14 +700,16 @@ function DocNode({
 
   const handleMoveToFolder = useCallback(async (toPath: string) => {
     if (!onMoveDocToFolder) return;
+    const fromKind: DocKind = doc.kind ?? "human";
+    const toKind: DocKind = sectionKind ?? fromKind;
     try {
-      await onMoveDocToFolder(doc.id, docFolderPath, toPath, projectScopeOverride);
+      await onMoveDocToFolder(doc.id, docFolderPath, toPath, fromKind, toKind, projectScopeOverride);
       toast.success(`Moved to ${toPath || "root"}`);
     } catch (error) {
       console.error("Failed to move doc:", error);
       toast.error("Failed to move doc");
     }
-  }, [doc.id, docFolderPath, onMoveDocToFolder, projectScopeOverride]);
+  }, [doc.id, doc.kind, sectionKind, docFolderPath, onMoveDocToFolder, projectScopeOverride]);
 
   const handleStartRename = useCallback(() => {
     onStartRename?.(docItemId);

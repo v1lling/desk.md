@@ -4,7 +4,7 @@ export interface IndexEntry {
   /** Absolute file path for reading */
   filePath: string;
   /** Content type */
-  type: 'doc' | 'task' | 'meeting';
+  type: 'doc' | 'ai-doc' | 'task' | 'meeting';
   /** Title from frontmatter */
   title: string;
   /** AI-generated 1-2 sentence summary */

@@ -10,16 +10,28 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push(`Files indexed: ${index.fileCount}`);
   lines.push("");
-  lines.push("## Catalog");
-  lines.push("");
 
-  const entries = [...index.entries].sort((a, b) => {
+  // Group entries: docs first, then AI docs, then tasks, then meetings
+  const typeOrder: Record<string, number> = { doc: 0, "ai-doc": 1, task: 2, meeting: 3 };
+  const grouped = [...index.entries].sort((a, b) => {
+    const orderDiff = (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
+    if (orderDiff !== 0) return orderDiff;
     const dateA = a.date ?? a.created ?? '';
     const dateB = b.date ?? b.created ?? '';
-    return dateB.localeCompare(dateA); // newest first
+    return dateB.localeCompare(dateA);
   });
-  for (const entry of entries) {
-    const meta: string[] = [entry.type];
+
+  let currentType = "";
+  for (const entry of grouped) {
+    // Section headers
+    if (entry.type !== currentType) {
+      currentType = entry.type;
+      const sectionName = entry.type === "ai-doc" ? "AI Docs" : entry.type === "doc" ? "Docs" : entry.type === "task" ? "Tasks" : "Meetings";
+      lines.push(`## ${sectionName}`);
+      lines.push("");
+    }
+
+    const meta: string[] = [];
     if (entry.projectName) meta.push(`project=${entry.projectName}`);
     if (entry.status) meta.push(`status=${entry.status}`);
     if (entry.priority) meta.push(`priority=${entry.priority}`);
@@ -27,7 +39,7 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
 
     lines.push(`### ${entry.path}`);
     lines.push(`- Title: ${entry.title}`);
-    lines.push(`- Meta: ${meta.join(", ")}`);
+    if (meta.length > 0) lines.push(`- Meta: ${meta.join(", ")}`);
     lines.push(`- Summary: ${entry.summary || "(no summary)"}`);
     lines.push("");
   }

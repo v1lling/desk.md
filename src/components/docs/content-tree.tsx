@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { FileText, Loader2 } from "lucide-react";
+import { ChevronRight, FileText, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,13 +18,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContentTreeItem } from "./content-tree-item";
 import { sortNodes, type DocSortBy } from "./tree-item-utils";
-import type { Doc, FileTreeNode, Asset, ScopeOverride } from "@/types";
+import type { Doc, DocKind, FileTreeNode, Asset, ScopeOverride } from "@/types";
 import { getNodeKey } from "@/lib/desk/content";
 import { Folder } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -32,6 +33,23 @@ import {
   type DragOverEvent,
 } from "@dnd-kit/core";
 import type { ContentFolder } from "@/types";
+
+// Section header drop target — dragging onto "Docs" or "AI Docs" routes to that section's root.
+function SectionDropZone({
+  sectionPath,
+  sectionKind,
+  children,
+}: {
+  sectionPath: string;
+  sectionKind: DocKind | undefined;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({
+    id: `drop-section-${sectionPath}`,
+    data: { folderPath: "", kind: sectionKind },
+  });
+  return <div ref={setNodeRef}>{children}</div>;
+}
 
 /**
  * Recursively filter tree nodes based on search query.
@@ -45,6 +63,15 @@ function filterNodes(nodes: FileTreeNode[], query: string): FileTreeNode[] {
 
   for (const node of nodes) {
     if (node.type === "folder") {
+      // Section folders: always include, recursively filter children
+      if (node.folder.isSection) {
+        const filteredChildren = filterNodes(node.folder.children, query);
+        result.push({
+          type: "folder",
+          folder: { ...node.folder, children: filteredChildren },
+        });
+        continue;
+      }
       // Project folders (lazy loaded): only match on name, don't recurse into empty children
       if (node.folder.isProject) {
         if (node.folder.name.toLowerCase().includes(lowerQuery)) {
@@ -177,7 +204,7 @@ interface ContentTreeProps {
   selectedFolderPath?: string | null;
   onSelectDoc?: (doc: Doc) => void;
   onSelectFolder?: (folderPath: string) => void;
-  onCreateDoc?: (folderPath?: string, scopeOverride?: ScopeOverride) => void;
+  onCreateDoc?: (folderPath?: string, scopeOverride?: ScopeOverride, kind?: DocKind) => void;
   onDeleteDoc?: (doc: Doc) => void;
   onDeleteAsset?: (asset: Asset) => void;
   onCreateFolder?: (parentPath: string, name: string, scopeOverride?: ScopeOverride) => Promise<void>;
@@ -194,7 +221,14 @@ interface ContentTreeProps {
   /** Base path for docs directory (used for Reveal in Finder) */
   basePath?: string;
   /** Callback when a doc is moved to a folder */
-  onMoveDoc?: (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => Promise<void>;
+  onMoveDoc?: (
+    docId: string,
+    fromPath: string,
+    toPath: string,
+    fromKind: DocKind,
+    toKind: DocKind,
+    scopeOverride?: ScopeOverride
+  ) => Promise<void>;
   /** All folder paths for "Move to" menu */
   allFolderPaths?: string[];
   /** Callback when a doc is renamed */
@@ -339,6 +373,14 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
       // Don't allow moving into own descendants
       if (toPath.startsWith(folder.path + "/")) return;
 
+      // Cross-section folder moves aren't supported — only doc-level cross-section is.
+      const fromKind = data.kind as DocKind | undefined;
+      const toKind = over.data.current?.kind as DocKind | undefined;
+      if (fromKind && toKind && fromKind !== toKind) {
+        toast.error("Folders can't move between Docs and AI Docs. Move individual docs instead.");
+        return;
+      }
+
       try {
         await onMoveFolder(folder.path, toPath);
         toast.success(`Moved to ${toPath || "root"}`);
@@ -356,10 +398,14 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
         ? doc.path.substring(0, doc.path.lastIndexOf("/"))
         : "";
 
-      if (fromPath === toPath) return;
+      const fromKind: DocKind = doc.kind ?? "human";
+      const targetKind = over.data.current?.kind as DocKind | undefined;
+      const toKind: DocKind = targetKind ?? fromKind;
+
+      if (fromPath === toPath && fromKind === toKind) return;
 
       try {
-        await onMoveDoc(doc.id, fromPath, toPath);
+        await onMoveDoc(doc.id, fromPath, toPath, fromKind, toKind);
       } catch (error) {
         console.error("Failed to move doc:", error);
       }
@@ -716,6 +762,98 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
             ) : (
               <div className="py-1 px-2">
                 {filteredNodes.map((node, index) => {
+                  // Section folders render as collapsible section headers
+                  if (node.type === "folder" && node.folder.isSection) {
+                    const sectionKind = node.folder.sectionKind;
+                    const isExpanded = expandedFolders.has(node.folder.path);
+                    const childCount = node.folder.docCount ?? 0;
+
+                    return (
+                      <SectionDropZone
+                        key={getNodeKey(node)}
+                        sectionPath={node.folder.path}
+                        sectionKind={sectionKind}
+                      >
+                        {/* Section divider line (skip for first section) */}
+                        {index > 0 && (
+                          <div className="h-px bg-border/40 mx-2 my-1" />
+                        )}
+                        <div
+                          className="flex items-center gap-1.5 px-2 pt-2 pb-1 cursor-pointer group"
+                          onClick={() => toggleFolder(node.folder.path)}
+                        >
+                          <ChevronRight className={cn("size-3 text-muted-foreground/50 transition-transform", isExpanded && "rotate-90")} />
+                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">
+                            {node.folder.name}
+                          </span>
+                          {childCount > 0 && (
+                            <span className="text-[10px] text-muted-foreground/50">{childCount}</span>
+                          )}
+                          <div className="flex-1" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCreateDoc?.(undefined, undefined, sectionKind);
+                            }}
+                            title={`New ${sectionKind === "ai" ? "AI " : ""}Doc`}
+                          >
+                            <Plus className="size-3" />
+                          </Button>
+                        </div>
+                        {/* Section children */}
+                        {isExpanded && node.folder.children.length > 0 && (
+                          <div className="pl-0">
+                            {sortNodes(node.folder.children, sortBy, sortDir).map((child) => (
+                              <ContentTreeItem
+                                key={getNodeKey(child)}
+                                node={child}
+                                sectionKind={sectionKind}
+                                selectedDocId={selectedDocId}
+                                selectedFolderPath={selectedFolderPath}
+                                expandedFolders={expandedFolders}
+                                onSelectDoc={handleSelectDoc}
+                                onSelectFolder={handleSelectFolder}
+                                onToggleFolder={toggleFolder}
+                                onRenameFolder={onRenameFolder ? handleRenameFolder : undefined}
+                                onDeleteFolder={onDeleteFolder ? handleDeleteFolder : undefined}
+                                onNewSubfolder={onCreateFolder ? handleNewSubfolder : undefined}
+                                onNewDocInFolder={(folderPath, scopeOverride) => onCreateDoc?.(folderPath, scopeOverride, sectionKind)}
+                                onDeleteDoc={onDeleteDoc}
+                                onDeleteAsset={onDeleteAsset}
+                                onToggleFolderAI={onToggleFolderAI}
+                                folderAIStates={folderAIStates}
+                                basePath={basePath}
+                                isDraggable={!!(onMoveDoc || onMoveFolder)}
+                                dropTargetPath={dropTargetPath}
+                                allFolderPaths={allFolderPaths}
+                                onMoveDocToFolder={onMoveDoc}
+                                workspaceId={workspaceId}
+                                sortBy={sortBy}
+                                sortDir={sortDir}
+                                visibleIndices={visibleIndices}
+                                renamingItemId={renamingItemId}
+                                onStartRename={setRenamingItemId}
+                                onCommitRename={handleCommitRename}
+                                onCancelRename={handleCancelRename}
+                                focusedItemId={focusedItemId}
+                                selectedItems={selectedItems}
+                                onItemClick={handleItemClick}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {isExpanded && node.folder.children.length === 0 && (
+                          <div className="px-4 py-2 text-xs text-muted-foreground/50">
+                            No {sectionKind === "ai" ? "AI " : ""}docs yet
+                          </div>
+                        )}
+                      </SectionDropZone>
+                    );
+                  }
+
                   // Insert a subtle divider before the first project folder
                   const isProjectFolder = node.type === "folder" && node.folder.isProject;
                   const prevNode = index > 0 ? filteredNodes[index - 1] : null;
@@ -725,10 +863,12 @@ export const ContentTree = forwardRef<ContentTreeRef, ContentTreeProps>(function
                   return (
                     <div key={getNodeKey(node)}>
                       {showProjectDivider && (
-                        <div className="flex items-center gap-2 px-2 pt-2.5 pb-1">
-                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">Projects</span>
-                          <div className="flex-1 h-px bg-border/50" />
-                        </div>
+                        <>
+                          <div className="h-px bg-border/40 mx-2 my-1" />
+                          <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
+                            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/60">Projects</span>
+                          </div>
+                        </>
                       )}
                       <ContentTreeItem
                         node={node}

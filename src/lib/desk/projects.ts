@@ -112,14 +112,17 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
         const content = await readTextFile(projectMdPath);
         const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-        // Count project content
+        // Count project content (docs/ + ai-docs/ together — both surface in the tree)
         const taskStats = await countProjectTasks(projectPath);
         const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
+        const aiDocsPath = await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
         const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
-        const [docCount, meetingCount] = await Promise.all([
+        const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
           countMarkdownFiles(docsPath, true),
+          countMarkdownFiles(aiDocsPath, true),
           countMarkdownFiles(meetingsPath),
         ]);
+        const docCount = humanDocCount + aiDocCount;
 
         projects.push({
           id: entry.name,
@@ -165,14 +168,17 @@ export async function getProject(
     const content = await readTextFile(projectMdPath);
     const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-    // Count project content
+    // Count project content (docs/ + ai-docs/ together — both surface in the tree)
     const taskStats = await countProjectTasks(projectPath);
     const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
+    const aiDocsPath = await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
     const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
-    const [docCount, meetingCount] = await Promise.all([
+    const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
       countMarkdownFiles(docsPath, true),
+      countMarkdownFiles(aiDocsPath, true),
       countMarkdownFiles(meetingsPath),
     ]);
+    const docCount = humanDocCount + aiDocCount;
 
     return {
       id: projectId,
@@ -227,6 +233,7 @@ export async function createProject(data: {
   await mkdir(projectPath);
   await mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
+  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS));
 
   // Create project.md
   const frontmatter: ProjectFrontmatter = {

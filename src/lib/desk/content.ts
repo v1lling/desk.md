@@ -10,7 +10,7 @@
  * - content-move.ts: Move docs between projects/folders
  * - content-import.ts: Import files and create docs in folders
  */
-import type { Doc, Asset } from "@/types";
+import type { Doc, DocKind, Asset } from "@/types";
 import { generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
 import { isTauri, removeFile, joinPath, exists } from "./tauri-fs";
 import {
@@ -20,7 +20,7 @@ import {
 } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { PATH_SEGMENTS } from "./constants";
-import { getDocsPath } from "./paths";
+import { getDocsPath, getAIDocsPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
 
 // Re-export all from split modules
@@ -62,8 +62,11 @@ export async function getDoc(
   workspaceId: string,
   docId: string
 ): Promise<Doc | null> {
-  const docs = await getAllDocsForWorkspace(workspaceId);
-  return docs.find((doc) => doc.id === docId) || null;
+  const docs = await getAllDocsForWorkspace(workspaceId, "human");
+  const found = docs.find((doc) => doc.id === docId);
+  if (found) return found;
+  const aiDocs = await getAllDocsForWorkspace(workspaceId, "ai");
+  return aiDocs.find((doc) => doc.id === docId) || null;
 }
 
 /**
@@ -75,10 +78,13 @@ export async function createDoc(data: {
   title: string;
   content?: string;
   templateBody?: string;
+  kind?: DocKind;
 }): Promise<Doc> {
+  const kind = data.kind || "human";
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
+  const dirSegment = kind === "ai" ? PATH_SEGMENTS.AI_DOCS : PATH_SEGMENTS.DOCS;
 
   const doc: Doc = {
     id,
@@ -89,15 +95,18 @@ export async function createDoc(data: {
     created: todayISO(),
     content,
     preview: generatePreview(content),
+    kind,
   };
 
   if (!isTauri()) {
-    doc.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
+    doc.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${dirSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
 
-  const docsPath = await getDocsPath("project", data.workspaceId, data.projectId);
+  const docsPath = kind === "ai"
+    ? await getAIDocsPath("project", data.workspaceId, data.projectId)
+    : await getDocsPath("project", data.workspaceId, data.projectId);
   const filePath = await joinPath(docsPath, filename);
   doc.filePath = filePath;
 

@@ -889,11 +889,13 @@ pub fn desk_create_doc(
     project_id: Option<String>,
     title: String,
     content: Option<String>,
+    kind: Option<String>,
 ) -> Result<MutationResult, String> {
+    let dir_name = if kind.as_deref() == Some("ai") { "ai-docs" } else { "docs" };
     let root = if let Some(project) = project_id {
-        project_root(&workspace_id, &project)?.join("docs")
+        project_root(&workspace_id, &project)?.join(dir_name)
     } else {
-        ensure_workspace_exists(&workspace_id)?.join("docs")
+        ensure_workspace_exists(&workspace_id)?.join(dir_name)
     };
     let id = slugify(&title);
     if id.is_empty() {
@@ -921,11 +923,13 @@ pub fn desk_update_doc(
     project_id: Option<String>,
     title: Option<String>,
     content: Option<String>,
+    kind: Option<String>,
 ) -> Result<MutationResult, String> {
+    let dir_name = if kind.as_deref() == Some("ai") { "ai-docs" } else { "docs" };
     let docs_dir = if let Some(project) = project_id {
-        project_root(&workspace_id, &project)?.join("docs")
+        project_root(&workspace_id, &project)?.join(dir_name)
     } else {
-        ensure_workspace_exists(&workspace_id)?.join("docs")
+        ensure_workspace_exists(&workspace_id)?.join(dir_name)
     };
     let path = find_markdown_file_by_id(&docs_dir, &doc_id)?;
     ensure_within_root(&path)?;

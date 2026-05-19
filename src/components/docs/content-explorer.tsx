@@ -33,7 +33,7 @@ import {
 } from "@/stores";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import type { Doc, ContentScope, Asset, ScopeOverride } from "@/types";
+import type { Doc, DocKind, ContentScope, Asset, ScopeOverride, FileTreeNode } from "@/types";
 import { isMarkdownFile } from "@/lib/desk/file-utils";
 import { extractDocs, extractAssets, extractFolderPaths } from "@/lib/desk/content";
 import { getDocsPath } from "@/lib/desk/paths";
@@ -98,14 +98,63 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   const isOverviewMode = selectedScope?.isWorkspaceLevel === true;
 
   // Content tree data — use overview shell for workspace scope, scoped tree otherwise
-  const { data: overviewTree = [], isLoading: overviewLoading } =
-    useWorkspaceOverviewShell(isOverviewMode ? selectedScope?.workspaceId : null);
+  // In overview mode, fetch both human and AI shells for section-based display
+  const { data: humanOverviewTree = [], isLoading: humanOverviewLoading } =
+    useWorkspaceOverviewShell(isOverviewMode ? selectedScope?.workspaceId : null, "human");
+
+  const { data: aiOverviewTree = [], isLoading: aiOverviewLoading } =
+    useWorkspaceOverviewShell(isOverviewMode ? selectedScope?.workspaceId : null, "ai");
 
   const { data: scopedTree = [], isLoading: scopedLoading } = useContentTree(
     selectedScope?.scope || "personal",
     isOverviewMode ? undefined : selectedScope?.workspaceId,
     isOverviewMode ? undefined : selectedScope?.projectId
   );
+
+  // In overview mode, combine human + AI docs into sectioned tree
+  const overviewTree = useMemo(() => {
+    if (!isOverviewMode) return [];
+
+    // Separate workspace-level nodes from project stubs
+    const humanDocs = humanOverviewTree.filter(n => n.type !== "folder" || !n.folder.isProject);
+    const aiDocs = aiOverviewTree.filter(n => n.type !== "folder" || !n.folder.isProject);
+    const projectStubs = humanOverviewTree.filter(n => n.type === "folder" && n.folder.isProject);
+
+    const sections: FileTreeNode[] = [];
+
+    // "Docs" section — always shown
+    sections.push({
+      type: "folder",
+      folder: {
+        name: "Docs",
+        path: "_section/docs",
+        children: humanDocs,
+        isSection: true,
+        sectionKind: "human",
+        docCount: extractDocs(humanDocs).length,
+      },
+    });
+
+    // "AI Docs" section — always shown (may be empty)
+    sections.push({
+      type: "folder",
+      folder: {
+        name: "AI Docs",
+        path: "_section/ai-docs",
+        children: aiDocs,
+        isSection: true,
+        sectionKind: "ai",
+        docCount: extractDocs(aiDocs).length,
+      },
+    });
+
+    // Project stubs
+    sections.push(...projectStubs);
+
+    return sections;
+  }, [isOverviewMode, humanOverviewTree, aiOverviewTree]);
+
+  const overviewLoading = humanOverviewLoading || aiOverviewLoading;
 
   const tree = isOverviewMode ? overviewTree : scopedTree;
   const isLoading = isOverviewMode ? overviewLoading : scopedLoading;
@@ -158,6 +207,37 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     selectedScope?.workspaceId || (selectedScope?.scope === "personal" ? PERSONAL_WORKSPACE_ID : null),
     isOverviewMode ? null : selectedScope?.projectId || null
   );
+
+  // Auto-expand only the "Docs" section in overview mode (AI Docs collapsed by default).
+  // Keyed by workspace so the effect re-runs on workspace switch.
+  const sectionExpandedForWorkspaceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOverviewMode) return;
+    const workspaceId = selectedScope?.workspaceId ?? null;
+    if (sectionExpandedForWorkspaceRef.current === workspaceId) return;
+    if (overviewTree.length === 0) return;
+
+    const docsSectionPaths: string[] = [];
+    for (const n of overviewTree) {
+      if (n.type === "folder" && n.folder.isSection && n.folder.sectionKind === "human") {
+        docsSectionPaths.push(n.folder.path);
+      }
+    }
+    if (docsSectionPaths.length === 0) return;
+
+    const current = new Set(expandedFolders);
+    let changed = false;
+    for (const p of docsSectionPaths) {
+      if (!current.has(p)) {
+        current.add(p);
+        changed = true;
+      }
+    }
+    if (changed) {
+      setExpandedFolders(Array.from(current));
+    }
+    sectionExpandedForWorkspaceRef.current = workspaceId;
+  }, [isOverviewMode, overviewTree, expandedFolders, setExpandedFolders, selectedScope?.workspaceId]);
 
   // Compute base path for "Reveal in Finder" functionality
   const [basePath, setBasePath] = useState<string | undefined>(undefined);
@@ -268,9 +348,16 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     [resolveScope, deleteFolder]
   );
 
-  // Move doc to a different folder
+  // Move doc to a different folder (possibly across docs/ ↔ ai-docs/)
   const handleMoveDoc = useCallback(
-    async (docId: string, fromPath: string, toPath: string, scopeOverride?: ScopeOverride) => {
+    async (
+      docId: string,
+      fromPath: string,
+      toPath: string,
+      fromKind: DocKind,
+      toKind: DocKind,
+      scopeOverride?: ScopeOverride
+    ) => {
       const scope = resolveScope(scopeOverride);
       if (!scope) return;
       await moveDoc.mutateAsync({
@@ -280,6 +367,8 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         toPath,
         workspaceId: scope.workspaceId,
         projectId: scope.projectId,
+        fromKind,
+        toKind,
       });
     },
     [resolveScope, moveDoc]
@@ -362,10 +451,12 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
   }, [deleteAssetConfirm, deleteAsset]);
 
   const [newDocScopeOverride, setNewDocScopeOverride] = useState<ScopeOverride | undefined>();
+  const [newDocKind, setNewDocKind] = useState<DocKind>("human");
 
-  const handleCreateDocInFolder = useCallback((folderPath?: string, scopeOverride?: ScopeOverride) => {
+  const handleCreateDocInFolder = useCallback((folderPath?: string, scopeOverride?: ScopeOverride, kind?: DocKind) => {
     setNewDocFolderPath(folderPath);
     setNewDocScopeOverride(scopeOverride);
+    setNewDocKind(kind || "human");
     setShowNewDoc(true);
   }, []);
 
@@ -373,6 +464,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     setShowNewDoc(false);
     setNewDocFolderPath(undefined);
     setNewDocScopeOverride(undefined);
+    setNewDocKind("human");
   }, []);
 
   // Handle file drop for import
@@ -547,7 +639,14 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
             </span>
 
             {/* Primary action: New Doc */}
-            <Button size="sm" onClick={() => handleCreateDocInFolder(selectedFolderPath || undefined)}>
+            <Button size="sm" onClick={() => {
+              if (selectedFolderPath?.startsWith("_project/") && selectedScope?.workspaceId) {
+                const projectId = selectedFolderPath.slice("_project/".length);
+                handleCreateDocInFolder(undefined, { scope: "project", workspaceId: selectedScope.workspaceId, projectId });
+              } else {
+                handleCreateDocInFolder(selectedFolderPath || undefined);
+              }
+            }}>
               <Plus className="size-4 mr-1" />
               New Doc
             </Button>
@@ -597,6 +696,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         defaultWorkspaceId={newDocScopeOverride?.workspaceId ?? selectedScope?.workspaceId}
         defaultProjectId={newDocScopeOverride?.projectId ?? selectedScope?.projectId}
         defaultFolderPath={newDocFolderPath}
+        kind={newDocKind}
       />
 
       {/* Delete doc confirmation */}

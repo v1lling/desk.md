@@ -1,14 +1,14 @@
 /**
  * Content Import - Import files and create docs in specific folders
  */
-import type { Doc, ContentScope } from "@/types";
+import type { Doc, DocKind, ContentScope } from "@/types";
 import { isMarkdownFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
 import { isTauri, joinPath } from "./tauri-fs";
 import { writeMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath } from "./paths";
+import { getDocsPath, getAIDocsPath } from "./paths";
 import { mkdir } from "./tauri-fs";
 
 interface DocFrontmatter extends Record<string, unknown> {
@@ -27,7 +27,9 @@ export async function createDocInFolder(data: {
   folderPath?: string;
   workspaceId?: string;
   projectId?: string;
+  kind?: DocKind;
 }): Promise<Doc> {
+  const kind = data.kind || "human";
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
@@ -48,6 +50,7 @@ export async function createDocInFolder(data: {
     created: todayISO(),
     content,
     preview: generatePreview(content),
+    kind,
   };
 
   if (!isTauri()) {
@@ -56,7 +59,9 @@ export async function createDocInFolder(data: {
     return doc;
   }
 
-  const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
+  const basePath = kind === "ai"
+    ? await getAIDocsPath(data.scope, data.workspaceId, data.projectId)
+    : await getDocsPath(data.scope, data.workspaceId, data.projectId);
 
   const folderPath = data.folderPath
     ? await joinPath(basePath, data.folderPath)
@@ -86,12 +91,15 @@ export async function importFiles(
   scope: ContentScope,
   folderPath?: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  kind: DocKind = "human"
 ): Promise<{ docs: Doc[]; assets: string[] }> {
   const importedDocs: Doc[] = [];
   const importedAssets: string[] = [];
 
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const basePath = kind === "ai"
+    ? await getAIDocsPath(scope, workspaceId, projectId)
+    : await getDocsPath(scope, workspaceId, projectId);
   const targetDir = folderPath ? await joinPath(basePath, folderPath) : basePath;
   await mkdir(targetDir);
 
@@ -116,6 +124,7 @@ export async function importFiles(
         folderPath,
         workspaceId,
         projectId,
+        kind,
       });
 
       importedDocs.push(doc);

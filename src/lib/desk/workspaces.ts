@@ -175,6 +175,7 @@ export async function createWorkspace(data: {
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
+  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
 
   // Create workspace.md
   const frontmatter: WorkspaceFrontmatter = {
@@ -286,6 +287,7 @@ export async function initPersonalWorkspace(): Promise<void> {
   await mkdir(personalPath);
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.PROJECTS));
   await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
+  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.AI_DOCS));
 
   // Unassigned area
   await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED));

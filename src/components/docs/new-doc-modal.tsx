@@ -20,7 +20,7 @@ import {
 import { Loader2, Folder } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
-import type { ContentScope } from "@/types";
+import type { ContentScope, DocKind } from "@/types";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
 
@@ -31,6 +31,7 @@ interface NewDocModalProps {
   defaultScope?: ContentScope;
   defaultWorkspaceId?: string;
   defaultFolderPath?: string;
+  kind?: DocKind;
 }
 
 export function NewDocModal({
@@ -40,6 +41,7 @@ export function NewDocModal({
   defaultScope,
   defaultWorkspaceId,
   defaultFolderPath,
+  kind = "human",
 }: NewDocModalProps) {
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
@@ -92,6 +94,7 @@ export function NewDocModal({
           title: title.trim(),
           templateBody: templateBody || undefined,
           folderPath: defaultFolderPath,
+          kind,
         });
       } else if (isWorkspaceScope) {
         doc = await createDocInFolder.mutateAsync({
@@ -100,6 +103,7 @@ export function NewDocModal({
           templateBody: templateBody || undefined,
           folderPath: defaultFolderPath,
           workspaceId: workspaceId,
+          kind,
         });
       } else if (isProjectScope && defaultProjectId) {
         doc = await createDocInFolder.mutateAsync({
@@ -109,6 +113,7 @@ export function NewDocModal({
           folderPath: defaultFolderPath,
           workspaceId: workspaceId,
           projectId: defaultProjectId,
+          kind,
         });
       } else {
         doc = await createDoc.mutateAsync({
@@ -116,6 +121,7 @@ export function NewDocModal({
           projectId: projectId || "_unassigned",
           title: title.trim(),
           templateBody: templateBody || undefined,
+          kind,
         });
       }
 
@@ -149,7 +155,7 @@ export function NewDocModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Doc</DialogTitle>
+          <DialogTitle>{kind === "ai" ? "New AI Doc" : "New Doc"}</DialogTitle>
           <DialogDescription className="sr-only">Create a new document in your workspace</DialogDescription>
         </DialogHeader>
 

@@ -9,7 +9,8 @@
  * ├── workspaces/
  * │   ├── _personal/               (Personal workspace - treated like any workspace)
  * │   │   ├── workspace.md
- * │   │   ├── docs/
+ * │   │   ├── docs/                (Human-written docs)
+ * │   │   ├── ai-docs/             (AI-generated docs)
  * │   │   ├── _capture/            (Quick capture for triage)
  * │   │   │   └── tasks/
  * │   │   ├── _unassigned/
@@ -18,10 +19,12 @@
  * │   │   └── projects/{projectId}/
  * │   │       ├── project.md
  * │   │       ├── tasks/
- * │   │       └── docs/
+ * │   │       ├── docs/
+ * │   │       └── ai-docs/
  * │   └── {workspaceId}/           (Client workspaces)
  * │       ├── workspace.md
- * │       ├── docs/
+ * │       ├── docs/                (Human-written docs)
+ * │       ├── ai-docs/             (AI-generated docs)
  * │       ├── _unassigned/
  * │       │   ├── tasks/
  * │       │   ├── docs/
@@ -30,6 +33,7 @@
  * │           ├── project.md
  * │           ├── tasks/
  * │           ├── docs/
+ * │           ├── ai-docs/
  * │           └── meetings/
  */
 
@@ -180,6 +184,37 @@ export async function getDocsPath(
 
   const projectPath = await getProjectPath(workspaceId, projectId);
   return joinPath(projectPath, PATH_SEGMENTS.DOCS);
+}
+
+/**
+ * Get the AI docs directory based on scope (parallel to getDocsPath for ai-docs/)
+ */
+export async function getAIDocsPath(
+  scope: ContentScope,
+  workspaceId?: string,
+  projectId?: string
+): Promise<string> {
+  if (scope === "personal") {
+    const workspacePath = await getWorkspacePath(SPECIAL_DIRS.PERSONAL);
+    return joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS);
+  }
+
+  if (!workspaceId) {
+    throw new Error("workspaceId required for workspace/project scope");
+  }
+
+  if (scope === "workspace") {
+    const workspacePath = await getWorkspacePath(workspaceId);
+    return joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS);
+  }
+
+  // scope === "project"
+  if (!projectId) {
+    throw new Error("projectId required for project scope");
+  }
+
+  const projectPath = await getProjectPath(workspaceId, projectId);
+  return joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
 }
 
 // =============================================================================

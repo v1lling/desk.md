@@ -1,13 +1,13 @@
 /**
  * Content Move - Move docs between projects and folders
  */
-import type { Doc, ContentScope } from "@/types";
+import type { Doc, DocKind, ContentScope } from "@/types";
 import { normalizeDate, generatePreview } from "./parser";
 import { isTauri, joinPath } from "./tauri-fs";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath } from "./paths";
+import { getDocsPath, getAIDocsPath } from "./paths";
 import { getAllDocsForWorkspace } from "./content-tree";
 
 interface DocFrontmatter extends Record<string, unknown> {
@@ -62,8 +62,20 @@ export async function moveDocToProject(
   };
 }
 
+function resolveBasePath(
+  kind: DocKind,
+  scope: ContentScope,
+  workspaceId?: string,
+  projectId?: string
+): Promise<string> {
+  return kind === "ai"
+    ? getAIDocsPath(scope, workspaceId, projectId)
+    : getDocsPath(scope, workspaceId, projectId);
+}
+
 /**
- * Move a doc to a different folder (within the same scope)
+ * Move a doc to a different folder (within the same scope). `fromKind` and `toKind`
+ * may differ — that's a cross-section move (e.g. dragging an AI draft into `docs/`).
  */
 export async function moveDoc(
   scope: ContentScope,
@@ -71,20 +83,24 @@ export async function moveDoc(
   fromPath: string,
   toPath: string,
   workspaceId?: string,
-  projectId?: string
+  projectId?: string,
+  fromKind: DocKind = "human",
+  toKind: DocKind = fromKind
 ): Promise<Doc | null> {
   if (!isTauri()) {
     const doc = mockDocs.find((d) => d.id === docId);
     if (doc) {
       doc.path = toPath ? `${toPath}/${doc.id}.md` : `${doc.id}.md`;
+      doc.kind = toKind;
     }
     return doc || null;
   }
 
-  const basePath = await getDocsPath(scope, workspaceId, projectId);
+  const fromBasePath = await resolveBasePath(fromKind, scope, workspaceId, projectId);
+  const toBasePath = await resolveBasePath(toKind, scope, workspaceId, projectId);
   const fromDir = fromPath
-    ? await joinPath(basePath, fromPath)
-    : basePath;
+    ? await joinPath(fromBasePath, fromPath)
+    : fromBasePath;
 
   const sourceFilePath = await findFileById(fromDir, docId);
   if (!sourceFilePath) return null;
@@ -93,7 +109,7 @@ export async function moveDoc(
   if (!parsed) return null;
 
   const sourceFilename = sourceFilePath.split("/").pop()!;
-  const toDir = toPath ? await joinPath(basePath, toPath) : basePath;
+  const toDir = toPath ? await joinPath(toBasePath, toPath) : toBasePath;
   const targetFilePath = await joinPath(toDir, sourceFilename);
 
   // moveMarkdownFile handles mkdir, cache invalidation, registry notification
@@ -113,5 +129,6 @@ export async function moveDoc(
     created: normalizeDate(parsed.frontmatter.created),
     content: parsed.content,
     preview: generatePreview(parsed.content),
+    kind: toKind,
   };
 }

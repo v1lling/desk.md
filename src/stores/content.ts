@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Doc, ContentScope, Asset } from "@/types";
+import type { Doc, DocKind, ContentScope, Asset } from "@/types";
 import * as contentLib from "@/lib/desk/content";
 
 // Query keys for content (docs, assets, folders)
@@ -10,12 +10,12 @@ export const contentKeys = {
     [...contentKeys.byWorkspace(workspaceId), "project", projectId] as const,
   detail: (workspaceId: string, docId: string) =>
     [...contentKeys.byWorkspace(workspaceId), "detail", docId] as const,
-  // Tree keys for scoped content trees
-  tree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
-    [...contentKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
+  // Tree keys for scoped content trees (kind distinguishes human vs AI docs)
+  tree: (scope: ContentScope, workspaceId?: string, projectId?: string, kind: DocKind = "human") =>
+    [...contentKeys.all, "tree", scope, workspaceId || "", projectId || "", kind] as const,
   // Workspace overview tree (workspace content + project folders)
-  overview: (workspaceId: string) =>
-    [...contentKeys.byWorkspace(workspaceId), "overview-tree"] as const,
+  overview: (workspaceId: string, kind: DocKind = "human") =>
+    [...contentKeys.byWorkspace(workspaceId), "overview-tree", kind] as const,
 };
 
 /**
@@ -73,6 +73,7 @@ export function useCreateDoc() {
       title: string;
       content?: string;
       templateBody?: string;
+      kind?: DocKind;
     }) => contentLib.createDoc(data),
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({
@@ -228,7 +229,8 @@ export function useAllWorkspaceDocs(workspaceId: string | null) {
 export function useContentTree(
   scope: ContentScope,
   workspaceId?: string | null,
-  projectId?: string | null
+  projectId?: string | null,
+  kind: DocKind = "human"
 ) {
   const enabled =
     scope === "personal" ||
@@ -236,12 +238,13 @@ export function useContentTree(
     (scope === "project" && !!workspaceId && !!projectId);
 
   return useQuery({
-    queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined),
+    queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined, kind),
     queryFn: () =>
       contentLib.getContentTree(
         scope,
         workspaceId || undefined,
-        projectId || undefined
+        projectId || undefined,
+        kind
       ),
     enabled,
   });
@@ -251,10 +254,10 @@ export function useContentTree(
  * Hook to fetch workspace overview shell (workspace content + project folder stubs).
  * Project content is loaded lazily via useContentTree when folders are expanded.
  */
-export function useWorkspaceOverviewShell(workspaceId?: string | null) {
+export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: DocKind = "human") {
   return useQuery({
-    queryKey: contentKeys.overview(workspaceId || ""),
-    queryFn: () => contentLib.getWorkspaceOverviewShell(workspaceId!),
+    queryKey: contentKeys.overview(workspaceId || "", kind),
+    queryFn: () => contentLib.getWorkspaceOverviewShell(workspaceId!, kind),
     enabled: !!workspaceId,
   });
 }
@@ -271,18 +274,21 @@ export function useCreateFolder() {
       folderPath,
       workspaceId,
       projectId,
+      kind = "human",
     }: {
       scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.createFolder(scope, folderPath, workspaceId, projectId),
+      kind?: DocKind;
+    }) => contentLib.createFolder(scope, folderPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
     },
@@ -302,19 +308,22 @@ export function useRenameFolder() {
       newName,
       workspaceId,
       projectId,
+      kind = "human",
     }: {
       scope: ContentScope;
       oldPath: string;
       newName: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.renameFolder(scope, oldPath, newName, workspaceId, projectId),
+      kind?: DocKind;
+    }) => contentLib.renameFolder(scope, oldPath, newName, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
     },
@@ -333,18 +342,21 @@ export function useDeleteFolder() {
       folderPath,
       workspaceId,
       projectId,
+      kind = "human",
     }: {
       scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.deleteFolder(scope, folderPath, workspaceId, projectId),
+      kind?: DocKind;
+    }) => contentLib.deleteFolder(scope, folderPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
     },
@@ -364,19 +376,22 @@ export function useMoveFolder() {
       toParentPath,
       workspaceId,
       projectId,
+      kind = "human",
     }: {
       scope: ContentScope;
       fromPath: string;
       toParentPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.moveFolder(scope, fromPath, toParentPath, workspaceId, projectId),
+      kind?: DocKind;
+    }) => contentLib.moveFolder(scope, fromPath, toParentPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
     },
@@ -397,6 +412,8 @@ export function useMoveDoc() {
       toPath,
       workspaceId,
       projectId,
+      fromKind = "human",
+      toKind,
     }: {
       scope: ContentScope;
       docId: string;
@@ -404,15 +421,40 @@ export function useMoveDoc() {
       toPath: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.moveDoc(scope, docId, fromPath, toPath, workspaceId, projectId),
+      fromKind?: DocKind;
+      toKind?: DocKind;
+    }) =>
+      contentLib.moveDoc(
+        scope,
+        docId,
+        fromPath,
+        toPath,
+        workspaceId,
+        projectId,
+        fromKind,
+        toKind ?? fromKind
+      ),
     onSuccess: (_result, variables) => {
+      const fromKind = variables.fromKind ?? "human";
+      const toKind = variables.toKind ?? fromKind;
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          fromKind
         ),
       });
+      if (toKind !== fromKind) {
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.tree(
+            variables.scope,
+            variables.workspaceId,
+            variables.projectId,
+            toKind
+          ),
+        });
+      }
     },
   });
 }
@@ -432,13 +474,15 @@ export function useCreateDocInFolder() {
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
+      kind?: DocKind;
     }) => contentLib.createDocInFolder(data),
     onSuccess: (_newDoc, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
       // Also invalidate the flat list queries for backward compatibility
@@ -466,19 +510,22 @@ export function useImportFiles() {
       folderPath,
       workspaceId,
       projectId,
+      kind = "human",
     }: {
       files: Array<{ name: string; content: string | Uint8Array }>;
       scope: ContentScope;
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
-    }) => contentLib.importFiles(files, scope, folderPath, workspaceId, projectId),
+      kind?: DocKind;
+    }) => contentLib.importFiles(files, scope, folderPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
-          variables.projectId
+          variables.projectId,
+          variables.kind
         ),
       });
       // Also invalidate the flat list queries

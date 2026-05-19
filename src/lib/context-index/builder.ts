@@ -45,7 +45,7 @@ function extractRelativePath(absolutePath: string, workspaceId: string): string 
  */
 async function buildEntryFromItem(
   item: { filePath: string; title: string; content: string; created: string; projectId: string },
-  type: "doc" | "task" | "meeting",
+  type: "doc" | "ai-doc" | "task" | "meeting",
   workspaceId: string,
   extra?: { status?: string; priority?: string; date?: string; attendees?: string[]; projectName?: string }
 ): Promise<IndexEntry> {
@@ -165,8 +165,9 @@ export async function buildWorkspaceIndex(
   // Collect all files
   onProgress?.({ phase: "collecting", total: 0, processed: 0, newOrChanged: 0, currentWorkspace: workspaceName });
 
-  const [docs, tasks, meetings] = await Promise.all([
-    desk.getAllDocsForWorkspace(workspaceId),
+  const [docs, aiDocs, tasks, meetings] = await Promise.all([
+    desk.getAllDocsForWorkspace(workspaceId, "human"),
+    desk.getAllDocsForWorkspace(workspaceId, "ai"),
     desk.getTasks(workspaceId),
     desk.getMeetings(workspaceId),
   ]);
@@ -175,9 +176,9 @@ export async function buildWorkspaceIndex(
   const needsSummarization: IndexEntry[] = [];
   const contentMap = new Map<string, string>(); // filePath -> body content
 
-  const totalFiles = docs.length + tasks.length + meetings.length;
+  const totalFiles = docs.length + aiDocs.length + tasks.length + meetings.length;
 
-  // Process docs
+  // Process docs (human)
   for (const doc of docs) {
     if (isExcluded(doc.filePath)) {
       result.excluded++;
@@ -198,6 +199,30 @@ export async function buildWorkspaceIndex(
       allEntries.push(entry);
     } catch (error) {
       result.errors.push(`Doc ${doc.id}: ${String(error)}`);
+    }
+  }
+
+  // Process AI docs
+  for (const doc of aiDocs) {
+    if (isExcluded(doc.filePath)) {
+      result.excluded++;
+      continue;
+    }
+    try {
+      const entry = await buildEntryFromItem(doc, "ai-doc", workspaceId, {
+        projectName: projectNameMap.get(doc.projectId),
+      });
+      const existing = existingEntries.get(entry.path);
+      if (existing && existing.contentHash === entry.contentHash && existing.summary) {
+        entry.summary = existing.summary;
+        result.reused++;
+      } else {
+        contentMap.set(doc.filePath, extractBody(doc.content));
+        needsSummarization.push(entry);
+      }
+      allEntries.push(entry);
+    } catch (error) {
+      result.errors.push(`AI Doc ${doc.id}: ${String(error)}`);
     }
   }
 
