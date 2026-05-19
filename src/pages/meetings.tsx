@@ -1,133 +1,48 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { MeetingList, NewMeetingModal } from "@/components/meetings";
-import { FilterBar } from "@/components/ui/filter-bar";
-import { Button } from "@/components/ui/button";
-import { useMeetings, useCurrentWorkspace, useOpenTab } from "@/stores";
-import { useProjectName, useOpenFromQuery, useGroupedItems } from "@/hooks";
-import { FolderKanban, Plus, Calendar } from "lucide-react";
-import type { Meeting } from "@/types";
-import { LoadingState } from "@/components/ui/loading-state";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SectionGroup } from "@/components/ui/section-group";
+import { useMemo } from "react";
+import { useCurrentWorkspace, useMeetings, useOpenTab } from "@/stores";
+import { useOpenFromQuery } from "@/hooks";
+import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
+import { StatePanel } from "@/components/ui/state-panel";
+import { MeetingsTreePane } from "@/components/meetings";
 
 export default function MeetingsPage() {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: meetings = [], isLoading } = useMeetings(currentWorkspaceId);
-  const { projects, getProjectName } = useProjectName(currentWorkspaceId);
+  const { data: meetings = [] } = useMeetings(currentWorkspaceId);
   const { openMeeting } = useOpenTab();
-
-  // Initialize project filter from ?project= URL param (e.g., from /projects page)
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [showNewMeeting, setShowNewMeeting] = useState(false);
-  const [filterProject, setFilterProject] = useState<string>(
-    searchParams.get("project") || "all"
-  );
-
-  // Clear URL param after initialization
-  useEffect(() => {
-    if (searchParams.has("project")) {
-      searchParams.delete("project");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useOpenFromQuery(meetings, openMeeting, "/meetings");
 
-  const handleMeetingClick = (meeting: Meeting) => {
-    openMeeting(meeting);
-  };
-
-  const filteredMeetings = useMemo(() => {
-    if (filterProject === "all") return meetings;
-    return meetings.filter((meeting) => meeting.projectId === filterProject);
-  }, [meetings, filterProject]);
-
-  const getProjectId = useCallback((meeting: Meeting) => meeting.projectId, []);
-  const groupedMeetings = useGroupedItems(filteredMeetings, getProjectId);
-
-  const getDisplayProjectName = useCallback(
-    (projectId: string) => {
-      if (projectId === "_unassigned") return "No project";
-      return getProjectName(projectId) || projectId;
-    },
-    [getProjectName]
+  // Register the meetings tree as the secondary sidebar slot for /meetings.
+  const pane = useMemo(
+    () => (currentWorkspaceId ? <MeetingsTreePane workspaceId={currentWorkspaceId} /> : null),
+    [currentWorkspaceId],
   );
+  useSecondarySidebar("/meetings", pane);
 
-  const projectOptions = useMemo(
-    () => projects.map((p) => ({ value: p.id, label: p.name })),
-    [projects]
-  );
+  if (!currentWorkspaceId) {
+    return (
+      <div className="flex flex-col h-full p-4">
+        <StatePanel
+          variant="empty"
+          title="Select a workspace"
+          description="Choose a workspace in the sidebar to view meetings."
+          className="h-full"
+        />
+      </div>
+    );
+  }
 
+  // Main pane: empty state. Opening a meeting switches to a meeting tab,
+  // and `TabContent` renders the editor here instead.
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <FilterBar
-        filters={[
-          {
-            id: "project",
-            label: "Project",
-            value: filterProject,
-            onChange: setFilterProject,
-            options: projectOptions,
-            allLabel: "All projects",
-            width: "w-[200px]",
-          },
-        ]}
-        count={filteredMeetings.length}
-        countLabel="meetings"
-        rightElement={
-          <Button size="sm" onClick={() => setShowNewMeeting(true)}>
-            <Plus className="size-4 mr-1" />
-            New Meeting
-          </Button>
-        }
+    <div className="flex flex-col h-full p-4">
+      <StatePanel
+        variant="empty"
+        title="Select a meeting"
+        description="Choose a meeting from the tree to start editing."
+        className="h-full"
       />
-
-      <ScrollArea className="flex-1">
-        <main className="p-4">
-          {isLoading ? (
-            <LoadingState label="meetings" display="inline" />
-          ) : filteredMeetings.length === 0 ? (
-            <EmptyState
-              icon={Calendar}
-              title="No meetings found"
-              description={
-                filterProject !== "all"
-                  ? "Try selecting a different project or create a new meeting"
-                  : "Create your first meeting note to get started"
-              }
-              display="inline"
-            />
-          ) : filterProject === "all" ? (
-            <div className="space-y-4">
-              {Object.entries(groupedMeetings).map(([projectId, projectMeetings]) => (
-                <SectionGroup
-                  key={projectId}
-                  icon={<FolderKanban className="h-4 w-4" />}
-                  title={
-                    <button
-                      type="button"
-                      className="hover:underline cursor-pointer"
-                      onClick={() => setFilterProject(projectId)}
-                    >
-                      {getDisplayProjectName(projectId)}
-                    </button>
-                  }
-                  count={projectMeetings.length}
-                >
-                  <MeetingList meetings={projectMeetings} onMeetingClick={handleMeetingClick} />
-                </SectionGroup>
-              ))}
-            </div>
-          ) : (
-            <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />
-          )}
-        </main>
-      </ScrollArea>
-
-      <NewMeetingModal open={showNewMeeting} onClose={() => setShowNewMeeting(false)} />
     </div>
   );
 }

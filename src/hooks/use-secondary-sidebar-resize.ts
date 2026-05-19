@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import {
   usePreferencesStore,
   SECONDARY_SIDEBAR_COLLAPSED_WIDTH,
-  SECONDARY_SIDEBAR_DEFAULT_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_MAX_WIDTH,
 } from "@/stores/preferences";
@@ -10,32 +9,14 @@ import {
 const SNAP_TO_COLLAPSED_THRESHOLD = 120;
 
 /**
- * Read-only width for a registered secondary-sidebar route. Returns 0 when not registered.
- * Shared between AppShell (layout) and TabBar (right-edge math) so both agree by construction.
+ * Width/collapse manager for the shared secondary-sidebar slot. State is global so
+ * the chrome stays the same size across routes that opt in (docs, meetings, …).
  */
-export function useSecondarySidebarReservedWidth(routeKey: string | null): number {
-  const widths = usePreferencesStore((s) => s.secondarySidebarWidths);
-  const collapsedMap = usePreferencesStore((s) => s.secondarySidebarCollapsed);
-  if (!routeKey) return 0;
-  const isCollapsed = !!collapsedMap[routeKey];
-  return isCollapsed
-    ? SECONDARY_SIDEBAR_COLLAPSED_WIDTH
-    : (widths[routeKey] ?? SECONDARY_SIDEBAR_DEFAULT_WIDTH);
-}
-
-/**
- * Width/collapse manager for the per-route secondary sidebar.
- * Mirrors useSidebarResize but namespaced by `routeKey`.
- */
-export function useSecondarySidebarResize(routeKey: string | null) {
-  const widths = usePreferencesStore((state) => state.secondarySidebarWidths);
-  const collapsedMap = usePreferencesStore((state) => state.secondarySidebarCollapsed);
-  const setWidth = usePreferencesStore((state) => state.setSecondarySidebarWidth);
-  const setCollapsed = usePreferencesStore((state) => state.setSecondarySidebarCollapsed);
-
-  const persistedWidth: number =
-    (routeKey ? widths[routeKey] : undefined) ?? SECONDARY_SIDEBAR_DEFAULT_WIDTH;
-  const isPersistedCollapsed = routeKey ? !!collapsedMap[routeKey] : false;
+export function useSecondarySidebarResize() {
+  const persistedWidth = usePreferencesStore((s) => s.secondarySidebarWidth);
+  const isPersistedCollapsed = usePreferencesStore((s) => s.secondarySidebarCollapsed);
+  const setWidth = usePreferencesStore((s) => s.setSecondarySidebarWidth);
+  const setCollapsed = usePreferencesStore((s) => s.setSecondarySidebarCollapsed);
 
   const [dragWidth, setDragWidth] = useState<number | null>(null);
 
@@ -48,43 +29,35 @@ export function useSecondarySidebarResize(routeKey: string | null) {
 
   const handleResize = useCallback(
     (delta: number) => {
-      if (!routeKey) return;
       setDragWidth((prev) => {
-        // Start dragging from the currently displayed width so the first delta doesn't
-        // jump from the handle position (e.g., 32px when collapsed) to persistedWidth.
         const current = prev ?? (isPersistedCollapsed ? SECONDARY_SIDEBAR_COLLAPSED_WIDTH : persistedWidth);
         const next = current + delta;
         return Math.max(SECONDARY_SIDEBAR_COLLAPSED_WIDTH, Math.min(SECONDARY_SIDEBAR_MAX_WIDTH, next));
       });
     },
-    [routeKey, persistedWidth, isPersistedCollapsed]
+    [persistedWidth, isPersistedCollapsed]
   );
 
   const handleResizeEnd = useCallback(() => {
-    if (!routeKey || dragWidth === null) return;
-
+    if (dragWidth === null) return;
     if (dragWidth < SNAP_TO_COLLAPSED_THRESHOLD) {
-      setCollapsed(routeKey, true);
-      setWidth(routeKey, SECONDARY_SIDEBAR_DEFAULT_WIDTH);
+      setCollapsed(true);
     } else {
-      setCollapsed(routeKey, false);
+      setCollapsed(false);
       const clamped = Math.max(SECONDARY_SIDEBAR_MIN_WIDTH, Math.min(dragWidth, SECONDARY_SIDEBAR_MAX_WIDTH));
-      setWidth(routeKey, clamped);
+      setWidth(clamped);
     }
     setDragWidth(null);
-  }, [routeKey, dragWidth, setWidth, setCollapsed]);
+  }, [dragWidth, setWidth, setCollapsed]);
 
   const handleDoubleClick = useCallback(() => {
-    if (!routeKey) return;
-    setWidth(routeKey, SECONDARY_SIDEBAR_DEFAULT_WIDTH);
-    setCollapsed(routeKey, false);
+    setCollapsed(false);
     setDragWidth(null);
-  }, [routeKey, setWidth, setCollapsed]);
+  }, [setCollapsed]);
 
   const toggleCollapsed = useCallback(() => {
-    if (!routeKey) return;
-    setCollapsed(routeKey, !isCollapsed);
-  }, [routeKey, isCollapsed, setCollapsed]);
+    setCollapsed(!isCollapsed);
+  }, [isCollapsed, setCollapsed]);
 
   return {
     width: currentWidth,

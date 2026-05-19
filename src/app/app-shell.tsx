@@ -45,7 +45,7 @@ export function AppShell({ children }: AppShellProps) {
     handleResizeEnd: handleSecondaryResizeEnd,
     handleDoubleClick: handleSecondaryDoubleClick,
     toggleCollapsed: toggleSecondaryCollapsed,
-  } = useSecondarySidebarResize(hasSecondary ? pathname : null);
+  } = useSecondarySidebarResize();
 
   // Wait for hydration to avoid flash of wrong content
   useEffect(() => {
@@ -67,15 +67,17 @@ export function AppShell({ children }: AppShellProps) {
     return <SetupWizard />;
   }
 
-  const gridTemplate = hasSecondary
+  const bodyGridTemplate = hasSecondary
     ? `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px ${secondaryWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`
     : `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
+  // Title bar uses its own static grid so tabs don't shift when a page registers a secondary sidebar.
+  const titleBarGridTemplate = `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <div
         className="h-10 shrink-0 border-b border-border/80 bg-muted/15 grid"
-        style={{ gridTemplateColumns: gridTemplate }}
+        style={{ gridTemplateColumns: titleBarGridTemplate }}
       >
         <div className="h-full relative flex items-center overflow-hidden">
           {hasMacTrafficLights && (
@@ -96,19 +98,13 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </div>
         <div data-tauri-drag-region className="h-full" />
-        {hasSecondary && (
-          <>
-            <div data-tauri-drag-region className="h-full" />
-            <div data-tauri-drag-region className="h-full" />
-          </>
-        )}
         <div className="h-full min-w-0 -ml-0.5">
           <TabBar inTitleBar />
         </div>
       </div>
       <div
         className="grid flex-1 min-h-0 overflow-hidden"
-        style={{ gridTemplateColumns: gridTemplate }}
+        style={{ gridTemplateColumns: bodyGridTemplate }}
       >
         <Sidebar
           width={sidebarWidth}
