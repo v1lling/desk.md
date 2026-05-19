@@ -1,6 +1,6 @@
 import { getDeskPath, joinPath, writeTextFile } from "@/lib/desk/tauri-fs";
 import { getWorkspacePath } from "@/lib/desk/paths";
-import { FILE_NAMES, SPECIAL_DIRS } from "@/lib/desk/constants";
+import { FILE_NAMES } from "@/lib/desk/constants";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import type { Workspace, Project } from "@/types";
 
@@ -13,9 +13,45 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
 
   lines.push("# Desk — AI Agent Context");
   lines.push("");
-  lines.push("Desk is a markdown-based work management system for freelancers.");
-  lines.push("All data lives as `.md` files with YAML frontmatter on the local filesystem.");
-  lines.push("You can read, create, edit, and delete items by working with these files directly.");
+  lines.push(
+    "Desk is a markdown-based work management system. All data lives as `.md` files with YAML frontmatter on the local filesystem — clients, projects, tasks, docs, meetings. You're meant to read across it; that's why it's structured this way."
+  );
+  lines.push("");
+
+  // How this space works (norms, non-imperative)
+  lines.push("## How this space works");
+  lines.push("");
+  lines.push("A few conventions keep this knowledge base coherent and tidy.");
+  lines.push("");
+  lines.push(
+    "**`docs/`** holds notes the user curates — contracts, references, drafts heading to clients. Read it freely when you need context. Don't write to it directly; new material flows in via `ai-docs/draft-*.md` and the user promotes it to `docs/` when ready."
+  );
+  lines.push("");
+  lines.push(
+    "**`ai-docs/`** is the AI working area. Everything here is AI-written — distilled from conversations, research, or analysis. This is where you capture and organize what you learn."
+  );
+  lines.push("");
+  lines.push(
+    "**`tasks/`** and **`meetings/`** are real, committed work items. Treat new ones as something the user decides to add — when you spot a candidate, surface it in chat rather than writing the file yourself."
+  );
+  lines.push("");
+  lines.push(
+    "**`.aiignore`** at each workspace root lists files the user has flagged as sensitive (gitignore-style patterns). Honor it. The in-app assistant enforces these exclusions automatically; external agents are asked to do the same."
+  );
+  lines.push("");
+
+  // Conventions inside ai-docs
+  lines.push("## Conventions inside ai-docs");
+  lines.push("");
+  lines.push("A small vocabulary keeps `ai-docs/` findable as it grows:");
+  lines.push("");
+  lines.push("- `context.md` — running project brief, kept current as understanding grows");
+  lines.push("- `research-{topic}.md` — investigations with sources");
+  lines.push("- `notes-{topic}.md` — working notes, append-friendly");
+  lines.push("- `draft-{topic}.md` — material destined for `docs/` after review");
+  lines.push("- `adr-NNN-{topic}.md` — recorded decisions");
+  lines.push("");
+  lines.push("Append to an existing note when continuing a thread. New files are for new topics, not new thoughts.");
   lines.push("");
 
   // Workspaces table
@@ -33,47 +69,32 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
     }
   }
   lines.push("");
-  lines.push("Each workspace has its own `CLAUDE.md` with project listings and a `WORKSPACE_CONTEXT.md` with an AI-generated file catalog (summaries of all docs, tasks, and meetings).");
+  lines.push(
+    "Each workspace has its own `CLAUDE.md` with project listings and a `WORKSPACE_CONTEXT.md` with an AI-generated catalog of all docs, tasks, and meetings."
+  );
   lines.push("");
 
-  // Directory structure
+  // Directory structure (collapsed)
   lines.push("## Directory Structure");
   lines.push("");
   lines.push("```");
   lines.push("~/Desk/");
-  lines.push("├── CLAUDE.md                        # This file");
-  lines.push("├── AGENTS.md                        # Same content (for non-Claude agents)");
+  lines.push("├── CLAUDE.md / AGENTS.md            # This file");
   lines.push("└── workspaces/");
-  lines.push("    ├── _personal/                   # Personal workspace (always exists)");
-  lines.push("    │   ├── workspace.md              # Workspace metadata");
-  lines.push("    │   ├── CLAUDE.md                 # Workspace-level agent context");
-  lines.push("    │   ├── WORKSPACE_CONTEXT.md      # AI-generated file catalog");
-  lines.push("    │   ├── .aiignore                 # Files to exclude from AI indexing");
-  lines.push("    │   ├── docs/                     # Workspace-level docs (tree with folders)");
-  lines.push("    │   ├── _capture/                 # Quick triage inbox (Personal only)");
-  lines.push("    │   │   └── tasks/");
-  lines.push("    │   ├── _unassigned/              # Items without a project");
-  lines.push("    │   │   ├── tasks/");
-  lines.push("    │   │   └── docs/");
-  lines.push("    │   └── projects/");
-  lines.push("    │       └── {projectId}/");
-  lines.push("    │           ├── project.md        # Project metadata");
-  lines.push("    │           ├── tasks/            # Task markdown files");
-  lines.push("    │           ├── docs/             # Doc tree (folders allowed)");
-  lines.push("    │           └── meetings/         # Meeting note files");
-  lines.push("    └── {workspaceId}/                # Client workspaces");
-  lines.push("        ├── workspace.md");
-  lines.push("        ├── CLAUDE.md");
-  lines.push("        ├── WORKSPACE_CONTEXT.md");
-  lines.push("        ├── docs/                     # Workspace-level docs");
-  lines.push("        ├── _unassigned/");
-  lines.push("        │   ├── tasks/");
-  lines.push("        │   ├── docs/");
-  lines.push("        │   └── meetings/");
+  lines.push("    └── {workspaceId}/               # _personal or a client workspace");
+  lines.push("        ├── workspace.md             # metadata");
+  lines.push("        ├── CLAUDE.md                # workspace anchor");
+  lines.push("        ├── WORKSPACE_CONTEXT.md     # AI-generated file catalog");
+  lines.push("        ├── .aiignore                # sensitive paths to skip");
+  lines.push("        ├── docs/                    # human-curated");
+  lines.push("        ├── ai-docs/                 # AI working area");
+  lines.push("        ├── _unassigned/             # items without a project (tasks/docs/meetings)");
+  lines.push("        ├── _capture/                # Personal workspace only — triage inbox (tasks)");
   lines.push("        └── projects/{projectId}/");
   lines.push("            ├── project.md");
+  lines.push("            ├── docs/                # human-curated");
+  lines.push("            ├── ai-docs/             # AI working area");
   lines.push("            ├── tasks/");
-  lines.push("            ├── docs/");
   lines.push("            └── meetings/");
   lines.push("```");
   lines.push("");
@@ -81,18 +102,17 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   // File naming
   lines.push("## File Naming Convention");
   lines.push("");
-  lines.push("All content files (tasks, docs, meetings) follow: `YYYY-MM-DD-{slug}.md`");
+  lines.push("Tasks, docs, and meetings follow: `YYYY-MM-DD-{slug}.md`");
   lines.push("");
   lines.push("- Date prefix: creation date in ISO format");
   lines.push("- Slug: lowercase, hyphenated title (max 50 chars)");
-  lines.push("- Example: `2024-06-15-setup-webhook-integration.md`");
   lines.push("- The file ID is the filename without `.md`");
   lines.push("");
 
   // Frontmatter schemas
   lines.push("## Frontmatter Schemas");
   lines.push("");
-  lines.push("All files use YAML frontmatter. The markdown body follows after `---`.");
+  lines.push("All files use YAML frontmatter; the markdown body follows `---`.");
   lines.push("");
 
   lines.push("### Task (`tasks/*.md`)");
@@ -104,17 +124,15 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("due: \"2024-06-20\"      # ISO date (optional)");
   lines.push("created: \"2024-06-15\"  # ISO date (required)");
   lines.push("---");
-  lines.push("Task description and notes in markdown...");
   lines.push("```");
   lines.push("");
 
-  lines.push("### Doc (`docs/*.md`)");
+  lines.push("### Doc (`docs/*.md` and `ai-docs/*.md`)");
   lines.push("```yaml");
   lines.push("---");
   lines.push("title: Architecture Overview");
-  lines.push("created: \"2024-06-15\"  # ISO date (required)");
+  lines.push("created: \"2024-06-15\"");
   lines.push("---");
-  lines.push("Document content in markdown...");
   lines.push("```");
   lines.push("");
 
@@ -122,13 +140,12 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("```yaml");
   lines.push("---");
   lines.push("title: Weekly Sync");
-  lines.push("date: \"2024-06-15\"     # When meeting occurred (required)");
-  lines.push("created: \"2024-06-15\"  # When note was created (required)");
-  lines.push("attendees:             # Optional list");
+  lines.push("date: \"2024-06-15\"     # when meeting occurred (required)");
+  lines.push("created: \"2024-06-15\"  # when note was written (required)");
+  lines.push("attendees:             # optional");
   lines.push("  - Alice");
   lines.push("  - Bob");
   lines.push("---");
-  lines.push("Meeting notes and action items...");
   lines.push("```");
   lines.push("");
 
@@ -148,48 +165,22 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("---");
   lines.push("name: Acme Corp");
   lines.push("description: Website and backend work");
-  lines.push("color: \"#3b82f6\"       # Hex color for UI (optional)");
+  lines.push("color: \"#3b82f6\"       # optional");
   lines.push("created: \"2024-01-01\"");
   lines.push("---");
   lines.push("```");
   lines.push("");
 
-  // Special directories
-  lines.push("## Special Directories");
-  lines.push("");
-  lines.push("- **`_personal`**: The Personal workspace. Always exists, always first in the UI. Has an extra `_capture/` inbox.");
-  lines.push("- **`_unassigned`**: Items (tasks, docs, meetings) not assigned to any project. Every workspace has one.");
-  lines.push("- **`_capture`**: Quick triage inbox within Personal workspace only. Contains tasks for later sorting.");
-  lines.push("");
-
-  // How to create items
+  // Creating & editing
   lines.push("## Creating & Editing Items");
   lines.push("");
-  lines.push("To create a new task, doc, or meeting, write a `.md` file with the correct frontmatter in the appropriate directory.");
+  lines.push(
+    "To create a new task, doc, or meeting, write a `.md` file with the correct frontmatter in the appropriate directory. To edit: modify the frontmatter or body. To delete: remove the file."
+  );
   lines.push("");
-  lines.push("**Example: Create a task in project \"website\" of workspace \"acme\":**");
-  lines.push("```bash");
-  lines.push("# Write to: workspaces/acme/projects/website/tasks/2024-06-15-fix-login-bug.md");
-  lines.push("```");
-  lines.push("```yaml");
-  lines.push("---");
-  lines.push("title: Fix login bug");
-  lines.push("status: todo");
-  lines.push("priority: high");
-  lines.push("created: \"2024-06-15\"");
-  lines.push("---");
-  lines.push("The login form throws a 500 error when...");
-  lines.push("```");
-  lines.push("");
-  lines.push("To edit: modify the frontmatter or body content. To delete: remove the file.");
-  lines.push("");
-  lines.push("To create a new project: create a directory under `projects/` with a `project.md`, plus `tasks/`, `docs/`, and `meetings/` subdirectories.");
-  lines.push("");
-
-  // .aiignore
-  lines.push("## .aiignore");
-  lines.push("");
-  lines.push("Each workspace can have a `.aiignore` file at its root with gitignore-style patterns to exclude files from the AI catalog.");
+  lines.push(
+    "To create a new project: add a directory under `projects/` with a `project.md`, plus `tasks/`, `docs/`, `ai-docs/`, and `meetings/` subdirectories."
+  );
   lines.push("");
 
   return `${lines.join("\n").trim()}\n`;
@@ -212,11 +203,10 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
   lines.push(`- **Created**: ${workspace.created}`);
   lines.push("");
 
-  // Projects table
   lines.push("## Projects");
   lines.push("");
   if (projects.length === 0) {
-    lines.push("No projects yet. Items are in `_unassigned/`.");
+    lines.push("No projects yet. Items live in `_unassigned/`.");
   } else {
     lines.push("| Name | ID | Status |");
     lines.push("|------|----|--------|");
@@ -226,35 +216,9 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
   }
   lines.push("");
 
-  // Pointer to catalog
-  lines.push("## File Catalog");
-  lines.push("");
-  lines.push(`See \`${FILE_NAMES.WORKSPACE_CONTEXT_MD}\` in this directory for an AI-generated catalog of all files with summaries.`);
-  lines.push("");
-
-  // Brief structure
-  lines.push("## Structure");
-  lines.push("");
-  lines.push("```");
-  lines.push(`${workspace.id}/`);
-  if (workspace.id === SPECIAL_DIRS.PERSONAL) {
-    lines.push("├── _capture/tasks/       # Quick triage inbox");
-  }
-  lines.push("├── _unassigned/          # Items without a project");
-  lines.push("│   ├── tasks/");
-  lines.push("│   ├── docs/");
-  if (workspace.id !== SPECIAL_DIRS.PERSONAL) {
-    lines.push("│   └── meetings/");
-  } else {
-    lines.push("│   └── docs/");
-  }
-  lines.push("├── docs/                 # Workspace-level docs");
-  lines.push("└── projects/{id}/");
-  lines.push("    ├── project.md");
-  lines.push("    ├── tasks/");
-  lines.push("    ├── docs/");
-  lines.push("    └── meetings/");
-  lines.push("```");
+  lines.push(
+    `See \`${FILE_NAMES.WORKSPACE_CONTEXT_MD}\` for an AI-generated catalog of all files with summaries. The global \`~/Desk/CLAUDE.md\` covers conventions and how this space works.`
+  );
   lines.push("");
 
   return `${lines.join("\n").trim()}\n`;

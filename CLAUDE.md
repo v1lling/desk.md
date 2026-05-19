@@ -77,7 +77,7 @@ Key features:
 - Projects inline in sidebar (alphabetically sorted)
 - Project detail with Overview, Tasks, Docs, Meetings tabs
 - **Docs**: Tree structure with folders, drag-drop import
-- **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index or RAG)
+- **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index)
 - Global search (Cmd+K)
 - Manual save with Cmd+S, unsaved changes protection
 
@@ -212,10 +212,8 @@ All app metadata lives in `~/Desk/.desk/` for organization and consistency:
 │   │   └── indexes.json     ← Smart Index (all workspaces in one file)
 │   ├── usage/
 │   │   └── ai-usage.json   ← AI usage records (90-day rolling)
-│   ├── planner/
-│   │   └── weeks.json      ← Week planner data
-│   └── rag/
-│       └── vectors.db       ← RAG vector database (SQLite)
+│   └── planner/
+│       └── weeks.json      ← Week planner data
 └── workspaces/
     └── {workspaceId}/
         ├── .aiignore        ← Per-workspace AI exclusions (.gitignore syntax)
