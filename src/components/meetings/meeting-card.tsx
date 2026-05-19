@@ -31,15 +31,13 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
       <div
         className={cn(
           "p-1.5 rounded-md shrink-0",
-          isLatest ? "bg-violet-500/20" : "bg-muted"
+          isLatest ? "bg-primary/15" : "bg-muted"
         )}
       >
         <Calendar
           className={cn(
             "h-3.5 w-3.5",
-            isLatest
-              ? "text-violet-600 dark:text-violet-400"
-              : "text-muted-foreground"
+            isLatest ? "text-primary" : "text-muted-foreground"
           )}
         />
       </div>
@@ -50,7 +48,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
             {meeting.title}
           </span>
           {isLatest && (
-            <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[10px] font-medium text-brand-accent bg-brand-accent/10 px-1.5 py-0.5 rounded shrink-0">
               Latest
             </span>
           )}

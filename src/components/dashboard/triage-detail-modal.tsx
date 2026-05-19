@@ -159,7 +159,7 @@ export function TriageDetailModal({
 function DestinationBadge({ destination }: { destination: TriageDestination }) {
   if (destination.type === "personal") {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs font-medium">
+      <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
         <User className="size-3" />
         Personal Tasks
       </div>
@@ -167,7 +167,7 @@ function DestinationBadge({ destination }: { destination: TriageDestination }) {
   }
 
   return (
-    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium">
+    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
       <FolderKanban className="size-3" />
       {destination.workspaceName}
       {destination.projectName && (

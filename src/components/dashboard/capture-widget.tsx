@@ -95,15 +95,15 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
       className={cn(
         "bg-card border rounded-lg p-4 transition-colors",
         hasTasks
-          ? "border-amber-500/50 bg-amber-500/[0.03]"
+          ? "border-brand-accent/50 bg-brand-accent/[0.03]"
           : "border-border"
       )}
     >
       <div className="flex items-center gap-2 mb-3">
-        <Zap className={cn("size-4", hasTasks ? "text-amber-500" : "text-violet-500")} />
+        <Zap className={cn("size-4", hasTasks ? "text-brand-accent" : "text-primary")} />
         <h2 className="font-medium">Capture</h2>
         {hasTasks && (
-          <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+          <span className="text-xs font-medium text-brand-accent">
             {tasks.length} to triage
           </span>
         )}
@@ -177,7 +177,7 @@ function CaptureItem({
   onDelete,
 }: CaptureItemProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-md border-l-2 border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 transition-colors group">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-md border-l-2 border-brand-accent bg-brand-accent/5 hover:bg-brand-accent/10 transition-colors group">
       <span className="flex-1 text-sm font-medium truncate">{task.title}</span>
 
       <DropdownMenu>

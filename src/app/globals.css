@@ -29,6 +29,8 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -80,9 +82,13 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.01 260);
 
-  /* Primary - deep slate blue for buttons and accents */
-  --primary: oklch(0.25 0.02 260);
+  /* Primary - brand navy from app icon (#0F1E38) */
+  --primary: oklch(0.22 0.05 260);
   --primary-foreground: oklch(0.98 0 0);
+
+  /* Brand accent - orange from app icon (#EB7143), for highlights/attention */
+  --brand-accent: oklch(0.68 0.16 40);
+  --brand-accent-foreground: oklch(0.99 0 0);
 
   /* Secondary - soft warm gray */
   --secondary: oklch(0.96 0.003 90);
@@ -114,7 +120,7 @@
   /* Sidebar - slightly cooler tone */
   --sidebar: oklch(0.98 0.003 260);
   --sidebar-foreground: oklch(0.25 0.02 260);
-  --sidebar-primary: oklch(0.25 0.02 260);
+  --sidebar-primary: oklch(0.22 0.05 260);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.94 0.01 250);
   --sidebar-accent-foreground: oklch(0.25 0.02 260);
@@ -135,6 +141,10 @@
 
   --primary: oklch(0.95 0.005 90);
   --primary-foreground: oklch(0.17 0.01 260);
+
+  /* Brand accent stays consistent across themes */
+  --brand-accent: oklch(0.68 0.16 40);
+  --brand-accent-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.22 0.01 260);
   --secondary-foreground: oklch(0.95 0.005 90);

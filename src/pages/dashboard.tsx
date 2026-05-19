@@ -35,7 +35,7 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
   return (
     <DataCard>
       <div className="flex items-center gap-2 mb-2">
-        <Loader2 className="size-4 text-orange-500" />
+        <Loader2 className="size-4 text-brand-accent" />
         <h2 className="text-base font-medium">Focus</h2>
         <span className="text-xs text-muted-foreground">{tasks.length} in progress</span>
       </div>
@@ -85,7 +85,7 @@ function WorkspacesWidget({
   return (
     <DataCard>
       <div className="flex items-center gap-2 mb-2">
-        <CheckCircle2 className="size-4 text-blue-500" />
+        <CheckCircle2 className="size-4 text-primary" />
         <h2 className="text-base font-medium">Workspaces</h2>
       </div>
 
@@ -130,8 +130,8 @@ function ProgressBar({ percent }: { percent: number }) {
           percent === 100
             ? "bg-green-500"
             : percent >= 50
-              ? "bg-blue-500"
-              : "bg-orange-500"
+              ? "bg-primary"
+              : "bg-brand-accent"
         )}
         style={{ width: `${percent}%` }}
       />
