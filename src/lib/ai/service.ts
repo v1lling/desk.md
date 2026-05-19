@@ -1,29 +1,31 @@
 import { createProvider } from './provider';
-import { buildPrompt } from './prompts';
 import { getProviderDefinition } from './provider-registry';
 import { getSecret } from './secrets';
+import { BASE_CONTEXT } from './prompts';
 import type {
-  AIPurpose,
-  AIServiceRequest,
-  AIServiceResponse,
   AIUsage,
   AIProviderType,
 } from './types';
 
 // =============================================================================
-// AI Service - Purpose-based API
+// AI Service - Used by Smart Index for batch summarization
 // =============================================================================
 
 export interface AIServiceConfig {
   providerType: AIProviderType;
   apiKey?: string;
   model?: string;
-  onUsage?: (usage: AIUsage, purpose: AIPurpose, provider: AIProviderType) => void;
+  onUsage?: (usage: AIUsage, purpose: string, provider: AIProviderType) => void;
+}
+
+export interface AIServiceResponse {
+  message: string;
+  usage?: AIUsage;
 }
 
 /**
- * AI Service provides a high-level, purpose-based API for AI interactions.
- * It handles prompt building, context injection, and usage tracking.
+ * AI Service for programmatic AI calls (summarization, etc.).
+ * The in-app assistant uses its own orchestrator instead.
  */
 export class AIService {
   private config: AIServiceConfig;
@@ -32,17 +34,18 @@ export class AIService {
     this.config = config;
   }
 
-  /**
-   * Update service configuration
-   */
   updateConfig(config: Partial<AIServiceConfig>): void {
     this.config = { ...this.config, ...config };
   }
 
   /**
-   * Generic request handler for all purposes
+   * Custom purpose with your own system prompt.
+   * Used by context index builder for batch summarization.
    */
-  async request(req: AIServiceRequest): Promise<AIServiceResponse> {
+  async custom(
+    systemPrompt: string,
+    message: string,
+  ): Promise<AIServiceResponse> {
     const providerDef = getProviderDefinition(this.config.providerType);
     const resolvedKey = this.config.apiKey ?? await getSecret(providerDef.keyRef) ?? undefined;
 
@@ -52,26 +55,16 @@ export class AIService {
       model: this.config.model,
     });
 
-    // Build the prompt for this purpose
-    const { systemPrompt } = buildPrompt(
-      req.purpose,
-      req.message,
-      req.context,
-      req.customSystemPrompt,
-      req.userInstructions
-    );
+    const today = new Date().toISOString().split('T')[0];
+    const fullPrompt = `Today's date: ${today}.\n\n${BASE_CONTEXT}\n\n${systemPrompt}`;
 
-    // Make the request
     const response = await provider.chat({
-      message: req.message,
-      systemPrompt,
-      context: req.context,
-      history: req.history,
+      message,
+      systemPrompt: fullPrompt,
     });
 
-    // Track usage if callback provided
     if (response.usage && this.config.onUsage) {
-      this.config.onUsage(response.usage, req.purpose, this.config.providerType);
+      this.config.onUsage(response.usage, 'custom', this.config.providerType);
     }
 
     return {
@@ -79,32 +72,7 @@ export class AIService {
       usage: response.usage,
     };
   }
-
-  /**
-   * Custom purpose with your own system prompt.
-   * Used by context catalog indexing/selection utilities.
-   */
-  async custom(
-    systemPrompt: string,
-    message: string,
-    options?: {
-      context?: AIServiceRequest['context'];
-      history?: AIServiceRequest['history'];
-    }
-  ): Promise<AIServiceResponse> {
-    return this.request({
-      purpose: 'custom',
-      message,
-      context: options?.context,
-      history: options?.history,
-      customSystemPrompt: systemPrompt,
-    });
-  }
 }
-
-// =============================================================================
-// Factory
-// =============================================================================
 
 /**
  * Create a new AI service instance

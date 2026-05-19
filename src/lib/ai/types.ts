@@ -53,23 +53,11 @@ export interface AIEmail {
   body: string;
 }
 
-export interface AIContextResult {
-  docPath: string;
-  title: string;
-  content: string;
-  contentType: 'doc' | 'task' | 'meeting';
-  score: number;
-}
-
 export interface AIContext {
   docs?: AIDoc[];
   tasks?: AITask[];
   emails?: AIEmail[];
   custom?: Record<string, string>;
-  /** Auto-retrieved context results */
-  contextResults?: AIContextResult[];
-  /** Titles of files already sent in earlier conversation turns (for AI awareness) */
-  previousContextTitles?: string[];
 }
 
 // =============================================================================
@@ -111,27 +99,6 @@ export type AIPurpose =
   | 'chat'           // General chat with manual context
   | 'draft-email'    // Draft email response
   | 'custom';        // Custom purpose with provided prompt
-
-export interface AIServiceRequest {
-  purpose: AIPurpose;
-  message: string;
-  context?: AIContext;
-  history?: AIMessage[];
-  /** Custom system prompt (required for 'custom' purpose) */
-  customSystemPrompt?: string;
-  /** User's standing instructions (always included in prompts) */
-  userInstructions?: string;
-}
-
-export interface AIServiceResponse {
-  message: string;
-  usage?: AIUsage;
-  /** Parsed structured data if applicable */
-  structured?: {
-    tasks?: AITask[];
-    // Future: emails, summaries, etc.
-  };
-}
 
 // =============================================================================
 // Usage Tracking Types

@@ -1,4 +1,4 @@
-import type { AIPurpose, AIContext } from './types';
+import type { AIPurpose } from './types';
 
 // =============================================================================
 // System Prompts
@@ -205,7 +205,7 @@ export function combineInstructions(
 
 /**
  * System prompts for internal operations (indexing, context search, etc.)
- * These are used directly with AI service, not through buildPrompt()
+ * These are passed directly to AIService.custom() for batch summarization.
  */
 export const SYSTEM_PROMPTS = {
   /**
@@ -222,123 +222,3 @@ export const SYSTEM_PROMPTS = {
 
 } as const;
 
-/**
- * Get the full system prompt for a purpose (BASE_CONTEXT + PURPOSE_PROMPT)
- */
-function getPromptForPurpose(purpose: Exclude<AIPurpose, "custom">): string {
-  return `${BASE_CONTEXT}\n\n${getPurposePrompt(purpose)}`;
-}
-
-// =============================================================================
-// Context Formatting
-// =============================================================================
-
-/** Map numeric score back to relevance label for prompt display */
-function scoreToRelevance(score: number): string {
-  if (score >= 0.9) return 'high';
-  if (score >= 0.6) return 'medium';
-  return 'low';
-}
-
-/**
- * Format context into a string for inclusion in the prompt
- */
-export function formatContext(context: AIContext): string {
-  const sections: string[] = [];
-
-  if (context.docs && context.docs.length > 0) {
-    const docsText = context.docs
-      .map((d) => `### ${d.title}\n${d.content}`)
-      .join('\n\n');
-    sections.push(`## Documents\n${docsText}`);
-  }
-
-  if (context.tasks && context.tasks.length > 0) {
-    const tasksText = context.tasks
-      .map((t) => `- [${t.status === 'done' ? 'x' : ' '}] ${t.title}${t.content ? `\n  ${t.content}` : ''}`)
-      .join('\n');
-    sections.push(`## Tasks\n${tasksText}`);
-  }
-
-  if (context.emails && context.emails.length > 0) {
-    const emailsText = context.emails
-      .map((e) => `### From: ${e.from}\nSubject: ${e.subject}\n\n${e.body}`)
-      .join('\n\n---\n\n');
-    sections.push(`## Emails\n${emailsText}`);
-  }
-
-  if (context.contextResults && context.contextResults.length > 0) {
-    const contextText = context.contextResults
-      .map((r) => {
-        const relevance = scoreToRelevance(r.score);
-        return `### ${r.title} (${r.contentType}, ${relevance} relevance)\n${r.content}`;
-      })
-      .join('\n\n');
-    sections.push(`## Auto-Retrieved Context\nThe following items were automatically retrieved. Focus on high-relevance items; medium/low items are background that may or may not be useful.\n\n${contextText}`);
-  }
-
-  if (context.previousContextTitles && context.previousContextTitles.length > 0) {
-    sections.push(`## Previously Provided Context\nThese files were included in earlier turns — refer to conversation history for details: ${context.previousContextTitles.join(', ')}`);
-  }
-
-  if (context.custom) {
-    for (const [key, value] of Object.entries(context.custom)) {
-      sections.push(`## ${key}\n${value}`);
-    }
-  }
-
-  return sections.join('\n\n');
-}
-
-// =============================================================================
-// Prompt Building
-// =============================================================================
-
-export interface BuiltPrompt {
-  systemPrompt: string;
-  userMessage: string;
-}
-
-/**
- * Build the full prompt for a given purpose and context.
- */
-
-export function buildPrompt(
-  purpose: AIPurpose,
-  message: string,
-  context?: AIContext,
-  customSystemPrompt?: string,
-  userInstructions?: string
-): BuiltPrompt {
-  const today = new Date().toISOString().split('T')[0];
-
-  // Get system prompt (BASE_CONTEXT + purpose-specific)
-  let systemPrompt: string;
-  if (purpose === 'custom') {
-    if (!customSystemPrompt) {
-      throw new Error('customSystemPrompt required for custom purpose');
-    }
-    // For custom, prepend BASE_CONTEXT to user's prompt
-    systemPrompt = `Today's date: ${today}.\n\n${BASE_CONTEXT}\n\n${customSystemPrompt}`;
-  } else {
-    systemPrompt = `Today's date: ${today}.\n\n${getPromptForPurpose(purpose)}`;
-  }
-
-  // Add user's standing instructions if provided
-  if (userInstructions?.trim()) {
-    systemPrompt += `\n\n# User Instructions\nThe user has provided these standing instructions that should always be followed:\n${userInstructions.trim()}`;
-  }
-
-  // Add context to system prompt if provided
-  if (context) {
-    const contextText = formatContext(context);
-    if (contextText) {
-      systemPrompt += `\n\n# Context\nUse the following context to inform your response:\n\n${contextText}`;
-    }
-  }
-
-  return {
-    systemPrompt,
-    userMessage: message,
-  };
-}

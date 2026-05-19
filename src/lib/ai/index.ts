@@ -3,7 +3,6 @@ export * from './types';
 
 // Utils
 export { parseDocPath } from './utils';
-export { deduplicateContext } from './context-dedup';
 
 // Provider layer
 export { createProvider, type ProviderConfig } from './provider';
@@ -12,12 +11,10 @@ export { getSecret, setSecret, deleteSecret, hasSecret, type SecretKeyRef } from
 
 // Prompts
 export {
-  buildPrompt,
   buildAssistantSystemPrompt,
   buildAssistantPromptBreakdown,
   buildAssistantTurnUserMessage,
   buildDraftEmailUserMessage,
-  formatContext,
   combineInstructions,
   BASE_CONTEXT,
   USER_FACING_PROMPTS,

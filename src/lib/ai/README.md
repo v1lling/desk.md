@@ -31,17 +31,27 @@ No AI API keys are persisted in Zustand/localStorage.
 
 ## Service layer
 
-`AIService` handles prompt construction and raw purpose-based calls for internal helpers.
-Current app usage is focused on `request()` and `custom()` for context-catalog flows.
+`AIService` handles raw AI calls for internal helpers (Smart Index summarization).
+The in-app assistant uses its own orchestrator (`src/lib/assistant/orchestrator.ts`).
 
 File:
 
 - `src/lib/ai/service.ts`
 
-## MCP path
+## Assistant
 
-- Advanced tool workflows run through the standalone `desk-mcp` sidecar.
-- In-app AI runs through the Assistant orchestrator/tool loop (including email drafting handoff).
+The in-app chat assistant is a read-only advisor with 5 tools:
+- `desk_workspace_info` — list workspaces and projects
+- `desk_tree` — browse file tree
+- `desk_catalog` — query Smart Index summaries
+- `desk_read` — read file content
+- `desk_search` — full-text search
+
+Files:
+
+- `src/lib/assistant/orchestrator.ts` — streaming turn runner
+- `src/lib/assistant/tool-core.ts` — tool definitions
+- `src/lib/assistant/types.ts` — event and message types
 
 ## Adding a provider
 
