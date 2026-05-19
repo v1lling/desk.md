@@ -50,7 +50,6 @@ export async function createDocInFolder(data: {
     created: todayISO(),
     content,
     preview: generatePreview(content),
-    kind,
   };
 
   if (!isTauri()) {

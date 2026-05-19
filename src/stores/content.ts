@@ -13,9 +13,15 @@ export const contentKeys = {
   // Tree keys for scoped content trees (kind distinguishes human vs AI docs)
   tree: (scope: ContentScope, workspaceId?: string, projectId?: string, kind: DocKind = "human") =>
     [...contentKeys.all, "tree", scope, workspaceId || "", projectId || "", kind] as const,
+  // Merged tree (human + AI flattened into a single UI tree)
+  mergedTree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
+    [...contentKeys.all, "merged-tree", scope, workspaceId || "", projectId || ""] as const,
   // Workspace overview tree (workspace content + project folders)
   overview: (workspaceId: string, kind: DocKind = "human") =>
     [...contentKeys.byWorkspace(workspaceId), "overview-tree", kind] as const,
+  // Merged workspace overview (human + AI flattened)
+  mergedOverview: (workspaceId: string) =>
+    [...contentKeys.byWorkspace(workspaceId), "merged-overview-tree"] as const,
 };
 
 /**
@@ -131,7 +137,7 @@ export function useDeleteDoc() {
     mutationFn: (doc: Doc) => contentLib.deleteDoc(doc),
     onSuccess: (success, doc) => {
       if (success) {
-        // Invalidate workspace-scoped queries
+        // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
         queryClient.invalidateQueries({
           queryKey: contentKeys.byWorkspace(doc.workspaceId),
         });
@@ -141,6 +147,15 @@ export function useDeleteDoc() {
         });
         queryClient.invalidateQueries({
           queryKey: contentKeys.tree("project", doc.workspaceId, doc.projectId),
+        });
+        // mergedTree keys live at ["content", "merged-tree", …] — outside byWorkspace prefix,
+        // so they must be invalidated explicitly. mergedOverview lives under byWorkspace
+        // and is already covered by the invalidation above.
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.mergedTree("workspace", doc.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.mergedTree("project", doc.workspaceId, doc.projectId),
         });
       }
     },
@@ -157,7 +172,7 @@ export function useDeleteAsset() {
     mutationFn: (asset: Asset) => contentLib.deleteAsset(asset),
     onSuccess: (success, asset) => {
       if (success) {
-        // Invalidate workspace-scoped queries
+        // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
         queryClient.invalidateQueries({
           queryKey: contentKeys.byWorkspace(asset.workspaceId),
         });
@@ -167,6 +182,14 @@ export function useDeleteAsset() {
         });
         queryClient.invalidateQueries({
           queryKey: contentKeys.tree("project", asset.workspaceId, asset.projectId),
+        });
+        // mergedTree keys are outside the byWorkspace prefix and need explicit invalidation.
+        // mergedOverview lives under byWorkspace and is already covered above.
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.mergedTree("workspace", asset.workspaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.mergedTree("project", asset.workspaceId, asset.projectId),
         });
       }
     },
@@ -263,6 +286,19 @@ export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: Doc
 }
 
 /**
+ * Hook to fetch the merged workspace overview shell.
+ * Project stubs remain lazy — on expand, callers fetch the per-project merged tree
+ * via useQueries with `contentKeys.mergedTree("project", ws, projectId)`.
+ */
+export function useMergedWorkspaceOverviewShell(workspaceId?: string | null) {
+  return useQuery({
+    queryKey: contentKeys.mergedOverview(workspaceId || ""),
+    queryFn: () => contentLib.getMergedWorkspaceOverviewShell(workspaceId!),
+    enabled: !!workspaceId,
+  });
+}
+
+/**
  * Hook to create a folder in the content tree
  */
 export function useCreateFolder() {
@@ -291,6 +327,12 @@ export function useCreateFolder() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
     },
   });
 }
@@ -326,6 +368,12 @@ export function useRenameFolder() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
     },
   });
 }
@@ -359,6 +407,12 @@ export function useDeleteFolder() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
     },
   });
 }
@@ -394,6 +448,12 @@ export function useMoveFolder() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
     },
   });
 }
@@ -455,6 +515,12 @@ export function useMoveDoc() {
           ),
         });
       }
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
     },
   });
 }
@@ -485,6 +551,12 @@ export function useCreateDocInFolder() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
       // Also invalidate the flat list queries for backward compatibility
       if (variables.workspaceId) {
         queryClient.invalidateQueries({
@@ -528,6 +600,12 @@ export function useImportFiles() {
           variables.kind
         ),
       });
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
+      });
+      if (variables.workspaceId) {
+        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+      }
       // Also invalidate the flat list queries
       if (variables.workspaceId) {
         queryClient.invalidateQueries({

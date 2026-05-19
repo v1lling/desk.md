@@ -53,6 +53,7 @@ export {
   contentKeys,
   useContentTree,
   useWorkspaceOverviewShell,
+  useMergedWorkspaceOverviewShell,
   useCreateFolder,
   useRenameFolder,
   useDeleteFolder,

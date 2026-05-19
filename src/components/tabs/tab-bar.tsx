@@ -4,6 +4,8 @@ import { Bot, Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
+import { useSecondarySidebarReservedWidth } from "@/hooks/use-secondary-sidebar-resize";
 import type { TabType } from "@/stores/tabs";
 import { TabItem } from "./tab-item";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
@@ -69,7 +71,15 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   const pendingSaveAndClose = useTabStore((state) => state.pendingSaveAndClose);
   const currentWorkspace = useCurrentWorkspace();
   const sidebarWidth = usePreferencesStore((state) => state.sidebarWidth);
+  const secondarySlotRouteKey = useSecondarySidebarStore((state) => state.routeKey);
+  const secondarySlotContent = useSecondarySidebarStore((state) => state.content);
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+
+  // Share the width calc with AppShell so right-edge math stays in lockstep.
+  const hasSecondary =
+    secondarySlotContent !== null && secondarySlotRouteKey === pathname;
+  const secondarySidebarWidth = useSecondarySidebarReservedWidth(hasSecondary ? pathname : null);
+  const secondaryReservedWidth = hasSecondary ? secondarySidebarWidth + 4 : 0; // +4 for the resize handle column
 
   const [dirtyCloseDialog, setDirtyCloseDialog] = useState<{
     open: boolean;
@@ -228,7 +238,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   );
 
   const { visibleTabs, overflowTabs } = useMemo(() => {
-    const containerWidth = windowWidth - sidebarWidth - 4 - 8; // 4=resize handle, 8=pr-2
+    const containerWidth = windowWidth - sidebarWidth - 4 - 8 - secondaryReservedWidth; // 4=resize handle, 8=pr-2
     const contentTabs = tabs.filter(
       (tab) => tab.type !== "desk" && tab.type !== "ai"
     );
@@ -258,7 +268,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
     const nextOverflowTabs = contentTabs.filter((tab) => !visibleTabIds.has(tab.id));
 
     return { visibleTabs: nextVisibleTabs, overflowTabs: nextOverflowTabs };
-  }, [tabs, activeTabId, windowWidth, sidebarWidth]);
+  }, [tabs, activeTabId, windowWidth, sidebarWidth, secondaryReservedWidth]);
 
   const mainTabs = useMemo(() => {
     const order: TabType[] = ["desk", "ai"];
@@ -304,7 +314,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
 
   return (
     <>
-      <div className={barClasses}>
+      <div className={barClasses} data-tab-bar>
         <div className={innerClasses}>
           {mainTabs.length > 0 && (
             <>

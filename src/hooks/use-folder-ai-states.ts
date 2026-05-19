@@ -7,25 +7,36 @@ import { useState, useEffect, useCallback } from "react";
 import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/context-index/aiignore";
 import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
 import { isTauri } from "@/lib/desk/tauri-fs";
+import { splitTreePathToKind } from "@/lib/desk/tree-path";
 import type { ContentScope } from "@/types";
 
 /**
- * Convert a content-relative folder path to a workspace-relative path.
- * Content tree uses paths relative to the content base (e.g., "drafts"),
- * but .aiignore stores paths relative to workspace root (e.g., "projects/website/docs/drafts").
+ * Convert a tree-relative folder path to a workspace-relative path used by .aiignore.
+ * Paths under the AI Docs sentinel are mapped to `ai-docs/...`; everything else to `docs/...`.
+ *
+ * Examples (workspace scope):
+ *   "drafts" → "docs/drafts"
+ *   "__ai-docs__/research" → "ai-docs/research"
+ *
+ * Examples (project scope, projectId="alpha"):
+ *   "drafts" → "projects/alpha/docs/drafts"
+ *   "__ai-docs__/research" → "projects/alpha/ai-docs/research"
  */
 function toWorkspaceRelativePath(
-  contentRelativePath: string,
+  treePath: string,
   scope: ContentScope,
   projectId?: string
 ): string {
+  const { kind, subPath } = splitTreePathToKind(treePath);
+  const dirSegment = kind === "ai" ? "ai-docs" : "docs";
+  const suffix = subPath ? `/${subPath}` : "";
   if (scope === "personal" || scope === "workspace") {
-    return `docs/${contentRelativePath}`;
+    return `${dirSegment}${suffix}`;
   }
   if (projectId) {
-    return `projects/${projectId}/docs/${contentRelativePath}`;
+    return `projects/${projectId}/${dirSegment}${suffix}`;
   }
-  return contentRelativePath;
+  return treePath;
 }
 
 /**

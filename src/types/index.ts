@@ -46,7 +46,8 @@ export interface Task {
 export type TaskStatus = 'backlog' | 'todo' | 'doing' | 'waiting' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
-// Doc kind - derived from filesystem path (docs/ vs ai-docs/), not stored in frontmatter
+// Doc kind - derived from filesystem path (docs/ vs ai-docs/), not stored in frontmatter.
+// Still used by lib-level CRUD to select the physical directory (docs/ vs ai-docs/).
 export type DocKind = 'human' | 'ai';
 
 // Doc - lives under a project (renamed from Note)
@@ -55,14 +56,13 @@ export interface Doc {
   path?: string;           // Relative path with folders (e.g., "tech/architecture.md")
   projectId: string;
   workspaceId: string;
-  filePath: string;        // Full absolute path
+  filePath: string;        // Full absolute path — encodes kind via `/docs/` or `/ai-docs/` segment
   title: string;
   created: string;
   content: string;
   preview?: string;        // First ~100 chars
   fileCreated?: string;    // OS file creation time (ISO)
   fileModified?: string;   // OS file modification time (ISO)
-  kind?: DocKind;          // 'human' (from docs/) or 'ai' (from ai-docs/)
 }
 
 // Folder in the content tree (can contain docs and assets)
@@ -74,8 +74,6 @@ export interface ContentFolder {
   projectId?: string;      // Project ID (for project folders in overview)
   docCount?: number;       // Doc count for project folder header
   assetCount?: number;     // Asset count for project folder header
-  isSection?: boolean;     // True for section headers (Docs / AI Docs) in overview mode
-  sectionKind?: DocKind;   // Which doc kind this section contains
 }
 
 // Asset - non-markdown file (metadata only, opens externally)

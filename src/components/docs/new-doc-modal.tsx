@@ -17,10 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Folder } from "lucide-react";
+import { Loader2, Folder, Sparkles } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
-import type { ContentScope, DocKind } from "@/types";
+import type { ContentScope } from "@/types";
+import {
+  displayTreePath,
+  splitTreePathToKind,
+  isAITreePath,
+  isReservedAIDocsName,
+} from "@/lib/desk/tree-path";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
 
@@ -30,8 +36,8 @@ interface NewDocModalProps {
   defaultProjectId?: string;
   defaultScope?: ContentScope;
   defaultWorkspaceId?: string;
+  /** Tree-relative folder path (may contain the AI Docs sentinel). */
   defaultFolderPath?: string;
-  kind?: DocKind;
 }
 
 export function NewDocModal({
@@ -41,7 +47,6 @@ export function NewDocModal({
   defaultScope,
   defaultWorkspaceId,
   defaultFolderPath,
-  kind = "human",
 }: NewDocModalProps) {
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
@@ -61,6 +66,10 @@ export function NewDocModal({
   const isWorkspaceScope = defaultScope === "workspace";
   const isProjectScope = defaultScope === "project";
 
+  // Translate the tree path into a real on-disk folder + kind
+  const { kind: destinationKind, subPath: destinationSubPath } = splitTreePathToKind(defaultFolderPath || "");
+  const isAIDestination = isAITreePath(defaultFolderPath || "");
+
   useEffect(() => {
     if (defaultProjectId) {
       setProjectId(defaultProjectId);
@@ -70,16 +79,24 @@ export function NewDocModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim()) return;
+    const trimmed = title.trim();
+    if (!trimmed) return;
 
     // For non-personal scopes, we need a workspace
     if (!isPersonalScope && !workspaceId) return;
+
+    // Block creating a doc whose name would create a reserved-name folder collision.
+    // (Docs don't create folders, but be defensive about future automation.)
+    if (!isAIDestination && !destinationSubPath && isReservedAIDocsName(trimmed)) {
+      toast.error(`"${trimmed}" is a reserved name.`);
+      return;
+    }
 
     try {
       const templateBody = resolveVariables(
         getTemplate("doc", workspaceId || ""),
         {
-          title: title.trim(),
+          title: trimmed,
           date: new Date().toISOString().split("T")[0],
           project: projects.find((p) => p.id === (defaultProjectId || projectId))?.name || "",
           workspace: currentWorkspace?.name || "",
@@ -91,37 +108,37 @@ export function NewDocModal({
       if (isPersonalScope) {
         doc = await createDocInFolder.mutateAsync({
           scope: "personal",
-          title: title.trim(),
+          title: trimmed,
           templateBody: templateBody || undefined,
-          folderPath: defaultFolderPath,
-          kind,
+          folderPath: destinationSubPath,
+          kind: destinationKind,
         });
       } else if (isWorkspaceScope) {
         doc = await createDocInFolder.mutateAsync({
           scope: "workspace",
-          title: title.trim(),
+          title: trimmed,
           templateBody: templateBody || undefined,
-          folderPath: defaultFolderPath,
-          workspaceId: workspaceId,
-          kind,
+          folderPath: destinationSubPath,
+          workspaceId,
+          kind: destinationKind,
         });
       } else if (isProjectScope && defaultProjectId) {
         doc = await createDocInFolder.mutateAsync({
           scope: "project",
-          title: title.trim(),
+          title: trimmed,
           templateBody: templateBody || undefined,
-          folderPath: defaultFolderPath,
-          workspaceId: workspaceId,
+          folderPath: destinationSubPath,
+          workspaceId,
           projectId: defaultProjectId,
-          kind,
+          kind: destinationKind,
         });
       } else {
         doc = await createDoc.mutateAsync({
           workspaceId: workspaceId!,
           projectId: projectId || "_unassigned",
-          title: title.trim(),
+          title: trimmed,
           templateBody: templateBody || undefined,
-          kind,
+          kind: destinationKind,
         });
       }
 
@@ -150,12 +167,13 @@ export function NewDocModal({
   };
 
   const isPending = createDoc.isPending || createDocInFolder.isPending;
+  const friendlyPath = defaultFolderPath ? displayTreePath(defaultFolderPath) : "";
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{kind === "ai" ? "New AI Doc" : "New Doc"}</DialogTitle>
+          <DialogTitle>New Doc</DialogTitle>
           <DialogDescription className="sr-only">Create a new document in your workspace</DialogDescription>
         </DialogHeader>
 
@@ -172,10 +190,10 @@ export function NewDocModal({
 
           {/* Show folder path for personal/workspace/project scopes */}
           {(isPersonalScope || isWorkspaceScope || isProjectScope) ? (
-            defaultFolderPath && (
+            friendlyPath && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
-                <Folder className="size-4" />
-                <span>Creating in: {defaultFolderPath}</span>
+                {isAIDestination ? <Sparkles className="size-4" /> : <Folder className="size-4" />}
+                <span>Creating in: {friendlyPath}</span>
               </div>
             )
           ) : (

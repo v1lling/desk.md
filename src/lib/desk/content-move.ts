@@ -91,7 +91,13 @@ export async function moveDoc(
     const doc = mockDocs.find((d) => d.id === docId);
     if (doc) {
       doc.path = toPath ? `${toPath}/${doc.id}.md` : `${doc.id}.md`;
-      doc.kind = toKind;
+      // Reflect cross-kind moves in the mock filePath so subsequent path-based
+      // kind derivation picks up the new directory.
+      if (fromKind !== toKind) {
+        const oldSeg = fromKind === "ai" ? "/ai-docs/" : "/docs/";
+        const newSeg = toKind === "ai" ? "/ai-docs/" : "/docs/";
+        doc.filePath = doc.filePath.replace(oldSeg, newSeg);
+      }
     }
     return doc || null;
   }
@@ -129,6 +135,5 @@ export async function moveDoc(
     created: normalizeDate(parsed.frontmatter.created),
     content: parsed.content,
     preview: generatePreview(parsed.content),
-    kind: toKind,
   };
 }

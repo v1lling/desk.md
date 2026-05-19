@@ -24,7 +24,19 @@ import { getDocsPath, getAIDocsPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
 
 // Re-export all from split modules
-export { getNodeKey, getContentTree, extractDocs, extractAssets, extractFolderPaths, getAllDocs, getAllDocsForWorkspace, getWorkspaceOverviewShell } from "./content-tree";
+export {
+  getNodeKey,
+  getContentTree,
+  extractDocs,
+  extractAssets,
+  extractFolderPaths,
+  getAllDocs,
+  getAllDocsForWorkspace,
+  getWorkspaceOverviewShell,
+  getMergedContentTree,
+  getMergedWorkspaceOverviewShell,
+  prefixSubtreePaths,
+} from "./content-tree";
 export { createFolder, renameFolder, deleteFolder, moveFolder } from "./content-folders";
 export { moveDocToProject, moveDoc } from "./content-move";
 export { createDocInFolder, importFiles } from "./content-import";
@@ -95,7 +107,6 @@ export async function createDoc(data: {
     created: todayISO(),
     content,
     preview: generatePreview(content),
-    kind,
   };
 
   if (!isTauri()) {

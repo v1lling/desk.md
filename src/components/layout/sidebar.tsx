@@ -74,6 +74,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
 
   return (
     <aside
+      data-app-chrome
       className={cn(
         "flex flex-col h-full min-h-0 bg-sidebar",
         !isDragging && "transition-[width] duration-200"

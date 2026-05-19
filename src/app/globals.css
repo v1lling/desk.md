@@ -177,6 +177,18 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  /* Chrome — non-selectable to feel like a native desktop app.
+   * Content areas (main, dialogs, prose) stay selectable by default.
+   * Opt-in via [data-app-chrome] so asides inside main content keep selection. */
+  [data-app-chrome],
+  [data-tab-bar],
+  [data-tauri-drag-region],
+  [role="menu"],
+  [role="menubar"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 /* OverlayScrollbars custom theme - works on all platforms including Tauri/WKWebView */
@@ -209,6 +221,14 @@
 
 [data-overlayscrollbars-viewport]::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Tauri/WKWebView */
+}
+
+/* OverlayScrollbars sets visibility:visible on its scrollbar elements, which
+ * overrides the inherited visibility:hidden from Tailwind's `invisible` class
+ * on inactive tabs. Re-enforce hidden so background tabs don't bleed scrollbars
+ * (e.g. the AI Chat ConversationList's scrollbar appearing mid-page on Docs). */
+.invisible .os-scrollbar {
+  visibility: hidden !important;
 }
 
 /* Position horizontal scrollbar at top */

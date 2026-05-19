@@ -10,6 +10,7 @@ import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PRO
 import { getDocsPath, getAIDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
+import { AI_DOCS_FOLDER_NAME, AI_DOCS_SENTINEL, filePathIsAIKind } from "./tree-path";
 
 /** Resolve base path for docs or ai-docs based on kind */
 function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
@@ -134,7 +135,6 @@ async function buildContentTreeRecursive(
           preview: generatePreview(body),
           fileCreated,
           fileModified,
-          kind,
         },
       });
     } catch (e) {
@@ -185,7 +185,8 @@ export async function getContentTree(
 ): Promise<FileTreeNode[]> {
   if (!isTauri()) {
     const filtered = mockDocs.filter((doc) => {
-      if ((doc.kind ?? "human") !== kind) return false;
+      const docKind: DocKind = filePathIsAIKind(doc.filePath) ? "ai" : "human";
+      if (docKind !== kind) return false;
       if (scope === "personal") return doc.workspaceId === PERSONAL_WORKSPACE_ID;
       if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
@@ -294,9 +295,10 @@ export async function getAllDocs(
  */
 export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind = "human"): Promise<Doc[]> {
   if (!isTauri()) {
-    return mockDocs.filter(
-      (doc) => doc.workspaceId === workspaceId && (doc.kind ?? "human") === kind
-    );
+    return mockDocs.filter((doc) => {
+      const docKind: DocKind = filePathIsAIKind(doc.filePath) ? "ai" : "human";
+      return doc.workspaceId === workspaceId && docKind === kind;
+    });
   }
 
   const allDocs: Doc[] = [];
@@ -334,12 +336,14 @@ export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind 
 export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKind = "human"): Promise<FileTreeNode[]> {
   if (!isTauri()) {
     // Mock mode: workspace docs + project folder stubs, filtered to the requested kind
-    const workspaceDocs = mockDocs.filter(
-      (doc) =>
+    const workspaceDocs = mockDocs.filter((doc) => {
+      const docKind: DocKind = filePathIsAIKind(doc.filePath) ? "ai" : "human";
+      return (
         doc.workspaceId === workspaceId &&
         doc.projectId === WORKSPACE_LEVEL_PROJECT_ID &&
-        (doc.kind ?? "human") === kind
-    );
+        docKind === kind
+      );
+    });
     const workspaceNodes: FileTreeNode[] = workspaceDocs.map((doc) => ({ type: "doc" as const, doc }));
 
     // Get unique project IDs and count docs per project (across both kinds — counts are kind-agnostic in the project stub)
@@ -392,4 +396,86 @@ export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKi
   }));
 
   return [...workspaceTree, ...projectFolders];
+}
+
+// ============================================================================
+// Merged Tree (UI Flattening of docs/ + ai-docs/)
+// ============================================================================
+
+/**
+ * Recursively prefix folder paths in a subtree. Used when splicing one tree into another
+ * (AI subtree under `__ai-docs__`, project subtree under `_project/{id}`) so the resulting
+ * folder paths are globally unique within the combined tree.
+ *
+ * Asymmetry: only folder `path` fields are rewritten here. Doc/asset `path` stays as the
+ * on-disk relative path (those leaves are addressed via `filePath`, and the arborist adapter
+ * derives a leaf's tree-id by joining the already-prefixed parent treePath with the leaf id).
+ */
+export function prefixSubtreePaths(nodes: FileTreeNode[], prefix: string): FileTreeNode[] {
+  if (!prefix) return nodes;
+  return nodes.map((node) => {
+    if (node.type !== "folder") return node;
+    return {
+      type: "folder" as const,
+      folder: {
+        ...node.folder,
+        path: `${prefix}/${node.folder.path}`,
+        children: prefixSubtreePaths(node.folder.children, prefix),
+      },
+    };
+  });
+}
+
+/**
+ * Build the synthetic "AI Docs" folder node containing the (prefixed) AI subtree.
+ * Always renders — even when empty — so the user has a target to create the first AI doc.
+ */
+function buildAIDocsFolder(aiTree: FileTreeNode[]): FileTreeNode {
+  const prefixedChildren = prefixSubtreePaths(aiTree, AI_DOCS_SENTINEL);
+  return {
+    type: "folder",
+    folder: {
+      name: AI_DOCS_FOLDER_NAME,
+      path: AI_DOCS_SENTINEL,
+      children: prefixedChildren,
+    },
+  };
+}
+
+/**
+ * Fetch a merged content tree for a scope. Human docs sit at the root; AI docs appear
+ * inside a synthetic "AI Docs" subfolder. Used by the new /docs UI.
+ */
+export async function getMergedContentTree(
+  scope: ContentScope,
+  workspaceId?: string,
+  projectId?: string,
+): Promise<FileTreeNode[]> {
+  const [humanTree, aiTree] = await Promise.all([
+    getContentTree(scope, workspaceId, projectId, "human"),
+    getContentTree(scope, workspaceId, projectId, "ai"),
+  ]);
+  return [...humanTree, buildAIDocsFolder(aiTree)];
+}
+
+/**
+ * Fetch the workspace overview shell with human + AI merged. Project stubs remain
+ * lazy-loaded; on expand the consumer calls `getMergedContentTree("project", ws, projId)`.
+ */
+export async function getMergedWorkspaceOverviewShell(workspaceId: string): Promise<FileTreeNode[]> {
+  const [humanShell, aiTree] = await Promise.all([
+    getWorkspaceOverviewShell(workspaceId, "human"),
+    // AI side: only need the workspace-level AI docs tree, not project stubs (those come from the human shell).
+    getContentTree("workspace", workspaceId, undefined, "ai"),
+  ]);
+
+  // Separate workspace-level nodes from project stubs in the human shell to keep order.
+  const humanWorkspaceNodes = humanShell.filter(
+    (n) => n.type !== "folder" || !n.folder.isProject,
+  );
+  const projectStubs = humanShell.filter(
+    (n) => n.type === "folder" && n.folder.isProject,
+  );
+
+  return [...humanWorkspaceNodes, buildAIDocsFolder(aiTree), ...projectStubs];
 }
