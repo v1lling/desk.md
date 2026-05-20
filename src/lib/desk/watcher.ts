@@ -29,6 +29,14 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_MS = 150;
 
 /**
+ * Normalize a path to forward slashes so substring and regex checks work
+ * consistently across platforms (Tauri returns `\` separators on Windows).
+ */
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/");
+}
+
+/**
  * Parse Tauri watch event into our simplified format
  */
 function parseWatchEvent(event: unknown): WatchEvent | null {
@@ -116,12 +124,15 @@ function handleWatchEvent(event: unknown) {
   const parsed = parseWatchEvent(event);
   if (!parsed) return;
 
-  const filteredPaths = parsed.paths.filter(p =>
-    !p.includes(".DS_Store") &&
-    !p.includes("/.git/") &&
-    !p.includes("/.desk/") &&
-    !p.endsWith(".view.json")
-  );
+  const filteredPaths = parsed.paths.filter(p => {
+    const np = normalizePath(p);
+    return (
+      !np.includes(".DS_Store") &&
+      !np.includes("/.git/") &&
+      !np.includes("/.desk/") &&
+      !np.endsWith(".view.json")
+    );
+  });
 
   if (filteredPaths.length > 0) {
     queueEvent({ ...parsed, paths: filteredPaths });
@@ -213,12 +224,13 @@ export function isWatcherActive(): boolean {
  * e.g., "/Users/x/Desk/workspaces/foo/projects/bar/tasks/baz.md" → "task"
  */
 export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | "project" | "workspace" | "view" | "unknown" {
-  if (path.endsWith(".view.json")) return "view";
-  if (path.includes("/tasks/")) return "task";
-  if (path.includes("/docs/")) return "doc";
-  if (path.includes("/meetings/")) return "meeting";
-  if (path.includes("/projects/") && path.endsWith("project.md")) return "project";
-  if (path.includes("/workspaces/") && path.endsWith("workspace.md")) return "workspace";
+  const p = normalizePath(path);
+  if (p.endsWith(".view.json")) return "view";
+  if (p.includes("/tasks/")) return "task";
+  if (p.includes("/docs/")) return "doc";
+  if (p.includes("/meetings/")) return "meeting";
+  if (p.includes("/projects/") && p.endsWith("project.md")) return "project";
+  if (p.includes("/workspaces/") && p.endsWith("workspace.md")) return "workspace";
   return "unknown";
 }
 
@@ -226,7 +238,7 @@ export function getItemTypeFromPath(path: string): "task" | "doc" | "meeting" | 
  * Utility: Check if path is in capture area
  */
 export function isCapturePath(path: string): boolean {
-  return path.includes("/_capture/");
+  return normalizePath(path).includes("/_capture/");
 }
 
 /**
@@ -234,7 +246,7 @@ export function isCapturePath(path: string): boolean {
  * e.g., "/Users/x/Desk/workspaces/my-workspace/..." → "my-workspace"
  */
 export function getWorkspaceIdFromPath(path: string): string | null {
-  const match = path.match(/\/workspaces\/([^/]+)/);
+  const match = normalizePath(path).match(/\/workspaces\/([^/]+)/);
   return match ? match[1] : null;
 }
 
@@ -243,6 +255,6 @@ export function getWorkspaceIdFromPath(path: string): string | null {
  * e.g., "/Users/x/Desk/workspaces/foo/projects/my-project/..." → "my-project"
  */
 export function getProjectIdFromPath(path: string): string | null {
-  const match = path.match(/\/projects\/([^/]+)/);
+  const match = normalizePath(path).match(/\/projects\/([^/]+)/);
   return match ? match[1] : null;
 }

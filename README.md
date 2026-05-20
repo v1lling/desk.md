@@ -59,4 +59,6 @@ holds the quick-capture inbox and is created when you first set up Desk.
 
 ## License
 
-Private project.
+[GPL-3.0-or-later](./LICENSE). You're free to use, modify, and share desk.md.
+Because the GPL is copyleft, any distributed fork or derivative must also remain
+open-source under the GPL.

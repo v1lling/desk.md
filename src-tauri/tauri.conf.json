@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Desk",
   "version": "0.7.1",
-  "identifier": "ch.sascha.desk",
+  "identifier": "de.svilling.deskmd",
   "plugins": {
     "deep-link": {
       "desktop": {

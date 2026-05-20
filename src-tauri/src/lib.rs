@@ -100,17 +100,35 @@ fn open_in_terminal(path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         Command::new("cmd")
-            .args(["/C", "start", "cmd", "/K", &format!("cd /d {}", path)])
+            .args(["/C", "start", "cmd", "/K", &format!("cd /d \"{}\"", path)])
             .spawn()
             .map_err(|e| format!("Failed to open terminal: {}", e))?;
     }
 
     #[cfg(target_os = "linux")]
     {
-        Command::new("x-terminal-emulator")
-            .args(["--working-directory", &path])
-            .spawn()
-            .map_err(|e| format!("Failed to open terminal: {}", e))?;
+        // x-terminal-emulator is a Debian alternative and isn't present on
+        // every distro — try a series of common terminal emulators.
+        let terminals = [
+            "x-terminal-emulator",
+            "gnome-terminal",
+            "konsole",
+            "xfce4-terminal",
+            "xterm",
+        ];
+        let mut opened = false;
+        for term in terminals {
+            if Command::new(term).current_dir(&path).spawn().is_ok() {
+                opened = true;
+                break;
+            }
+        }
+        if !opened {
+            return Err(
+                "No terminal emulator found. Install one of: gnome-terminal, konsole, xterm."
+                    .to_string(),
+            );
+        }
     }
 
     Ok(())
