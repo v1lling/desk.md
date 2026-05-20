@@ -321,7 +321,7 @@ Desk generates `CLAUDE.md` and `AGENTS.md` files automatically so external AI ag
 
 ## CI/CD & Releases
 
-**Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds macOS app, uploads to public repo `v1lling/deskmd-releases`.
+**Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds the macOS app, and publishes a GitHub Release on `v1lling/desk.md` itself (built-in `GITHUB_TOKEN`, no PAT).
 
 **Versioning (Semantic Versioning)**:
 - **MAJOR (x.0.0)**: Breaking changes, major architecture shifts
@@ -343,18 +343,17 @@ git add src-tauri/tauri.conf.json package.json
 git commit -m "vX.Y.Z"
 git tag vX.Y.Z
 git push origin main --tags
-# 3. CI builds (~7 min) → uploads .dmg + updater to deskmd-releases
-# 4. Running app detects update on next launch
+# 3. CI builds (~7 min) → publishes a GitHub Release (.dmg + updater) on v1lling/desk.md
+# 4. Running app detects update on next launch (once the repo is public)
 ```
 
-**Auto-updater**: App checks `deskmd-releases/releases/latest/download/latest.json` on launch. Settings > General has manual check button. Signing key pair required (see GitHub Secrets).
+**Auto-updater**: App checks `desk.md/releases/latest/download/latest.json` on launch. Settings > General has a manual check button. Signing key pair required (see GitHub Secrets). Note: while the repo is private the endpoint 404s (private release assets need auth), so interim installs are manual — the updater resumes automatically once the repo goes public.
 
 **GitHub CLI**: Use `gh` for issues, PRs, releases (authenticated, see `~/CLAUDE.md`).
 
 **GitHub Secrets** (on `v1lling/desk.md`):
 - `TAURI_SIGNING_PRIVATE_KEY` — Tauri signing private key
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — its password
-- `RELEASES_TOKEN` — PAT scoped to `deskmd-releases` with Contents: write
 
 ## Headless / Automated Runs
 

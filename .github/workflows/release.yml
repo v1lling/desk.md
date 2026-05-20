@@ -9,7 +9,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
           echo "Signature (first 50 chars): ${SIG_CONTENT:0:50}..."
 
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          URL="https://github.com/v1lling/deskmd-releases/releases/download/v${VERSION}/Desk.app.tar.gz"
+          URL="https://github.com/v1lling/desk.md/releases/download/v${VERSION}/Desk.app.tar.gz"
 
           jq -n \
             --arg version "v${VERSION}" \
@@ -123,16 +123,16 @@ jobs:
           echo "=== latest.json ==="
           cat latest.json
 
-      - name: Upload to public releases repo
+      - name: Publish GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Delete existing release if present
-          gh release delete "v${VERSION}" --repo v1lling/deskmd-releases --yes 2>/dev/null || true
+          # Delete existing release if present (keeps the pushed tag)
+          gh release delete "v${VERSION}" --repo v1lling/desk.md --yes 2>/dev/null || true
 
           # Create release and upload assets
           gh release create "v${VERSION}" \
-            --repo v1lling/deskmd-releases \
+            --repo v1lling/desk.md \
             --title "Desk v${VERSION}" \
             --notes "Release v${VERSION}" \
             "Desk_${VERSION}_aarch64.dmg" \

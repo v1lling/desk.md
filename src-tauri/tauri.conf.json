@@ -11,7 +11,7 @@
     },
     "updater": {
       "endpoints": [
-        "https://github.com/v1lling/deskmd-releases/releases/latest/download/latest.json"
+        "https://github.com/v1lling/desk.md/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJGMjBCNzgyN0Q1ODRGQTEKUldTaFQxaDlncmNnTDNDMHc1SWFrLzFqQlFaL2x0UGJyY29IcktYZFZWd1dYTURUUUhua2R0NW8K"
     }
