@@ -3,10 +3,7 @@ import { persist } from "zustand/middleware";
 
 import type { IncomingEmail } from "@/lib/email/types";
 
-export type TabType = "desk" | "doc" | "task" | "meeting" | "email" | "ai";
-
-/** Secondary-sidebar slot key used while an "ai" tab is active (Assistant has no route). */
-export const ASSISTANT_SLOT_KEY = "assistant";
+export type TabType = "desk" | "doc" | "task" | "meeting" | "email";
 
 export interface TabItem {
   id: string;
@@ -68,15 +65,6 @@ export const useTabStore = create<TabState>()(
       openTab: (newTab) => {
         const { tabs } = get();
 
-        // AI tab is a singleton - reuse existing
-        if (newTab.type === "ai") {
-          const existing = tabs.find((t) => t.type === newTab.type);
-          if (existing) {
-            set({ activeTabId: existing.id });
-            return;
-          }
-        }
-
         // Check if tab for this entity already exists (not for email tabs which are always new)
         if (newTab.type !== "desk" && newTab.type !== "email" && newTab.entityId) {
           const existing = tabs.find(
@@ -92,8 +80,6 @@ export const useTabStore = create<TabState>()(
         let id: string;
         if (newTab.type === "desk") {
           id = "desk";
-        } else if (newTab.type === "ai") {
-          id = "ai";
         } else if (newTab.type === "email") {
           // Email tabs use timestamp for unique ID (session only)
           id = `email-${Date.now()}`;
@@ -199,12 +185,11 @@ export const useTabStore = create<TabState>()(
     {
       name: "desk-tabs",
       partialize: (state) => ({
-        // Filter out session-only tabs (email, ai) and strip emailData
+        // Filter out session-only email tabs and strip emailData
         tabs: state.tabs
-          .filter((t) => t.type !== "email" && t.type !== "ai")
+          .filter((t) => t.type !== "email")
           .map(stripSessionOnlyTabData),
-        activeTabId: state.activeTabId === "desk" ||
-          (!state.activeTabId.startsWith("email-") && state.activeTabId !== "ai")
+        activeTabId: state.activeTabId === "desk" || !state.activeTabId.startsWith("email-")
           ? state.activeTabId
           : "desk",
       }),
@@ -252,12 +237,6 @@ export function useOpenTab() {
         type: "email",
         title: email.subject || "Email",
         emailData: email,
-      });
-    },
-    openAI: () => {
-      openTab({
-        type: "ai",
-        title: "Assistant",
       });
     },
   };

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Mail, User, Users, Calendar, Bot, ExternalLink, Loader2, ChevronUp, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAISettingsStore } from "@/stores/ai";
 import { useAssistantStore } from "@/stores/assistant";
-import { useOpenTab } from "@/stores/tabs";
+import { useTabStore } from "@/stores/tabs";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress, formatEmailDate } from "@/lib/email/types";
 
@@ -24,7 +25,8 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const { providerType, providerConfigured } = useAISettingsStore();
   const hasAIProvider = !!providerConfigured[providerType];
   const startEmailDraft = useAssistantStore((s) => s.startEmailDraft);
-  const { openAI } = useOpenTab();
+  const navigate = useNavigate();
+  const setActiveTab = useTabStore((s) => s.setActiveTab);
 
   useEffect(() => {
     setInstructions("");
@@ -37,7 +39,8 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     setError(null);
 
     try {
-      openAI();
+      setActiveTab("desk");
+      navigate("/assistant");
       await startEmailDraft({
         email,
         instructions: instructions.trim() || undefined,
@@ -49,7 +52,7 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     } finally {
       setIsLaunchingAssistant(false);
     }
-  }, [email, instructions, openAI, startEmailDraft]);
+  }, [email, instructions, navigate, setActiveTab, startEmailDraft]);
 
   return (
     <div className="flex flex-col h-full bg-background">

@@ -3,6 +3,7 @@ import { jsonSchema, tool, type ToolSet } from "ai";
 import { z } from "zod/v4";
 import { useContextIndexStore } from "@/stores/context-index";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
+import { formatError } from "@/lib/utils";
 
 export interface ToolCallEvent {
   callId: string;
@@ -54,7 +55,7 @@ async function runTool(
     const payload = {
       ok: false,
       error: "execution_failed",
-      message: String(error),
+      message: formatError(error),
     };
     ctx.callbacks.onToolResult({ callId, toolName, ok: false, payload });
     return payload;

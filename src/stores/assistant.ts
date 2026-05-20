@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { toast } from "sonner";
 import { runAssistantTurn } from "@/lib/assistant/orchestrator";
 import type {
   AssistantConversation,
@@ -12,6 +13,7 @@ import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { DEFAULT_MODELS } from "@/lib/ai/models";
 import { formatEmailAddress, type IncomingEmail } from "@/lib/email/types";
 import { buildAssistantTurnUserMessage } from "@/lib/ai";
+import { formatError } from "@/lib/utils";
 
 const MAX_CONVERSATIONS = 50;
 
@@ -20,7 +22,6 @@ interface AssistantState {
   activeConversationId: string | null;
 
   isRunning: boolean;
-  error: string | null;
   toolTimeline: AssistantToolEvent[];
 
   createConversation: (options?: { title?: string; mode?: AssistantTurnMode }) => string;
@@ -91,7 +92,6 @@ export const useAssistantStore = create<AssistantState>()(
       conversations: [],
       activeConversationId: null,
       isRunning: false,
-      error: null,
       toolTimeline: [],
 
       createConversation: (options) => {
@@ -112,7 +112,6 @@ export const useAssistantStore = create<AssistantState>()(
           return {
             conversations: next,
             activeConversationId: id,
-            error: null,
             toolTimeline: [],
           };
         });
@@ -120,7 +119,7 @@ export const useAssistantStore = create<AssistantState>()(
         return id;
       },
 
-      setActiveConversation: (id) => set({ activeConversationId: id, error: null, toolTimeline: [] }),
+      setActiveConversation: (id) => set({ activeConversationId: id, toolTimeline: [] }),
 
       deleteConversation: (id) =>
         set((state) => {
@@ -144,7 +143,7 @@ export const useAssistantStore = create<AssistantState>()(
 
         const baseConversation = get().conversations.find((item) => item.id === conversationId);
         if (!baseConversation) {
-          set({ error: "Conversation not found." });
+          toast.error("Conversation not found.");
           return;
         }
 
@@ -176,7 +175,6 @@ export const useAssistantStore = create<AssistantState>()(
             })
           ),
           isRunning: true,
-          error: null,
           toolTimeline: [],
         }));
 
@@ -238,12 +236,18 @@ export const useAssistantStore = create<AssistantState>()(
               }
 
               if (event.type === "assistant_error") {
-                set({ error: event.message });
+                set((state) => ({
+                  conversations: updateConversation(state.conversations, conversationId!, (conversationItem) =>
+                    updateMessageContent(conversationItem, assistantMessageId, (message) => ({
+                      ...message,
+                      error: event.message,
+                    }))
+                  ),
+                }));
                 return;
               }
 
               if (event.type === "assistant_cancelled") {
-                set({ error: "Assistant run cancelled." });
                 return;
               }
 
@@ -282,15 +286,15 @@ export const useAssistantStore = create<AssistantState>()(
               isRunning: false,
             }));
           } else {
+            console.error("[assistant] sendMessage failed:", error);
             set((state) => ({
-              conversations: updateConversation(state.conversations, conversationId!, (conversationItem) => ({
-                ...conversationItem,
-                messages: conversationItem.messages.filter(
-                  (message) => !(message.id === assistantMessageId && !message.content.trim())
-                ),
-              })),
+              conversations: updateConversation(state.conversations, conversationId!, (conversationItem) =>
+                updateMessageContent(conversationItem, assistantMessageId, (message) => ({
+                  ...message,
+                  error: message.error || formatError(error),
+                }))
+              ),
               isRunning: false,
-              error: String(error),
             }));
           }
         } finally {

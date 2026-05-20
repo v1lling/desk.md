@@ -6,7 +6,6 @@ import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useBootStore } from "@/stores/boot";
-import { useTabStore, ASSISTANT_SLOT_KEY } from "@/stores/tabs";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize";
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
@@ -33,15 +32,10 @@ export function AppShell({ children }: AppShellProps) {
   } = useSidebarResize();
   const RESIZE_HANDLE_WIDTH = 4; // matches ResizeHandle w-1
 
-  // Secondary sidebar slot — pages/tabs register content into this via useSecondarySidebar().
-  // The active key is the route path, except while an "ai" tab is active (the Assistant
-  // has no route) — then it follows that tab's context key instead.
-  const activeTabType = useTabStore((s) =>
-    s.tabs.find((t) => t.id === s.activeTabId)?.type ?? "desk",
-  );
-  const activeKey = activeTabType === "ai" ? ASSISTANT_SLOT_KEY : pathname;
+  // Secondary sidebar slot — pages register content into this via useSecondarySidebar(),
+  // keyed by route path.
   const slots = useSecondarySidebarStore((s) => s.slots);
-  const slotContent = slots[activeKey] ?? null;
+  const slotContent = slots[pathname] ?? null;
   const hasSecondary = slotContent != null;
 
   const {

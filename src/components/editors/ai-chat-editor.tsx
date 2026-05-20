@@ -16,7 +16,6 @@ import { SourcesDisplay } from "@/components/ai/sources-display";
 import { useAssistantStore } from "@/stores/assistant";
 import { useAISettingsStore } from "@/stores/ai";
 import { useContextStore } from "@/stores/context";
-import { ASSISTANT_SLOT_KEY } from "@/stores/tabs";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { buildAssistantPromptBreakdown, buildAssistantTurnUserMessage } from "@/lib/ai";
 import type { AIMessageSource } from "@/lib/ai/types";
@@ -161,14 +160,13 @@ export function AIChatEditor() {
   const createConversation = useAssistantStore((s) => s.createConversation);
   const sendMessage = useAssistantStore((s) => s.sendMessage);
   const isRunning = useAssistantStore((s) => s.isRunning);
-  const error = useAssistantStore((s) => s.error);
   const cancelRun = useAssistantStore((s) => s.cancelRun);
   const liveToolTimeline = useAssistantStore((s) => s.toolTimeline);
 
   // Conversation list ("recent activity") lives in the secondary sidebar.
   // ConversationList is self-contained (reads useAssistantStore), so it needs no props.
   const conversationPane = useMemo(() => <ConversationList />, []);
-  useSecondarySidebar(ASSISTANT_SLOT_KEY, conversationPane);
+  useSecondarySidebar("/assistant", conversationPane);
 
   const { providerType, providerConfigured, customInstructions, perTypeInstructions } = useAISettingsStore();
   const showToolDetails = useContextStore((s) => s.showToolDetails);
@@ -183,7 +181,11 @@ export function AIChatEditor() {
   // Show thinking bubble when running but no tools fired yet and no text streaming
   const lastMsg = messages[messages.length - 1];
   const showThinkingBubble =
-    isRunning && lastMsg?.role === "assistant" && !lastMsg.content && liveToolTimeline.length === 0;
+    isRunning &&
+    lastMsg?.role === "assistant" &&
+    !lastMsg.content &&
+    !lastMsg.error &&
+    liveToolTimeline.length === 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -226,12 +228,6 @@ export function AIChatEditor() {
                 <p className="text-sm text-amber-600 dark:text-amber-400">
                   Assistant is not configured. Open Settings → AI and add a provider key.
                 </p>
-              </div>
-            )}
-
-            {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
@@ -280,7 +276,7 @@ export function AIChatEditor() {
                     {index === messages.length - 1 && isRunning && liveToolTimeline.length > 0 && (
                       <InlineToolActivity items={liveToolTimeline} showDetails={showToolDetails} />
                     )}
-                    {!(index === messages.length - 1 && isRunning && !message.content) && (
+                    {!(index === messages.length - 1 && isRunning && !message.content && !message.error) && (
                       <ChatMessage message={message} />
                     )}
                   </div>

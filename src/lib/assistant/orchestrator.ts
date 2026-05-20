@@ -3,6 +3,7 @@ import { getProviderDefinition } from "@/lib/ai/provider-registry";
 import { getSecret } from "@/lib/ai/secrets";
 import type { AIProviderType, AIUsage } from "@/lib/ai/types";
 import { buildAssistantSystemPrompt } from "@/lib/ai/prompts";
+import { formatError } from "@/lib/utils";
 import { createAssistantTools } from "@/lib/assistant/tool-core";
 import type { AssistantEvent, AssistantMessage, AssistantTurnMode } from "@/lib/assistant/types";
 
@@ -20,9 +21,17 @@ interface RunAssistantOptions {
 }
 
 function toModelMessages(history: AssistantMessage[], message: string) {
+  // A failed assistant turn is kept in the conversation (with `error` set) so it can
+  // render as an inline error bubble, but its `content` is empty. Sending an empty
+  // assistant message to the model breaks the next turn (the Anthropic API rejects
+  // empty text blocks), so substitute a placeholder — this keeps role alternation
+  // intact while telling the model the prior turn produced nothing.
   const messages = history.map((item) => ({
     role: item.role,
-    content: item.content,
+    content:
+      item.role === "assistant" && !item.content.trim()
+        ? "(The assistant's previous response failed and was not generated.)"
+        : item.content,
   }));
   messages.push({ role: "user" as const, content: message });
   return messages;
@@ -83,7 +92,8 @@ export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ 
     stopWhen: stepCountIs(options.maxSteps),
     abortSignal: options.signal,
     onError: ({ error }) => {
-      options.onEvent({ type: "assistant_error", message: String(error) });
+      console.error("[assistant] streamText error:", error);
+      options.onEvent({ type: "assistant_error", message: formatError(error) });
     },
   });
 
@@ -97,7 +107,8 @@ export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ 
       }
 
       if (part.type === "error") {
-        options.onEvent({ type: "assistant_error", message: String(part.error) });
+        console.error("[assistant] stream error part:", part.error);
+        options.onEvent({ type: "assistant_error", message: formatError(part.error) });
       }
     }
   } catch (error) {
@@ -105,7 +116,8 @@ export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ 
       options.onEvent({ type: "assistant_cancelled" });
       throw error;
     }
-    options.onEvent({ type: "assistant_error", message: String(error) });
+    console.error("[assistant] turn failed:", error);
+    options.onEvent({ type: "assistant_error", message: formatError(error) });
     throw error;
   }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Bot, Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
+import { Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const TAB_CONTENT_WIDTH = 160; // px per content tab (w-[160px])
-const TAB_MAIN_WIDTH = 140;   // px per main tab (desk, ai)
+const TAB_MAIN_WIDTH = 140;   // px per main tab (desk)
 const TAB_GAP = 4;            // gap-1 between tabs
 const OVERFLOW_BTN_WIDTH = 50; // approximate width of the overflow button
 const SEPARATOR_WIDTH = 9;    // separator + margins
 
 const TAB_ICONS: Record<TabType, React.ElementType> = {
   desk: Home,
-  ai: Bot,
   doc: FileText,
   task: CheckSquare,
   meeting: Calendar,
@@ -45,6 +44,7 @@ function getPageName(
     "/meetings": "Meetings",
     "/projects": "Projects",
     "/settings": "Settings",
+    "/assistant": "Assistant",
   };
 
   const baseName = pageMap[pathname] || "Desk";
@@ -229,12 +229,10 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
 
   const { visibleTabs, overflowTabs } = useMemo(() => {
     const containerWidth = windowWidth - sidebarWidth - 4 - 8; // 4=resize handle, 8=pr-2
-    const contentTabs = tabs.filter(
-      (tab) => tab.type !== "desk" && tab.type !== "ai"
-    );
+    const contentTabs = tabs.filter((tab) => tab.type !== "desk");
     // Calculate how many content tabs fit in the available width.
     // Reserve space for main tabs, separator, and overflow button.
-    const mainTabCount = tabs.filter((t) => t.type === "desk" || t.type === "ai").length;
+    const mainTabCount = tabs.filter((t) => t.type === "desk").length;
     const reserved = mainTabCount * (TAB_MAIN_WIDTH + TAB_GAP) + SEPARATOR_WIDTH + OVERFLOW_BTN_WIDTH;
     const maxVisible = Math.max(1, Math.floor((containerWidth - reserved) / (TAB_CONTENT_WIDTH + TAB_GAP)));
     if (contentTabs.length <= maxVisible) {
@@ -261,7 +259,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   }, [tabs, activeTabId, windowWidth, sidebarWidth]);
 
   const mainTabs = useMemo(() => {
-    const order: TabType[] = ["desk", "ai"];
+    const order: TabType[] = ["desk"];
     return order
       .map((type) => tabs.find((tab) => tab.type === type))
       .filter((tab): tab is NonNullable<typeof tab> => Boolean(tab));

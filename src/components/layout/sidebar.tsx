@@ -23,7 +23,6 @@ import { useMeetings } from "@/stores/meetings";
 import { extractDocs, extractAssets } from "@/lib/desk/content";
 import { useProjects } from "@/stores/projects";
 import { WorkspaceSelector } from "./workspace-selector";
-import { useOpenTab } from "@/stores/tabs";
 import { useTabStore } from "@/stores/tabs";
 import { SidebarNavRow } from "./sidebar-nav-row";
 
@@ -64,10 +63,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   const meetingCount = meetings.length;
   const projectCount = projects.length;
 
-  const { openAI } = useOpenTab();
-  const activeTabId = useTabStore((s) => s.activeTabId);
   const setActiveTab = useTabStore((s) => s.setActiveTab);
-  const isAssistantActive = activeTabId === "ai";
   const switchToDesk = useCallback(() => setActiveTab("desk"), [setActiveTab]);
 
   const collapsed = isCollapsed;
@@ -107,12 +103,13 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
 
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/60 space-y-0.5">
         <SidebarNavRow
-          onClick={openAI}
+          to="/assistant"
           label="Assistant"
           icon={Bot}
-          active={isAssistantActive}
+          active={pathname === "/assistant"}
           collapsed={collapsed}
           role="global"
+          onClick={switchToDesk}
         />
         <SidebarNavRow to="/settings" label="Settings" icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 

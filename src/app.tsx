@@ -11,6 +11,7 @@ import MeetingsPage from "./pages/meetings";
 import SettingsPage from "./pages/settings";
 import ProjectsPage from "./pages/projects";
 import PlannerPage from "./pages/planner";
+import AssistantPage from "./pages/assistant";
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/assistant" element={<AssistantPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AppShell>

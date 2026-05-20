@@ -10,6 +10,8 @@ export interface AssistantMessage {
   timestamp: string;
   sources?: AIMessageSource[];
   toolEvents?: AssistantToolEvent[];
+  /** Set on an assistant turn that failed — rendered as an inline error bubble. */
+  error?: string;
 }
 
 export interface AssistantToolEvent {
