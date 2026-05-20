@@ -47,7 +47,7 @@ async function buildEntryFromItem(
   item: { filePath: string; title: string; content: string; created: string; projectId: string },
   type: "doc" | "ai-doc" | "task" | "meeting",
   workspaceId: string,
-  extra?: { status?: string; priority?: string; date?: string; attendees?: string[]; projectName?: string }
+  extra?: { status?: string; priority?: string; date?: string; projectName?: string }
 ): Promise<IndexEntry> {
   const contentHash = await hashContent(item.content);
   const relativePath = extractRelativePath(item.filePath, workspaceId);
@@ -65,7 +65,6 @@ async function buildEntryFromItem(
     status: extra?.status,
     priority: extra?.priority,
     date: extra?.date,
-    attendees: extra?.attendees,
   };
 }
 
@@ -261,7 +260,6 @@ export async function buildWorkspaceIndex(
     try {
       const entry = await buildEntryFromItem(meeting, "meeting", workspaceId, {
         date: meeting.date,
-        attendees: meeting.attendees,
         projectName: projectNameMap.get(meeting.projectId),
       });
       const existing = existingEntries.get(entry.path);

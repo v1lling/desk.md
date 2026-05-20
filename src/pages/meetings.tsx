@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Calendar } from "lucide-react";
 import { useCurrentWorkspace, useMeetings, useOpenTab } from "@/stores";
 import { useOpenFromQuery } from "@/hooks";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
@@ -22,9 +23,10 @@ export default function MeetingsPage() {
 
   if (!currentWorkspaceId) {
     return (
-      <div className="flex flex-col h-full p-4">
+      <div className="flex flex-col h-full">
         <StatePanel
           variant="empty"
+          display="inline"
           title="Select a workspace"
           description="Choose a workspace in the sidebar to view meetings."
           className="h-full"
@@ -36,11 +38,17 @@ export default function MeetingsPage() {
   // Main pane: empty state. Opening a meeting switches to a meeting tab,
   // and `TabContent` renders the editor here instead.
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-full">
       <StatePanel
         variant="empty"
-        title="Select a meeting"
-        description="Choose a meeting from the tree to start editing."
+        display="inline"
+        icon={Calendar}
+        title={meetings.length === 0 ? "No meetings yet" : "Select a meeting"}
+        description={
+          meetings.length === 0
+            ? "Create one with + New Meeting in the panel."
+            : "Pick a meeting from the list to open it."
+        }
         className="h-full"
       />
     </div>

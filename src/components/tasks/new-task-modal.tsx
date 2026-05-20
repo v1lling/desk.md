@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Flag, Loader2 } from "lucide-react";
+import { Flag, Loader2 } from "lucide-react";
+import { DateField } from "@/components/ui/date-field";
 import { useCreateTask, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import type { TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
@@ -134,7 +135,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
 
           <FormField label="Project" optional>
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="No project" />
               </SelectTrigger>
               <SelectContent>
@@ -154,7 +155,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
                 value={priority}
                 onValueChange={(v) => setPriority(v as TaskPriority | "none")}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,16 +173,12 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
             </FormField>
 
             <FormField id="new-due" label="Due Date">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="new-due"
-                  type="date"
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <DateField
+                id="new-due"
+                value={due}
+                onChange={setDue}
+                placeholder="No due date"
+              />
             </FormField>
           </FormGrid>
 

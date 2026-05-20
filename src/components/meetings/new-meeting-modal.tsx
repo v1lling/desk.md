@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { DateField } from "@/components/ui/date-field";
 import { useCreateMeeting, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
 import { useTemplatesStore } from "@/stores/templates";
@@ -123,7 +124,7 @@ export function NewMeetingModal({
           <FormGrid>
             <FormField label="Project">
               <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,16 +138,12 @@ export function NewMeetingModal({
             </FormField>
 
             <FormField id="meeting-date" label="Date">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="meeting-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <DateField
+                id="meeting-date"
+                value={date}
+                onChange={setDate}
+                clearable={false}
+              />
             </FormField>
           </FormGrid>
 

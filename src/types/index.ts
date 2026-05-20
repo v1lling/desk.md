@@ -114,7 +114,6 @@ export interface Meeting {
   title: string;
   date: string;            // ISO date - when the meeting occurred
   created: string;         // ISO date - when the note was created
-  attendees?: string[];    // List of attendee names
   content: string;         // Markdown body (agenda, notes, action items)
   preview?: string;        // First ~100 chars
 }

@@ -208,14 +208,15 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
       <ScrollArea className="flex-1 min-h-0">
         <div ref={sentinelRef} className="h-0" />
-        <div className="max-w-4xl mx-auto px-6 pt-2 pb-6">
+        <div className="max-w-4xl mx-auto px-6 pb-6">
           <MetadataToolbar
             projectId={currentProjectId}
             onProjectChange={handleProjectChange}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
-          <div className="h-px bg-border/40 my-4" />
+          {/* mb-3 + the editor's own py-1 (4px) = 16px, symmetric with mt-4 */}
+          <div className="h-px bg-border/40 mt-4 mb-3" />
 
           {isEditorReady ? (
             <RichTextEditor

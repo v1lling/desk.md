@@ -38,11 +38,11 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
 
   return (
     <div className="shrink-0">
-      <div className="max-w-4xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-6 pt-3">
         <button
           type="button"
           onClick={handleClick}
-          className="group flex items-center gap-1.5 py-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default"
+          className="group flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default"
           title={isTauri() ? "Reveal in Finder" : filePath}
         >
           {segments.map((segment, i) => (

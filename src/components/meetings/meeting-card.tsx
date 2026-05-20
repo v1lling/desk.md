@@ -1,5 +1,5 @@
 
-import { Calendar, Users, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Meeting } from "@/types";
@@ -55,15 +55,6 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{formatMeetingDate(meeting.date)}</span>
-          {meeting.attendees && meeting.attendees.length > 0 && (
-            <>
-              <span>·</span>
-              <span className="flex items-center gap-0.5">
-                <Users className="h-3 w-3" />
-                {meeting.attendees.length}
-              </span>
-            </>
-          )}
           {meeting.preview && (
             <>
               <span>·</span>

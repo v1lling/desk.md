@@ -14,11 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const TAB_CONTENT_WIDTH = 160; // px per content tab (w-[160px])
-const TAB_MAIN_WIDTH = 140;   // px per main tab (desk)
+const TAB_WIDTH = 150;        // px — uniform width for the desk tab and content tabs (w-[150px])
 const TAB_GAP = 4;            // gap-1 between tabs
 const OVERFLOW_BTN_WIDTH = 50; // approximate width of the overflow button
 const SEPARATOR_WIDTH = 9;    // separator + margins
+const TITLE_BAR_MIN_FIRST_COL = 84; // macOS traffic-light reservation (see app-shell)
 
 const TAB_ICONS: Record<TabType, React.ElementType> = {
   desk: Home,
@@ -228,16 +228,26 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   );
 
   const { visibleTabs, overflowTabs } = useMemo(() => {
-    const containerWidth = windowWidth - sidebarWidth - 4 - 8; // 4=resize handle, 8=pr-2
+    // The title bar's first column never shrinks below the macOS traffic lights.
+    const firstColWidth = Math.max(sidebarWidth, TITLE_BAR_MIN_FIRST_COL);
+    const containerWidth = windowWidth - firstColWidth - 4 - 8; // 4=resize handle, 8=pr-2
     const contentTabs = tabs.filter((tab) => tab.type !== "desk");
-    // Calculate how many content tabs fit in the available width.
-    // Reserve space for main tabs, separator, and overflow button.
+
+    // Space taken by the desk tab + separator, before any overflow button.
     const mainTabCount = tabs.filter((t) => t.type === "desk").length;
-    const reserved = mainTabCount * (TAB_MAIN_WIDTH + TAB_GAP) + SEPARATOR_WIDTH + OVERFLOW_BTN_WIDTH;
-    const maxVisible = Math.max(1, Math.floor((containerWidth - reserved) / (TAB_CONTENT_WIDTH + TAB_GAP)));
-    if (contentTabs.length <= maxVisible) {
+    const reservedBase = mainTabCount * (TAB_WIDTH + TAB_GAP) + SEPARATOR_WIDTH;
+    const tabSlot = TAB_WIDTH + TAB_GAP;
+
+    // First check whether every content tab fits WITHOUT an overflow button —
+    // only reserve the button's width once it's actually needed.
+    const fitsAll = Math.max(1, Math.floor((containerWidth - reservedBase) / tabSlot));
+    if (contentTabs.length <= fitsAll) {
       return { visibleTabs: contentTabs, overflowTabs: [] };
     }
+
+    // Overflow is unavoidable — now account for the overflow button.
+    const reserved = reservedBase + OVERFLOW_BTN_WIDTH;
+    const maxVisible = Math.max(1, Math.floor((containerWidth - reserved) / tabSlot));
 
     const nextVisibleTabs = [...contentTabs.slice(0, maxVisible)];
     if (!nextVisibleTabs.some((tab) => tab.id === activeTabId)) {
@@ -349,7 +359,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-8 flex items-center gap-1 px-2 rounded-t-lg text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors shrink-0 text-xs font-medium"
+                  className="h-8 flex items-center gap-1 px-2 rounded-t-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 text-xs font-medium"
                   title={`${overflowTabs.length} more tabs`}
                 >
                   <span>+{overflowTabs.length}</span>

@@ -93,7 +93,7 @@ export function useUpdateMeeting() {
       meetingId: string;
       workspaceId: string;
       projectId: string;
-      updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>;
+      updates: Partial<Pick<Meeting, "title" | "date" | "content">>;
     }) => meetingLib.updateMeeting(meetingId, updates, workspaceId, projectId),
     onSuccess: (updatedMeeting) => {
       if (updatedMeeting) {

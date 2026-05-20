@@ -22,7 +22,6 @@ export interface IndexEntry {
   priority?: string;
   // Meeting-specific
   date?: string;
-  attendees?: string[];
 }
 
 export interface WorkspaceIndex {

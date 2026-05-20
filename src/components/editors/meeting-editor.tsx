@@ -34,7 +34,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   // Metadata state
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [attendees, setAttendees] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
 
@@ -50,7 +49,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     if (meeting) {
       setTitle(meeting.title);
       setDate(meeting.date);
-      setAttendees(meeting.attendees?.join(", ") || "");
       setIsEditorReady(false);
     }
   }, [meeting?.id, workspaceId]);
@@ -156,32 +154,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     [meeting, updateMeeting, getCurrentContent]
   );
 
-  const handleAttendeesChange = useCallback(
-    async (newAttendees: string) => {
-      setAttendees(newAttendees);
-      if (meeting) {
-        try {
-          const attendeesList = newAttendees
-            .split(",")
-            .map((a) => a.trim())
-            .filter(Boolean);
-          await updateMeeting.mutateAsync({
-            meetingId: meeting.id,
-            workspaceId: meeting.workspaceId,
-            projectId: meeting.projectId,
-            updates: {
-              attendees: attendeesList.length > 0 ? attendeesList : undefined,
-              content: getCurrentContent(),
-            },
-          });
-        } catch (error) {
-          console.error("[meeting-editor] Failed to save attendees:", error);
-        }
-      }
-    },
-    [meeting, updateMeeting, getCurrentContent]
-  );
-
   // Manage tab title and dirty state
   const isDirty = contentDirty;
   useEditorTab(tabId, title, isDirty);
@@ -258,19 +230,18 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
 
       <ScrollArea className="flex-1 min-h-0">
         <div ref={sentinelRef} className="h-0" />
-        <div className="max-w-4xl mx-auto px-6 pt-2 pb-6">
+        <div className="max-w-4xl mx-auto px-6 pb-6">
           <MetadataToolbar
             date={date}
             onDateChange={handleDateChange}
             dateLabel="Date"
-            attendees={attendees}
-            onAttendeesChange={handleAttendeesChange}
             projectId={currentProjectId}
             onProjectChange={handleProjectChange}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
 
-          <div className="h-px bg-border/40 my-4" />
+          {/* mb-3 + the editor's own py-1 (4px) = 16px, symmetric with mt-4 */}
+          <div className="h-px bg-border/40 mt-4 mb-3" />
 
           {isEditorReady ? (
             <RichTextEditor

@@ -26,7 +26,7 @@ export function SecondarySidebar({
     return (
       <aside
         data-app-chrome
-        className="flex flex-col h-full min-h-0 bg-background border-r border-border/60 items-center py-2"
+        className="flex flex-col h-full min-h-0 bg-background items-center py-2"
         style={{ width: `${width}px` }}
       >
         {onExpand && (
@@ -48,7 +48,7 @@ export function SecondarySidebar({
     <aside
       data-app-chrome
       className={cn(
-        "flex flex-col h-full min-h-0 bg-background border-r border-border/60 overflow-hidden",
+        "flex flex-col h-full min-h-0 bg-background overflow-hidden",
         !isDragging && "transition-[width] duration-200"
       )}
       style={{ width: `${width}px` }}

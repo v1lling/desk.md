@@ -60,7 +60,7 @@ export function EditorHeader({
         scrolled ? "border-b border-border/40" : "border-b border-transparent"
       )}
     >
-      <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
+      <div className="max-w-4xl mx-auto px-6 py-2 flex items-center gap-3">
         <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}

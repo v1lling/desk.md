@@ -142,9 +142,6 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("title: Weekly Sync");
   lines.push("date: \"2024-06-15\"     # when meeting occurred (required)");
   lines.push("created: \"2024-06-15\"  # when note was written (required)");
-  lines.push("attendees:             # optional");
-  lines.push("  - Alice");
-  lines.push("  - Bob");
   lines.push("---");
   lines.push("```");
   lines.push("");

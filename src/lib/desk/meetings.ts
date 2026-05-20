@@ -25,7 +25,6 @@ interface MeetingFrontmatter extends Record<string, unknown> {
   title: string;
   date: string;
   created: string;
-  attendees?: string[];
 }
 
 /**
@@ -48,7 +47,6 @@ function buildMeeting(
     title: data.title || filename || id,
     date: normalizeDate(data.date || data.created),
     created: normalizeDate(data.created),
-    attendees: data.attendees,
     content: body,
     preview: generatePreview(body),
   };
@@ -60,7 +58,7 @@ function buildMeeting(
 function applyMeetingUpdates(
   data: MeetingFrontmatter,
   body: string,
-  updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>
+  updates: Partial<Pick<Meeting, "title" | "date" | "content">>
 ): { frontmatter: MeetingFrontmatter; content: string } {
   return {
     frontmatter: {
@@ -70,7 +68,6 @@ function applyMeetingUpdates(
       created: normalizeDate(data.created),
       ...(updates.title && { title: updates.title }),
       ...(updates.date && { date: updates.date }),
-      ...(updates.attendees !== undefined && { attendees: updates.attendees }),
     },
     content: updates.content !== undefined ? updates.content : body,
   };
@@ -240,7 +237,7 @@ export async function createMeeting(data: {
  */
 export async function updateMeeting(
   meetingId: string,
-  updates: Partial<Pick<Meeting, "title" | "date" | "attendees" | "content">>,
+  updates: Partial<Pick<Meeting, "title" | "date" | "content">>,
   workspaceId?: string,
   projectId?: string
 ): Promise<Meeting | null> {

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { FileText } from "lucide-react";
 import { useCurrentWorkspace } from "@/stores";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { StatePanel } from "@/components/ui/state-panel";
@@ -18,9 +19,10 @@ export default function DocsPage() {
 
   if (!currentWorkspaceId || !currentWorkspace) {
     return (
-      <div className="flex flex-col h-full p-4">
+      <div className="flex flex-col h-full">
         <StatePanel
           variant="empty"
+          display="inline"
           title="Select a workspace"
           description="Choose a workspace in the sidebar to view docs."
           className="h-full"
@@ -32,11 +34,13 @@ export default function DocsPage() {
   // Main pane: shown only when the Desk tab is active. Opening a doc switches to a doc tab,
   // and `TabContent` then renders the editor here instead.
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-full">
       <StatePanel
         variant="empty"
+        display="inline"
+        icon={FileText}
         title="Select a doc"
-        description="Choose a doc from the tree to start editing."
+        description="Pick a doc from the list to open it."
         className="h-full"
       />
     </div>

@@ -199,7 +199,7 @@ export function NewDocModal({
           ) : (
             <FormField label="Project" optional>
               <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="No project" />
                 </SelectTrigger>
                 <SelectContent>
