@@ -14,7 +14,7 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("# Desk — AI Agent Context");
   lines.push("");
   lines.push(
-    "Desk is a markdown-based work management system. All data lives as `.md` files with YAML frontmatter on the local filesystem — clients, projects, tasks, docs, meetings. You're meant to read across it; that's why it's structured this way."
+    "Desk is a markdown-based work management system. All data lives as `.md` files with YAML frontmatter on the local filesystem — workspaces, projects, tasks, docs, meetings. You're meant to read across it; that's why it's structured this way."
   );
   lines.push("");
 
@@ -24,7 +24,7 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("A few conventions keep this knowledge base coherent and tidy.");
   lines.push("");
   lines.push(
-    "**`docs/`** holds notes the user curates — contracts, references, drafts heading to clients. Read it freely when you need context. Don't write to it directly; new material flows in via `ai-docs/draft-*.md` and the user promotes it to `docs/` when ready."
+    "**`docs/`** holds notes the user curates — references, drafts, and reference material. Read it freely when you need context. Don't write to it directly; new material flows in via `ai-docs/draft-*.md` and the user promotes it to `docs/` when ready."
   );
   lines.push("");
   lines.push(
@@ -81,7 +81,7 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("~/Desk/");
   lines.push("├── CLAUDE.md / AGENTS.md            # This file");
   lines.push("└── workspaces/");
-  lines.push("    └── {workspaceId}/               # _personal or a client workspace");
+  lines.push("    └── {workspaceId}/               # one folder per workspace");
   lines.push("        ├── workspace.md             # metadata");
   lines.push("        ├── CLAUDE.md                # workspace anchor");
   lines.push("        ├── WORKSPACE_CONTEXT.md     # AI-generated file catalog");
@@ -89,7 +89,7 @@ function buildTopLevelContext(workspaces: Workspace[]): string {
   lines.push("        ├── docs/                    # human-curated");
   lines.push("        ├── ai-docs/                 # AI working area");
   lines.push("        ├── _unassigned/             # items without a project (tasks/docs/meetings)");
-  lines.push("        ├── _capture/                # Personal workspace only — triage inbox (tasks)");
+  lines.push("        ├── _capture/                # home workspace only — triage inbox (tasks)");
   lines.push("        └── projects/{projectId}/");
   lines.push("            ├── project.md");
   lines.push("            ├── docs/                # human-curated");

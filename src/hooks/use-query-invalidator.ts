@@ -141,7 +141,7 @@ async function handleFileChange(
 
     affectedTypes.add(itemType);
 
-    // Add workspace to affected set (including _personal workspace)
+    // Add workspace to affected set
     if (workspaceId) {
       affectedWorkspaces.add(workspaceId);
       if (projectId) {

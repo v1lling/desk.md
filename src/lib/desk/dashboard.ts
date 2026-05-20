@@ -1,15 +1,15 @@
 /**
  * Dashboard library - Cross-workspace data aggregation
  *
- * Provides functions to fetch data across all workspaces (including Personal)
- * for the dashboard view.
+ * Provides functions to fetch data across all workspaces for the dashboard view.
  */
 
 import type { Task } from "@/types";
 import { getWorkspaces } from "./workspaces";
 import { getTasks } from "./tasks";
+import { getProjects } from "./projects";
+import { getHighlightedTasks } from "./view-state";
 import { getCaptureTasks } from "./personal";
-import { PERSONAL_WORKSPACE_ID, SPECIAL_DIRS } from "./constants";
 
 /**
  * Summary data for a workspace (used in dashboard)
@@ -34,44 +34,47 @@ export interface ActiveTask extends Task {
 }
 
 /**
- * Get all tasks with status="doing" across all workspaces (including Personal + capture)
+ * Get all tasks highlighted "for focus" across every workspace.
+ *
+ * Highlights are stored per view-state scope — once at workspace level
+ * (the All Tasks board) and once per project — so every scope is scanned
+ * and the collected IDs are resolved against that workspace's tasks.
+ *
+ * Completed tasks are excluded: a finished task is no longer "focus" even
+ * if its highlight was never cleared.
  */
-export async function getActiveTasks(): Promise<ActiveTask[]> {
+export async function getFocusTasks(): Promise<ActiveTask[]> {
   const workspaces = await getWorkspaces();
-  const activeTasks: ActiveTask[] = [];
 
-  // Fetch tasks from all workspaces in parallel
-  const workspaceTasksPromises = workspaces.map(async (workspace) => {
-    const tasks = await getTasks(workspace.id);
-    return tasks
-      .filter((task) => task.status === "doing")
-      .map((task) => ({
-        ...task,
-        workspaceName: workspace.name,
-        workspaceColor: workspace.color,
-      }));
-  });
+  const perWorkspace = await Promise.all(
+    workspaces.map(async (workspace) => {
+      const [projects, tasks] = await Promise.all([
+        getProjects(workspace.id),
+        getTasks(workspace.id),
+      ]);
 
-  const workspaceTasksResults = await Promise.all(workspaceTasksPromises);
-  workspaceTasksResults.forEach((tasks) => activeTasks.push(...tasks));
+      const idLists = await Promise.all([
+        getHighlightedTasks(workspace.id, null),
+        ...projects.map((project) => getHighlightedTasks(workspace.id, project.id)),
+      ]);
+      const highlightedIds = new Set(idLists.flat());
 
-  // Also fetch capture tasks (they're separate from regular Personal workspace tasks)
-  const personalWorkspace = workspaces.find((w) => w.id === PERSONAL_WORKSPACE_ID);
-  const captureTasks = await getCaptureTasks();
-  const activeCaptureTasks = captureTasks
-    .filter((task) => task.status === "doing")
-    .map((task) => ({
-      ...task,
-      workspaceName: personalWorkspace?.name || "Personal",
-      workspaceColor: personalWorkspace?.color,
-    }));
+      return tasks
+        .filter((task) => task.status !== "done" && highlightedIds.has(task.id))
+        .map((task) => ({
+          ...task,
+          workspaceName: workspace.name,
+          workspaceColor: workspace.color,
+        }));
+    })
+  );
 
-  activeTasks.push(...activeCaptureTasks);
+  const focusTasks = perWorkspace.flat();
 
   // Sort by created date (most recent first)
-  activeTasks.sort((a, b) => b.created.localeCompare(a.created));
+  focusTasks.sort((a, b) => b.created.localeCompare(a.created));
 
-  return activeTasks;
+  return focusTasks;
 }
 
 /**
@@ -159,18 +162,16 @@ async function getAllWorkspaceTasksByStatus(
   const workspaceTasksResults = await Promise.all(workspaceTasksPromises);
   workspaceTasksResults.forEach((tasks) => allTasks.push(...tasks));
 
-  // Also fetch capture tasks
-  const personalWorkspace = workspaces.find(
-    (w) => w.id === PERSONAL_WORKSPACE_ID
-  );
+  // Also fetch capture tasks (the capture inbox lives in the home workspace)
+  const homeWorkspace = workspaces.find((w) => w.isHome);
   const captureTasks = await getCaptureTasks();
   const filteredCapture = statuses
     ? captureTasks.filter((task) => statuses.includes(task.status))
     : captureTasks;
   const enrichedCapture = filteredCapture.map((task) => ({
     ...task,
-    workspaceName: personalWorkspace?.name || "Personal",
-    workspaceColor: personalWorkspace?.color,
+    workspaceName: homeWorkspace?.name || "Home",
+    workspaceColor: homeWorkspace?.color,
   }));
 
   allTasks.push(...enrichedCapture);

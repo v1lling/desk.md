@@ -3,8 +3,9 @@
  */
 import type { ContentFolder, ContentScope, DocKind } from "@/types";
 import { isTauri, removeDir, rename, mkdir, joinPath, exists } from "./tauri-fs";
-import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
+import { getHomeWorkspaceId } from "./workspaces";
 
 import { getContentTree } from "./content-tree";
 
@@ -67,10 +68,11 @@ export async function renameFolder(
 
   // Rebuild children by fetching the tree for the renamed folder's scope
   // We get the full tree and extract the renamed folder's children
+  const homeWorkspaceId = await getHomeWorkspaceId();
   const tree = await getContentTree(
     scope,
-    workspaceId || PERSONAL_WORKSPACE_ID,
-    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
+    workspaceId || homeWorkspaceId,
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
     kind
   );
 

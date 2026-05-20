@@ -1,18 +1,18 @@
 /**
  * Capture library - File system operations for capture/triage inbox
  *
- * Capture is a special triage area in the Personal workspace for:
- * - Quick capture tasks to be triaged to Personal or client workspaces
+ * Capture is a quick-triage area that lives inside the home workspace:
+ * - Quick capture tasks to be triaged to the home workspace or any other workspace
  *
- * File structure (Personal is now a workspace):
- * ~/Desk/workspaces/_personal/
+ * File structure:
+ * ~/Desk/workspaces/{homeWorkspaceId}/
  *   ├── _capture/tasks/*.md    # Quick capture (triage inbox)
- *   ├── _unassigned/tasks/*.md # Personal tasks without a project
- *   ├── projects/              # Personal projects
- *   └── docs/                  # Personal docs
+ *   ├── _unassigned/tasks/*.md # Tasks without a project
+ *   ├── projects/              # Projects
+ *   └── docs/                  # Docs
  *
- * Note: Personal tasks/docs/meetings use the regular workspace stores
- * with workspaceId="_personal". This file only handles capture.
+ * Note: Regular tasks/docs/meetings use the normal workspace stores.
+ * This file only handles the capture inbox.
  */
 
 import type { Task, TaskStatus, TaskPriority } from "@/types";
@@ -36,8 +36,9 @@ import {
   deleteMarkdownFile,
   moveMarkdownFile,
 } from "./file-operations";
-import { SPECIAL_DIRS, PERSONAL_WORKSPACE_ID } from "./constants";
+import { SPECIAL_DIRS } from "./constants";
 import { getCapturePath, getTasksPath } from "./paths";
+import { getHomeWorkspaceId } from "./workspaces";
 
 // ============================================================================
 // MOCK DATA
@@ -47,8 +48,8 @@ export const mockCaptureTasks: Task[] = [
   {
     id: "2024-01-16-book-dentist",
     projectId: SPECIAL_DIRS.CAPTURE,
-    workspaceId: PERSONAL_WORKSPACE_ID,
-    filePath: "~/Desk/workspaces/_personal/_capture/tasks/2024-01-16-book-dentist.md",
+    workspaceId: "personal",
+    filePath: "~/Desk/workspaces/personal/_capture/tasks/2024-01-16-book-dentist.md",
     title: "Book dentist appointment",
     status: "todo",
     priority: "low",
@@ -87,6 +88,7 @@ export async function getCaptureTasks(): Promise<Task[]> {
     return [];
   }
 
+  const homeWorkspaceId = await getHomeWorkspaceId();
   const entries = await readDir(capturePath);
   const tasks: Task[] = [];
 
@@ -100,7 +102,7 @@ export async function getCaptureTasks(): Promise<Task[]> {
         tasks.push({
           id: filenameToId(entry.name),
           projectId: SPECIAL_DIRS.CAPTURE,
-          workspaceId: PERSONAL_WORKSPACE_ID,
+          workspaceId: homeWorkspaceId,
           filePath: taskPath,
           title: data.title || entry.name,
           status: data.status || "todo",
@@ -129,11 +131,12 @@ export async function createCaptureTask(data: {
 }): Promise<Task> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
+  const homeWorkspaceId = await getHomeWorkspaceId();
 
   const task: Task = {
     id,
     projectId: SPECIAL_DIRS.CAPTURE,
-    workspaceId: PERSONAL_WORKSPACE_ID,
+    workspaceId: homeWorkspaceId,
     filePath: "",
     title: data.title,
     status: "todo",
@@ -144,7 +147,7 @@ export async function createCaptureTask(data: {
   };
 
   if (!isTauri()) {
-    task.filePath = `~/Desk/workspaces/_personal/_capture/tasks/${filename}`;
+    task.filePath = `~/Desk/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
     mockCaptureTasks.push(task);
     return task;
   }
@@ -247,7 +250,7 @@ export async function moveCaptureToPersonal(taskId: string): Promise<Task | null
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  const unassignedTasksPath = await getTasksPath(PERSONAL_WORKSPACE_ID, SPECIAL_DIRS.UNASSIGNED);
+  const unassignedTasksPath = await getTasksPath(await getHomeWorkspaceId(), SPECIAL_DIRS.UNASSIGNED);
   const filename = task.filePath.split("/").pop()!;
   const newFilePath = await joinPath(unassignedTasksPath, filename);
 

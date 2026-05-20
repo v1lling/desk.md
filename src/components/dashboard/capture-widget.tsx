@@ -51,6 +51,10 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
+  const homeWorkspace = workspaces.find((w) => w.isHome);
+  const homeName = homeWorkspace?.name ?? "Home";
+  const otherWorkspaces = workspaces.filter((w) => !w.isHome);
+
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -61,7 +65,11 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 
   const handleMoveToPersonal = async (task: Task) => {
     await moveToPersonal.mutateAsync(task.id);
-    onTriageComplete?.(task, { type: "personal" });
+    onTriageComplete?.(task, {
+      type: "personal",
+      workspaceId: homeWorkspace?.id,
+      workspaceName: homeName,
+    });
   };
 
   const handleMoveToWorkspace = async (
@@ -146,7 +154,8 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
               <CaptureItem
                 key={task.id}
                 task={task}
-                workspaces={workspaces}
+                workspaces={otherWorkspaces}
+                homeName={homeName}
                 onMoveToPersonal={() => handleMoveToPersonal(task)}
                 onMoveToWorkspace={(ws, pid, pname) =>
                   handleMoveToWorkspace(task, ws, pid, pname)
@@ -164,6 +173,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 interface CaptureItemProps {
   task: Task;
   workspaces: Workspace[];
+  homeName: string;
   onMoveToPersonal: () => void;
   onMoveToWorkspace: (workspace: Workspace, projectId: string, projectName: string) => void;
   onDelete: () => void;
@@ -172,6 +182,7 @@ interface CaptureItemProps {
 function CaptureItem({
   task,
   workspaces,
+  homeName,
   onMoveToPersonal,
   onMoveToWorkspace,
   onDelete,
@@ -192,10 +203,10 @@ function CaptureItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {/* Personal Tasks */}
+          {/* Home workspace tasks */}
           <DropdownMenuItem onClick={onMoveToPersonal}>
             <User className="size-4 mr-2" />
-            Move to Personal Tasks
+            Move to {homeName} Tasks
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Check, User, FolderKanban } from "lucide-react";
 import { useUpdateTask } from "@/stores";
-import { PERSONAL_WORKSPACE_ID, SPECIAL_DIRS } from "@/lib/desk/constants";
+import { SPECIAL_DIRS } from "@/lib/desk/constants";
 import type { Task, TaskPriority } from "@/types";
 import type { TriageDestination } from "./capture-widget";
 
@@ -64,10 +64,8 @@ export function TriageDetailModal({
 
     // Only update if there are changes
     if (Object.keys(updates).length > 0) {
-      // Determine workspace/project - Personal workspace uses _personal/_unassigned
-      const workspaceId = destination.type === "personal"
-        ? PERSONAL_WORKSPACE_ID
-        : destination.workspaceId;
+      // Personal triage lands in the home workspace's _unassigned area
+      const workspaceId = destination.workspaceId;
       const projectId = destination.type === "personal"
         ? SPECIAL_DIRS.UNASSIGNED
         : destination.projectId;
@@ -161,7 +159,7 @@ function DestinationBadge({ destination }: { destination: TriageDestination }) {
     return (
       <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
         <User className="size-3" />
-        Personal Tasks
+        {destination.workspaceName ?? "Home"} Tasks
       </div>
     );
   }

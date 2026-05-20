@@ -13,6 +13,7 @@ import {
   Bot,
   FileText,
   FolderKanban,
+  Search,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useCallback, useMemo } from "react";
@@ -24,6 +25,7 @@ import { extractDocs, extractAssets } from "@/lib/desk/content";
 import { useProjects } from "@/stores/projects";
 import { WorkspaceSelector } from "./workspace-selector";
 import { useTabStore } from "@/stores/tabs";
+import { openGlobalSearch } from "@/components/global-search";
 import { SidebarNavRow } from "./sidebar-nav-row";
 
 interface SidebarProps {
@@ -79,6 +81,9 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
     >
       <ScrollArea className="flex-1 min-h-0">
         <nav className="px-2 py-2 space-y-1">
+          {collapsed && (
+            <SidebarNavRow label="Search" icon={Search} collapsed={collapsed} role="global" onClick={openGlobalSearch} />
+          )}
           <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" onClick={switchToDesk} />
           <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 

@@ -2,7 +2,8 @@ import { useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 import * as viewStateLib from "@/lib/desk/view-state";
-import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "@/lib/desk/constants";
+import { WORKSPACE_LEVEL_PROJECT_ID } from "@/lib/desk/constants";
+import { dashboardKeys } from "./dashboard";
 
 // Query keys
 export const viewStateKeys = {
@@ -170,14 +171,6 @@ export function useViewMode(
 }
 
 /**
- * Hook for Personal workspace view mode (convenience wrapper)
- * Default is 'list' for Personal tasks
- */
-export function usePersonalViewMode() {
-  return useViewMode(PERSONAL_WORKSPACE_ID, null, "list");
-}
-
-/**
  * Hook to get/set expanded folders for content tree view
  * Returns the current expanded folders and a function to update them
  *
@@ -304,6 +297,10 @@ export function useHighlightedTasks(
           context.previousState
         );
       }
+    },
+    onSettled: () => {
+      // Keep the dashboard Focus widget in sync with highlight changes.
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.focusTasks() });
     },
   });
 

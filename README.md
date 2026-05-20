@@ -4,22 +4,30 @@
 
 # desk.md
 
-> Project-centric work management for freelancers and consultants.
+> A local-first home for your projects, tasks, docs, and meetings — all plain Markdown files you own.
 
 ## What is desk.md?
 
-desk.md is a Tauri desktop app that organizes work into **workspaces** and **projects**, with all content stored as local markdown files.
+desk.md is a desktop app for running your work — projects, tasks, documents, and
+meetings — stored as plain Markdown files on your own machine. If you like the
+idea of Obsidian's local Markdown vault but want something built around
+**projects and task tracking** rather than note-graphs, that's desk.md.
 
-## Current Direction: Assistant-First
+- **You own your data.** Everything is plain Markdown with YAML frontmatter in a
+  normal folder. No database, no lock-in — open it in any editor, including Obsidian.
+- **Local-first.** Works fully offline. No account, no mandatory cloud.
+- **Organized by workspace.** Group work into workspaces — one per client, side
+  project, or area of life — each with its own projects, tasks, docs, and meetings.
+- **Structured task tracking.** Statuses, priorities, due dates, Kanban/list
+  views, and a quick-capture inbox for triage.
+- **Optional AI assistant.** A built-in assistant can search and read your
+  workspace to answer questions and draft text — entirely optional.
 
-Desk now ships with an in-app **Assistant** as the primary AI experience:
+## Who is it for?
 
-- Assistant is a chat UI with tool-calling
-- Email drafting is routed through Assistant with prefilled draft turns
-- Tool calls are scoped to the active workspace
-- Mutations (create/update tasks, meetings, docs) require explicit approval
-- Context retrieval is tool-driven via **Context Catalog** (Smart Index)
-- MCP remains available for external CLI interoperability
+Anyone who wants to run their work from local Markdown files: indie developers,
+writers, students, makers — and freelancers juggling multiple clients, where
+workspaces map naturally onto clients.
 
 ## Tech Stack
 
@@ -27,14 +35,14 @@ Desk now ships with an in-app **Assistant** as the primary AI experience:
 - Desktop: Tauri 2
 - UI: shadcn/ui
 - State: Zustand + TanStack Query
-- Storage: Local markdown files under `~/Desk/`
+- Storage: Local Markdown files under `~/Desk/`
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev
-npm run tauri dev
+npm run dev          # Browser with mock data
+npm run tauri dev    # Desktop with the real file system
 ```
 
 ## Documentation
@@ -42,11 +50,12 @@ npm run tauri dev
 - [docs/FEATURES.md](./docs/FEATURES.md)
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 - [docs/EMAIL-INTEGRATION.md](./docs/EMAIL-INTEGRATION.md)
-- [docs/MCP_INTEGRATION.md](./docs/MCP_INTEGRATION.md)
 
 ## Data Storage
 
-Desk stores user data in `~/Desk/workspaces/*` and app metadata in `~/Desk/.desk/`.
+Desk stores user content in `~/Desk/workspaces/*` and app metadata in `~/Desk/.desk/`.
+One workspace is the **home workspace** (`home: true` in its `workspace.md`) — it
+holds the quick-capture inbox and is created when you first set up Desk.
 
 ## License
 

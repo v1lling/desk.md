@@ -6,8 +6,9 @@ import { normalizeDate, generatePreview } from "./parser";
 import { isTauri, joinPath } from "./tauri-fs";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
-import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
+import { getHomeWorkspaceId } from "./workspaces";
 import { getAllDocsForWorkspace } from "./content-tree";
 
 interface DocFrontmatter extends Record<string, unknown> {
@@ -125,11 +126,12 @@ export async function moveDoc(
     ? `${toPath}/${sourceFilename}`
     : sourceFilename;
 
+  const homeWorkspaceId = await getHomeWorkspaceId();
   return {
     id: docId,
     path: newRelPath,
-    projectId: projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
-    workspaceId: workspaceId || PERSONAL_WORKSPACE_ID,
+    projectId: projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
+    workspaceId: workspaceId || homeWorkspaceId,
     filePath: targetFilePath,
     title: parsed.frontmatter.title,
     created: normalizeDate(parsed.frontmatter.created),

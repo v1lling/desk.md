@@ -6,7 +6,8 @@ import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./parser";
 import { isTauri, readDir, mkdir, joinPath, exists, fileStat } from "./tauri-fs";
 import { mockDocs } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { getHomeWorkspaceId } from "./workspaces";
 import { getDocsPath, getAIDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
@@ -183,11 +184,13 @@ export async function getContentTree(
   projectId?: string,
   kind: DocKind = "human"
 ): Promise<FileTreeNode[]> {
+  const homeWorkspaceId = await getHomeWorkspaceId();
+
   if (!isTauri()) {
     const filtered = mockDocs.filter((doc) => {
       const docKind: DocKind = filePathIsAIKind(doc.filePath) ? "ai" : "human";
       if (docKind !== kind) return false;
-      if (scope === "personal") return doc.workspaceId === PERSONAL_WORKSPACE_ID;
+      if (scope === "personal") return doc.workspaceId === homeWorkspaceId;
       if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
     });
@@ -209,8 +212,8 @@ export async function getContentTree(
     basePath,
     "",
     scope,
-    workspaceId || PERSONAL_WORKSPACE_ID,
-    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID),
+    workspaceId || homeWorkspaceId,
+    projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
     kind
   );
 }

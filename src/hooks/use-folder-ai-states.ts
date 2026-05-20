@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/context-index/aiignore";
-import { PERSONAL_WORKSPACE_ID } from "@/lib/desk/constants";
+import { useHomeWorkspace } from "@/stores/workspaces";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { splitTreePathToKind } from "@/lib/desk/tree-path";
 import type { ContentScope } from "@/types";
@@ -56,8 +56,10 @@ export function useFolderAIStates(
 ) {
   const [folderAIStates, setFolderAIStates] = useState<Map<string, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
+  const homeWorkspace = useHomeWorkspace();
 
-  const effectiveWorkspaceId = workspaceId || (scope === "personal" ? PERSONAL_WORKSPACE_ID : null);
+  const effectiveWorkspaceId =
+    workspaceId || (scope === "personal" ? homeWorkspace?.id ?? null : null);
 
   useEffect(() => {
     if (!effectiveWorkspaceId || !isTauri() || folderPaths.length === 0) {

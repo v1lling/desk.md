@@ -11,9 +11,10 @@ import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPa
 import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
 import type { Workspace } from "@/types";
 
-type Step = "welcome" | "data-folder" | "existing-detected" | "first-workspace";
+type Step = "welcome" | "data-folder" | "existing-detected" | "workspace";
 
 const COLORS = [
+  "#6366f1", // indigo
   "#3b82f6", // blue
   "#10b981", // green
   "#f59e0b", // amber
@@ -27,7 +28,7 @@ const COLORS = [
 export function SetupWizard() {
   const [step, setStep] = useState<Step>("welcome");
   const [dataPath, setDataPath] = useState("~/Desk");
-  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("Personal");
   const [workspaceColor, setWorkspaceColor] = useState(COLORS[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
@@ -81,11 +82,11 @@ export function SetupWizard() {
         }
       }
 
-      // No existing data, proceed to create first workspace
-      setStep("first-workspace");
+      // No existing data, proceed to set up the home workspace
+      setStep("workspace");
     } catch (error) {
       console.error("Error checking data folder:", error);
-      setStep("first-workspace");
+      setStep("workspace");
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +100,7 @@ export function SetupWizard() {
     setSetupCompleted(true);
   };
 
-  const handleCreateNew = async () => {
+  const handleFinish = async () => {
     setIsLoading(true);
 
     try {
@@ -109,12 +110,13 @@ export function SetupWizard() {
       // Initialize the Desk directory structure
       await initDeskDirectory();
 
-      // Create the first workspace
+      // Create the home workspace
       const workspaceId = slugify(workspaceName);
       await createWorkspace.mutateAsync({
         id: workspaceId,
-        name: workspaceName,
+        name: workspaceName.trim(),
         color: workspaceColor,
+        home: true,
       });
 
       setCurrentWorkspaceId(workspaceId);
@@ -152,13 +154,14 @@ export function SetupWizard() {
               </div>
               <CardTitle className="text-2xl">Welcome to Desk</CardTitle>
               <CardDescription>
-                Manage tasks, docs, and meetings across clients.
+                Your projects, tasks, docs, and meetings — as plain Markdown files you own.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Organize your work by <strong>workspace</strong> and project.
-                Everything stays on your machine as plain markdown files.
+                Organize your work into <strong>workspaces</strong> and projects.
+                Everything stays on your machine as plain Markdown files — yours
+                to keep, edit anywhere, and never locked in.
               </p>
               <Button className="w-full" onClick={() => setStep("data-folder")}>
                 Get Started
@@ -253,7 +256,7 @@ export function SetupWizard() {
                 <Button className="w-full" onClick={handleUseExisting}>
                   Use Existing Data
                 </Button>
-                <Button variant="outline" onClick={() => setStep("first-workspace")}>
+                <Button variant="outline" onClick={() => setStep("workspace")}>
                   Create New Workspace Instead
                 </Button>
               </div>
@@ -261,15 +264,18 @@ export function SetupWizard() {
           </>
         )}
 
-        {step === "first-workspace" && (
+        {step === "workspace" && (
           <>
             <CardHeader>
               <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Palette className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Create Your First Workspace</CardTitle>
+              <CardTitle>Your home workspace</CardTitle>
               <CardDescription>
-                Workspaces separate your clients or projects. Start with one.
+                Workspaces keep separate areas of work apart. This is your home
+                workspace — name it anything (your name, &ldquo;Personal&rdquo;,
+                &ldquo;Home&rdquo;…). You can add more later for clients, side
+                projects, or other areas.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -279,7 +285,7 @@ export function SetupWizard() {
                   id="workspaceName"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="e.g., ACME Corp, Personal, Freelance"
+                  placeholder="e.g., Personal, Home"
                 />
               </div>
               <div className="space-y-2">
@@ -309,11 +315,11 @@ export function SetupWizard() {
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={handleCreateNew}
+                  onClick={handleFinish}
                   disabled={!workspaceName.trim() || isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Workspace
+                  Get Started
                 </Button>
               </div>
             </CardContent>

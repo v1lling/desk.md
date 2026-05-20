@@ -75,7 +75,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>New Workspace</DialogTitle>
-          <DialogDescription className="sr-only">Create a new workspace for a client or project</DialogDescription>
+          <DialogDescription className="sr-only">Create a workspace to separate an area of your work — a client, side project, or anything else</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -84,7 +84,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
               id="workspace-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Client Name or Project"
+              placeholder="e.g., Acme Corp, Side Projects, Studies"
               autoFocus
             />
             {name && (

@@ -18,6 +18,14 @@ import type { Workspace, Project, Task, Doc, Meeting } from "@/types";
 
 export const mockWorkspaces: Workspace[] = [
   {
+    id: "personal",
+    name: "Personal",
+    description: "Private tasks, docs, and projects",
+    color: "#6366f1",
+    created: "2024-01-01",
+    isHome: true,
+  },
+  {
     id: "slsp",
     name: "SLSP",
     description: "Swiss Library Service Platform",

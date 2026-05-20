@@ -6,12 +6,12 @@ import {
   type TriageDestination,
 } from "@/components/dashboard";
 import {
-  useActiveTasks,
+  useFocusTasks,
   useWorkspaceSummaries,
   useNavigationStore,
 } from "@/stores";
 import { useNavigate } from "react-router-dom";
-import { Circle, CheckCircle2, Loader2 } from "lucide-react";
+import { Circle, CheckCircle2, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { cn } from "@/lib/utils";
@@ -35,15 +35,20 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
   return (
     <DataCard>
       <div className="flex items-center gap-2 mb-2">
-        <Loader2 className="size-4 text-brand-accent" />
+        <Star className="size-4 text-brand-accent" />
         <h2 className="text-base font-medium">Focus</h2>
-        <span className="text-xs text-muted-foreground">{tasks.length} in progress</span>
+        <span className="text-xs text-muted-foreground">{tasks.length} highlighted</span>
       </div>
 
       {isLoading ? (
         <LoadingState label="tasks" display="inline" className="py-8" />
       ) : tasks.length === 0 ? (
-        <EmptyState title="No tasks in progress" display="inline" className="py-8" />
+        <EmptyState
+          title="No highlighted tasks"
+          description='Right-click a task on the board and choose "Highlight for focus".'
+          display="inline"
+          className="py-8"
+        />
       ) : (
         <DenseList>
           {tasks.map((task) => (
@@ -140,7 +145,7 @@ function ProgressBar({ percent }: { percent: number }) {
 }
 
 export default function DashboardPage() {
-  const { data: activeTasks = [], isLoading: tasksLoading } = useActiveTasks();
+  const { data: focusTasks = [], isLoading: tasksLoading } = useFocusTasks();
   const { data: workspaceSummaries = [], isLoading: summariesLoading } =
     useWorkspaceSummaries();
 
@@ -166,7 +171,7 @@ export default function DashboardPage() {
         <main className="p-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl">
             <CaptureWidget onTriageComplete={handleTriageComplete} />
-            <FocusWidget tasks={activeTasks} isLoading={tasksLoading} />
+            <FocusWidget tasks={focusTasks} isLoading={tasksLoading} />
 
             <div className="lg:col-span-2">
               <WorkspacesWidget

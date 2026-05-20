@@ -1,10 +1,11 @@
-// Workspace - represents a client/context
+// Workspace - a top-level container for separating areas of work
 export interface Workspace {
   id: string;              // Folder name
   name: string;            // Display name
   description?: string;
   color?: string;          // Hex color for UI
   created: string;         // ISO date
+  isHome?: boolean;        // The home workspace: owns the capture inbox, undeletable, sorted first
 }
 
 // Project - lives under a workspace

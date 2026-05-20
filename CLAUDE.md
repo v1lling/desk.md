@@ -1,6 +1,6 @@
-# desk.md - Work Management for Freelancers
+# desk.md - Local-First Work Management
 
-> Desktop app to manage workspaces, projects, tasks, and docs across multiple clients.
+> Desktop app to manage workspaces, projects, tasks, docs, and meetings — all as local Markdown files you own.
 
 ## Quick Start
 
@@ -13,15 +13,15 @@ npm run tauri:build  # Production build
 ## Core Concept
 
 ```
-Workspace (Client or Personal)
+Workspace (any area of work — a client, side project, or life area)
 ├── Workspace-level Docs
 ├── _unassigned/          (tasks without a project)
-├── _capture/             (Personal only - triage inbox)
+├── _capture/             (home workspace only - triage inbox)
 └── Projects
     └── Project
         ├── Tasks, Docs, Meetings
 
-Personal = workspace "_personal" (always first in list)
+The home workspace (frontmatter `home: true`) holds the capture inbox and is always first in the list.
 ```
 
 **"Work Mode" Navigation**: User selects active workspace via bottom selector. All views (Tasks, Docs, Meetings) filter to that workspace automatically.
@@ -72,8 +72,8 @@ See [docs/FEATURES.md](docs/FEATURES.md) for full feature list.
 Key features:
 - Dashboard with Focus and Workspaces widgets
 - **Work Mode**: Workspace selector at bottom, all views filter automatically
-- Personal as workspace (`_personal`) with capture inbox
-- Workspaces with color coding (Personal = indigo)
+- Home workspace (`home: true`) with quick-capture inbox, created at onboarding
+- Workspaces with color coding (home workspace defaults to indigo)
 - Projects inline in sidebar (alphabetically sorted)
 - Project detail with Overview, Tasks, Docs, Meetings tabs
 - **Docs**: Tree structure with folders, drag-drop import
@@ -305,8 +305,8 @@ pipx install appicongen
 - Project detail at `/projects/:id`
 - Mock data used when `isTauri() === false`
 - `_unassigned` is a special directory for items without a project
-- `_personal` is the Personal workspace (treated like any other workspace)
-- `_capture` is the triage inbox within Personal workspace
+- The **home workspace** is an ordinary workspace folder marked `home: true` in its `workspace.md`; resolve its id via `getHomeWorkspaceId()` (cached). It holds the capture inbox, is undeletable, and sorts first.
+- `_capture` is the triage inbox, a special directory inside the home workspace
 - **Single user**: No migration code or backward compatibility needed
 - All path strings must use `PATH_SEGMENTS.*` and `SPECIAL_DIRS.*` from `constants.ts`
 

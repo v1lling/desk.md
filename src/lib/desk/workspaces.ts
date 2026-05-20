@@ -1,5 +1,10 @@
 /**
  * Workspaces library - File system operations for workspaces
+ *
+ * A workspace is an ordinary folder under workspaces/. Exactly one workspace is
+ * the "home" workspace (frontmatter `home: true`): it owns the quick-capture
+ * inbox, is sorted first, and cannot be deleted. The home workspace is created
+ * during onboarding like any other workspace — there is no magic folder name.
  */
 import type { Workspace } from "@/types";
 import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate } from "./parser";
@@ -15,7 +20,7 @@ import {
   exists,
 } from "./tauri-fs";
 import { mockWorkspaces } from "./mock-data";
-import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES, isPersonalWorkspace } from "./constants";
+import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
 
 interface WorkspaceFrontmatter {
@@ -23,60 +28,76 @@ interface WorkspaceFrontmatter {
   description?: string;
   color?: string;
   created: string;
+  home?: boolean;
 }
 
 /**
- * Personal workspace metadata
- * Personal is a special workspace that always exists
+ * Sort workspaces with the home workspace first, the rest alphabetically.
  */
-export const PERSONAL_WORKSPACE: Workspace = {
-  id: SPECIAL_DIRS.PERSONAL,
-  name: "Personal",
-  description: "Private tasks, docs, and projects",
-  color: "#6366f1", // Indigo - distinct from client workspaces
-  created: "2024-01-01",
-};
+function sortWorkspacesHomeFirst(workspaces: Workspace[]): Workspace[] {
+  const home = workspaces.find((w) => w.isHome);
+  const rest = workspaces
+    .filter((w) => !w.isHome)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return home ? [home, ...rest] : rest;
+}
+
+// =============================================================================
+// HOME WORKSPACE RESOLUTION
+// The home workspace id is fixed once created (folders never move on rename),
+// so it is resolved once and cached for the session.
+// =============================================================================
+
+let cachedHomeWorkspaceId: string | null = null;
 
 /**
- * Read Personal workspace metadata from disk, falling back to defaults
+ * Resolve the id of the home workspace (the one with `home: true`).
+ * Falls back to the oldest workspace if no workspace is flagged.
  */
-async function getPersonalWorkspaceFromDisk(): Promise<Workspace> {
-  if (!isTauri()) return PERSONAL_WORKSPACE;
+export async function getHomeWorkspaceId(): Promise<string> {
+  if (cachedHomeWorkspaceId) return cachedHomeWorkspaceId;
 
-  try {
-    const deskPath = await getDeskPath();
-    const workspacePath = await joinPath(
-      deskPath, PATH_SEGMENTS.WORKSPACES, SPECIAL_DIRS.PERSONAL, FILE_NAMES.WORKSPACE_MD
-    );
-    const content = await readTextFile(workspacePath);
-    const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
-
-    return {
-      ...PERSONAL_WORKSPACE,
-      description: data.description ?? PERSONAL_WORKSPACE.description,
-      color: data.color || PERSONAL_WORKSPACE.color,
-    };
-  } catch {
-    return PERSONAL_WORKSPACE;
+  const workspaces = await getWorkspaces();
+  const home = workspaces.find((w) => w.isHome);
+  if (home) {
+    cachedHomeWorkspaceId = home.id;
+    return home.id;
   }
+
+  // Fallback: oldest workspace. Not cached — a flagged home may appear later.
+  const fallback = [...workspaces].sort((a, b) =>
+    a.created.localeCompare(b.created)
+  )[0];
+  if (!fallback) {
+    throw new Error("No workspaces exist — cannot resolve home workspace");
+  }
+  return fallback.id;
 }
 
 /**
- * Get all workspaces (including Personal)
- * Personal workspace is always first in the list
+ * Clear the cached home workspace id (call after creating/deleting workspaces).
+ */
+export function clearHomeWorkspaceCache(): void {
+  cachedHomeWorkspaceId = null;
+}
+
+// =============================================================================
+// READ OPERATIONS
+// =============================================================================
+
+/**
+ * Get all workspaces, home workspace first.
  */
 export async function getWorkspaces(): Promise<Workspace[]> {
   if (!isTauri()) {
-    // Include Personal in mock data
-    return [PERSONAL_WORKSPACE, ...mockWorkspaces];
+    return sortWorkspacesHomeFirst([...mockWorkspaces]);
   }
 
   const deskPath = await getDeskPath();
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
 
-  // Check if workspaces directory exists
   if (!(await exists(workspacesPath))) {
-    return [await getPersonalWorkspaceFromDisk()];
+    return [];
   }
 
   const entries = await readDir(workspacesPath);
@@ -84,11 +105,6 @@ export async function getWorkspaces(): Promise<Workspace[]> {
 
   for (const entry of entries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
-      // Skip _personal - we'll read it separately
-      if (isPersonalWorkspace(entry.name)) {
-        continue;
-      }
-
       try {
         const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
         const content = await readTextFile(workspacePath);
@@ -100,6 +116,7 @@ export async function getWorkspaces(): Promise<Workspace[]> {
           description: data.description,
           color: data.color,
           created: normalizeDate(data.created),
+          isHome: data.home === true,
         });
       } catch (e) {
         console.warn(`Failed to read workspace ${entry.name}:`, e);
@@ -107,20 +124,13 @@ export async function getWorkspaces(): Promise<Workspace[]> {
     }
   }
 
-  // Personal always first, then client workspaces sorted alphabetically
-  const personal = await getPersonalWorkspaceFromDisk();
-  return [personal, ...workspaces.sort((a, b) => a.name.localeCompare(b.name))];
+  return sortWorkspacesHomeFirst(workspaces);
 }
 
 /**
  * Get a single workspace by ID
  */
 export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
-  // Personal workspace is always available
-  if (isPersonalWorkspace(workspaceId)) {
-    return getPersonalWorkspaceFromDisk();
-  }
-
   if (!isTauri()) {
     return mockWorkspaces.find((w) => w.id === workspaceId) || null;
   }
@@ -138,20 +148,28 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
       description: data.description,
       color: data.color,
       created: normalizeDate(data.created),
+      isHome: data.home === true,
     };
   } catch {
     return null;
   }
 }
 
+// =============================================================================
+// WRITE OPERATIONS
+// =============================================================================
+
 /**
- * Create a new workspace
+ * Create a new workspace.
+ * When `home` is true the workspace also gets a `_capture/` quick-capture inbox
+ * and is flagged with `home: true` in its frontmatter.
  */
 export async function createWorkspace(data: {
   id: string;
   name: string;
   description?: string;
   color?: string;
+  home?: boolean;
 }): Promise<Workspace> {
   const workspace: Workspace = {
     id: data.id,
@@ -159,10 +177,20 @@ export async function createWorkspace(data: {
     description: data.description,
     color: data.color,
     created: todayISO(),
+    isHome: data.home === true,
   };
 
   if (!isTauri()) {
-    mockWorkspaces.push(workspace);
+    // In mock mode, replace an existing home workspace rather than duplicating it
+    const existingHome = workspace.isHome
+      ? mockWorkspaces.findIndex((w) => w.isHome)
+      : -1;
+    if (existingHome !== -1) {
+      mockWorkspaces[existingHome] = workspace;
+    } else {
+      mockWorkspaces.push(workspace);
+    }
+    clearHomeWorkspaceCache();
     return workspace;
   }
 
@@ -172,10 +200,17 @@ export async function createWorkspace(data: {
   // Create workspace directory structure
   await mkdir(workspacePath);
   await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
+  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.DOCS));
+  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
   await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
-  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
+
+  // The home workspace owns the quick-capture inbox
+  if (workspace.isHome) {
+    await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE));
+    await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
+  }
 
   // Create workspace.md
   const frontmatter: WorkspaceFrontmatter = {
@@ -183,6 +218,7 @@ export async function createWorkspace(data: {
     description: workspace.description,
     color: workspace.color,
     created: workspace.created,
+    ...(workspace.isHome && { home: true }),
   };
 
   const markdownContent = `# ${workspace.name}
@@ -192,6 +228,8 @@ ${workspace.description || ""}
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
+
+  clearHomeWorkspaceCache();
 
   // Generate agent context files (CLAUDE.md + AGENTS.md)
   await writePerWorkspaceAgentFiles(data.id, workspace, []);
@@ -238,6 +276,7 @@ export async function updateWorkspace(
       description: updatedData.description,
       color: updatedData.color,
       created: updatedData.created,
+      isHome: updatedData.home === true,
     };
   } catch {
     return null;
@@ -245,13 +284,12 @@ export async function updateWorkspace(
 }
 
 /**
- * Delete a workspace (removes entire directory)
- * Note: Personal workspace cannot be deleted
+ * Delete a workspace (removes entire directory).
+ * The home workspace cannot be deleted.
  */
 export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
-  // Cannot delete Personal workspace
-  if (isPersonalWorkspace(workspaceId)) {
-    console.warn("Cannot delete Personal workspace");
+  if (workspaceId === (await getHomeWorkspaceId())) {
+    console.warn("Cannot delete the home workspace");
     return false;
   }
 
@@ -259,6 +297,7 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
     const index = mockWorkspaces.findIndex((w) => w.id === workspaceId);
     if (index === -1) return false;
     mockWorkspaces.splice(index, 1);
+    clearHomeWorkspaceCache();
     return true;
   }
 
@@ -267,59 +306,9 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
 
   try {
     await removeDir(workspacePath);
+    clearHomeWorkspaceCache();
     return true;
   } catch {
     return false;
   }
-}
-
-/**
- * Initialize the Personal workspace directory structure
- * Creates: _personal/projects, _personal/_unassigned, _personal/_capture
- */
-export async function initPersonalWorkspace(): Promise<void> {
-  if (!isTauri()) return;
-
-  const deskPath = await getDeskPath();
-  const personalPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, SPECIAL_DIRS.PERSONAL);
-
-  // Create directory structure
-  await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.PROJECTS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.AI_DOCS));
-
-  // Unassigned area
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
-
-  // Capture area (for quick triage)
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
-
-  // Create workspace.md if it doesn't exist
-  const workspaceFilePath = await joinPath(personalPath, FILE_NAMES.WORKSPACE_MD);
-  if (!(await exists(workspaceFilePath))) {
-    const frontmatter: WorkspaceFrontmatter = {
-      name: PERSONAL_WORKSPACE.name,
-      description: PERSONAL_WORKSPACE.description,
-      color: PERSONAL_WORKSPACE.color,
-      created: PERSONAL_WORKSPACE.created,
-    };
-
-    const markdownContent = `# Personal
-
-Private tasks, docs, and projects.
-`;
-
-    const fileContent = serializeMarkdown(frontmatter, markdownContent);
-    await writeTextFile(workspaceFilePath, fileContent);
-  }
-
-  // Generate agent context files (CLAUDE.md + AGENTS.md) for Personal workspace
-  await writePerWorkspaceAgentFiles(SPECIAL_DIRS.PERSONAL, PERSONAL_WORKSPACE, []);
-
-  // Regenerate top-level agent files on startup
-  getWorkspaces().then((workspaces) => writeTopLevelAgentFiles(workspaces)).catch(() => {});
 }

@@ -4,17 +4,17 @@ import * as dashboardLib from "@/lib/desk/dashboard";
 // Query keys
 export const dashboardKeys = {
   all: ["dashboard"] as const,
-  activeTasks: () => [...dashboardKeys.all, "activeTasks"] as const,
+  focusTasks: () => [...dashboardKeys.all, "focusTasks"] as const,
   workspaceSummaries: () => [...dashboardKeys.all, "workspaceSummaries"] as const,
 };
 
 /**
- * Hook to fetch all active (doing) tasks across workspaces
+ * Hook to fetch all tasks highlighted "for focus" across workspaces
  */
-export function useActiveTasks() {
+export function useFocusTasks() {
   return useQuery({
-    queryKey: dashboardKeys.activeTasks(),
-    queryFn: () => dashboardLib.getActiveTasks(),
+    queryKey: dashboardKeys.focusTasks(),
+    queryFn: () => dashboardLib.getFocusTasks(),
   });
 }
 

@@ -41,6 +41,14 @@ const TYPE_LABELS: Record<SearchItemType, string> = {
   project: "Project",
 };
 
+/**
+ * Open the global search dialog. GlobalSearch has no open-store — it listens
+ * for ⌘K / Ctrl+K on the document — so this dispatches that shortcut.
+ */
+export function openGlobalSearch() {
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+}
+
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");

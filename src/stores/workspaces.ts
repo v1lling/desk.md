@@ -43,6 +43,7 @@ export function useCreateWorkspace() {
       name: string;
       description?: string;
       color?: string;
+      home?: boolean;
     }) => workspaceLib.createWorkspace(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
@@ -104,4 +105,12 @@ export function useCurrentWorkspace() {
   const { data: workspaces = [] } = useWorkspaces();
   const currentWorkspaceId = useNavigationStore((state) => state.currentWorkspaceId);
   return workspaces.find((workspace) => workspace.id === currentWorkspaceId) || workspaces[0] || null;
+}
+
+/**
+ * Selector hook to get the home workspace (owns the capture inbox, sorted first)
+ */
+export function useHomeWorkspace() {
+  const { data: workspaces = [] } = useWorkspaces();
+  return workspaces.find((workspace) => workspace.isHome) || workspaces[0] || null;
 }

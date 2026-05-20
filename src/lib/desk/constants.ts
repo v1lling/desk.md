@@ -13,9 +13,7 @@
 export const SPECIAL_DIRS = {
   /** Directory for tasks/docs not assigned to any project */
   UNASSIGNED: "_unassigned",
-  /** Personal workspace directory (treated as a workspace) */
-  PERSONAL: "_personal",
-  /** Capture project for quick triage (within Personal workspace) */
+  /** Capture project for quick triage (lives inside the home workspace) */
   CAPTURE: "_capture",
 } as const;
 
@@ -26,7 +24,6 @@ export const SPECIAL_DIRS = {
 
 export const PATH_SEGMENTS = {
   WORKSPACES: "workspaces",
-  PERSONAL: "personal",
   PROJECTS: "projects",
   TASKS: "tasks",
   DOCS: "docs",
@@ -34,12 +31,6 @@ export const PATH_SEGMENTS = {
   MEETINGS: "meetings",
   CAPTURE: "capture",
 } as const;
-
-/**
- * Personal workspace ID - matches the folder name _personal
- * Personal is treated as a regular workspace in the UI
- */
-export const PERSONAL_WORKSPACE_ID = "_personal" as const;
 
 /**
  * Workspace-level project ID - used for docs/content at workspace level (not in any project)
@@ -74,13 +65,6 @@ export type PathSegment = (typeof PATH_SEGMENTS)[keyof typeof PATH_SEGMENTS];
  */
 export function isUnassigned(projectId: string): boolean {
   return projectId === SPECIAL_DIRS.UNASSIGNED;
-}
-
-/**
- * Check if a workspace ID is the Personal workspace
- */
-export function isPersonalWorkspace(workspaceId: string | null): boolean {
-  return workspaceId === SPECIAL_DIRS.PERSONAL;
 }
 
 /**

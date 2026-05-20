@@ -2,7 +2,7 @@
  * Tauri File System wrapper
  * Provides a unified API that works in both Tauri and browser environments
  */
-import { PATH_SEGMENTS, SPECIAL_DIRS } from "./constants";
+import { PATH_SEGMENTS } from "./constants";
 
 // Check if running in Tauri
 export function isTauri(): boolean {
@@ -262,8 +262,9 @@ export async function joinPath(...segments: string[]): Promise<string> {
 }
 
 /**
- * Initialize the Desk directory structure
- * Personal workspace is created under workspaces/_personal/
+ * Initialize the Desk directory structure.
+ * Only ensures ~/Desk/ and ~/Desk/workspaces/ exist — the home workspace is
+ * created during onboarding via createWorkspace({ home: true }).
  */
 export async function initDeskDirectory(): Promise<void> {
   const deskPath = await getDeskPath();
@@ -274,40 +275,4 @@ export async function initDeskDirectory(): Promise<void> {
   // Create workspaces directory
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
   await mkdir(workspacesPath);
-
-  // Create Personal workspace structure (Personal is a workspace now)
-  const personalPath = await joinPath(workspacesPath, SPECIAL_DIRS.PERSONAL);
-  await mkdir(personalPath);
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.PROJECTS));
-  await mkdir(await joinPath(personalPath, PATH_SEGMENTS.DOCS));
-
-  // Personal unassigned area
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
-
-  // Personal capture area (for quick triage)
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE));
-  await mkdir(await joinPath(personalPath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
-
-  // Create Personal workspace.md if it doesn't exist
-  const personalWorkspacePath = await joinPath(personalPath, "workspace.md");
-  if (!(await exists(personalWorkspacePath))) {
-    const personalContent = `---
-name: Personal
-description: Private tasks, docs, and projects
-color: "#6366f1"
-created: 2024-01-01
----
-
-# Personal
-
-Private tasks, docs, and projects.
-`;
-    await writeTextFile(personalWorkspacePath, personalContent);
-  }
-
 }
-
-// Alias for backwards compatibility during migration
-export const initOrbitDirectory = initDeskDirectory;

@@ -10,6 +10,7 @@ import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize";
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
+import { openGlobalSearch } from "@/components/global-search";
 import { Search } from "lucide-react";
 
 interface AppShellProps {
@@ -31,6 +32,7 @@ export function AppShell({ children }: AppShellProps) {
     handleDoubleClick,
   } = useSidebarResize();
   const RESIZE_HANDLE_WIDTH = 4; // matches ResizeHandle w-1
+  const TRAFFIC_LIGHT_WIDTH = 84; // macOS window controls inset
 
   // Secondary sidebar slot — pages register content into this via useSecondarySidebar(),
   // keyed by route path.
@@ -72,7 +74,12 @@ export function AppShell({ children }: AppShellProps) {
     ? `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px ${secondaryWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`
     : `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
   // Title bar uses its own static grid so tabs don't shift when a page registers a secondary sidebar.
-  const titleBarGridTemplate = `${sidebarWidth}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
+  // On macOS the first column never shrinks below the traffic-light zone, so a collapsed
+  // sidebar can't let the window controls overflow into the tabs.
+  const titleBarFirstCol = hasMacTrafficLights
+    ? Math.max(sidebarWidth, TRAFFIC_LIGHT_WIDTH)
+    : sidebarWidth;
+  const titleBarGridTemplate = `${titleBarFirstCol}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -82,15 +89,17 @@ export function AppShell({ children }: AppShellProps) {
       >
         <div className="h-full relative flex items-center overflow-hidden">
           {hasMacTrafficLights && (
-            <div data-tauri-drag-region className="absolute inset-y-0 left-0 w-[84px]" />
+            <div
+              data-tauri-drag-region
+              className="absolute inset-y-0 left-0"
+              style={{ width: TRAFFIC_LIGHT_WIDTH }}
+            />
           )}
           <div data-tauri-drag-region className="flex-1 h-full" />
           {!isCollapsed && (
             <button
               type="button"
-              onClick={() => {
-                document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
-              }}
+              onClick={openGlobalSearch}
               title="Search (⌘K)"
               className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors"
             >

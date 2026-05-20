@@ -11,6 +11,7 @@ export {
   useUpdateWorkspace,
   useDeleteWorkspace,
   useCurrentWorkspace,
+  useHomeWorkspace,
   workspaceKeys,
 } from "./workspaces";
 
@@ -82,14 +83,13 @@ export {
   useUpdateTaskOrder,
   useRemoveTaskFromOrder,
   useViewMode,
-  usePersonalViewMode,
   useExpandedFolders,
   useHighlightedTasks,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";
 
-// ── Personal / Capture ──────────────────────────────────────────────
+// ── Capture ─────────────────────────────────────────────────────────
 export {
   useCaptureTasks,
   useCreateCaptureTask,
@@ -97,14 +97,12 @@ export {
   useDeleteCaptureTask,
   useMoveCaptureToPersonal,
   useMoveCaptureToWorkspace,
-  isPersonalWorkspace,
   captureKeys,
-  PERSONAL_WORKSPACE_ID,
 } from "./personal";
 
 // ── Dashboard ───────────────────────────────────────────────────────
 export {
-  useActiveTasks,
+  useFocusTasks,
   useWorkspaceSummaries,
   dashboardKeys,
 } from "./dashboard";

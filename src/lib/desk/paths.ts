@@ -7,24 +7,12 @@
  * File Structure:
  * ~/Desk/
  * ├── workspaces/
- * │   ├── _personal/               (Personal workspace - treated like any workspace)
- * │   │   ├── workspace.md
- * │   │   ├── docs/                (Human-written docs)
- * │   │   ├── ai-docs/             (AI-generated docs)
- * │   │   ├── _capture/            (Quick capture for triage)
- * │   │   │   └── tasks/
- * │   │   ├── _unassigned/
- * │   │   │   ├── tasks/
- * │   │   │   └── docs/
- * │   │   └── projects/{projectId}/
- * │   │       ├── project.md
- * │   │       ├── tasks/
- * │   │       ├── docs/
- * │   │       └── ai-docs/
- * │   └── {workspaceId}/           (Client workspaces)
- * │       ├── workspace.md
+ * │   └── {workspaceId}/           (one folder per workspace)
+ * │       ├── workspace.md         (frontmatter `home: true` marks the home workspace)
  * │       ├── docs/                (Human-written docs)
  * │       ├── ai-docs/             (AI-generated docs)
+ * │       ├── _capture/            (Quick capture for triage — home workspace only)
+ * │       │   └── tasks/
  * │       ├── _unassigned/
  * │       │   ├── tasks/
  * │       │   ├── docs/
@@ -39,7 +27,8 @@
 
 import type { ContentScope } from "@/types";
 import { getDeskPath, joinPath } from "./tauri-fs";
-import { PATH_SEGMENTS, SPECIAL_DIRS, isUnassigned, isCapture, isPersonalWorkspace } from "./constants";
+import { PATH_SEGMENTS, SPECIAL_DIRS, isUnassigned, isCapture } from "./constants";
+import { getHomeWorkspaceId } from "./workspaces";
 
 // =============================================================================
 // WORKSPACE PATHS
@@ -155,7 +144,7 @@ export async function getTasksPath(
  *   project:   ~/Desk/workspaces/{workspaceId}/projects/{projectId}/docs
  *         or:  ~/Desk/workspaces/{workspaceId}/_unassigned/docs
  *
- * Note: For Personal docs, use scope='workspace' with workspaceId='_personal'
+ * Note: The 'personal' scope maps to the home workspace.
  */
 export async function getDocsPath(
   scope: ContentScope,
@@ -163,8 +152,8 @@ export async function getDocsPath(
   projectId?: string
 ): Promise<string> {
   if (scope === "personal") {
-    // Personal scope doesn't require workspaceId — always maps to _personal
-    const workspacePath = await getWorkspacePath(SPECIAL_DIRS.PERSONAL);
+    // Personal scope doesn't require workspaceId — always maps to the home workspace
+    const workspacePath = await getWorkspacePath(await getHomeWorkspaceId());
     return joinPath(workspacePath, PATH_SEGMENTS.DOCS);
   }
 
@@ -195,7 +184,7 @@ export async function getAIDocsPath(
   projectId?: string
 ): Promise<string> {
   if (scope === "personal") {
-    const workspacePath = await getWorkspacePath(SPECIAL_DIRS.PERSONAL);
+    const workspacePath = await getWorkspacePath(await getHomeWorkspaceId());
     return joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS);
   }
 
@@ -235,24 +224,24 @@ export async function getMeetingsPath(
 }
 
 // =============================================================================
-// PERSONAL WORKSPACE PATHS (convenience functions)
-// Personal is now a workspace at ~/Desk/workspaces/_personal/
+// HOME WORKSPACE PATHS (convenience functions)
+// The home workspace is an ordinary workspace folder marked `home: true`.
 // =============================================================================
 
 /**
- * Get the Personal workspace root directory
- * @returns ~/Desk/workspaces/_personal
+ * Get the home workspace root directory
+ * @returns ~/Desk/workspaces/{homeWorkspaceId}
  */
-export async function getPersonalWorkspacePath(): Promise<string> {
-  return getWorkspacePath(SPECIAL_DIRS.PERSONAL);
+export async function getHomeWorkspacePath(): Promise<string> {
+  return getWorkspacePath(await getHomeWorkspaceId());
 }
 
 /**
  * Get the capture tasks directory (for quick triage)
- * @returns ~/Desk/workspaces/_personal/_capture/tasks
+ * @returns ~/Desk/workspaces/{homeWorkspaceId}/_capture/tasks
  */
 export async function getCapturePath(): Promise<string> {
-  return getTasksPath(SPECIAL_DIRS.PERSONAL, SPECIAL_DIRS.CAPTURE);
+  return getTasksPath(await getHomeWorkspaceId(), SPECIAL_DIRS.CAPTURE);
 }
 
 // =============================================================================

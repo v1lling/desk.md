@@ -12,9 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2 } from "lucide-react";
-import { useUpdateWorkspace, useDeleteWorkspace } from "@/stores/workspaces";
+import { useUpdateWorkspace, useDeleteWorkspace, useHomeWorkspace } from "@/stores/workspaces";
 import { useNavigationStore } from "@/stores/navigation";
-import { isPersonalWorkspace, SPECIAL_DIRS } from "@/lib/desk/constants";
 import { toast } from "sonner";
 import { ColorPicker } from "@/components/ui/color-picker";
 import type { Workspace } from "@/types";
@@ -29,8 +28,9 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
   const updateWorkspace = useUpdateWorkspace();
   const deleteWorkspace = useDeleteWorkspace();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
+  const homeWorkspace = useHomeWorkspace();
 
-  const isPersonal = isPersonalWorkspace(workspace.id);
+  const isHome = workspace.isHome === true;
 
   const [name, setName] = useState(workspace.name);
   const [description, setDescription] = useState(workspace.description || "");
@@ -70,7 +70,9 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
     try {
       await deleteWorkspace.mutateAsync(workspace.id);
       toast.success(`Workspace "${workspace.name}" deleted`);
-      setCurrentWorkspaceId(SPECIAL_DIRS.PERSONAL);
+      if (homeWorkspace) {
+        setCurrentWorkspaceId(homeWorkspace.id);
+      }
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
@@ -94,15 +96,9 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
                 id="edit-workspace-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Client Name"
-                disabled={isPersonal}
-                autoFocus={!isPersonal}
+                placeholder="e.g., Acme Corp, Side Projects, Studies"
+                autoFocus
               />
-              {isPersonal && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Personal workspace name cannot be changed.
-                </p>
-              )}
             </FormField>
 
             <FormField id="edit-workspace-description" label="Description" optional>
@@ -112,7 +108,6 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of this workspace..."
                 className="min-h-[80px] resize-none"
-                autoFocus={isPersonal}
               />
             </FormField>
 
@@ -124,7 +119,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={(!isPersonal && !name.trim()) || updateWorkspace.isPending}>
+              <Button type="submit" disabled={!name.trim() || updateWorkspace.isPending}>
                 {updateWorkspace.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -132,23 +127,28 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
               </Button>
             </div>
 
-            {!isPersonal && (
-              <>
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-sm font-medium text-destructive mb-2">Danger Zone</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Permanently delete this workspace and all its projects, tasks, docs, and meetings.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setShowDeleteConfirm(true)}
-                  >
-                    Delete Workspace
-                  </Button>
-                </div>
-              </>
+            {isHome ? (
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  This is your home workspace. It holds the quick-capture inbox
+                  and can&apos;t be deleted, but you can rename and recolor it.
+                </p>
+              </div>
+            ) : (
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm font-medium text-destructive mb-2">Danger Zone</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Permanently delete this workspace and all its projects, tasks, docs, and meetings.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete Workspace
+                </Button>
+              </div>
             )}
           </form>
         </DialogContent>

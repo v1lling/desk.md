@@ -115,7 +115,7 @@ export function NewMeetingModal({
               id="meeting-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Weekly Sync, Client Call, Sprint Planning..."
+              placeholder="Weekly Sync, 1:1, Sprint Planning..."
               autoFocus
             />
           </FormField>

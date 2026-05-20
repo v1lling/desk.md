@@ -8,8 +8,9 @@ import { isTauri, joinPath, mkdir, writeTextFile, writeFile } from "./tauri-fs";
 import { writeMarkdownFile } from "./file-operations";
 import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
-import { PERSONAL_WORKSPACE_ID, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
+import { getHomeWorkspaceId } from "./workspaces";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
@@ -33,8 +34,9 @@ export async function createDocInFolder(data: {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
-  const wsId = data.workspaceId || PERSONAL_WORKSPACE_ID;
-  const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : PERSONAL_WORKSPACE_ID);
+  const homeWorkspaceId = await getHomeWorkspaceId();
+  const wsId = data.workspaceId || homeWorkspaceId;
+  const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId);
 
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`

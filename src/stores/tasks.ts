@@ -42,7 +42,7 @@ export function useProjectTasks(workspaceId: string | null, projectId: string | 
 
 /**
  * Hook to fetch a single task
- * Works for all workspaces including Personal (_personal)
+ * Works for all workspaces
  */
 export function useTask(workspaceId: string | null, taskId: string | null) {
   return useQuery({
