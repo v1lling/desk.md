@@ -31,13 +31,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build MCP sidecar (macOS arm64)
-        run: |
-          cd src-tauri
-          cargo build --release --bin desk-mcp
-          cp target/release/desk-mcp binaries/desk-mcp-aarch64-apple-darwin
-          chmod +x binaries/desk-mcp-aarch64-apple-darwin
-
       - name: Verify version matches tag
         run: |
           TAG=${GITHUB_REF#refs/tags/v}
