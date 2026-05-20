@@ -612,47 +612,49 @@ export function DocsTree({
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <Loader2 className="size-4 animate-spin mr-2" />
-        Loading…
-      </div>
-    );
-  }
-
+  // The measured container is rendered unconditionally so `containerRef` is attached
+  // from the first mount — loading is a *content* concern, not a *layout* one. Gating
+  // the container on `isLoading` would leave the size-measuring effect with a null ref
+  // on a cold load, and it never re-runs (empty deps).
   return (
     <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
-      <DocsTreeHandlersProvider handlers={handlers}>
-        {size.width > 0 && size.height > 0 && (
-          <Tree<ArboristNode>
-            ref={treeRef}
-            data={arboristData}
-            idAccessor={(n) => n.id}
-            childrenAccessor={(n) => n.children ?? null}
-            width={size.width}
-            height={size.height}
-            rowHeight={28}
-            indent={16}
-            searchTerm={searchQuery}
-            selection={selectedArboristId}
-            openByDefault={false}
-            onActivate={handleActivate}
-            onToggle={handleToggle}
-            onRename={handleRename}
-            onMove={handleMove}
-            onDelete={handleDelete}
-            // We've already filtered nodes ourselves (matching title OR body); tell arborist
-            // not to re-filter by name so content-only matches stay visible. The searchTerm
-            // prop is still useful — arborist auto-expands matched branches.
-            searchMatch={() => true}
-            disableDrag={(n) => !isDraggable(n as unknown as ArboristNode)}
-            disableDrop={(args) => !canDropInto(args.parentNode?.data ?? null, args.dragNodes.map((dn) => dn.data))}
-          >
-            {DocsTreeRow}
-          </Tree>
-        )}
-      </DocsTreeHandlersProvider>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          <Loader2 className="size-4 animate-spin mr-2" />
+          Loading…
+        </div>
+      ) : (
+        <DocsTreeHandlersProvider handlers={handlers}>
+          {size.width > 0 && size.height > 0 && (
+            <Tree<ArboristNode>
+              ref={treeRef}
+              data={arboristData}
+              idAccessor={(n) => n.id}
+              childrenAccessor={(n) => n.children ?? null}
+              width={size.width}
+              height={size.height}
+              rowHeight={28}
+              indent={16}
+              searchTerm={searchQuery}
+              selection={selectedArboristId}
+              openByDefault={false}
+              onActivate={handleActivate}
+              onToggle={handleToggle}
+              onRename={handleRename}
+              onMove={handleMove}
+              onDelete={handleDelete}
+              // We've already filtered nodes ourselves (matching title OR body); tell arborist
+              // not to re-filter by name so content-only matches stay visible. The searchTerm
+              // prop is still useful — arborist auto-expands matched branches.
+              searchMatch={() => true}
+              disableDrag={(n) => !isDraggable(n as unknown as ArboristNode)}
+              disableDrop={(args) => !canDropInto(args.parentNode?.data ?? null, args.dragNodes.map((dn) => dn.data))}
+            >
+              {DocsTreeRow}
+            </Tree>
+          )}
+        </DocsTreeHandlersProvider>
+      )}
     </div>
   );
 }
