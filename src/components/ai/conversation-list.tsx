@@ -22,17 +22,18 @@ export function ConversationList({ className }: ConversationListProps) {
   };
 
   return (
-    <div className={cn("flex flex-col h-full border-r bg-muted/30", className)}>
+    <div className={cn("flex flex-col h-full", className)}>
       {/* Header */}
-      <div className="shrink-0 p-2">
+      <div className="shrink-0 min-h-11 py-2 px-3 border-b border-border/60 flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">Conversations</span>
         <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2 text-xs"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          title="New conversation"
           onClick={() => createConversation()}
         >
           <Plus className="h-3.5 w-3.5" />
-          New Assistant
         </Button>
       </div>
 

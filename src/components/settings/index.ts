@@ -3,3 +3,4 @@ export { AITab } from "./ai-tab";
 export { ContextTab } from "./context-tab";
 export { DataTab } from "./data-tab";
 export { TemplatesTab } from "./templates-tab";
+export { SettingsNav, SETTINGS_CATEGORIES, type SettingsCategory } from "./settings-nav";

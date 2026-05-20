@@ -5,6 +5,9 @@ import type { IncomingEmail } from "@/lib/email/types";
 
 export type TabType = "desk" | "doc" | "task" | "meeting" | "email" | "ai";
 
+/** Secondary-sidebar slot key used while an "ai" tab is active (Assistant has no route). */
+export const ASSISTANT_SLOT_KEY = "assistant";
+
 export interface TabItem {
   id: string;
   type: TabType;

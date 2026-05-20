@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
   MessageSquare,
@@ -16,6 +16,8 @@ import { SourcesDisplay } from "@/components/ai/sources-display";
 import { useAssistantStore } from "@/stores/assistant";
 import { useAISettingsStore } from "@/stores/ai";
 import { useContextStore } from "@/stores/context";
+import { ASSISTANT_SLOT_KEY } from "@/stores/tabs";
+import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { buildAssistantPromptBreakdown, buildAssistantTurnUserMessage } from "@/lib/ai";
 import type { AIMessageSource } from "@/lib/ai/types";
 import type { AssistantToolEvent, AssistantTurnMode } from "@/lib/assistant/types";
@@ -163,6 +165,11 @@ export function AIChatEditor() {
   const cancelRun = useAssistantStore((s) => s.cancelRun);
   const liveToolTimeline = useAssistantStore((s) => s.toolTimeline);
 
+  // Conversation list ("recent activity") lives in the secondary sidebar.
+  // ConversationList is self-contained (reads useAssistantStore), so it needs no props.
+  const conversationPane = useMemo(() => <ConversationList />, []);
+  useSecondarySidebar(ASSISTANT_SLOT_KEY, conversationPane);
+
   const { providerType, providerConfigured, customInstructions, perTypeInstructions } = useAISettingsStore();
   const showToolDetails = useContextStore((s) => s.showToolDetails);
   const isConfigured = !!providerConfigured[providerType];
@@ -210,9 +217,7 @@ export function AIChatEditor() {
   };
 
   return (
-    <div className="flex h-full bg-background">
-      <ConversationList className="w-[240px] shrink-0" />
-
+    <div className="flex flex-col h-full bg-background">
       <div className="flex flex-col flex-1 min-w-0">
         <ScrollArea className="flex-1 min-h-0">
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-4">
