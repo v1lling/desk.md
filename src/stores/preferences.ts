@@ -23,12 +23,15 @@ interface PreferencesState {
   secondarySidebarWidth: number;
   /** Shared collapsed state for the secondary sidebar slot */
   secondarySidebarCollapsed: boolean;
+  /** Version of an update the user explicitly skipped — suppresses the launch toast */
+  dismissedUpdateVersion: string | null;
   setTheme: (theme: PreferencesState["theme"]) => void;
   setSidebarWidth: (width: number) => void;
   setWorkDayHours: (start: number, end: number) => void;
   setShowWeekends: (show: boolean) => void;
   setSecondarySidebarWidth: (width: number) => void;
   setSecondarySidebarCollapsed: (collapsed: boolean) => void;
+  setDismissedUpdateVersion: (version: string | null) => void;
   reset: () => void;
 }
 
@@ -40,6 +43,7 @@ const defaultPreferences = {
   showWeekends: false,
   secondarySidebarWidth: SECONDARY_SIDEBAR_DEFAULT_WIDTH,
   secondarySidebarCollapsed: false,
+  dismissedUpdateVersion: null as string | null,
 };
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -53,6 +57,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setShowWeekends: (show) => set({ showWeekends: show }),
       setSecondarySidebarWidth: (width) => set({ secondarySidebarWidth: width }),
       setSecondarySidebarCollapsed: (collapsed) => set({ secondarySidebarCollapsed: collapsed }),
+      setDismissedUpdateVersion: (version) => set({ dismissedUpdateVersion: version }),
       reset: () => set(defaultPreferences),
     }),
     {
@@ -65,6 +70,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         showWeekends: state.showWeekends,
         secondarySidebarWidth: state.secondarySidebarWidth,
         secondarySidebarCollapsed: state.secondarySidebarCollapsed,
+        dismissedUpdateVersion: state.dismissedUpdateVersion,
       }),
     }
   )

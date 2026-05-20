@@ -79,20 +79,29 @@ function DeepLinkProvider({ children }: { children: React.ReactNode }) {
 
 // Check for updates on launch and show toast if available
 function UpdateProvider({ children }: { children: React.ReactNode }) {
-  const { status, updateInfo, downloadAndInstall } = useUpdateChecker();
+  const { status, updateInfo, downloadAndInstall, dismiss } = useUpdateChecker();
+  const dismissedUpdateVersion = usePreferencesStore((s) => s.dismissedUpdateVersion);
 
   useEffect(() => {
-    if (status === "available" && updateInfo) {
+    if (
+      status === "available" &&
+      updateInfo &&
+      updateInfo.version !== dismissedUpdateVersion
+    ) {
       toast(`Update available: v${updateInfo.version}`, {
         description: "A new version of Desk is ready to install.",
         action: {
           label: "Update & Restart",
           onClick: () => downloadAndInstall(),
         },
+        cancel: {
+          label: "Skip",
+          onClick: () => dismiss(),
+        },
         duration: 15000,
       });
     }
-  }, [status, updateInfo, downloadAndInstall]);
+  }, [status, updateInfo, downloadAndInstall, dismiss, dismissedUpdateVersion]);
 
   return <>{children}</>;
 }

@@ -50,7 +50,7 @@ export function UpdateSection() {
                 Update & Restart
               </Button>
               <Button variant="ghost" size="sm" onClick={dismiss}>
-                Later
+                Skip this version
               </Button>
             </div>
           </div>

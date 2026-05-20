@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { isTauri } from "@/lib/desk";
+import { usePreferencesStore } from "@/stores/preferences";
 
 type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "error";
 
@@ -92,6 +93,11 @@ export function useUpdateChecker() {
   }, []);
 
   const dismiss = useCallback(() => {
+    // Persist the skipped version so the launch toast won't re-nag for it.
+    const version = updateRef.current?.version;
+    if (version) {
+      usePreferencesStore.getState().setDismissedUpdateVersion(version);
+    }
     setStatus("idle");
     setUpdateInfo(null);
     updateRef.current = null;
