@@ -56,9 +56,8 @@ CI runs the same checks on every pull request.
 
 ## Project layout
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full structure, file
-paths, and design decisions. [CLAUDE.md](CLAUDE.md) also contains a detailed
-overview of conventions and key directories.
+[CLAUDE.md](CLAUDE.md) contains a detailed overview of the project structure,
+conventions, and key directories.
 
 ## Code of Conduct
 

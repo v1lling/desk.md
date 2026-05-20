@@ -26,8 +26,6 @@ The home workspace (frontmatter `home: true`) holds the capture inbox and is alw
 
 **"Work Mode" Navigation**: User selects active workspace via bottom selector. All views (Tasks, Docs, Meetings) filter to that workspace automatically.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed structure, file paths, and design decisions.
-
 ## Tech Stack
 
 - **Frontend**: Vite, React 19, React Router, TypeScript, Tailwind CSS, shadcn/ui
@@ -66,8 +64,6 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/app/` | App shell, providers, globals.css |
 
 ## Current State: v0.7
-
-See [docs/FEATURES.md](docs/FEATURES.md) for full feature list.
 
 Key features:
 - Dashboard with Focus and Workspaces widgets
@@ -197,8 +193,6 @@ Editors use a dual-layer system:
 - Quitting app with dirty tabs shows confirmation dialog
 
 Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "File System Integration" for full details.
 
 ### Metadata File Conventions
 

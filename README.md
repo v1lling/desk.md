@@ -45,12 +45,6 @@ npm run dev          # Browser with mock data
 npm run tauri dev    # Desktop with the real file system
 ```
 
-## Documentation
-
-- [docs/FEATURES.md](./docs/FEATURES.md)
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
-- [docs/EMAIL-INTEGRATION.md](./docs/EMAIL-INTEGRATION.md)
-
 ## Data Storage
 
 Desk stores user content in `~/Desk/workspaces/*` and app metadata in `~/Desk/.desk/`.
