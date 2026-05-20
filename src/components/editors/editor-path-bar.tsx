@@ -1,5 +1,3 @@
-
-import { useCallback } from "react";
 import { FolderOpen } from "lucide-react";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { revealInFinder } from "@/components/docs/tree-item-utils";
@@ -32,11 +30,11 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
 
   const segments = getDisplaySegments(filePath);
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     if (isTauri()) {
       revealInFinder(filePath);
     }
-  }, [filePath]);
+  };
 
   return (
     <div className="shrink-0">
