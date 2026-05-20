@@ -33,6 +33,7 @@ export function SetupWizard() {
   const [isLoading, setIsLoading] = useState(false);
   const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
   const [hasTitleBarPadding, setHasTitleBarPadding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setHasTitleBarPadding(needsTrafficLightPadding());
@@ -64,6 +65,7 @@ export function SetupWizard() {
 
   const handleCheckDataFolder = async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       // Save the data path first so getWorkspaces knows where to look
@@ -84,8 +86,15 @@ export function SetupWizard() {
 
       // No existing data, proceed to set up the home workspace
       setStep("workspace");
-    } catch (error) {
-      console.error("Error checking data folder:", error);
+    } catch (err) {
+      console.error("Error checking data folder:", err);
+      if (isTauri()) {
+        setError(
+          `Couldn't access "${dataPath}". Check that the folder path is valid and that Desk can write there, then try again.`
+        );
+        return;
+      }
+      // Browser mode — file access is mocked, so proceed regardless.
       setStep("workspace");
     } finally {
       setIsLoading(false);
@@ -102,6 +111,7 @@ export function SetupWizard() {
 
   const handleFinish = async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       // Save settings
@@ -121,9 +131,17 @@ export function SetupWizard() {
 
       setCurrentWorkspaceId(workspaceId);
       setSetupCompleted(true);
-    } catch (error) {
-      console.error("Setup failed:", error);
-      // In browser mode, still complete setup
+    } catch (err) {
+      console.error("Setup failed:", err);
+      if (isTauri()) {
+        // A real file-system failure — surface it instead of completing setup
+        // into a broken state with no data folder.
+        setError(
+          `Setup couldn't create your data folder at "${dataPath}". Make sure the location exists and Desk has permission to write there, then try again.`
+        );
+        return;
+      }
+      // Browser mode — file access is mocked, so complete setup regardless.
       const workspaceId = slugify(workspaceName);
       setCurrentWorkspaceId(workspaceId);
       setSetupCompleted(true);
@@ -188,7 +206,10 @@ export function SetupWizard() {
                   <Input
                     id="dataPath"
                     value={dataPath}
-                    onChange={(e) => setDataPath(e.target.value)}
+                    onChange={(e) => {
+                      setDataPath(e.target.value);
+                      setError(null);
+                    }}
                     placeholder="~/Desk"
                     className="flex-1"
                   />
@@ -208,6 +229,11 @@ export function SetupWizard() {
                   Your workspaces, projects, and notes will be stored here as markdown files.
                 </p>
               </div>
+              {error && (
+                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep("welcome")} disabled={isLoading}>
                   Back
@@ -305,6 +331,11 @@ export function SetupWizard() {
                   ))}
                 </div>
               </div>
+              {error && (
+                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
               <div className="flex gap-2">
                 <Button
                   variant="outline"
