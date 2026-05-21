@@ -1,8 +1,17 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./app/globals.css";
+import { Buffer as BufferPolyfill } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
+// gray-matter — used by every Markdown parse (parseMarkdown) — calls
+// `Buffer.from()` at runtime. The Tauri/browser WebView has no Node `Buffer`
+// global, so provide one. Without this, every workspace/task/doc/meeting parse
+// throws "Buffer is not defined" and the app silently shows no data.
+if (typeof globalThis.Buffer === "undefined") {
+  globalThis.Buffer = BufferPolyfill as unknown as typeof globalThis.Buffer;
+}
 
 async function bootstrap() {
   // Set the Tauri FS scope BEFORE any store module is evaluated. Zustand
