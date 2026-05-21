@@ -123,8 +123,8 @@ async function waitForApp(page) {
 function bannerHtml(theme, iconB64, fontB64) {
   const c =
     theme === "dark"
-      ? { bg: "#0a0a0a", fg: "#fafafa", muted: "#a1a1aa" }
-      : { bg: "#fbfbfb", fg: "#0a0a0a", muted: "#71717a" };
+      ? { fg: "#fafafa", muted: "#a1a1aa" }
+      : { fg: "#0a0a0a", muted: "#71717a" };
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     @font-face {
       font-family: 'Geist';
@@ -135,7 +135,7 @@ function bannerHtml(theme, iconB64, fontB64) {
     html, body { width: 1200px; height: 300px; }
     body {
       display: flex; align-items: center; justify-content: center; gap: 36px;
-      background: ${c.bg}; font-family: 'Geist', system-ui, sans-serif;
+      background: transparent; font-family: 'Geist', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
     img { width: 148px; height: 148px; border-radius: 33px; }
@@ -162,7 +162,11 @@ async function captureBanner(browser, theme, iconB64, fontB64) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(150);
   const file = path.join(OUT_DIR, `banner-${theme}.png`);
-  await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 1200, height: 300 } });
+  await page.screenshot({
+    path: file,
+    clip: { x: 0, y: 0, width: 1200, height: 300 },
+    omitBackground: true,
+  });
   await context.close();
   console.log(`  ✓ banner-${theme}.png`);
 }

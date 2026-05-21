@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="desk.md: local-first project & task management in plain Markdown" width="680">
+    <img src="assets/banner-light.png" alt="desk.md: local-first project & task management in plain Markdown" width="100%">
   </picture>
 </p>
 
@@ -14,7 +14,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/tasks-dark.png">
-    <img src="assets/tasks-light.png" alt="The desk.md task board" width="960">
+    <img src="assets/tasks-light.png" alt="The desk.md task board" width="100%">
   </picture>
 </p>
 
