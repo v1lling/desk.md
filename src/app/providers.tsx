@@ -12,6 +12,7 @@ import { useContextIndexSync } from "@/hooks/use-context-index-sync";
 import { useSecretHydration } from "@/hooks/use-secret-hydration";
 import { useSuppressContextMenu } from "@/hooks/use-suppress-context-menu";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 // Clean up legacy localStorage key from the old monolithic settings store
@@ -23,24 +24,65 @@ interface ProvidersProps {
   children: React.ReactNode;
 }
 
+// Blocking error screen shown when startup initialization fails. Rendering the
+// app anyway would only produce a confusing, broken state (no data folder).
+function StartupError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-md space-y-4 rounded-lg border border-destructive/30 bg-card p-6 text-center">
+        <h1 className="text-lg font-semibold text-foreground">
+          Desk couldn&apos;t start
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Desk failed to set up its data folder. Your files are safe — this is a
+          startup problem, not data loss.
+        </p>
+        <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-3 text-left text-xs text-muted-foreground">
+          {message}
+        </pre>
+        <p className="text-sm text-muted-foreground">
+          Make sure the data folder exists and is readable, then retry.
+        </p>
+        <Button onClick={onRetry}>Retry</Button>
+      </div>
+    </div>
+  );
+}
+
 // Initialize Tauri file system on startup
 function TauriInitializer({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  const runInit = useCallback(async () => {
+    setInitError(null);
+    setInitialized(false);
+    if (isTauri()) {
+      try {
+        await expandFsScope();
+        await initDeskDirectory();
+      } catch (error) {
+        console.error("[Desk] Failed to initialize:", error);
+        setInitError(error instanceof Error ? error.message : String(error));
+        return;
+      }
+    }
+    setInitialized(true);
+  }, []);
 
   useEffect(() => {
-    async function init() {
-      if (isTauri()) {
-        try {
-          await expandFsScope();
-          await initDeskDirectory();
-        } catch (error) {
-          console.error("[Desk] Failed to initialize:", error);
-        }
-      }
-      setInitialized(true);
-    }
-    init();
-  }, []);
+    void runInit();
+  }, [runInit]);
+
+  if (initError) {
+    return <StartupError message={initError} onRetry={() => void runInit()} />;
+  }
 
   if (!initialized) {
     return null;
