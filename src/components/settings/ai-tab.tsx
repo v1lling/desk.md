@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Bot, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
@@ -61,10 +61,12 @@ export function AITab() {
     providerConfigured,
     customInstructions,
     modelByProvider,
+    aiConsentGiven,
     setProviderType,
     setProviderConfigured,
     setCustomInstructions,
     setModelForProvider,
+    setAIConsentGiven,
   } = useAISettingsStore();
 
   const safeProviderType: AIProviderType =
@@ -224,6 +226,58 @@ export function AITab() {
 
           <div className="py-3">
             <AIUsageStats />
+          </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        icon={<ShieldCheck className="h-4 w-4" />}
+        title="Data & Privacy"
+        description="What Desk sends to your AI provider, and when."
+      >
+        <div className="space-y-3 py-3 text-sm text-muted-foreground">
+          <p>
+            AI features send content to the provider selected above (Anthropic or
+            OpenAI) over their API. Desk has no AI server of its own, and nothing
+            is sent until you configure an API key.
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              <span className="text-foreground">Assistant chat &amp; drafting</span> —
+              your messages, the conversation history, and the contents of files
+              the assistant reads to answer you.
+            </li>
+            <li>
+              <span className="text-foreground">Smart Index</span> — short previews
+              and summaries of your files, sent when you rebuild the catalog or,
+              if Auto-summarize on save is enabled, automatically after a save.
+            </li>
+          </ul>
+          <p>
+            Retention is governed by your provider's API terms — Anthropic and
+            OpenAI state that API data is not used to train their models by default.
+          </p>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <p className="font-medium text-foreground">Privacy acknowledgement</p>
+              <p className="text-xs">
+                {aiConsentGiven
+                  ? "You have acknowledged the AI privacy notice."
+                  : "Shown once before your first AI request."}
+              </p>
+            </div>
+            {aiConsentGiven && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setAIConsentGiven(false);
+                  toast.success("AI privacy acknowledgement reset");
+                }}
+              >
+                Revoke
+              </Button>
+            )}
           </div>
         </div>
       </SettingsSection>

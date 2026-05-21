@@ -14,11 +14,14 @@ interface AISettingsState {
   perTypeInstructions: Record<string, string>;
   /** Model ID per provider (empty = use provider default model) */
   modelByProvider: Record<string, string>;
+  /** True once the user has acknowledged the AI privacy disclosure. */
+  aiConsentGiven: boolean;
   setProviderType: (type: AIProviderType) => void;
   setProviderConfigured: (provider: AIProviderType, configured: boolean) => void;
   setCustomInstructions: (instructions: string) => void;
   setPerTypeInstructions: (purpose: string, instructions: string) => void;
   setModelForProvider: (provider: AIProviderType, model: string) => void;
+  setAIConsentGiven: (given: boolean) => void;
 }
 
 export const useAISettingsStore = create<AISettingsState>()(
@@ -32,6 +35,7 @@ export const useAISettingsStore = create<AISettingsState>()(
       customInstructions: "",
       perTypeInstructions: {},
       modelByProvider: {},
+      aiConsentGiven: false,
       setProviderType: (type) => set({ providerType: type }),
       setProviderConfigured: (provider, configured) =>
         set((state) => ({
@@ -46,6 +50,7 @@ export const useAISettingsStore = create<AISettingsState>()(
         set((state) => ({
           modelByProvider: { ...state.modelByProvider, [provider]: model },
         })),
+      setAIConsentGiven: (given) => set({ aiConsentGiven: given }),
     }),
     {
       name: "desk-ai-settings-v2",

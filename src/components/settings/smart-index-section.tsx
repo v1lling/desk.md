@@ -15,6 +15,8 @@ import {
 import { toast } from "sonner";
 import { useContextStore } from "@/stores/context";
 import { useContextIndexStore } from "@/stores/context-index";
+import { useAISettingsStore } from "@/stores/ai";
+import { ensureAIConsent } from "@/stores/ai-consent";
 import { useWorkspaces } from "@/stores";
 import { useNavigationStore } from "@/stores/navigation";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
@@ -24,16 +26,18 @@ import { getProjects } from "@/lib/desk/projects";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
 
-interface SmartIndexSectionProps {
-  aiProviderConfigured: boolean;
-}
-
-export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionProps) {
+export function SmartIndexSection() {
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
   } = useContextStore();
   const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
+
+  // True when the active provider has an API key saved. Without one, the catalog
+  // still builds — it just uses plain text previews instead of AI summaries.
+  const aiKeyConfigured = useAISettingsStore(
+    (s) => s.providerConfigured[s.providerType]
+  );
 
   const { indexes, setIndex, isBuilding, setIsBuilding } = useContextIndexStore();
   const { data: workspaces = [] } = useWorkspaces();
@@ -50,6 +54,10 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || null;
 
   const handleBuildIndex = async () => {
+    // Privacy gate: only when a provider key is configured does the build send
+    // file previews externally. A keyless build is local-only — no consent needed.
+    if (aiKeyConfigured && !(await ensureAIConsent())) return;
+
     setIsBuilding(true);
     setIndexProgress(null);
     setIndexResult(null);
@@ -135,8 +143,7 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
               <Button
                 variant="outline"
                 onClick={handleBuildIndex}
-                disabled={isBuilding || !aiProviderConfigured}
-                title={!aiProviderConfigured ? "Configure AI provider first" : undefined}
+                disabled={isBuilding}
               >
                 {isBuilding ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -196,6 +203,12 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
               <p>
                 Catalog is used by assistant retrieval tools. The model decides which files to look up per turn.
               </p>
+              {!aiKeyConfigured && (
+                <p className="mt-1">
+                  No AI provider configured — summaries use plain text previews.
+                  Add a key in Settings → AI for AI-generated summaries.
+                </p>
+              )}
               {currentWorkspace && (
                 <p className="mt-1">
                   Active workspace: <span className="text-foreground">{currentWorkspace.name}</span>
@@ -222,6 +235,12 @@ export function SmartIndexSection({ aiProviderConfigured }: SmartIndexSectionPro
             }}
           />
         </div>
+        {autoSummarizeOnSave && aiKeyConfigured && (
+          <p className="pb-3 text-xs text-amber-600 dark:text-amber-400">
+            While enabled, a short preview of each edited file is sent
+            automatically to your AI provider (Anthropic or OpenAI) after you save.
+          </p>
+        )}
       </SettingsSection>
 
       <ConfirmDialog

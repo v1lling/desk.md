@@ -45,7 +45,7 @@ export function ContextTab() {
         </div>
       </SettingsSection>
 
-      <SmartIndexSection aiProviderConfigured />
+      <SmartIndexSection />
     </div>
   );
 }

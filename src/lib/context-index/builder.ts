@@ -75,7 +75,25 @@ async function summarizeBatch(
   entries: IndexEntry[],
   contents: Map<string, string>
 ): Promise<void> {
-  const { providerType } = useAISettingsStore.getState();
+  // Fill any entry that still lacks a summary with a plain text preview.
+  const fillPreviews = () => {
+    for (const entry of entries) {
+      if (!entry.summary) {
+        const body = contents.get(entry.filePath) ?? "";
+        entry.summary = generatePreview(body, 150);
+      }
+    }
+  };
+
+  const { providerType, providerConfigured } = useAISettingsStore.getState();
+
+  // No AI provider configured — build a keyless catalog with text-preview
+  // summaries. Skips a guaranteed-to-fail API call (and its console noise).
+  if (!providerConfigured[providerType]) {
+    fillPreviews();
+    return;
+  }
+
   const service = createAIService({ providerType });
 
   // Build prompt
@@ -104,12 +122,7 @@ async function summarizeBatch(
   }
 
   // Fallback: use generatePreview for entries without summaries
-  for (const entry of entries) {
-    if (!entry.summary) {
-      const body = contents.get(entry.filePath) ?? "";
-      entry.summary = generatePreview(body, 150);
-    }
-  }
+  fillPreviews();
 }
 
 /**

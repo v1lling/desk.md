@@ -10,6 +10,7 @@ import type {
   AssistantToolEvent,
 } from "@/lib/assistant/types";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
+import { ensureAIConsent } from "@/stores/ai-consent";
 import { DEFAULT_MODELS } from "@/lib/ai/models";
 import { formatEmailAddress, type IncomingEmail } from "@/lib/email/types";
 import { buildAssistantTurnUserMessage } from "@/lib/ai";
@@ -135,6 +136,10 @@ export const useAssistantStore = create<AssistantState>()(
       sendMessage: async (message, options) => {
         const trimmed = message.trim();
         if (!trimmed || get().isRunning) return;
+
+        // Privacy gate: nothing leaves the machine until the user has acknowledged
+        // the AI disclosure. Checked before any conversation state is created.
+        if (!(await ensureAIConsent())) return;
 
         let conversationId = get().activeConversationId;
         if (options?.forceNewConversation || !conversationId) {

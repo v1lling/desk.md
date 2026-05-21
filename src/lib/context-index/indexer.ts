@@ -58,10 +58,14 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
 
     const hashChanged = existingEntry.contentHash !== contentHash;
 
-    if (contextState.autoSummarizeOnSave && hashChanged) {
+    const { useAISettingsStore } = await import("@/stores/ai");
+    // Background task — never prompt. Auto-summarize stays off until the user has
+    // acknowledged the AI privacy disclosure via a foreground feature.
+    const consentGiven = useAISettingsStore.getState().aiConsentGiven;
+
+    if (contextState.autoSummarizeOnSave && hashChanged && consentGiven) {
       try {
         const { createAIService } = await import("@/lib/ai/service");
-        const { useAISettingsStore } = await import("@/stores/ai");
 
         const aiSettings = useAISettingsStore.getState();
         const service = createAIService({ providerType: aiSettings.providerType });

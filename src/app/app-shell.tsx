@@ -11,6 +11,7 @@ import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize"
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
 import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
 import { openGlobalSearch } from "@/components/global-search";
+import { AIConsentDialog } from "@/components/ai/ai-consent-dialog";
 import { Search } from "lucide-react";
 
 interface AppShellProps {
@@ -147,6 +148,7 @@ export function AppShell({ children }: AppShellProps) {
           <TabContent>{children}</TabContent>
         </main>
       </div>
+      <AIConsentDialog />
     </div>
   );
 }
