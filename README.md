@@ -48,21 +48,21 @@ Code or Codex at a workspace with no setup at all.
 <table>
   <tr>
     <td width="50%">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png"><img src="assets/dashboard-light.png" alt="Dashboard"></picture>
+      <a href="assets/dashboard-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png"><img src="assets/dashboard-light.png" alt="Dashboard"></picture></a>
       <p align="center"><sub><b>Dashboard</b>: capture, focus, and workspace progress</sub></p>
     </td>
     <td width="50%">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.png"><img src="assets/projects-light.png" alt="Projects"></picture>
+      <a href="assets/projects-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.png"><img src="assets/projects-light.png" alt="Projects"></picture></a>
       <p align="center"><sub><b>Projects</b>: an overview with task stats and quick links</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="assets/docs-dark.png"><img src="assets/docs-light.png" alt="Docs"></picture>
+      <a href="assets/docs-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/docs-dark.png"><img src="assets/docs-light.png" alt="Docs"></picture></a>
       <p align="center"><sub><b>Docs</b>: a WYSIWYG Markdown editor with a file tree</sub></p>
     </td>
     <td width="50%">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="assets/meetings-dark.png"><img src="assets/meetings-light.png" alt="Meetings"></picture>
+      <a href="assets/meetings-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/meetings-dark.png"><img src="assets/meetings-light.png" alt="Meetings"></picture></a>
       <p align="center"><sub><b>Meetings</b>: notes and action items, per project</sub></p>
     </td>
   </tr>
