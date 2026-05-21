@@ -8,7 +8,16 @@ import { cn } from "@/lib/utils"
 function DropdownMenu({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  // modal={false} avoids Radix's scroll-lock + body pointer-events mutations,
+  // which force a full-document style recalc on every open/close (slow on
+  // large DOMs). A dropdown menu has no need to lock background scroll.
+  return (
+    <DropdownMenuPrimitive.Root
+      data-slot="dropdown-menu"
+      modal={false}
+      {...props}
+    />
+  )
 }
 
 function DropdownMenuPortal({

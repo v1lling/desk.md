@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils"
 function ContextMenu({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
-  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />
+  // modal={false} avoids Radix's scroll-lock + body pointer-events mutations,
+  // which force a full-document style recalc on every open/close (slow on
+  // large DOMs). A context menu has no need to lock background scroll.
+  return (
+    <ContextMenuPrimitive.Root data-slot="context-menu" modal={false} {...props} />
+  )
 }
 
 function ContextMenuTrigger({

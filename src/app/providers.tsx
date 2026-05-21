@@ -10,6 +10,7 @@ import { useWindowClose } from "@/hooks/use-window-close";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { useContextIndexSync } from "@/hooks/use-context-index-sync";
 import { useSecretHydration } from "@/hooks/use-secret-hydration";
+import { useSuppressContextMenu } from "@/hooks/use-suppress-context-menu";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { toast } from "sonner";
 
@@ -163,6 +164,16 @@ function WindowCloseProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Suppress the native WebView context menu outside text-editing surfaces
+function ContextMenuSuppressionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  useSuppressContextMenu();
+  return <>{children}</>;
+}
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = usePreferencesStore((state) => state.theme);
 
@@ -213,7 +224,11 @@ export function Providers({ children }: ProvidersProps) {
                 <SecretHydrationProvider>
                   <ContextIndexProvider>
                     <WindowCloseProvider>
-                      <ThemeProvider>{children}</ThemeProvider>
+                      <ThemeProvider>
+                        <ContextMenuSuppressionProvider>
+                          {children}
+                        </ContextMenuSuppressionProvider>
+                      </ThemeProvider>
                     </WindowCloseProvider>
                   </ContextIndexProvider>
                 </SecretHydrationProvider>
