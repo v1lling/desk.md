@@ -1,217 +1,87 @@
-import { useState, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { FolderKanban, MoreHorizontal, Pencil, Trash2, CheckSquare, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { FilteredListPage } from "@/components/patterns";
-import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingState } from "@/components/ui/loading-state";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { NewProjectModal, EditProjectModal } from "@/components/projects";
-import { useProjects, useDeleteProject, useCurrentWorkspace } from "@/stores";
-import { statusColors } from "@/lib/design-tokens";
-import type { Project, ProjectStatus } from "@/types";
-import { toast } from "sonner";
+import { useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { FolderKanban } from "lucide-react";
+import { useCurrentWorkspace, useProjects } from "@/stores";
+import { useProjectSelectionStore } from "@/stores/project-selection";
+import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
+import { StatePanel } from "@/components/ui/state-panel";
+import { ProjectsTreePane, ProjectOverview } from "@/components/projects";
 
-const statusOptions = [
-  { value: "active", label: "Active" },
-  { value: "paused", label: "Paused" },
-  { value: "completed", label: "Completed" },
-  { value: "archived", label: "Archived" },
-];
-
+/**
+ * Projects Hub — a secondary-sidebar project list (`ProjectsTreePane`) plus a
+ * project overview dashboard in the main pane. Single `/projects` route;
+ * selection lives in `useProjectSelectionStore` so the sidebar slot key stays
+ * stable (see `use-secondary-sidebar.ts`).
+ */
 export default function ProjectsPage() {
   const currentWorkspace = useCurrentWorkspace();
-  const workspaceId = currentWorkspace?.id || null;
-  const { data: projects = [], isLoading } = useProjects(workspaceId);
-  const deleteProject = useDeleteProject();
+  const currentWorkspaceId = currentWorkspace?.id || null;
+  const { data: projects = [] } = useProjects(currentWorkspaceId);
 
-  const [showNewProject, setShowNewProject] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const selectedProjectId = useProjectSelectionStore((s) => s.selectedProjectId);
+  const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
 
-  const filteredProjects = useMemo(() => {
-    const sorted = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-    if (filterStatus === "all") return sorted;
-    return sorted.filter((p) => p.status === filterStatus);
-  }, [projects, filterStatus]);
-
-  const handleDelete = useCallback(async () => {
-    if (!deletingProject || !workspaceId) return;
-    try {
-      await deleteProject.mutateAsync({
-        projectId: deletingProject.id,
-        workspaceId,
-      });
-      toast.success("Project deleted");
-      setDeletingProject(null);
-    } catch {
-      toast.error("Failed to delete project");
-    }
-  }, [deletingProject, workspaceId, deleteProject]);
-
-  return (
-    <FilteredListPage
-      actionLabel="New Project"
-      onAction={() => setShowNewProject(true)}
-      filters={[
-        {
-          id: "status",
-          label: "Status",
-          value: filterStatus,
-          onChange: setFilterStatus,
-          options: statusOptions,
-          allLabel: "All statuses",
-          width: "w-[160px]",
-        },
-      ]}
-      count={filteredProjects.length}
-      countLabel="projects"
-      modal={
-        <>
-          <NewProjectModal
-            open={showNewProject}
-            onClose={() => setShowNewProject(false)}
-          />
-          {editingProject && (
-            <EditProjectModal
-              open={!!editingProject}
-              onClose={() => setEditingProject(null)}
-              project={editingProject}
-            />
-          )}
-          <ConfirmDialog
-            open={!!deletingProject}
-            onOpenChange={(open) => !open && setDeletingProject(null)}
-            title="Delete Project"
-            description={`Are you sure you want to delete "${deletingProject?.name}"? This will permanently remove the project and all its tasks, docs, and meetings.`}
-            confirmLabel="Delete"
-            variant="destructive"
-            onConfirm={handleDelete}
-          />
-        </>
-      }
-    >
-      {isLoading ? (
-        <LoadingState label="projects" display="inline" />
-      ) : filteredProjects.length === 0 ? (
-        <EmptyState
-          icon={FolderKanban}
-          title="No projects found"
-          description={
-            filterStatus !== "all"
-              ? "Try selecting a different status or create a new project"
-              : "Create your first project to get started"
-          }
-          display="inline"
-        />
-      ) : (
-        <div className="space-y-1">
-          {filteredProjects.map((project) => (
-            <ProjectRow
-              key={project.id}
-              project={project}
-              onEdit={setEditingProject}
-              onDelete={setDeletingProject}
-            />
-          ))}
-        </div>
-      )}
-    </FilteredListPage>
+  // Register the projects tree as the secondary sidebar slot for /projects.
+  const pane = useMemo(
+    () => (currentWorkspaceId ? <ProjectsTreePane workspaceId={currentWorkspaceId} /> : null),
+    [currentWorkspaceId],
   );
-}
+  useSecondarySidebar("/projects", pane);
 
-function ProjectRow({
-  project,
-  onEdit,
-  onDelete,
-}: {
-  project: Project;
-  onEdit: (project: Project) => void;
-  onDelete: (project: Project) => void;
-}) {
-  const activeTasks = project.tasksByStatus
-    ? project.tasksByStatus.todo +
-      project.tasksByStatus.doing +
-      project.tasksByStatus.waiting
-    : 0;
+  // Consume ?open=<id> (e.g. from global search) → select that project, clear param.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (openId) {
+      setSelectedProject(openId);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, setSelectedProject]);
+
+  // Resolve the selection against the current workspace's project list — a stale
+  // id (deleted project, or workspace switched) falls back to the empty state.
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId],
+  );
+
+  if (!currentWorkspaceId) {
+    return (
+      <div className="flex flex-col h-full">
+        <StatePanel
+          variant="empty"
+          display="inline"
+          title="Select a workspace"
+          description="Choose a workspace in the sidebar to view projects."
+          className="h-full"
+        />
+      </div>
+    );
+  }
+
+  if (!selectedProject) {
+    return (
+      <div className="flex flex-col h-full">
+        <StatePanel
+          variant="empty"
+          display="inline"
+          icon={FolderKanban}
+          title={projects.length === 0 ? "No projects yet" : "Select a project"}
+          description={
+            projects.length === 0
+              ? "Create one with + New Project in the panel."
+              : "Pick a project from the list to view its overview."
+          }
+          className="h-full"
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors">
-      <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm truncate">{project.name}</span>
-          <Badge
-            variant="outline"
-            className={cn(
-              "capitalize text-[10px] h-5 shrink-0",
-              statusColors[project.status as ProjectStatus]
-            )}
-          >
-            {project.status}
-          </Badge>
-        </div>
-        {project.description && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {project.description}
-          </p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-          <Link
-            to={`/tasks?project=${project.id}`}
-            className="inline-flex items-center gap-1 tabular-nums hover:text-foreground transition-colors"
-          >
-            <CheckSquare className="size-3" />
-            {activeTasks}
-          </Link>
-          <Link
-            to={`/meetings?project=${project.id}`}
-            className="inline-flex items-center gap-1 tabular-nums hover:text-foreground transition-colors"
-          >
-            <Calendar className="size-3" />
-            {project.meetingCount ?? 0}
-          </Link>
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(project)}>
-              <Pencil className="size-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => onDelete(project)}
-            >
-              <Trash2 className="size-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+    <div className="flex flex-col h-full">
+      <ProjectOverview workspaceId={currentWorkspaceId} projectId={selectedProject.id} />
     </div>
   );
 }

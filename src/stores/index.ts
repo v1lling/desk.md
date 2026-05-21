@@ -39,6 +39,7 @@ export {
   useDeleteProject,
   projectKeys,
 } from "./projects";
+export { useProjectSelectionStore } from "./project-selection";
 
 // ── Content (Docs, Assets, Folders) ─────────────────────────────────
 export {

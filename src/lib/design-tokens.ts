@@ -60,7 +60,7 @@ export const taskStatusColors = {
   backlog: "bg-slate-500",
   todo: "bg-muted-foreground",
   doing: "bg-blue-500",
-  waiting: "bg-amber-500",
+  waiting: "bg-amber-500/80",
   done: "bg-emerald-500",
 } as const;
 
@@ -75,7 +75,7 @@ export const taskStatusTextColors = {
   backlog: "text-slate-600 dark:text-slate-400",
   todo: "text-muted-foreground",
   doing: "text-blue-600 dark:text-blue-400",
-  waiting: "text-amber-600 dark:text-amber-400",
+  waiting: "text-amber-600 dark:text-amber-500",
   done: "text-emerald-600 dark:text-emerald-400",
 } as const;
 

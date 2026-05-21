@@ -44,6 +44,8 @@ const UNASSIGNED = "_unassigned";
 
 interface MeetingsTreePaneProps {
   workspaceId: string;
+  /** Seeds the project filter (e.g. from a project overview quick-link). */
+  initialProjectFilter?: string;
 }
 
 interface MonthGroup {
@@ -79,7 +81,7 @@ function safeFormat(iso: string, pattern: string): string {
   }
 }
 
-export function MeetingsTreePane({ workspaceId }: MeetingsTreePaneProps) {
+export function MeetingsTreePane({ workspaceId, initialProjectFilter }: MeetingsTreePaneProps) {
   const { data: meetings = [] } = useMeetings(workspaceId);
   const { data: projects = [] } = useProjects(workspaceId);
   const { openMeeting } = useOpenTab();
@@ -91,7 +93,9 @@ export function MeetingsTreePane({ workspaceId }: MeetingsTreePaneProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [projectFilter, setProjectFilter] = useState<string>(ALL_PROJECTS);
+  const [projectFilter, setProjectFilter] = useState<string>(
+    initialProjectFilter ?? ALL_PROJECTS,
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);

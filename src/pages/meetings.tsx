@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useCurrentWorkspace, useMeetings, useOpenTab } from "@/stores";
 import { useOpenFromQuery } from "@/hooks";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
@@ -14,10 +15,26 @@ export default function MeetingsPage() {
 
   useOpenFromQuery(meetings, openMeeting, "/meetings");
 
+  // Capture ?project= once (e.g. from a project overview quick-link), then clear it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initialProjectFilter] = useState(() => searchParams.get("project") || undefined);
+  useEffect(() => {
+    if (searchParams.has("project")) {
+      searchParams.delete("project");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Register the meetings tree as the secondary sidebar slot for /meetings.
   const pane = useMemo(
-    () => (currentWorkspaceId ? <MeetingsTreePane workspaceId={currentWorkspaceId} /> : null),
-    [currentWorkspaceId],
+    () =>
+      currentWorkspaceId ? (
+        <MeetingsTreePane
+          workspaceId={currentWorkspaceId}
+          initialProjectFilter={initialProjectFilter}
+        />
+      ) : null,
+    [currentWorkspaceId, initialProjectFilter],
   );
   useSecondarySidebar("/meetings", pane);
 

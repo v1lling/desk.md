@@ -70,8 +70,8 @@ Key features:
 - **Work Mode**: Workspace selector at bottom, all views filter automatically
 - Home workspace (`home: true`) with quick-capture inbox, created at onboarding
 - Workspaces with color coding (home workspace defaults to indigo)
-- Projects inline in sidebar (alphabetically sorted)
-- Project detail with Overview, Tasks, Docs, Meetings tabs
+- Projects Hub at `/projects`: secondary-sidebar project list + an overview dashboard
+  (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
 - **Docs**: Tree structure with folders, drag-drop import
 - **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index)
 - Global search (Cmd+K)
@@ -295,8 +295,9 @@ pipx install appicongen
 ## Dev Notes
 
 - Dashboard at `/`, All Tasks at `/tasks`
-- No dedicated `/projects` page - projects listed inline in sidebar
-- Project detail at `/projects/:id`
+- Projects Hub at `/projects` — a single route; the project is selected via the
+  secondary sidebar (`useProjectSelectionStore`) and its overview dashboard renders
+  in the Desk tab. No `/projects/:id` route.
 - Mock data used when `isTauri() === false`
 - `_unassigned` is a special directory for items without a project
 - The **home workspace** is an ordinary workspace folder marked `home: true` in its `workspace.md`; resolve its id via `getHomeWorkspaceId()` (cached). It holds the capture inbox, is undeletable, and sorts first.

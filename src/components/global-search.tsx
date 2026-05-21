@@ -133,7 +133,7 @@ export function GlobalSearch() {
           });
           break;
         case "project":
-          navigate("/projects");
+          navigate(`/projects?open=${encodeURIComponent(item.id)}`);
           break;
       }
     },
