@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
@@ -155,20 +155,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     return "idle" as const;
   }, [saveStatus]);
 
-  // Scroll-aware border on sticky header
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setScrolled(!entry.isIntersecting),
-      { threshold: 1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   // Render states (deleted, moved, loading, not found)
   const renderState = EditorRenderStates({
     fileDeleted,
@@ -203,21 +189,23 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         onAIInclusionChange={handleAIInclusionChange}
         isInExcludedFolder={aiExclusionState.isInExcludedFolder}
         excludedFolderPath={aiExclusionState.excludedFolderPath}
-        scrolled={scrolled}
       />
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div ref={sentinelRef} className="h-0" />
-        <div className="max-w-4xl mx-auto px-6 pb-6">
+      {/* Sticky metadata row */}
+      <div className="shrink-0">
+        <div className="max-w-4xl mx-auto px-6">
           <MetadataToolbar
             projectId={currentProjectId}
             onProjectChange={handleProjectChange}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
+          <div className="h-px bg-border/40 mt-4" />
+        </div>
+      </div>
 
-          {/* mb-3 + the editor's own py-1 (4px) = 16px, symmetric with mt-4 */}
-          <div className="h-px bg-border/40 mt-4 mb-3" />
-
+      <ScrollArea className="flex-1 min-h-0">
+        {/* pt-3 + the editor's own py-1 (4px) = 16px, symmetric with the divider's mt-4 */}
+        <div className="max-w-4xl mx-auto px-6 pt-3 pb-6">
           {isEditorReady ? (
             <RichTextEditor
               value={content}

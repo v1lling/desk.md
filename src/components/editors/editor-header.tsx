@@ -21,8 +21,6 @@ interface EditorHeaderProps {
   isInExcludedFolder?: boolean;
   /** Path of the excluded folder (for tooltip) */
   excludedFolderPath?: string;
-  /** Whether content is scrolled (shows bottom border) */
-  scrolled?: boolean;
 }
 
 export function EditorHeader({
@@ -37,7 +35,6 @@ export function EditorHeader({
   onAIInclusionChange,
   isInExcludedFolder,
   excludedFolderPath,
-  scrolled,
 }: EditorHeaderProps) {
   // Determine if toggle should be disabled
   const isToggleDisabled = isInExcludedFolder;
@@ -54,12 +51,7 @@ export function EditorHeader({
   };
 
   return (
-    <div
-      className={cn(
-        "shrink-0 bg-background transition-[border-color] duration-150",
-        scrolled ? "border-b border-border/40" : "border-b border-transparent"
-      )}
-    >
+    <div className="shrink-0 bg-background">
       <div className="max-w-4xl mx-auto px-6 py-2 flex items-center gap-3">
         <Input
           value={title}
