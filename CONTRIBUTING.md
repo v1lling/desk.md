@@ -42,6 +42,15 @@ npm run build        # Type-check + production build (tsc -b && vite build)
 
 CI runs the same checks on every pull request.
 
+If your change affects the UI shown in the README, regenerate its screenshots:
+
+```bash
+npm run screenshots  # rebuilds the banner + screenshots in assets/
+```
+
+This runs the app in browser mock mode and captures each page in light and dark
+(needs the Playwright browser once: `npx playwright install chromium`).
+
 ## Pull request guidelines
 
 - Branch off `main` and open your PR against `main`.

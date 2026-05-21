@@ -86,7 +86,9 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     type: "meeting",
     entityId: meetingId,
     filePath: meeting?.filePath,
-    initialContent: "",
+    // In Tauri the body is loaded fresh from disk; this is only a fallback.
+    // In browser mock mode it is the content the editor shows.
+    initialContent: meeting?.content ?? "",
     enabled: !!meeting,
     onSaveComplete: handleSaveComplete,
   });

@@ -16,6 +16,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/**", "build/**", "src-tauri/**", "tauri-plugin-mcp/**", "outlook-addin/**"],
+    ignores: ["dist/**", "build/**", "src-tauri/**", "tauri-plugin-mcp/**", "outlook-addin/**", "scripts/**"],
   }
 );

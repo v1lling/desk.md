@@ -17,8 +17,10 @@ import {
   writeTextFile,
   joinPath,
   exists,
+  isTauri,
 } from "./tauri-fs";
 import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
+import { mockViewState } from "./mock-data";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
 
 // Re-export type for external use (canonical definition in @/types)
@@ -70,6 +72,12 @@ export async function getViewState(
   workspaceId: string,
   projectId: string | null
 ): Promise<ProjectViewState> {
+  // Browser mock mode: no filesystem — serve seeded view state instead.
+  if (!isTauri()) {
+    const key = projectId ? `${workspaceId}/${projectId}` : workspaceId;
+    return mockViewState[key] ?? {};
+  }
+
   try {
     const path = await getViewStatePath(workspaceId, projectId);
 
