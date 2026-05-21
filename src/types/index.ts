@@ -138,6 +138,8 @@ export interface ProjectViewState {
   expandedFolders?: string[];
   /** Task IDs highlighted for focus (e.g., today's work) */
   highlightedTasks?: string[];
+  /** Task statuses hidden from the Tasks page (kanban columns / list sections) */
+  hiddenStatuses?: TaskStatus[];
 }
 
 export type TaskViewMode = 'list' | 'kanban';

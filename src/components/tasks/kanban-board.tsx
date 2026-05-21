@@ -15,7 +15,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
-import { Eye, EyeOff } from "lucide-react";
+import { taskStatusOrder } from "@/lib/design-tokens";
 import {
   useTasks,
   useProjectTasks,
@@ -38,10 +38,8 @@ interface KanbanBoardProps {
   showProject?: boolean;
   /** Optional pre-filtered tasks to display instead of fetching all */
   tasks?: Task[];
-  /** Whether to show the Done column by default (default: false) */
-  showDoneByDefault?: boolean;
-  /** Whether to show the Backlog column by default (default: false) */
-  showBacklogByDefault?: boolean;
+  /** Statuses hidden from the board (kanban columns) */
+  hiddenStatuses: Set<TaskStatus>;
   /** Loading state (used when tasks are passed externally) */
   isLoading?: boolean;
 }
@@ -51,14 +49,11 @@ export function KanbanBoard({
   onTaskClick,
   showProject,
   tasks: externalTasks,
-  showDoneByDefault = false,
-  showBacklogByDefault = false,
+  hiddenStatuses,
   isLoading: externalIsLoading,
 }: KanbanBoardProps) {
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const [showBacklog, setShowBacklog] = useState(showBacklogByDefault);
-  const [showDone, setShowDone] = useState(showDoneByDefault);
 
   // Use project-specific tasks if projectId provided, otherwise all tasks
   const allTasksQuery = useTasks(projectId ? null : currentWorkspaceId);
@@ -288,87 +283,24 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <button
-          onClick={() => setShowBacklog((prev) => !prev)}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 hover:bg-slate-500/20 transition-colors text-[12px] font-medium"
-          title={showBacklog ? "Hide Backlog column" : "Show Backlog column"}
-        >
-          {showBacklog ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          <span>Backlog</span>
-          <span className="tabular-nums opacity-70">{groupedTasks.backlog.length}</span>
-        </button>
-        <button
-          onClick={() => setShowDone((prev) => !prev)}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors text-[12px] font-medium"
-          title={showDone ? "Hide Done column" : "Show Done column"}
-        >
-          {showDone ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          <span>Done</span>
-          <span className="tabular-nums opacity-70">{groupedTasks.done.length}</span>
-        </button>
-      </div>
       <ScrollArea orientation="horizontal" horizontalScrollbarPosition="top">
         <div className="grid grid-flow-col auto-cols-[280px] gap-3 items-stretch pt-3">
-        {showBacklog && (
-          <KanbanColumn
-            status="backlog"
-            tasks={groupedTasks.backlog}
-            onTaskClick={onTaskClick}
-            showProject={showProject}
-            getProjectName={getProjectName}
-            isDropTarget={activeColumn === "backlog"}
-            highlightedTasks={highlightedTasks}
-            onToggleHighlight={toggleHighlight}
-            workspaceColor={currentWorkspace?.color}
-          />
-        )}
-        <KanbanColumn
-          status="todo"
-          tasks={groupedTasks.todo}
-          onTaskClick={onTaskClick}
-          showProject={showProject}
-          getProjectName={getProjectName}
-          isDropTarget={activeColumn === "todo"}
-          highlightedTasks={highlightedTasks}
-          onToggleHighlight={toggleHighlight}
-          workspaceColor={currentWorkspace?.color}
-        />
-        <KanbanColumn
-          status="doing"
-          tasks={groupedTasks.doing}
-          onTaskClick={onTaskClick}
-          showProject={showProject}
-          getProjectName={getProjectName}
-          isDropTarget={activeColumn === "doing"}
-          highlightedTasks={highlightedTasks}
-          onToggleHighlight={toggleHighlight}
-          workspaceColor={currentWorkspace?.color}
-        />
-        <KanbanColumn
-          status="waiting"
-          tasks={groupedTasks.waiting}
-          onTaskClick={onTaskClick}
-          showProject={showProject}
-          getProjectName={getProjectName}
-          isDropTarget={activeColumn === "waiting"}
-          highlightedTasks={highlightedTasks}
-          onToggleHighlight={toggleHighlight}
-          workspaceColor={currentWorkspace?.color}
-        />
-        {showDone && (
-          <KanbanColumn
-            status="done"
-            tasks={groupedTasks.done}
-            onTaskClick={onTaskClick}
-            showProject={showProject}
-            getProjectName={getProjectName}
-            isDropTarget={activeColumn === "done"}
-            highlightedTasks={highlightedTasks}
-            onToggleHighlight={toggleHighlight}
-            workspaceColor={currentWorkspace?.color}
-          />
-        )}
+          {taskStatusOrder.map((status) =>
+            hiddenStatuses.has(status) ? null : (
+              <KanbanColumn
+                key={status}
+                status={status}
+                tasks={groupedTasks[status]}
+                onTaskClick={onTaskClick}
+                showProject={showProject}
+                getProjectName={getProjectName}
+                isDropTarget={activeColumn === status}
+                highlightedTasks={highlightedTasks}
+                onToggleHighlight={toggleHighlight}
+                workspaceColor={currentWorkspace?.color}
+              />
+            ),
+          )}
         </div>
       </ScrollArea>
       <DragOverlay>

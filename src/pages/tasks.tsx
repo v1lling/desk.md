@@ -1,10 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { KanbanBoard, NewTaskModal, TaskListView } from "@/components/tasks";
+import {
+  KanbanBoard,
+  NewTaskModal,
+  TaskListView,
+  StatusVisibilityToggle,
+} from "@/components/tasks";
 import { FilteredListPage } from "@/components/patterns";
-import { useTasks, useCurrentWorkspace, useViewMode, useOpenTab } from "@/stores";
+import {
+  useTasks,
+  useCurrentWorkspace,
+  useViewMode,
+  useHiddenStatuses,
+  useOpenTab,
+} from "@/stores";
 import { useProjectName, useOpenFromQuery } from "@/hooks";
-import type { Task } from "@/types";
+import type { Task, TaskStatus } from "@/types";
 
 export default function TasksPage() {
   const currentWorkspace = useCurrentWorkspace();
@@ -14,6 +25,8 @@ export default function TasksPage() {
 
   // View mode for All Tasks (workspace-level, projectId = null)
   const { viewMode, setViewMode } = useViewMode(currentWorkspaceId, null, "kanban");
+  // Status visibility (persisted per-workspace, shared by kanban + list)
+  const { hiddenStatuses, toggleStatus } = useHiddenStatuses(currentWorkspaceId, null);
   const { openTask } = useOpenTab();
 
   // Initialize project filter from ?project= URL param (e.g., from /projects page)
@@ -47,6 +60,19 @@ export default function TasksPage() {
       return true;
     });
   }, [tasks, filterProject, filterPriority]);
+
+  // Per-status counts for the visibility toggle pills
+  const statusCounts = useMemo(() => {
+    const counts: Record<TaskStatus, number> = {
+      backlog: 0,
+      todo: 0,
+      doing: 0,
+      waiting: 0,
+      done: 0,
+    };
+    for (const task of filteredTasks) counts[task.status]++;
+    return counts;
+  }, [filteredTasks]);
 
   // Prepare filter options - include "No project" for unassigned
   const projectOptions = useMemo(
@@ -98,21 +124,32 @@ export default function TasksPage() {
         />
       }
     >
-      {viewMode === "kanban" ? (
-        <KanbanBoard
-          onTaskClick={handleTaskClick}
-          showProject
-          tasks={filteredTasks}
-        />
-      ) : (
-        <TaskListView
-          tasks={filteredTasks}
-          onTaskClick={handleTaskClick}
-          showProject
-          getProjectName={getProjectName}
-          groupByStatus
-        />
-      )}
+      <>
+        <div className="mb-3">
+          <StatusVisibilityToggle
+            counts={statusCounts}
+            hiddenStatuses={hiddenStatuses}
+            onToggle={toggleStatus}
+          />
+        </div>
+        {viewMode === "kanban" ? (
+          <KanbanBoard
+            onTaskClick={handleTaskClick}
+            showProject
+            tasks={filteredTasks}
+            hiddenStatuses={hiddenStatuses}
+          />
+        ) : (
+          <TaskListView
+            tasks={filteredTasks}
+            onTaskClick={handleTaskClick}
+            showProject
+            getProjectName={getProjectName}
+            groupByStatus
+            hiddenStatuses={hiddenStatuses}
+          />
+        )}
+      </>
     </FilteredListPage>
   );
 }

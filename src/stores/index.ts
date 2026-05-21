@@ -86,6 +86,7 @@ export {
   useViewMode,
   useExpandedFolders,
   useHighlightedTasks,
+  useHiddenStatuses,
   sortTasksByOrder,
   viewStateKeys,
 } from "./view-state";

@@ -305,3 +305,34 @@ export async function setExpandedFolders(
     expandedFolders: folders,
   });
 }
+
+// =============================================================================
+// STATUS VISIBILITY HELPERS
+// =============================================================================
+
+/**
+ * Get task statuses hidden from the Tasks page.
+ * Returns undefined if not set, so callers can apply their own default.
+ */
+export async function getHiddenStatuses(
+  workspaceId: string,
+  projectId: string | null
+): Promise<TaskStatus[] | undefined> {
+  const state = await getViewState(workspaceId, projectId);
+  return state.hiddenStatuses;
+}
+
+/**
+ * Save the set of task statuses hidden from the Tasks page
+ */
+export async function setHiddenStatuses(
+  workspaceId: string,
+  projectId: string | null,
+  statuses: TaskStatus[]
+): Promise<void> {
+  const existing = await getViewState(workspaceId, projectId);
+  await saveViewState(workspaceId, projectId, {
+    ...existing,
+    hiddenStatuses: statuses,
+  });
+}

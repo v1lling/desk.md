@@ -316,5 +316,88 @@ export function useHighlightedTasks(
   };
 }
 
+// =============================================================================
+// STATUS VISIBILITY
+// =============================================================================
+
+/** Statuses hidden by default when a workspace has no saved preference. */
+const DEFAULT_HIDDEN_STATUSES: TaskStatus[] = ["backlog", "done"];
+
+/**
+ * Hook to get/toggle which task statuses are hidden on the Tasks page.
+ * Persisted per-workspace in .view.json, so it survives reloads and is shared
+ * between the Kanban and List views.
+ *
+ * @param workspaceId - The workspace ID
+ * @param projectId - The project ID, or null for workspace-level (All Tasks)
+ */
+export function useHiddenStatuses(
+  workspaceId: string | null,
+  projectId: string | null
+) {
+  const queryClient = useQueryClient();
+  const { data: viewState } = useViewState(workspaceId, projectId);
+
+  const hiddenStatuses = useMemo(
+    () => new Set<TaskStatus>(viewState?.hiddenStatuses ?? DEFAULT_HIDDEN_STATUSES),
+    [viewState?.hiddenStatuses]
+  );
+
+  const mutation = useMutation({
+    mutationFn: async (statuses: TaskStatus[]) => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return viewStateLib.setHiddenStatuses(workspaceId, projectId, statuses);
+    },
+    onMutate: async (statuses) => {
+      if (!workspaceId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: viewStateKeys.byScope(workspaceId, projectId),
+      });
+
+      const previousState = queryClient.getQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId)
+      );
+
+      queryClient.setQueryData<ProjectViewState>(
+        viewStateKeys.byScope(workspaceId, projectId),
+        (old) => ({
+          ...old,
+          hiddenStatuses: statuses,
+        })
+      );
+
+      return { previousState };
+    },
+    onError: (_err, _statuses, context) => {
+      if (context?.previousState && workspaceId) {
+        queryClient.setQueryData(
+          viewStateKeys.byScope(workspaceId, projectId),
+          context.previousState
+        );
+      }
+    },
+  });
+
+  const toggleStatus = useCallback(
+    (status: TaskStatus) => {
+      const next = new Set(hiddenStatuses);
+      if (next.has(status)) {
+        next.delete(status);
+      } else {
+        next.add(status);
+      }
+      mutation.mutate([...next]);
+    },
+    [hiddenStatuses, mutation.mutate]
+  );
+
+  return {
+    hiddenStatuses,
+    toggleStatus,
+    isLoading: mutation.isPending,
+  };
+}
+
 // Re-export helpers from lib
 export { sortTasksByOrder } from "@/lib/desk/view-state";

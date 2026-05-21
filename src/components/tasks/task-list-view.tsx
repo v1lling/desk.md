@@ -1,6 +1,6 @@
 
 import { useMemo, useState } from "react";
-import { Archive, CheckCircle2, Circle, Clock, Eye, EyeOff, Loader2, Flag, FolderKanban, ChevronRight } from "lucide-react";
+import { Archive, CheckCircle2, Circle, Clock, Loader2, Flag, FolderKanban, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
 import {
@@ -22,6 +22,8 @@ interface TaskListViewProps {
   getProjectName?: (projectId: string) => string | null;
   /** Group tasks by status (default: true) */
   groupByStatus?: boolean;
+  /** Statuses hidden from the list (only applies when grouped by status) */
+  hiddenStatuses: Set<TaskStatus>;
   isLoading?: boolean;
 }
 
@@ -44,12 +46,11 @@ export function TaskListView({
   showProject,
   getProjectName,
   groupByStatus = true,
+  hiddenStatuses,
   isLoading,
 }: TaskListViewProps) {
   // Track which status sections are collapsed
   const [collapsedSections, setCollapsedSections] = useState<Set<TaskStatus>>(new Set());
-  const [showBacklog, setShowBacklog] = useState(false);
-  const [showDone, setShowDone] = useState(false);
 
   const toggleSection = (status: TaskStatus) => {
     setCollapsedSections((prev) => {
@@ -103,29 +104,8 @@ export function TaskListView({
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setShowBacklog((prev) => !prev)}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 hover:bg-slate-500/20 transition-colors text-[12px] font-medium"
-          title={showBacklog ? "Hide Backlog tasks" : "Show Backlog tasks"}
-        >
-          {showBacklog ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          <span>Backlog</span>
-          <span className="tabular-nums opacity-70">{(groupedTasks.backlog ?? []).length}</span>
-        </button>
-        <button
-          onClick={() => setShowDone((prev) => !prev)}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors text-[12px] font-medium"
-          title={showDone ? "Hide Done tasks" : "Show Done tasks"}
-        >
-          {showDone ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          <span>Done</span>
-          <span className="tabular-nums opacity-70">{(groupedTasks.done ?? []).length}</span>
-        </button>
-      </div>
       {taskStatusOrder.map((status) => {
-        if (status === "backlog" && !showBacklog) return null;
-        if (status === "done" && !showDone) return null;
+        if (hiddenStatuses.has(status)) return null;
 
         const statusTasks = groupedTasks[status as keyof typeof groupedTasks] || [];
         if (statusTasks.length === 0) return null;
