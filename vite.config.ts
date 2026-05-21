@@ -1,18 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   base: "./",
-  plugins: [
-    react(),
-    tsconfigPaths(),
-    nodePolyfills({
-      include: ["buffer", "process"],
-      globals: { Buffer: true, process: true },
-    }),
-  ],
+  plugins: [react(), tsconfigPaths()],
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(
+      process.env.NODE_ENV ?? "development"
+    ),
+  },
   server: { port: 3001 },
   esbuild: {
     // Strip debug logging from production builds. console.warn/error are kept
