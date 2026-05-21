@@ -147,6 +147,81 @@ fn expand_fs_scope(app_handle: tauri::AppHandle, path: String) -> Result<(), Str
         .map_err(|e| e.to_string())
 }
 
+/// Canonicalize a path that may not exist yet. Walks up to the nearest existing
+/// ancestor, canonicalizes it (resolving symlinks and `..`), then re-appends the
+/// missing tail — rejecting any non-`Normal` tail component so `..` cannot escape.
+fn lenient_canonicalize(input: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    use std::path::{Component, Path};
+
+    // Fast path: the whole path already exists.
+    if let Ok(real) = input.canonicalize() {
+        return Ok(real);
+    }
+
+    // Find the nearest existing ancestor, collecting the missing tail bottom-up.
+    let mut existing = input;
+    let mut tail: Vec<&std::ffi::OsStr> = Vec::new();
+    loop {
+        match existing.parent() {
+            Some(parent) => {
+                if let Some(name) = existing.file_name() {
+                    tail.push(name);
+                }
+                existing = parent;
+                if existing.exists() {
+                    break;
+                }
+            }
+            None => {
+                return Err(format!("No existing ancestor for: {}", input.display()))
+            }
+        }
+    }
+
+    let mut result = existing
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize ancestor: {e}"))?;
+
+    // Re-append the tail top-down, rejecting traversal components.
+    for name in tail.iter().rev() {
+        match Path::new(name).components().next() {
+            Some(Component::Normal(part)) => result.push(part),
+            _ => return Err("Path contains an invalid component".to_string()),
+        }
+    }
+    Ok(result)
+}
+
+/// Allow filesystem access to a single path inside the configured data root.
+///
+/// The runtime fs scope on Unix matches with `require_literal_leading_dot`, so the
+/// `dataDir/**` glob from `expand_fs_scope` cannot reach dot-prefixed paths
+/// (`.aiignore`, `.view.json`, `.desk/`). This adds a *literal* allow entry, which
+/// does match dot components. The frontend calls it just-in-time before touching a
+/// hidden path; the data-root containment check is the real security boundary.
+#[tauri::command]
+fn allow_data_path(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
+    let requested = std::path::PathBuf::from(&path);
+
+    // The target may not exist yet (first write of `.view.json`, `.desk/index/...`).
+    let target = lenient_canonicalize(&requested)?;
+    let root_canon = lenient_canonicalize(&desk_commands::get_data_root())?;
+
+    if !target.starts_with(&root_canon) {
+        return Err(format!(
+            "Path is outside the Desk data root: {}",
+            requested.display()
+        ));
+    }
+
+    // Use the ORIGINAL path: allow_file stores the escaped path plus a
+    // canonicalized-parent variant, covering both the symlink and no-symlink cases.
+    app_handle
+        .fs_scope()
+        .allow_file(&requested)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[allow(unused_mut)]
@@ -160,6 +235,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             confirm_close,
             expand_fs_scope,
+            allow_data_path,
             open_file_with_default_app,
             reveal_in_finder,
             open_in_terminal,

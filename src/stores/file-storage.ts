@@ -3,8 +3,7 @@
  * Used for Smart Index to enable cross-device sync and backups
  */
 
-import { getDeskPath, joinPath } from "@/lib/desk/tauri-fs";
-import { readTextFile, writeTextFile, exists, mkdir } from "@tauri-apps/plugin-fs";
+import { getDeskPath, joinPath, readTextFile, writeTextFile, exists, mkdir } from "@/lib/desk/tauri-fs";
 import { isTauri } from "@/lib/desk";
 import type { PersistStorage } from "zustand/middleware";
 
@@ -54,7 +53,7 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
 
         // Ensure directory exists
         if (!(await exists(dirPath))) {
-          await mkdir(dirPath, { recursive: true });
+          await mkdir(dirPath);
           console.log(`[file-storage] Created directory: ${dirPath}`);
         }
 

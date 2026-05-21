@@ -39,6 +39,34 @@ async function getTauriPathModule() {
   return { homeDir, join };
 }
 
+// Paths already granted via allow_data_path — skip repeat invokes.
+const allowedHiddenPaths = new Set<string>();
+
+/**
+ * Ensure a hidden (dot-prefixed) path is allowed by the Tauri fs scope.
+ *
+ * The fs capabilities defer to the runtime global scope, which on macOS/Linux
+ * cannot glob-match path components starting with "." (the `dataDir/**` entry from
+ * expandFsScope() excludes them). Before any fs op on a path with a hidden segment,
+ * we ask the backend for a literal allow entry, which does match dotfiles. The
+ * backend rejects anything outside the data root — that containment check is the
+ * security boundary. No-ops in browser mode and for non-hidden paths.
+ */
+async function ensureHiddenPathAllowed(path: string): Promise<void> {
+  if (!isTauri()) return;
+  if (!path.includes("/.")) return; // fast check: no hidden segment
+  if (allowedHiddenPaths.has(path)) return; // cache hit
+
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("allow_data_path", { path });
+    allowedHiddenPaths.add(path);
+  } catch (err) {
+    console.error("[tauri-fs] allow_data_path failed for", path, err);
+    // Continue — the fs call below will surface a clearer error if still denied.
+  }
+}
+
 /**
  * Get the Desk data directory path
  * Reads from settings store, falls back to ~/Desk
@@ -101,6 +129,7 @@ export async function exists(path: string): Promise<boolean> {
     return true; // Mock for browser
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   return fs.exists(path);
 }
@@ -114,6 +143,7 @@ export async function readTextFile(path: string): Promise<string> {
     throw new Error("File system not available in browser mode");
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   return fs.readTextFile(path);
 }
@@ -127,6 +157,7 @@ export async function writeTextFile(path: string, content: string): Promise<void
     return;
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   await fs.writeTextFile(path, content);
 }
@@ -140,6 +171,7 @@ export async function writeFile(path: string, bytes: Uint8Array): Promise<void> 
     return;
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   await fs.writeFile(path, bytes);
 }
@@ -153,6 +185,7 @@ export async function mkdir(path: string): Promise<void> {
     return;
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   await fs.mkdir(path, { recursive: true });
 }
@@ -166,6 +199,7 @@ export async function removeFile(path: string): Promise<void> {
     return;
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   await fs.remove(path);
 }
@@ -179,6 +213,7 @@ export async function removeDir(path: string): Promise<void> {
     return;
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   await fs.remove(path, { recursive: true });
 }
@@ -192,6 +227,8 @@ export async function rename(oldPath: string, newPath: string): Promise<void> {
     return;
   }
 
+  await ensureHiddenPathAllowed(oldPath);
+  await ensureHiddenPathAllowed(newPath);
   const fs = await getTauriFsModule();
   await fs.rename(oldPath, newPath);
 }
@@ -211,6 +248,7 @@ export async function readDir(path: string): Promise<DirEntry[]> {
     return [];
   }
 
+  await ensureHiddenPathAllowed(path);
   const fs = await getTauriFsModule();
   const entries = await fs.readDir(path);
   return entries.map(entry => ({
@@ -233,6 +271,7 @@ export async function fileStat(path: string): Promise<FileStat | null> {
   if (!isTauri()) return null;
 
   try {
+    await ensureHiddenPathAllowed(path);
     const fs = await getTauriFsModule();
     const info = await fs.stat(path);
     return {
