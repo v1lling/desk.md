@@ -79,10 +79,11 @@ that — finished.
 > Windows and Linux builds are **beta** — desk.md is developed and tested on macOS. Please
 > [report anything broken](https://github.com/v1lling/desk.md/issues).
 
-### macOS (Apple Silicon)
+### macOS
 
-1. Download `Desk_*_aarch64.dmg` from the
-   [latest release](https://github.com/v1lling/desk.md/releases/latest).
+1. Download `Desk_*.dmg` from the
+   [latest release](https://github.com/v1lling/desk.md/releases/latest) — one
+   universal build runs on both Apple Silicon and Intel Macs.
 2. Open the DMG and drag **Desk** into Applications.
 3. The app isn't notarized by Apple yet, so macOS reports it as "damaged" on the
    first launch. Clear the quarantine flag once, from Terminal:
