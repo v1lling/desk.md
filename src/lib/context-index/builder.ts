@@ -81,6 +81,7 @@ async function summarizeBatch(
       if (!entry.summary) {
         const body = contents.get(entry.filePath) ?? "";
         entry.summary = generatePreview(body, 150);
+        entry.isPreview = true;
       }
     }
   };
@@ -201,7 +202,7 @@ export async function buildWorkspaceIndex(
         projectName: projectNameMap.get(doc.projectId),
       });
       const existing = existingEntries.get(entry.path);
-      if (existing && existing.contentHash === entry.contentHash && existing.summary) {
+      if (existing && existing.contentHash === entry.contentHash && existing.summary && !existing.isPreview) {
         entry.summary = existing.summary;
         result.reused++;
       } else {
@@ -225,7 +226,7 @@ export async function buildWorkspaceIndex(
         projectName: projectNameMap.get(doc.projectId),
       });
       const existing = existingEntries.get(entry.path);
-      if (existing && existing.contentHash === entry.contentHash && existing.summary) {
+      if (existing && existing.contentHash === entry.contentHash && existing.summary && !existing.isPreview) {
         entry.summary = existing.summary;
         result.reused++;
       } else {
@@ -251,7 +252,7 @@ export async function buildWorkspaceIndex(
         projectName: projectNameMap.get(task.projectId),
       });
       const existing = existingEntries.get(entry.path);
-      if (existing && existing.contentHash === entry.contentHash && existing.summary) {
+      if (existing && existing.contentHash === entry.contentHash && existing.summary && !existing.isPreview) {
         entry.summary = existing.summary;
         result.reused++;
       } else {
@@ -276,7 +277,7 @@ export async function buildWorkspaceIndex(
         projectName: projectNameMap.get(meeting.projectId),
       });
       const existing = existingEntries.get(entry.path);
-      if (existing && existing.contentHash === entry.contentHash && existing.summary) {
+      if (existing && existing.contentHash === entry.contentHash && existing.summary && !existing.isPreview) {
         entry.summary = existing.summary;
         result.reused++;
       } else {
@@ -309,6 +310,7 @@ export async function buildWorkspaceIndex(
       for (const entry of batch) {
         const body = contentMap.get(entry.filePath) ?? "";
         entry.summary = generatePreview(body, 150);
+        entry.isPreview = true;
       }
       result.summarized += batch.length;
       result.errors.push(`Batch ${Math.floor(i / SUMMARY_BATCH_SIZE)}: ${String(error)}`);

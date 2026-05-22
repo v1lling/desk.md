@@ -7,8 +7,10 @@ export interface IndexEntry {
   type: 'doc' | 'ai-doc' | 'task' | 'meeting';
   /** Title from frontmatter */
   title: string;
-  /** AI-generated 1-2 sentence summary */
+  /** AI-generated 1-2 sentence summary, or a raw text preview when no AI key is set */
   summary: string;
+  /** True when `summary` is a raw text preview (built without a working AI key) rather than an AI summary */
+  isPreview?: boolean;
   /** SHA-256 hash of file content (for incremental rebuild) */
   contentHash: string;
   /** ISO date created */

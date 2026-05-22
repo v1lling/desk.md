@@ -41,7 +41,7 @@ something I couldn't `grep`.
 
 So I built desk.md, and I use it every day for my work. It's
 agent-friendly by design: the data is just plain files, so I can point Claude
-Code or Codex at a workspace with no setup at all.
+Code, Codex, or Gemini CLI at a workspace with no setup at all.
 
 ## A look around
 
@@ -103,18 +103,20 @@ the **home workspace**, which holds the quick-capture inbox and is created the
 first time you set up desk.md. Everything is plain Markdown: back it up, sync it,
 or edit it in another app whenever you like.
 
-## AI
+## AI & agents
 
 desk.md is not an AI agent framework. It's a project, task and doc manager you
 run yourself; it just happens to be friendly to agents too. AI here is entirely
 optional, and nothing leaves your machine unless you reach for it. It comes in
 two forms.
 
-**Bring your own agent.** desk.md keeps your data folder agent-ready: alongside
-your Markdown it auto-generates `CLAUDE.md` and `AGENTS.md` describing the folder
-layout, the frontmatter schemas, and where an agent may write. Point Claude Code,
-Codex, or any CLI agent at the folder and it immediately understands your
-workspaces. No MCP server, no plugins, just files.
+**Bring your own agent.** desk.md keeps your data folder agent-ready. Alongside
+your Markdown it auto-generates `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md` — so
+Claude Code, Codex, and Gemini CLI all understand your workspaces with zero
+setup — plus a per-workspace `WORKSPACE_CONTEXT.md` that catalogs and summarizes
+every file. These spell out the folder layout, the frontmatter schemas, and the
+`ai-docs/` area an agent writes to so it never clutters your own notes. No MCP
+server, no plugins, just files.
 
 **In-app assistant.** There's also a built-in assistant for chat and drafting. It
 uses your own Anthropic or OpenAI API key (**Settings → AI**). With no key, it

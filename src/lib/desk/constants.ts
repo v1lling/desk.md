@@ -48,6 +48,7 @@ export const FILE_NAMES = {
   WORKSPACE_MD: "workspace.md",
   CLAUDE_MD: "CLAUDE.md",
   AGENTS_MD: "AGENTS.md",
+  GEMINI_MD: "GEMINI.md",
   WORKSPACE_CONTEXT_MD: "WORKSPACE_CONTEXT.md",
   PROJECT_MD: "project.md",
   VIEW_STATE: ".view.json",
