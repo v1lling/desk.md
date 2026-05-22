@@ -72,6 +72,41 @@ terminal, who want to own their data and point AI agents at it. If you've ever
 assembled Obsidian from a stack of plugins and watched them drift, this is
 that — finished.
 
+## Install
+
+> Windows and Linux builds are **beta** — desk.md is developed and tested on macOS. Please
+> [report anything broken](https://github.com/v1lling/desk.md/issues).
+
+### macOS (Apple Silicon)
+
+1. Download `Desk_*_aarch64.dmg` from the
+   [latest release](https://github.com/v1lling/desk.md/releases/latest).
+2. Open the DMG and drag **Desk** into Applications.
+3. The app isn't notarized by Apple yet, so macOS reports it as "damaged" on the
+   first launch. Clear the quarantine flag once, from Terminal:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Desk.app
+   ```
+
+### Windows (beta)
+
+Download and run the `.exe` installer from the
+[latest release](https://github.com/v1lling/desk.md/releases/latest). The app
+isn't code-signed yet, so SmartScreen shows a warning — click **More info → Run
+anyway**.
+
+### Linux (beta)
+
+Download the `.AppImage` (runs on most distros) or a `.deb` / `.rpm` from the
+[latest release](https://github.com/v1lling/desk.md/releases/latest). For the
+AppImage, `chmod +x Desk_*.AppImage` and run it. Storing AI API keys needs a
+desktop secret service (GNOME Keyring or KWallet), present on most desktop
+installs.
+
+desk.md keeps itself up to date automatically after install. Prefer to build it
+yourself? See [Quick Start](#quick-start).
+
 ## Tech Stack
 
 - Frontend: React, Vite, TypeScript, Tailwind CSS

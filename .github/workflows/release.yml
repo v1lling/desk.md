@@ -6,10 +6,24 @@ on:
       - "v*"
 
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  release:
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+            rust-targets: "aarch64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+            rust-targets: ""
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
@@ -22,11 +36,21 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Install dependencies
         run: npm ci
@@ -37,6 +61,7 @@ jobs:
           cd outlook-addin && npm ci && npm audit --audit-level=high
 
       - name: Verify version matches tag
+        shell: bash
         run: |
           TAG=${GITHUB_REF#refs/tags/v}
           TAURI_VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
@@ -45,94 +70,18 @@ jobs:
             echo "Version mismatch! Tag: $TAG, tauri.conf.json: $TAURI_VERSION, package.json: $PKG_VERSION"
             exit 1
           fi
-          echo "VERSION=$TAG" >> $GITHUB_ENV
+          echo "Version $TAG matches tag."
 
-      - name: Build Tauri app
-        id: tauri-build
+      - name: Build & publish release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-
-      - name: Prepare release artifacts
-        run: |
-          echo "=== DEBUG: Listing all bundle files ==="
-          find src-tauri/target/release/bundle -type f 2>/dev/null || true
-          echo ""
-
-          echo "=== DEBUG: Checking for specific file types ==="
-          echo "DMG files:"
-          find src-tauri/target/release/bundle -name "*.dmg" 2>/dev/null || echo "  (none found)"
-          echo "TAR.GZ files:"
-          find src-tauri/target/release/bundle -name "*.tar.gz" 2>/dev/null || echo "  (none found)"
-          echo "SIG files:"
-          find src-tauri/target/release/bundle -name "*.sig" 2>/dev/null || echo "  (none found)"
-          echo ""
-
-          # Find the built artifacts
-          DMG=$(find src-tauri/target/release/bundle -name "*.dmg" | head -1)
-          UPDATER=$(find src-tauri/target/release/bundle -name "*.tar.gz" | head -1)
-          SIG_FILE=$(find src-tauri/target/release/bundle -name "*.tar.gz.sig" | head -1)
-
-          if [ -z "$DMG" ] || [ -z "$UPDATER" ]; then
-            echo "ERROR: Missing core artifacts (DMG or TAR.GZ)!"
-            exit 1
-          fi
-
-          cp "$DMG" "Desk_${VERSION}_aarch64.dmg"
-          cp "$UPDATER" "Desk.app.tar.gz"
-          echo "Copied DMG: $DMG"
-          echo "Copied updater: $UPDATER"
-
-          # Extract signature from .sig file
-          if [ -z "$SIG_FILE" ]; then
-            echo "ERROR: No signature file found!"
-            echo "This likely means:"
-            echo "  1. TAURI_SIGNING_PRIVATE_KEY is not set correctly"
-            echo "  2. 'updater' target is not in bundle.targets"
-            echo "  3. Tauri version doesn't auto-generate signatures"
-            exit 1
-          fi
-
-          echo "Found signature file: $SIG_FILE"
-          SIG_CONTENT=$(cat "$SIG_FILE")
-
-          if [ -z "$SIG_CONTENT" ]; then
-            echo "ERROR: Signature file is empty!"
-            exit 1
-          fi
-
-          echo "Signature length: ${#SIG_CONTENT} chars"
-          echo "Signature (first 50 chars): ${SIG_CONTENT:0:50}..."
-
-          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          URL="https://github.com/v1lling/desk.md/releases/download/v${VERSION}/Desk.app.tar.gz"
-
-          jq -n \
-            --arg version "v${VERSION}" \
-            --arg notes "Release v${VERSION}" \
-            --arg pub_date "$PUB_DATE" \
-            --arg sig "$SIG_CONTENT" \
-            --arg url "$URL" \
-            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {"darwin-aarch64": {signature: $sig, url: $url}}}' \
-            > latest.json
-
-          echo "=== latest.json ==="
-          cat latest.json
-
-      - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Delete existing release if present (keeps the pushed tag)
-          gh release delete "v${VERSION}" --repo v1lling/desk.md --yes 2>/dev/null || true
-
-          # Create release and upload assets
-          gh release create "v${VERSION}" \
-            --repo v1lling/desk.md \
-            --title "Desk v${VERSION}" \
-            --notes "Release v${VERSION}" \
-            "Desk_${VERSION}_aarch64.dmg" \
-            Desk.app.tar.gz \
-            latest.json
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Desk ${{ github.ref_name }}"
+          releaseBody: "Release ${{ github.ref_name }}"
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
