@@ -1,7 +1,14 @@
-import { getDeskPath, joinPath, writeTextFile } from "@/lib/desk/tauri-fs";
+import {
+  getDeskPath,
+  joinPath,
+  writeTextFile,
+  removeFile,
+  exists,
+  isTauri,
+} from "@/lib/desk/tauri-fs";
 import { getWorkspacePath } from "@/lib/desk/paths";
 import { FILE_NAMES } from "@/lib/desk/constants";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { useContextStore } from "@/stores/context";
 import type { Workspace, Project } from "@/types";
 
 /** HTML comment marking a file as generated — invisible when rendered, still read by agents. */
@@ -263,6 +270,7 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
 
 export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<void> {
   if (!isTauri()) return;
+  if (!useContextStore.getState().generateAgentFiles) return;
 
   const deskPath = await getDeskPath();
   const content = buildTopLevelContext(workspaces, deskPath);
@@ -278,6 +286,7 @@ export async function writePerWorkspaceAgentFiles(
   projects: Project[]
 ): Promise<void> {
   if (!isTauri()) return;
+  if (!useContextStore.getState().generateAgentFiles) return;
 
   const workspacePath = await getWorkspacePath(workspaceId);
   const content = buildPerWorkspaceContext(workspace, projects);
@@ -285,4 +294,36 @@ export async function writePerWorkspaceAgentFiles(
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.CLAUDE_MD), content);
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.AGENTS_MD), content);
   await writeTextFile(await joinPath(workspacePath, FILE_NAMES.GEMINI_MD), content);
+}
+
+/** Remove a file if it's present; a missing file is not an error. */
+async function removeIfExists(path: string): Promise<void> {
+  if (await exists(path)) await removeFile(path);
+}
+
+/**
+ * Delete every generated agent file: the data-folder root CLAUDE.md / AGENTS.md /
+ * GEMINI.md and each workspace's CLAUDE.md / AGENTS.md / GEMINI.md /
+ * WORKSPACE_CONTEXT.md. Used when the user turns off agent-file generation or
+ * clears the catalog.
+ */
+export async function deleteGeneratedAgentFiles(workspaces: Workspace[]): Promise<void> {
+  if (!isTauri()) return;
+
+  const deskPath = await getDeskPath();
+  for (const name of [FILE_NAMES.CLAUDE_MD, FILE_NAMES.AGENTS_MD, FILE_NAMES.GEMINI_MD]) {
+    await removeIfExists(await joinPath(deskPath, name));
+  }
+
+  for (const ws of workspaces) {
+    const workspacePath = await getWorkspacePath(ws.id);
+    for (const name of [
+      FILE_NAMES.CLAUDE_MD,
+      FILE_NAMES.AGENTS_MD,
+      FILE_NAMES.GEMINI_MD,
+      FILE_NAMES.WORKSPACE_CONTEXT_MD,
+    ]) {
+      await removeIfExists(await joinPath(workspacePath, name));
+    }
+  }
 }

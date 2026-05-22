@@ -1,7 +1,13 @@
-import { Settings, Bot, Brain, FolderOpen, FileText } from "lucide-react";
+import { Settings, Bot, Brain, FolderOpen, FileText, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SettingsCategory = "general" | "templates" | "ai" | "context" | "data";
+export type SettingsCategory =
+  | "general"
+  | "templates"
+  | "ai"
+  | "assistant"
+  | "context"
+  | "data";
 
 /**
  * Keyed by SettingsCategory so TypeScript enforces an entry for every category —
@@ -14,7 +20,8 @@ const CATEGORY_META: Record<
 > = {
   general: { label: "General", icon: Settings },
   templates: { label: "Templates", icon: FileText },
-  ai: { label: "AI", icon: Bot },
+  ai: { label: "AI Provider", icon: Sparkles },
+  assistant: { label: "Assistant", icon: Bot },
   context: { label: "Catalog", icon: Brain },
   data: { label: "Data", icon: FolderOpen },
 };

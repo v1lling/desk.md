@@ -18,10 +18,13 @@ import { useContextIndexStore } from "@/stores/context-index";
 import { useAISettingsStore } from "@/stores/ai";
 import { ensureAIConsent } from "@/stores/ai-consent";
 import { useWorkspaces } from "@/stores";
-import { useNavigationStore } from "@/stores/navigation";
 import { buildWorkspaceIndex } from "@/lib/context-index/builder";
 import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
-import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
+import {
+  writePerWorkspaceAgentFiles,
+  writeTopLevelAgentFiles,
+  deleteGeneratedAgentFiles,
+} from "@/lib/context-index/agent-context";
 import { getProjects } from "@/lib/desk/projects";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
@@ -30,8 +33,9 @@ export function SmartIndexSection() {
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
+    generateAgentFiles,
+    setGenerateAgentFiles,
   } = useContextStore();
-  const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
 
   // True when the active provider has an API key saved. Without one, the catalog
   // still builds — it just uses plain text previews instead of AI summaries.
@@ -44,14 +48,13 @@ export function SmartIndexSection() {
 
   const [indexProgress, setIndexProgress] = useState<BuildIndexProgress | null>(null);
   const [indexResult, setIndexResult] = useState<BuildIndexResult | null>(null);
-  const [showClearIndexConfirm, setShowClearIndexConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const totalIndexFiles = Object.values(indexes).reduce((sum, idx) => sum + idx.fileCount, 0);
   const lastBuiltAt = Object.values(indexes)
     .map((idx) => idx.builtAt)
     .sort()
     .pop() ?? null;
-  const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || null;
 
   const handleBuildIndex = async () => {
     // Privacy gate: only when a provider key is configured does the build send
@@ -108,13 +111,46 @@ export function SmartIndexSection() {
     }
   };
 
-  const handleClearContextIndex = () => {
+  // Wipe everything: empty the assistant index and delete the generated
+  // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_CONTEXT.md files from disk.
+  const handleClearCatalog = async () => {
     for (const workspace of workspaces) {
       useContextIndexStore.getState().removeIndex(workspace.id);
     }
     setIndexResult(null);
-    toast.success("Context index cleared");
-    setShowClearIndexConfirm(false);
+    try {
+      await deleteGeneratedAgentFiles(workspaces);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Index cleared, but some agent files could not be removed: ${message}`);
+      setShowClearConfirm(false);
+      return;
+    }
+    toast.success("Catalog cleared");
+    setShowClearConfirm(false);
+  };
+
+  // Toggling agent files on regenerates them from current state; off deletes them.
+  const handleToggleGenerateAgentFiles = async (enabled: boolean) => {
+    setGenerateAgentFiles(enabled);
+    try {
+      if (enabled) {
+        for (const workspace of workspaces) {
+          const projects = await getProjects(workspace.id);
+          await writePerWorkspaceAgentFiles(workspace.id, workspace, projects);
+          const index = indexes[workspace.id];
+          if (index) await writeWorkspaceContextArtifact(index);
+        }
+        await writeTopLevelAgentFiles(workspaces);
+        toast.success("Agent files enabled");
+      } else {
+        await deleteGeneratedAgentFiles(workspaces);
+        toast.success("Agent files removed from your data folder");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Could not update agent files: ${message}`);
+    }
   };
 
   return (
@@ -154,11 +190,11 @@ export function SmartIndexSection() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setShowClearIndexConfirm(true)}
-                disabled={totalIndexFiles === 0 || isBuilding}
+                onClick={() => setShowClearConfirm(true)}
+                disabled={isBuilding}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Clear Index
+                Clear Catalog
               </Button>
             </div>
 
@@ -199,19 +235,17 @@ export function SmartIndexSection() {
               </div>
             )}
 
-            <div className="mt-2 rounded-lg border p-3 text-sm text-muted-foreground">
+            <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>
-                Catalog is used by assistant retrieval tools. The model decides which files to look up per turn.
+                One catalog, two readers: the in-app assistant queries this index
+                directly, and — when <span className="text-foreground">Generate agent files</span> is
+                on — the same catalog is written as Markdown so external agents
+                (Claude Code, Codex, Gemini CLI) can read it with no setup.
               </p>
               {!aiKeyConfigured && (
-                <p className="mt-1">
+                <p>
                   No AI provider configured — summaries use plain text previews.
                   Add a key in Settings → AI for AI-generated summaries.
-                </p>
-              )}
-              {currentWorkspace && (
-                <p className="mt-1">
-                  Active workspace: <span className="text-foreground">{currentWorkspace.name}</span>
                 </p>
               )}
             </div>
@@ -241,16 +275,33 @@ export function SmartIndexSection() {
             automatically to your AI provider (Anthropic or OpenAI) after you save.
           </p>
         )}
+
+        <div className="flex items-center justify-between py-3 border-t border-border/40">
+          <div className="space-y-0.5 pr-4">
+            <Label>Generate agent files</Label>
+            <p className="text-sm text-muted-foreground">
+              Write <code className="text-xs">CLAUDE.md</code>,{" "}
+              <code className="text-xs">AGENTS.md</code>,{" "}
+              <code className="text-xs">GEMINI.md</code>, and{" "}
+              <code className="text-xs">WORKSPACE_CONTEXT.md</code> into your data
+              folder for external agents. Turning this off deletes them.
+            </p>
+          </div>
+          <Switch
+            checked={generateAgentFiles}
+            onCheckedChange={handleToggleGenerateAgentFiles}
+          />
+        </div>
       </SettingsSection>
 
       <ConfirmDialog
-        open={showClearIndexConfirm}
-        onOpenChange={setShowClearIndexConfirm}
-        title="Clear Context Index"
-        description="This will delete all file summaries. You'll need to rebuild the index for AI context features. This action cannot be undone."
-        confirmLabel="Clear Index"
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Clear Catalog"
+        description="This empties the file index used by the in-app assistant and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone."
+        confirmLabel="Clear Catalog"
         variant="destructive"
-        onConfirm={handleClearContextIndex}
+        onConfirm={handleClearCatalog}
       />
     </>
   );

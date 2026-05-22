@@ -2,16 +2,14 @@ import { useEffect, useState } from "react";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
 import type { AIProviderType } from "@/lib/ai/types";
 import { getSecret, setSecret } from "@/lib/ai/secrets";
-import { SystemPromptsCard } from "./system-prompts-card";
 
 function AIUsageStats() {
   const { getStats, clearRecords, records } = useAIUsageStore();
@@ -59,12 +57,10 @@ export function AITab() {
   const {
     providerType,
     providerConfigured,
-    customInstructions,
     modelByProvider,
     aiConsentGiven,
     setProviderType,
     setProviderConfigured,
-    setCustomInstructions,
     setModelForProvider,
     setAIConsentGiven,
   } = useAISettingsStore();
@@ -118,9 +114,9 @@ export function AITab() {
   return (
     <div className="space-y-6">
       <SettingsSection
-        icon={<Bot className="h-4 w-4" />}
-        title="Assistant"
-        description="Configure API provider, model, and instructions for Assistant and drafting features."
+        icon={<Sparkles className="h-4 w-4" />}
+        title="Provider"
+        description="Connect an AI provider. Powers the assistant, drafting, and catalog summaries."
       >
         <div className="divide-y divide-border/40">
           <div className="flex items-center justify-between py-3">
@@ -210,20 +206,6 @@ export function AITab() {
             )}
           </div>
 
-          <div className="space-y-2 py-3">
-            <Label htmlFor="custom-instructions">Custom Instructions</Label>
-            <p className="text-sm text-muted-foreground">
-              Always included in prompt generation.
-            </p>
-            <Textarea
-              id="custom-instructions"
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="e.g., respond with concise bullet points."
-              className="min-h-[100px]"
-            />
-          </div>
-
           <div className="py-3">
             <AIUsageStats />
           </div>
@@ -281,8 +263,6 @@ export function AITab() {
           </div>
         </div>
       </SettingsSection>
-
-      <SystemPromptsCard />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import {
   GeneralTab,
   AITab,
+  AssistantTab,
   ContextTab,
   DataTab,
   TemplatesTab,
@@ -15,6 +16,7 @@ const CONTENT: Record<SettingsCategory, React.ComponentType> = {
   general: GeneralTab,
   templates: TemplatesTab,
   ai: AITab,
+  assistant: AssistantTab,
   context: ContextTab,
   data: DataTab,
 };
