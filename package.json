@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint",
     "screenshots": "node scripts/screenshots.mjs",
+    "screenshots:banner": "node scripts/screenshots.mjs --banner-only",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

@@ -14,6 +14,9 @@
  *  - Renders the header banner from an inline HTML template (app icon + Geist
  *    wordmark), so it stays on-brand and regeneratable with no design tool.
  *
+ * Pass `--banner-only` (`npm run screenshots:banner`) to regenerate just the
+ * header banner — it is pure HTML, needs no dev server, and runs in seconds.
+ *
  * Requirements: Node 22 (`nvm use 22`) and the Playwright Chromium browser
  * (`npx playwright install chromium`, one time).
  */
@@ -123,8 +126,8 @@ async function waitForApp(page) {
 function bannerHtml(theme, iconB64, fontB64) {
   const c =
     theme === "dark"
-      ? { fg: "#fafafa", muted: "#a1a1aa" }
-      : { fg: "#0a0a0a", muted: "#71717a" };
+      ? { fg: "#fafafa", muted: "#a1a1aa", faint: "#71717a" }
+      : { fg: "#0a0a0a", muted: "#71717a", faint: "#a1a1aa" };
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     @font-face {
       font-family: 'Geist';
@@ -132,27 +135,34 @@ function bannerHtml(theme, iconB64, fontB64) {
       font-weight: 100 900;
     }
     * { margin: 0; box-sizing: border-box; }
-    html, body { width: 1200px; height: 300px; }
-    body {
-      display: flex; align-items: center; justify-content: center; gap: 36px;
-      background: transparent; font-family: 'Geist', system-ui, sans-serif;
+    html, body { background: transparent; }
+    /* inline-flex shrink-wraps the content, so the element screenshot below has
+       no dead space — the banner PNG is exactly the icon + text + this padding. */
+    .banner {
+      display: inline-flex; align-items: center; gap: 40px;
+      padding: 44px 60px;
+      font-family: 'Geist', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
-    img { width: 148px; height: 148px; border-radius: 33px; }
-    .name { font-size: 64px; font-weight: 600; letter-spacing: -0.04em; color: ${c.fg}; line-height: 1; }
-    .tag { font-size: 20px; font-weight: 400; letter-spacing: -0.01em; color: ${c.muted}; margin-top: 14px; }
+    .banner img { width: 156px; height: 156px; border-radius: 35px; }
+    .name { font-size: 66px; font-weight: 600; letter-spacing: -0.04em; color: ${c.fg}; line-height: 1; }
+    .tag { font-size: 23px; font-weight: 400; letter-spacing: -0.01em; color: ${c.muted}; margin-top: 16px; }
+    .feat { font-size: 19px; font-weight: 500; letter-spacing: 0.01em; color: ${c.faint}; margin-top: 7px; }
   </style></head><body>
-    <img src="data:image/png;base64,${iconB64}" alt="">
-    <div>
-      <div class="name">desk.md</div>
-      <div class="tag">Local-first project &amp; task management in plain Markdown</div>
+    <div class="banner">
+      <img src="data:image/png;base64,${iconB64}" alt="">
+      <div>
+        <div class="name">desk.md</div>
+        <div class="tag">Project &amp; task management in plain Markdown</div>
+        <div class="feat">lightweight · local-first · agent-ready</div>
+      </div>
     </div>
   </body></html>`;
 }
 
 async function captureBanner(browser, theme, iconB64, fontB64) {
   const context = await browser.newContext({
-    viewport: { width: 1200, height: 300 },
+    viewport: { width: 1600, height: 500 },
     deviceScaleFactor: 2,
   });
   const page = await context.newPage();
@@ -162,11 +172,8 @@ async function captureBanner(browser, theme, iconB64, fontB64) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(150);
   const file = path.join(OUT_DIR, `banner-${theme}.png`);
-  await page.screenshot({
-    path: file,
-    clip: { x: 0, y: 0, width: 1200, height: 300 },
-    omitBackground: true,
-  });
+  // Screenshot the .banner element, not the viewport — the PNG fits the content.
+  await page.locator(".banner").screenshot({ path: file, omitBackground: true });
   await context.close();
   console.log(`  ✓ banner-${theme}.png`);
 }
@@ -274,9 +281,15 @@ async function main() {
   const iconB64 = (await readFile(iconPath)).toString("base64");
   const fontB64 = (await readFile(fontPath)).toString("base64");
 
+  // `--banner-only` regenerates just the header banner (pure HTML, no app), so
+  // the dev server and per-page shots are skipped.
+  const bannerOnly = process.argv.includes("--banner-only");
+
   // Start the dev server only if one isn't already running.
   let devServer = null;
-  if (await serverIsUp()) {
+  if (bannerOnly) {
+    console.log("Banner-only run — skipping the dev server and app screenshots.");
+  } else if (await serverIsUp()) {
     console.log(`Reusing dev server on ${BASE_URL}`);
   } else {
     console.log("Starting dev server…");
@@ -303,7 +316,7 @@ async function main() {
     for (const theme of THEMES) {
       console.log(`\nCapturing ${theme} theme…`);
       await captureBanner(browser, theme, iconB64, fontB64);
-      await capturePages(browser, theme);
+      if (!bannerOnly) await capturePages(browser, theme);
     }
   } finally {
     await browser.close();
