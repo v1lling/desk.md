@@ -1,19 +1,17 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="desk.md: local-first project & task management in plain Markdown" width="100%">
+    <img src="assets/banner-light.png" alt="desk.md — project & task management in plain Markdown" width="100%">
   </picture>
 </p>
 
 <p align="center">
   <a href="./LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg"></a>
   <img alt="Built with Tauri" src="https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg?logo=tauri&logoColor=white">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-111111.svg?logo=apple&logoColor=white">
+  <img alt="macOS: stable" src="https://img.shields.io/badge/macOS-stable-3fb950.svg?logo=apple&logoColor=white">
   <img alt="Windows: beta" src="https://img.shields.io/badge/Windows-beta-f59e0b.svg?logo=windows&logoColor=white">
   <img alt="Linux: beta" src="https://img.shields.io/badge/Linux-beta-f59e0b.svg?logo=linux&logoColor=white">
 </p>
-
-<p align="center"><b>Project &amp; task management in plain Markdown — lightweight, local-first, agent-ready.</b></p>
 
 <p align="center">
   <picture>
