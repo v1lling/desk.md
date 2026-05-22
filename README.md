@@ -11,6 +11,8 @@
   <img alt="Platform: macOS" src="https://img.shields.io/badge/platform-macOS-111111.svg?logo=apple&logoColor=white">
 </p>
 
+<p align="center"><b>Project &amp; task management in plain Markdown — lightweight, local-first, agent-ready.</b></p>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/tasks-dark.png">
@@ -18,30 +20,24 @@
   </picture>
 </p>
 
-desk.md is a desktop app for running your work (projects, tasks, docs, and
-meetings), stored as plain Markdown files on your own machine. Think of
-Obsidian's local Markdown vault, but built around **projects and task tracking**
-instead of note-graphs.
+desk.md is a local-first desktop app for running your projects — tasks, docs,
+and meetings — as plain Markdown files you own. Think of Obsidian's local vault,
+but with project management built in from the first launch instead of assembled
+from plugins. And because it's just a folder of Markdown, any AI agent — Claude
+Code, Codex, Gemini CLI — picks up your full context with zero setup.
 
 - **Own your data.** Plain Markdown with YAML frontmatter in an ordinary
   folder. No database, no lock-in. Open it in any editor, including Obsidian.
+- **Built in, not bolted on.** Project management works on first launch:
+  Workspace → Project → Tasks/Docs/Meetings with statuses, priorities, due
+  dates, Kanban/list views, and a quick-capture inbox — no plugins to assemble
+  or babysit.
+- **Agent-ready.** desk.md auto-generates `CLAUDE.md`, `AGENTS.md`, and
+  `GEMINI.md`, plus a summarized per-workspace catalog — so any AI agent
+  understands your work with no plugins and no MCP server, just files.
 - **Local-first.** Works fully offline. No account, no mandatory cloud.
 - **Organized by workspace.** One workspace per client, side project, or area of
   life, each with its own projects, tasks, docs, and meetings.
-- **Structured task tracking.** Statuses, priorities, due dates, Kanban/list
-  views, and a quick-capture inbox for triage.
-- **Agent-ready.** The folder is laid out so any AI agent picks up your full
-  context instantly. No plugins, no MCP server, just files.
-
-## Why I built it
-
-For years I hacked local-first Markdown editors into project managers.
-Never quite satisfied. SaaS tools work, but I didn't want my work locked inside
-something I couldn't `grep`.
-
-So I built desk.md, and I use it every day for my work. It's
-agent-friendly by design: the data is just plain files, so I can point Claude
-Code, Codex, or Gemini CLI at a workspace with no setup at all.
 
 ## A look around
 
@@ -70,9 +66,11 @@ Code, Codex, or Gemini CLI at a workspace with no setup at all.
 
 ## Who is it for?
 
-Anyone who'd rather keep their work in local Markdown files: indie developers,
-writers, students, makers, and freelancers juggling a stack of clients, with
-one workspace each.
+desk.md is for technical solo operators — developers, indie hackers, makers, and
+consultants who run their own work. People comfortable in the filesystem and the
+terminal, who want to own their data and point AI agents at it. If you've ever
+assembled Obsidian from a stack of plugins and watched them drift, this is
+that — finished.
 
 ## Tech Stack
 
