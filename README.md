@@ -8,7 +8,9 @@
 <p align="center">
   <a href="./LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg"></a>
   <img alt="Built with Tauri" src="https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg?logo=tauri&logoColor=white">
-  <img alt="Platform: macOS" src="https://img.shields.io/badge/platform-macOS-111111.svg?logo=apple&logoColor=white">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-111111.svg?logo=apple&logoColor=white">
+  <img alt="Windows: beta" src="https://img.shields.io/badge/Windows-beta-f59e0b.svg?logo=windows&logoColor=white">
+  <img alt="Linux: beta" src="https://img.shields.io/badge/Linux-beta-f59e0b.svg?logo=linux&logoColor=white">
 </p>
 
 <p align="center"><b>Project &amp; task management in plain Markdown — lightweight, local-first, agent-ready.</b></p>
