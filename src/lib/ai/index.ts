@@ -7,7 +7,7 @@ export { parseDocPath } from './utils';
 // Provider layer
 export { createProvider, type ProviderConfig } from './provider';
 export { getProviderDefinition, PROVIDER_REGISTRY } from './provider-registry';
-export { getSecret, setSecret, deleteSecret, hasSecret, type SecretKeyRef } from './secrets';
+export { getSecret, setSecret, deleteSecret, hasSecret, BrowserModeError, type SecretKeyRef } from './secrets';
 
 // Prompts
 export {

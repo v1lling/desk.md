@@ -4,12 +4,21 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Info, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
 import type { AIProviderType } from "@/lib/ai/types";
-import { getSecret, setSecret } from "@/lib/ai/secrets";
+import { BrowserModeError, getSecret, setSecret } from "@/lib/ai/secrets";
+import { isTauri } from "@/lib/desk/tauri-fs";
+
+function linuxKeyringHint(message: string): string | null {
+  const lower = message.toLowerCase();
+  if (lower.includes("secret service") || lower.includes("no such interface") || lower.includes("dbus")) {
+    return "On Linux, this usually means GNOME Keyring or KWallet isn't running. Start your desktop secret service and try again.";
+  }
+  return null;
+}
 
 function AIUsageStats() {
   const { getStats, clearRecords, records } = useAIUsageStore();
@@ -72,13 +81,23 @@ export function AITab() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSavingKey, setIsSavingKey] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const browserMode = !isTauri();
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const keyRef = safeProviderType === "openai" ? "ai.openai" : "ai.anthropic";
-      const key = await getSecret(keyRef);
-      if (!cancelled) setApiKeyInput(key ?? "");
+      try {
+        const key = await getSecret(keyRef);
+        if (cancelled) return;
+        setApiKeyInput(key ?? "");
+        setLoadError(null);
+      } catch (error) {
+        if (cancelled) return;
+        setApiKeyInput("");
+        setLoadError(error instanceof BrowserModeError ? null : String(error));
+      }
     })();
     return () => {
       cancelled = true;
@@ -103,9 +122,12 @@ export function AITab() {
       const keyRef = safeProviderType === "openai" ? "ai.openai" : "ai.anthropic";
       await setSecret(keyRef, trimmed);
       setProviderConfigured(safeProviderType, true);
+      setLoadError(null);
       toast.success(`${safeProviderType === "openai" ? "OpenAI" : "Anthropic"} key saved to keychain`);
     } catch (error) {
-      toast.error(`Failed to save API key: ${String(error)}`);
+      const message = String(error);
+      const hint = linuxKeyringHint(message);
+      toast.error(hint ? `Failed to save API key: ${message}\n\n${hint}` : `Failed to save API key: ${message}`);
     } finally {
       setIsSavingKey(false);
     }
@@ -172,6 +194,46 @@ export function AITab() {
               <KeyRound className="h-4 w-4" />
               API Key ({safeProviderType === "openai" ? "OpenAI" : "Anthropic"})
             </Label>
+
+            {browserMode && (
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium">AI is unavailable in browser mode</p>
+                    <p className="text-muted-foreground text-xs">
+                      API keys are only stored in the OS keychain, which Desk can&apos;t
+                      reach from <code className="font-mono">npm run dev</code>. Run{" "}
+                      <code className="font-mono">npm run tauri:dev</code> (or the built
+                      app) to configure providers and use the assistant.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {loadError && !browserMode && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-sm flex-1 min-w-0">
+                    <p className="font-medium text-destructive">Couldn&apos;t read the keychain</p>
+                    <p className="text-xs text-destructive/90">
+                      Desk couldn&apos;t fetch the stored key. Saving a new one may still
+                      work, but existing keys can&apos;t be loaded until this clears.
+                    </p>
+                    {linuxKeyringHint(loadError) && (
+                      <p className="text-xs text-destructive/90">{linuxKeyringHint(loadError)}</p>
+                    )}
+                    <details className="text-xs text-destructive/80">
+                      <summary className="cursor-pointer">Error details</summary>
+                      <p className="mt-1 font-mono break-all">{loadError}</p>
+                    </details>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
@@ -181,6 +243,7 @@ export function AITab() {
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder={safeProviderType === "openai" ? "sk-..." : "sk-ant-..."}
                   className="font-mono text-sm pr-10"
+                  disabled={browserMode}
                 />
                 <Button
                   type="button"
@@ -188,18 +251,19 @@ export function AITab() {
                   size="icon"
                   className="absolute right-0 top-0 h-full px-3"
                   onClick={() => setShowApiKey(!showApiKey)}
+                  disabled={browserMode}
                 >
                   {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              <Button onClick={handleSaveApiKey} disabled={isSavingKey}>
+              <Button onClick={handleSaveApiKey} disabled={isSavingKey || browserMode}>
                 Save
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Stored in OS keychain. Not persisted in app localStorage.
+              Stored in the OS keychain (Keychain / Credential Manager / Secret Service).
             </p>
-            {!providerConfigured[safeProviderType] && (
+            {!browserMode && !loadError && !providerConfigured[safeProviderType] && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 Provider key not configured.
               </p>

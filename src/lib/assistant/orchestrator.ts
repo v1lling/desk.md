@@ -1,6 +1,6 @@
 import { stepCountIs, streamText } from "ai";
 import { getProviderDefinition } from "@/lib/ai/provider-registry";
-import { getSecret } from "@/lib/ai/secrets";
+import { BrowserModeError, getSecret } from "@/lib/ai/secrets";
 import type { AIProviderType, AIUsage } from "@/lib/ai/types";
 import { buildAssistantSystemPrompt } from "@/lib/ai/prompts";
 import { formatError } from "@/lib/utils";
@@ -50,7 +50,15 @@ function mapUsage(usage: { inputTokens?: number; outputTokens?: number } | undef
 
 export async function runAssistantTurn(options: RunAssistantOptions): Promise<{ text: string; usage?: AIUsage }> {
   const providerDef = getProviderDefinition(options.providerType);
-  const apiKey = await getSecret(providerDef.keyRef);
+  let apiKey: string | null;
+  try {
+    apiKey = await getSecret(providerDef.keyRef);
+  } catch (error) {
+    if (error instanceof BrowserModeError) {
+      throw new Error("AI is unavailable in browser mode. Run `npm run tauri:dev` (or the built app) to use the assistant.");
+    }
+    throw new Error(`Couldn't read the OS keychain: ${String(error)}`);
+  }
 
   if (!apiKey) {
     throw new Error(`${providerDef.label} API key is not configured.`);

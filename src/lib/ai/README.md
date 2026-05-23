@@ -17,7 +17,9 @@ The runtime provider adapter selection lives in:
 
 ## Secrets
 
-API keys are stored in OS keychain through Tauri commands:
+API keys are stored in the OS keychain (Keychain on macOS, Credential Manager
+on Windows, Secret Service / GNOME Keyring / KWallet on Linux) through Tauri
+commands:
 
 - `secret_get`
 - `secret_set`
@@ -27,7 +29,12 @@ TypeScript wrappers are in:
 
 - `src/lib/ai/secrets.ts`
 
-No AI API keys are persisted in Zustand/localStorage.
+No AI API keys are persisted in Zustand/localStorage. Browser mode
+(`npm run dev`) has no keychain access, so `getSecret`/`setSecret`/`deleteSecret`
+throw `BrowserModeError` there — AI features are off until you run
+`npm run tauri:dev` or the built app. Real keychain failures (locked, service
+unavailable) throw a plain `Error` with the underlying message; callers should
+distinguish the two via `error instanceof BrowserModeError`.
 
 ## Service layer
 
