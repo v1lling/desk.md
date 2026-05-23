@@ -1,17 +1,17 @@
 
 import { useMemo, useState } from "react";
-import { Archive, CheckCircle2, Circle, Clock, Loader2, Flag, FolderKanban, ChevronRight } from "lucide-react";
+import { Archive, CheckCircle2, Circle, Clock, Loader2, FolderKanban, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
 import {
-  priorityTextColors,
   taskStatusTextColors,
   taskStatusLabels,
   taskStatusOrder,
 } from "@/lib/design-tokens";
+import { PriorityIcon } from "@/components/ui/priority-icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import type { Task, TaskStatus, TaskPriority } from "@/types";
+import type { Task, TaskStatus } from "@/types";
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -186,14 +186,9 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
           >
             {task.title}
           </p>
-          {/* Priority badge */}
+          {/* Priority indicator */}
           {task.priority && (
-            <Flag
-              className={cn(
-                "h-3.5 w-3.5 shrink-0 mt-0.5",
-                priorityTextColors[task.priority as TaskPriority]
-              )}
-            />
+            <PriorityIcon priority={task.priority} className="mt-0.5" />
           )}
         </div>
 

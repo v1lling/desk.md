@@ -5,22 +5,33 @@
  * Using these tokens ensures visual consistency and makes future updates easier.
  *
  * Usage:
- * - Import specific tokens: import { priorityColors, statusColors } from "@/lib/design-tokens"
- * - Use with cn(): cn("text-sm", priorityColors.high)
+ * - Import specific tokens: import { priorityMeta, statusColors } from "@/lib/design-tokens"
+ * - Use with cn(): cn("text-sm", priorityMeta.high.color)
  */
 
+import { SignalHigh, SignalMedium, SignalLow, type LucideIcon } from "lucide-react";
+
 // =============================================================================
-// PRIORITY COLORS
-// Used for task priority badges - refined, softer colors
+// PRIORITY
+// One source of truth for every place priority is shown or selected: a
+// signal-bar icon + colour per level. Traffic-light hues so the levels are
+// instantly distinguishable — calm green for low, neutral grey for medium,
+// urgent rose for high.
 // =============================================================================
 
-export const priorityColors = {
-  high: "bg-rose-50 text-rose-600 border border-rose-200/50 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/50",
-  medium: "bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50",
-  low: "bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50",
-} as const;
+export type Priority = "high" | "medium" | "low";
 
-export type Priority = keyof typeof priorityColors;
+export const priorityMeta: Record<
+  Priority,
+  { label: string; icon: LucideIcon; color: string }
+> = {
+  high: { label: "High", icon: SignalHigh, color: "text-rose-500 dark:text-rose-400" },
+  medium: { label: "Medium", icon: SignalMedium, color: "text-muted-foreground" },
+  low: { label: "Low", icon: SignalLow, color: "text-emerald-500 dark:text-emerald-400" },
+};
+
+/** Ordered list of priorities for consistent display (highest first). */
+export const priorityOrder: Priority[] = ["high", "medium", "low"];
 
 // =============================================================================
 // PROJECT STATUS COLORS
@@ -77,17 +88,6 @@ export const taskStatusTextColors = {
   doing: "text-blue-600 dark:text-blue-400",
   waiting: "text-amber-600 dark:text-amber-500",
   done: "text-emerald-600 dark:text-emerald-400",
-} as const;
-
-// =============================================================================
-// PRIORITY TEXT COLORS
-// Used for priority badges in dropdowns (text only, no background)
-// =============================================================================
-
-export const priorityTextColors = {
-  high: "text-rose-600 dark:text-rose-400",
-  medium: "text-amber-600 dark:text-amber-400",
-  low: "text-emerald-600 dark:text-emerald-400",
 } as const;
 
 // =============================================================================

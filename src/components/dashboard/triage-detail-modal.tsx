@@ -21,6 +21,8 @@ import {
 import { Loader2, Check, User, FolderKanban } from "lucide-react";
 import { useUpdateTask } from "@/stores";
 import { SPECIAL_DIRS } from "@/lib/desk/constants";
+import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
+import { cn } from "@/lib/utils";
 import type { Task, TaskPriority } from "@/types";
 import type { TriageDestination } from "./capture-widget";
 
@@ -120,9 +122,17 @@ export function TriageDetailModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No priority</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
+                {priorityOrder.map((p) => {
+                  const { label, icon: Icon, color } = priorityMeta[p];
+                  return (
+                    <SelectItem key={p} value={p}>
+                      <span className={cn("flex items-center gap-2", color)}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

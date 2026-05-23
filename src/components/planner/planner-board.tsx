@@ -12,22 +12,19 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Flag,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
-import {
-  taskStatusTextColors,
-  priorityTextColors,
-} from "@/lib/design-tokens";
+import { taskStatusTextColors } from "@/lib/design-tokens";
+import { PriorityIcon } from "@/components/ui/priority-icon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAllWorkspaceTasksAllStatuses } from "@/stores/planner";
 import { useWorkspaces } from "@/stores/workspaces";
 import { useOpenTab } from "@/stores/tabs";
-import type { TaskStatus, TaskPriority } from "@/types";
+import type { TaskStatus } from "@/types";
 import type { ActiveTask } from "@/lib/desk/dashboard";
 
 const statusIcons = {
@@ -333,9 +330,6 @@ function BoardTaskCard({
       }}
       onClick={onClick}
     >
-      {task.priority === "high" && (
-        <div className="h-0.5 bg-rose-400 -mt-3.5 -mx-3.5 mb-3 rounded-t-lg" />
-      )}
       <div className="flex items-center gap-1 mb-1">
         <Circle
           className="h-2 w-2 shrink-0"
@@ -352,21 +346,7 @@ function BoardTaskCard({
         {task.title}
       </h4>
       <div className="flex items-center gap-2 flex-wrap">
-        {task.priority && (
-          <span
-            className={cn(
-              "text-[11px] font-medium px-1.5 py-0 rounded-full border",
-              task.priority === "high" &&
-                "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800",
-              task.priority === "medium" &&
-                "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800",
-              task.priority === "low" &&
-                "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800"
-            )}
-          >
-            {task.priority}
-          </span>
-        )}
+        {task.priority && <PriorityIcon priority={task.priority} />}
         {task.due && (
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
             {formatDate(task.due)}
@@ -405,12 +385,7 @@ function BoardListItem({
         <div className="flex items-start justify-between gap-2">
           <p className="font-medium">{task.title}</p>
           {task.priority && (
-            <Flag
-              className={cn(
-                "h-3.5 w-3.5 shrink-0 mt-0.5",
-                priorityTextColors[task.priority as TaskPriority]
-              )}
-            />
+            <PriorityIcon priority={task.priority} className="mt-0.5" />
           )}
         </div>
         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">

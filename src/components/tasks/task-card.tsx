@@ -2,7 +2,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PriorityIcon } from "@/components/ui/priority-icon";
 import { formatDate } from "@/lib/format";
 import {
   ContextMenu,
@@ -13,7 +13,6 @@ import {
 import { Calendar, Circle, GripVertical, FolderKanban, Star } from "lucide-react";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
-import { priorityColors } from "@/lib/design-tokens";
 
 interface TaskCardProps {
   task: Task;
@@ -76,10 +75,7 @@ export function TaskCard({
       {...listeners}
     >
       <CardContent className="p-0" onClick={onClick}>
-        {task.priority === "high" && (
-          <div className="h-0.5 bg-rose-400" />
-        )}
-        <div className={cn("flex items-start gap-2 p-3.5", task.priority === "high" && "pt-3")}>
+        <div className="flex items-start gap-2 p-3.5">
           <div className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
@@ -110,17 +106,7 @@ export function TaskCard({
               {task.title}
             </h4>
             <div className="flex items-center gap-2 flex-wrap">
-              {task.priority && (
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "text-[11px] font-medium px-1.5 py-0",
-                    priorityColors[task.priority]
-                  )}
-                >
-                  {task.priority}
-                </Badge>
-              )}
+              {task.priority && <PriorityIcon priority={task.priority} />}
               {task.due && (
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <Calendar className="h-3 w-3" />

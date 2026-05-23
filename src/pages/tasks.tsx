@@ -15,6 +15,7 @@ import {
   useOpenTab,
 } from "@/stores";
 import { useProjectName, useOpenFromQuery } from "@/hooks";
+import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
 import type { Task, TaskStatus } from "@/types";
 
 export default function TasksPage() {
@@ -83,11 +84,10 @@ export default function TasksPage() {
     [projects]
   );
 
-  const priorityOptions = [
-    { value: "high", label: "High" },
-    { value: "medium", label: "Medium" },
-    { value: "low", label: "Low" },
-  ];
+  const priorityOptions = priorityOrder.map((p) => ({
+    value: p,
+    label: priorityMeta[p].label,
+  }));
 
   return (
     <FilteredListPage

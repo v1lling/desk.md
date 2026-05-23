@@ -1,6 +1,6 @@
 
 import type { ReactNode } from "react";
-import { Circle, Flag, FolderKanban } from "lucide-react";
+import { Circle, Minus, FolderKanban } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,15 +10,13 @@ import {
 import { DateField } from "@/components/ui/date-field";
 import { cn } from "@/lib/utils";
 import type { TaskStatus, TaskPriority } from "@/types";
-import { priorityTextColors, taskStatusTextColors, taskStatusLabels, taskStatusOrder } from "@/lib/design-tokens";
-
-const priorityConfig: Record<TaskPriority, { label: string; color: string }> = {
-  high: { label: "High", color: priorityTextColors.high },
-  medium: { label: "Medium", color: priorityTextColors.medium },
-  low: { label: "Low", color: priorityTextColors.low },
-};
-
-const priorityOptions: TaskPriority[] = ["high", "medium", "low"];
+import {
+  priorityMeta,
+  priorityOrder,
+  taskStatusTextColors,
+  taskStatusLabels,
+  taskStatusOrder,
+} from "@/lib/design-tokens";
 
 /** Shared chip styling so every metadata field is visually identical. */
 const chipClass =
@@ -85,6 +83,8 @@ export function MetadataToolbar({
   }
 
   if (priority !== undefined && onPriorityChange) {
+    const current = priority !== "none" ? priorityMeta[priority] : null;
+    const CurrentIcon = current?.icon ?? Minus;
     fields.push(
       <Select
         key="priority"
@@ -94,22 +94,25 @@ export function MetadataToolbar({
         <SelectTrigger size="xs" className={chipClass}>
           <span className={cn(
             "flex items-center gap-1.5",
-            priority !== "none" ? priorityConfig[priority as TaskPriority].color : "text-muted-foreground"
+            current ? current.color : "text-muted-foreground"
           )}>
-            <Flag className="h-2.5 w-2.5" />
-            <span>{priority !== "none" ? priorityConfig[priority as TaskPriority].label : "None"}</span>
+            <CurrentIcon className="h-3.5 w-3.5" />
+            <span>{current ? current.label : "None"}</span>
           </span>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">None</SelectItem>
-          {priorityOptions.map((p) => (
-            <SelectItem key={p} value={p}>
-              <span className={cn("flex items-center gap-2", priorityConfig[p].color)}>
-                <Flag className="h-3 w-3" />
-                {priorityConfig[p].label}
-              </span>
-            </SelectItem>
-          ))}
+          {priorityOrder.map((p) => {
+            const { label, icon: Icon, color } = priorityMeta[p];
+            return (
+              <SelectItem key={p} value={p}>
+                <span className={cn("flex items-center gap-2", color)}>
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </span>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     );

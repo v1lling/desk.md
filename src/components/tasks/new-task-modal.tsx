@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Flag, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { DateField } from "@/components/ui/date-field";
 import { useCreateTask, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import type { TaskPriority } from "@/types";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { SPECIAL_DIRS } from "@/lib/desk/constants";
-import { priorityTextColors } from "@/lib/design-tokens";
+import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
 
@@ -35,12 +35,6 @@ interface NewTaskModalProps {
   onClose: () => void;
   defaultProjectId?: string;
 }
-
-const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "High", color: priorityTextColors.high },
-  { value: "medium", label: "Medium", color: priorityTextColors.medium },
-  { value: "low", label: "Low", color: priorityTextColors.low },
-];
 
 export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalProps) {
   const currentWorkspace = useCurrentWorkspace();
@@ -160,14 +154,17 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {priorityOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className={cn("flex items-center gap-2", opt.color)}>
-                        <Flag className="h-3 w-3" />
-                        {opt.label}
-                      </span>
-                    </SelectItem>
-                  ))}
+                  {priorityOrder.map((p) => {
+                    const { label, icon: Icon, color } = priorityMeta[p];
+                    return (
+                      <SelectItem key={p} value={p}>
+                        <span className={cn("flex items-center gap-2", color)}>
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </FormField>
