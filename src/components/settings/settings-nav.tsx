@@ -1,4 +1,4 @@
-import { Settings, Bot, Brain, FolderOpen, FileText, Sparkles, Info } from "lucide-react";
+import { Settings, Bot, Brain, FolderOpen, FileText, Sparkles, Info, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SettingsCategory =
@@ -6,6 +6,7 @@ export type SettingsCategory =
   | "templates"
   | "ai"
   | "assistant"
+  | "agents"
   | "context"
   | "data"
   | "about";
@@ -23,6 +24,7 @@ const CATEGORY_META: Record<
   templates: { label: "Templates", icon: FileText },
   ai: { label: "AI Provider", icon: Sparkles },
   assistant: { label: "Assistant", icon: Bot },
+  agents: { label: "Agents", icon: Users },
   context: { label: "Catalog", icon: Brain },
   data: { label: "Data", icon: FolderOpen },
   about: { label: "About", icon: Info },

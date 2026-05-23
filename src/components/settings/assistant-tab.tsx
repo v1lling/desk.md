@@ -57,6 +57,10 @@ export function AssistantTab() {
               placeholder="e.g., respond with concise bullet points."
               className="min-h-[100px]"
             />
+            <p className="text-xs text-muted-foreground">
+              For instructions to external CLI agents (Claude Code, Codex, Gemini CLI)
+              reading your data folder, see Settings → Agents.
+            </p>
           </div>
         </div>
       </SettingsSection>

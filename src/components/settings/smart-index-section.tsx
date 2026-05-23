@@ -43,8 +43,6 @@ export function SmartIndexSection() {
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
-    generateAgentFiles,
-    setGenerateAgentFiles,
     summaryDetail,
     setSummaryDetail,
   } = useContextStore();
@@ -142,29 +140,6 @@ export function SmartIndexSection() {
     setShowClearConfirm(false);
   };
 
-  // Toggling agent files on regenerates them from current state; off deletes them.
-  const handleToggleGenerateAgentFiles = async (enabled: boolean) => {
-    setGenerateAgentFiles(enabled);
-    try {
-      if (enabled) {
-        for (const workspace of workspaces) {
-          const projects = await getProjects(workspace.id);
-          await writePerWorkspaceAgentFiles(workspace.id, workspace, projects);
-          const index = indexes[workspace.id];
-          if (index) await writeWorkspaceContextArtifact(index);
-        }
-        await writeTopLevelAgentFiles(workspaces);
-        toast.success("Agent files enabled");
-      } else {
-        await deleteGeneratedAgentFiles(workspaces);
-        toast.success("Agent files removed from your data folder");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Could not update agent files: ${message}`);
-    }
-  };
-
   return (
     <>
       <SettingsSection
@@ -254,9 +229,9 @@ export function SmartIndexSection() {
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>
                 One catalog, two readers: the in-app assistant queries this index
-                directly, and — when <span className="text-foreground">Generate agent files</span> is
-                on — the same catalog is written as Markdown so external agents
-                (Claude Code, Codex, Gemini CLI) can read it with no setup.
+                directly, and — when any agent file is enabled (Settings → Agents)
+                — the same catalog is written as Markdown alongside it so external
+                agents (Claude Code, Codex, Gemini CLI) read it with no setup.
               </p>
               {!aiKeyConfigured && (
                 <p>
@@ -272,7 +247,7 @@ export function SmartIndexSection() {
       <SettingsSection
         icon={<SlidersHorizontal className="h-4 w-4" />}
         title="Catalog Settings"
-        description="When summaries refresh and what's shared with external agents"
+        description="When summaries refresh and how much of each file is sent for summarization."
       >
         <div className="flex items-center justify-between py-3">
           <div className="space-y-0.5">
@@ -318,22 +293,6 @@ export function SmartIndexSection() {
           </Select>
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-border/40">
-          <div className="space-y-0.5 pr-4">
-            <Label>Generate agent files</Label>
-            <p className="text-sm text-muted-foreground">
-              Write <code className="text-xs">CLAUDE.md</code>,{" "}
-              <code className="text-xs">AGENTS.md</code>,{" "}
-              <code className="text-xs">GEMINI.md</code>, and{" "}
-              <code className="text-xs">WORKSPACE_CONTEXT.md</code> into your data
-              folder for external agents. Turning this off deletes them.
-            </p>
-          </div>
-          <Switch
-            checked={generateAgentFiles}
-            onCheckedChange={handleToggleGenerateAgentFiles}
-          />
-        </div>
       </SettingsSection>
 
       <ConfirmDialog

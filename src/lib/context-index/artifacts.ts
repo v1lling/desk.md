@@ -2,7 +2,7 @@ import { joinPath, writeTextFile } from "@/lib/desk/tauri-fs";
 import { getWorkspacePath } from "@/lib/desk/paths";
 import type { WorkspaceIndex } from "./types";
 import { FILE_NAMES } from "@/lib/desk/constants";
-import { useContextStore } from "@/stores/context";
+import { anyAgentFileEnabled } from "@/stores/context";
 
 /** Collapse whitespace so a value is safe to place on a single catalog line. */
 function oneLine(value: string): string {
@@ -68,7 +68,8 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
 }
 
 export async function writeWorkspaceContextArtifact(index: WorkspaceIndex): Promise<void> {
-  if (!useContextStore.getState().generateAgentFiles) return;
+  // The catalog only makes sense alongside the agent files that point at it.
+  if (!anyAgentFileEnabled()) return;
 
   const workspacePath = await getWorkspacePath(index.workspaceId);
   const filePath = await joinPath(workspacePath, FILE_NAMES.WORKSPACE_CONTEXT_MD);

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Workspace } from "@/types";
 import * as workspaceLib from "@/lib/desk/workspaces";
 import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
+import { useAgentInstructionsStore } from "./agent-instructions";
 import { useNavigationStore } from "./navigation";
 
 // Query keys
@@ -90,8 +91,10 @@ export function useDeleteWorkspace() {
 
   return useMutation({
     mutationFn: (workspaceId: string) => workspaceLib.deleteWorkspace(workspaceId),
-    onSuccess: () => {
+    onSuccess: (_data, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      // Drop any per-workspace agent instructions for the deleted workspace.
+      useAgentInstructionsStore.getState().clearForWorkspace(workspaceId);
       // Regenerate top-level agent files (workspace removed)
       workspaceLib.getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
     },
