@@ -1,4 +1,4 @@
-import { Settings, Bot, Brain, FolderOpen, FileText, Sparkles } from "lucide-react";
+import { Settings, Bot, Brain, FolderOpen, FileText, Sparkles, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SettingsCategory =
@@ -7,7 +7,8 @@ export type SettingsCategory =
   | "ai"
   | "assistant"
   | "context"
-  | "data";
+  | "data"
+  | "about";
 
 /**
  * Keyed by SettingsCategory so TypeScript enforces an entry for every category —
@@ -24,6 +25,7 @@ const CATEGORY_META: Record<
   assistant: { label: "Assistant", icon: Bot },
   context: { label: "Catalog", icon: Brain },
   data: { label: "Data", icon: FolderOpen },
+  about: { label: "About", icon: Info },
 };
 
 export const SETTINGS_CATEGORIES = (

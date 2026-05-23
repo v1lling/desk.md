@@ -35,7 +35,7 @@ export function SystemPromptsCard() {
     <SettingsSection
       icon={<ScrollText className="h-4 w-4" />}
       title="System Prompts"
-      description="View the default instructions given to the AI for each interaction type and add your own per-type instructions."
+      description="Default prompts the AI receives, plus your own per-type additions."
     >
       <div className="divide-y divide-border/40">
         <div className="pb-4">

@@ -69,6 +69,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         workspaceId,
         contentType: "task",
         title: title || task.title,
+        projectId: task.projectId,
+        created: task.created,
       });
     },
     [task, workspaceId, title]

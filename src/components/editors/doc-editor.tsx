@@ -62,6 +62,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         workspaceId,
         contentType: "doc",
         title: title || doc.title,
+        projectId: doc.projectId,
+        created: doc.created,
       });
     },
     [doc, workspaceId, title]

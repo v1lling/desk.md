@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { Palette, Monitor, Sun, Moon, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { UpdateSection } from "./update-section";
 import {
   usePreferencesStore,
   SIDEBAR_COLLAPSED_WIDTH,
@@ -49,9 +48,6 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-6">
-      {/* Updates */}
-      <UpdateSection />
-
       {/* Appearance */}
       <SettingsSection
         icon={<Palette className="h-4 w-4" />}

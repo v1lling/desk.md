@@ -145,8 +145,7 @@ export function DataTab() {
       <SettingsSection
         icon={<RotateCcw className="h-4 w-4" />}
         title="Reset"
-        description="Reset application settings to defaults"
-        variant="inset"
+        description="Restore defaults and re-run setup. Your data files are kept."
       >
         <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
           Reset All Settings

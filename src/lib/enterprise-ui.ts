@@ -40,7 +40,7 @@ export const appSurfaceClasses = {
   sectionGroup: "",
   sectionGroupInset: "bg-muted/20 rounded-lg",
   sectionDivider: "h-px bg-border/60",
-  sectionLabel: "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60",
+  sectionLabel: "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/75",
 } as const;
 
 export const workspaceUiDefaults = {

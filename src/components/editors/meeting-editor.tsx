@@ -62,6 +62,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         workspaceId,
         contentType: "meeting",
         title: title || meeting.title,
+        projectId: meeting.projectId,
+        created: meeting.created,
       });
     },
     [meeting, workspaceId, title]

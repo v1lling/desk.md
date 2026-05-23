@@ -7,8 +7,6 @@ interface SettingsSectionProps {
   description?: string;
   icon?: ReactNode;
   children: ReactNode;
-  /** Use "inset" for contained/advanced zones that benefit from a subtle background. */
-  variant?: "plain" | "inset";
   className?: string;
 }
 
@@ -17,22 +15,13 @@ export function SettingsSection({
   description,
   icon,
   children,
-  variant = "plain",
   className,
 }: SettingsSectionProps) {
   return (
-    <section
-      className={cn(
-        variant === "inset" && [appSurfaceClasses.sectionGroupInset, "px-3 py-3"],
-        className
-      )}
-    >
-      <div className={cn(
-        "flex items-start gap-2",
-        variant === "plain" ? "pb-3 mb-3 border-b border-border/60" : "pb-1 mb-2"
-      )}>
+    <section className={cn(className)}>
+      <div className="flex items-start gap-2 mb-2 px-1">
         {icon && (
-          <span className="shrink-0 text-muted-foreground mt-0.5">{icon}</span>
+          <span className="shrink-0 text-muted-foreground/75 mt-0.5">{icon}</span>
         )}
         <div className="min-w-0">
           <p className={appSurfaceClasses.sectionLabel}>{title}</p>
@@ -41,7 +30,9 @@ export function SettingsSection({
           )}
         </div>
       </div>
-      {children}
+      <div className={cn(appSurfaceClasses.sectionGroupInset, "px-4 py-2")}>
+        {children}
+      </div>
     </section>
   );
 }

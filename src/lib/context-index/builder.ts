@@ -9,12 +9,15 @@
 import { isTauri } from "@/lib/desk";
 import * as desk from "@/lib/desk";
 import { getWorkspacePath } from "@/lib/desk/paths";
-import { hashContent, extractBody } from "@/lib/context-index/content-utils";
+import { extractBody } from "@/lib/context-index/content-utils";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
 import { generatePreview } from "@/lib/desk/parser";
 import { createAIService } from "@/lib/ai/service";
 import { useAISettingsStore } from "@/stores/ai";
+import { useContextStore } from "@/stores/context";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
+import { buildBaseEntry } from "./entry-factory";
+import { getSummaryPreviewLength } from "./constants";
 import type {
   IndexEntry,
   WorkspaceIndex,
@@ -23,22 +26,6 @@ import type {
 } from "./types";
 
 const SUMMARY_BATCH_SIZE = 10;
-const CONTENT_PREVIEW_LENGTH = 500;
-
-/**
- * Extract workspace-relative path from absolute path.
- */
-function extractRelativePath(absolutePath: string, workspaceId: string): string {
-  const workspaceMarker = `/workspaces/${workspaceId}/`;
-  const markerIndex = absolutePath.indexOf(workspaceMarker);
-
-  if (markerIndex !== -1) {
-    return absolutePath.slice(markerIndex + workspaceMarker.length);
-  }
-
-  const lastSlash = absolutePath.lastIndexOf("/");
-  return lastSlash !== -1 ? absolutePath.slice(lastSlash + 1) : absolutePath;
-}
 
 /**
  * Build an index entry from a file item (without summary - that's done in batch).
@@ -49,18 +36,18 @@ async function buildEntryFromItem(
   workspaceId: string,
   extra?: { status?: string; priority?: string; date?: string; projectName?: string }
 ): Promise<IndexEntry> {
-  const contentHash = await hashContent(item.content);
-  const relativePath = extractRelativePath(item.filePath, workspaceId);
-
-  return {
-    path: relativePath,
+  const base = await buildBaseEntry({
     filePath: item.filePath,
+    workspaceId,
     type,
     title: item.title,
-    summary: "", // filled by AI summarization
-    contentHash,
-    created: item.created,
     projectId: item.projectId,
+    created: item.created,
+    content: item.content,
+  });
+
+  return {
+    ...base,
     projectName: extra?.projectName,
     status: extra?.status,
     priority: extra?.priority,
@@ -98,9 +85,10 @@ async function summarizeBatch(
   const service = createAIService({ providerType });
 
   // Build prompt
+  const previewLength = getSummaryPreviewLength(useContextStore.getState().summaryDetail);
   const docs = entries.map((entry, i) => {
     const body = contents.get(entry.filePath) ?? "";
-    const preview = body.slice(0, CONTENT_PREVIEW_LENGTH);
+    const preview = body.slice(0, previewLength);
     return `${i + 1}. [${entry.path}] Title: ${entry.title} | Type: ${entry.type}\n${preview}`;
   });
 

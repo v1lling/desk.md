@@ -8,6 +8,7 @@ import {
   ContextTab,
   DataTab,
   TemplatesTab,
+  AboutTab,
   SettingsNav,
   type SettingsCategory,
 } from "@/components/settings";
@@ -19,6 +20,7 @@ const CONTENT: Record<SettingsCategory, React.ComponentType> = {
   assistant: AssistantTab,
   context: ContextTab,
   data: DataTab,
+  about: AboutTab,
 };
 
 export default function SettingsPage() {

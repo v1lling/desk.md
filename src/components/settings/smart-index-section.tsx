@@ -3,7 +3,15 @@ import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import type { SummaryDetail } from "@/lib/context-index/constants";
 import {
   Loader2,
   AlertCircle,
@@ -11,6 +19,8 @@ import {
   Clock,
   RefreshCw,
   Trash2,
+  Database,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useContextStore } from "@/stores/context";
@@ -35,6 +45,8 @@ export function SmartIndexSection() {
     setAutoSummarizeOnSave,
     generateAgentFiles,
     setGenerateAgentFiles,
+    summaryDetail,
+    setSummaryDetail,
   } = useContextStore();
 
   // True when the active provider has an API key saved. Without one, the catalog
@@ -155,7 +167,11 @@ export function SmartIndexSection() {
 
   return (
     <>
-      <SettingsSection title="Catalog Status">
+      <SettingsSection
+        icon={<Database className="h-4 w-4" />}
+        title="Catalog Status"
+        description="Index stats, errors, and build controls"
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-3 rounded-lg border p-3">
@@ -253,12 +269,16 @@ export function SmartIndexSection() {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Catalog Settings">
+      <SettingsSection
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+        title="Catalog Settings"
+        description="When summaries refresh and what's shared with external agents"
+      >
         <div className="flex items-center justify-between py-3">
           <div className="space-y-0.5">
             <Label>Auto-summarize on save</Label>
             <p className="text-sm text-muted-foreground">
-              Automatically update summaries when files change (runs in background)
+              Keep summaries fresh as you edit, and add new files to the catalog on first save.
             </p>
           </div>
           <Switch
@@ -271,10 +291,32 @@ export function SmartIndexSection() {
         </div>
         {autoSummarizeOnSave && aiKeyConfigured && (
           <p className="pb-3 text-xs text-amber-600 dark:text-amber-400">
-            While enabled, a short preview of each edited file is sent
-            automatically to your AI provider (Anthropic or OpenAI) after you save.
+            ~5 seconds after your last save, each file whose body actually changed is
+            re-summarized (one API call per file). Metadata-only saves don't trigger a call.
           </p>
         )}
+
+        <div className="flex items-center justify-between py-3 border-t border-border/40">
+          <div className="space-y-0.5 pr-4">
+            <Label>Summary detail level</Label>
+            <p className="text-sm text-muted-foreground">
+              How much of each file is sent for summarization. Higher = better summaries, more tokens.
+            </p>
+          </div>
+          <Select
+            value={summaryDetail}
+            onValueChange={(v) => setSummaryDetail(v as SummaryDetail)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="brief">Brief (~125 tok)</SelectItem>
+              <SelectItem value="standard">Standard (~500 tok)</SelectItem>
+              <SelectItem value="detailed">Detailed (~1250 tok)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex items-center justify-between py-3 border-t border-border/40">
           <div className="space-y-0.5 pr-4">
