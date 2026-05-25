@@ -21,17 +21,14 @@
 </p>
 
 desk.md is a local-first desktop app for running your projects — tasks, docs,
-and meetings — as plain Markdown files you own. Think of Obsidian's local vault,
-but with project management built in from the first launch instead of assembled
-from plugins. And because it's just a folder of Markdown, any AI agent — Claude
-Code, Codex, Gemini CLI — picks up your full context with zero setup.
+and meetings — as plain Markdown files. Think of Obsidian's local vault,
+but with project management built in from the first launch. And because it's just a folder of Markdown, any local AI agent picks up your full context with zero setup.
 
 - **Own your data.** Plain Markdown with YAML frontmatter in an ordinary
-  folder. No database, no lock-in. Open it in any editor, including Obsidian.
+  folder. No database, no lock-in. Open it in any editor, like Obsidian.
 - **Built in, not bolted on.** Project management works on first launch:
   Workspace → Project → Tasks/Docs/Meetings with statuses, priorities, due
-  dates, Kanban/list views, and a quick-capture inbox — no plugins to assemble
-  or babysit.
+  dates, Kanban/list views, and a quick-capture inbox — no plugins to assemble.
 - **Agent-ready.** desk.md auto-generates `CLAUDE.md`, `AGENTS.md`, and
   `GEMINI.md`, plus a summarized per-workspace catalog — so any AI agent
   understands your work with no plugins and no MCP server, just files.
@@ -64,13 +61,6 @@ Code, Codex, Gemini CLI — picks up your full context with zero setup.
   </tr>
 </table>
 
-## Who is it for?
-
-desk.md is for technical solo operators — developers, indie hackers, makers, and
-consultants who run their own work. People comfortable in the filesystem and the
-terminal, who want to own their data and point AI agents at it. If you've ever
-assembled Obsidian from a stack of plugins and watched them drift, this is
-that — finished.
 
 ## Install
 
@@ -116,19 +106,6 @@ yourself? See [Quick Start](#quick-start).
 - State: Zustand + TanStack Query
 - Storage: Local Markdown files in a folder you choose (default `~/Desk/`)
 
-## Quick Start
-
-desk.md is a Tauri desktop app. To run it from source:
-
-```bash
-npm install
-npm run dev          # Browser with mock data (fast UI loop, no Rust needed)
-npm run tauri:dev    # Desktop app with the real file system
-```
-
-> Use Node 22. Newer versions currently break Rollup's native dependency.
-> See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full setup.
-
 ## Data & files
 
 desk.md stores user content under `workspaces/` and app metadata under `.desk/`,
@@ -140,8 +117,7 @@ or edit it in another app whenever you like.
 ## AI & agents
 
 desk.md is not an AI agent framework. It's a project, task and doc manager you
-run yourself; it just happens to be friendly to agents too. AI here is entirely
-optional, and nothing leaves your machine unless you reach for it. It comes in
+run yourself; it just happens to be friendly to agents too. It comes in
 two forms.
 
 **Bring your own agent.** desk.md keeps your data folder agent-ready. Alongside
@@ -158,6 +134,21 @@ is simply off. When you use it, content goes directly to the provider you chose;
 desk.md shows a one-time disclosure before the first request, reviewable anytime
 under **Settings → AI → Data & Privacy**.
 
+## Run from source
+
+```bash
+
+desk.md is a Tauri desktop app. To run it from source:
+
+```bash
+npm install
+npm run dev          # Browser with mock data (fast UI loop, no Rust needed)
+npm run tauri:dev    # Desktop app with the real file system
+```
+
+> Use Node 22. Newer versions currently break Rollup's native dependency.
+> See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full setup.
+> 
 ## Contributing
 
 Bug reports, feature ideas, and pull requests are welcome. See
