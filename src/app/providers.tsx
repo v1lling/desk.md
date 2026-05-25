@@ -5,7 +5,6 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { isTauri, initDeskDirectory, expandFsScope } from "@/lib/desk";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
-import { useDeepLink } from "@/hooks/use-deep-link";
 import { useWindowClose } from "@/hooks/use-window-close";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { useContextIndexSync } from "@/hooks/use-context-index-sync";
@@ -13,6 +12,7 @@ import { useSecretHydration } from "@/hooks/use-secret-hydration";
 import { useSuppressContextMenu } from "@/hooks/use-suppress-context-menu";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { Button } from "@/components/ui/button";
+import { EmailDropOverlay } from "@/components/email/email-drop-overlay";
 import { toast } from "sonner";
 
 // Clean up legacy localStorage key from the old monolithic settings store
@@ -111,12 +111,6 @@ function ContextIndexProvider({ children }: { children: React.ReactNode }) {
 
 function SecretHydrationProvider({ children }: { children: React.ReactNode }) {
   useSecretHydration();
-  return <>{children}</>;
-}
-
-// Initialize deep link handler for email integration
-function DeepLinkProvider({ children }: { children: React.ReactNode }) {
-  useDeepLink();
   return <>{children}</>;
 }
 
@@ -259,25 +253,24 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
-        <DeepLinkProvider>
-          <UpdateProvider>
-            <QueryInvalidatorProvider>
-              <SearchIndexProvider>
-                <SecretHydrationProvider>
-                  <ContextIndexProvider>
-                    <WindowCloseProvider>
-                      <ThemeProvider>
-                        <ContextMenuSuppressionProvider>
-                          {children}
-                        </ContextMenuSuppressionProvider>
-                      </ThemeProvider>
-                    </WindowCloseProvider>
-                  </ContextIndexProvider>
-                </SecretHydrationProvider>
-              </SearchIndexProvider>
-            </QueryInvalidatorProvider>
-          </UpdateProvider>
-        </DeepLinkProvider>
+        <UpdateProvider>
+          <QueryInvalidatorProvider>
+            <SearchIndexProvider>
+              <SecretHydrationProvider>
+                <ContextIndexProvider>
+                  <WindowCloseProvider>
+                    <ThemeProvider>
+                      <ContextMenuSuppressionProvider>
+                        {children}
+                        <EmailDropOverlay />
+                      </ContextMenuSuppressionProvider>
+                    </ThemeProvider>
+                  </WindowCloseProvider>
+                </ContextIndexProvider>
+              </SecretHydrationProvider>
+            </SearchIndexProvider>
+          </QueryInvalidatorProvider>
+        </UpdateProvider>
       </TauriInitializer>
     </QueryClientProvider>
   );
