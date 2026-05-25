@@ -33,7 +33,14 @@ interface AssistantState {
     message: string,
     options?: { mode?: AssistantTurnMode; forceNewConversation?: boolean; title?: string }
   ) => Promise<void>;
-  startEmailDraft: (params: { email: IncomingEmail; instructions?: string }) => Promise<void>;
+  startEmailDraft: (params: {
+    email: IncomingEmail;
+    instructions?: string;
+    workspaceId?: string | null;
+    workspaceName?: string | null;
+    projectId?: string | null;
+    projectName?: string | null;
+  }) => Promise<void>;
   cancelRun: () => void;
 }
 
@@ -307,7 +314,14 @@ export const useAssistantStore = create<AssistantState>()(
         }
       },
 
-      startEmailDraft: async ({ email, instructions }) => {
+      startEmailDraft: async ({
+        email,
+        instructions,
+        workspaceId,
+        workspaceName,
+        projectId,
+        projectName,
+      }) => {
         const titleBase = email.subject?.trim() ? `Draft: ${email.subject.trim()}` : "Draft Email Reply";
         const prompt = buildAssistantTurnUserMessage("draft-email", {
           emailContext: {
@@ -319,6 +333,10 @@ export const useAssistantStore = create<AssistantState>()(
             source: email.source || "",
             body: email.body || "",
             instructions: instructions?.trim() || "",
+            workspaceId: workspaceId ?? "",
+            workspaceName: workspaceName ?? "",
+            projectId: projectId ?? "",
+            projectName: projectName ?? "",
           },
         });
         await get().sendMessage(prompt, {

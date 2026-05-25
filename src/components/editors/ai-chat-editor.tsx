@@ -219,9 +219,8 @@ export function AIChatEditor() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex flex-col flex-1 min-w-0">
-        <ScrollArea className="flex-1 min-h-0">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
+      <ScrollArea className="flex-1 min-h-0">
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-4">
             {!isConfigured && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
@@ -344,7 +343,6 @@ export function AIChatEditor() {
             </form>
           </div>
         </div>
-      </div>
     </div>
   );
 }
