@@ -23,7 +23,7 @@ export function AssistantTab() {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
             <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              The assistant doesn't auto-inject context at the start of a turn — it
+              The assistant doesn't auto-inject context at the start of a turn. It
               decides when to query the catalog and read files. Manage the catalog
               itself under Settings → Catalog.
             </p>

@@ -229,13 +229,13 @@ export function SmartIndexSection() {
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>
                 One catalog, two readers: the in-app assistant queries this index
-                directly, and — when any agent file is enabled (Settings → Agents)
-                — the same catalog is written as Markdown alongside it so external
+                directly. When any agent file is enabled (Settings → Agents) the
+                same catalog is written as Markdown alongside it so external
                 agents (Claude Code, Codex, Gemini CLI) read it with no setup.
               </p>
               {!aiKeyConfigured && (
                 <p>
-                  No AI provider configured — summaries use plain text previews.
+                  No AI provider configured, so summaries use plain text previews.
                   Add a key in Settings → AI for AI-generated summaries.
                 </p>
               )}

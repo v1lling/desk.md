@@ -289,18 +289,18 @@ export function AITab() {
           </p>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <span className="text-foreground">Assistant chat &amp; drafting</span> —
+              <span className="text-foreground">Assistant chat &amp; drafting</span>:
               your messages, the conversation history, and the contents of files
               the assistant reads to answer you.
             </li>
             <li>
-              <span className="text-foreground">Smart Index</span> — short previews
+              <span className="text-foreground">Smart Index</span>: short previews
               and summaries of your files, sent when you rebuild the catalog or,
               if Auto-summarize on save is enabled, automatically after a save.
             </li>
           </ul>
           <p>
-            Retention is governed by your provider's API terms — Anthropic and
+            Retention is governed by your provider's API terms. Anthropic and
             OpenAI state that API data is not used to train their models by default.
           </p>
           <div className="flex items-center justify-between rounded-lg border p-3">

@@ -37,7 +37,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
       const filePath = await joinPath(parent, FILE_NAMES.CLAUDE_MD);
       if (!(await exists(filePath))) {
         setContent(null);
-        setError("File doesn't exist yet — toggle CLAUDE.md on, then come back.");
+        setError("File doesn't exist yet. Toggle CLAUDE.md on, then come back.");
         return;
       }
       setContent(await readTextFile(filePath));

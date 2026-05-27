@@ -146,7 +146,7 @@ export const mockProjects: Project[] = [
     workspaceId: "side-projects",
     name: "Dev Blog",
     status: "paused",
-    description: "Personal blog — writing up things I build",
+    description: "Personal blog, writing up things I build",
     created: iso(-200),
     taskCount: 2,
     tasksByStatus: { backlog: 0, todo: 1, doing: 0, waiting: 1, done: 0 },
@@ -222,7 +222,7 @@ export const mockTasks: Task[] = [
     status: "done",
     priority: "medium",
     created: iso(-12),
-    content: "Users were getting logged out after 5 minutes — token lifetime increased.",
+    content: "Users were getting logged out after 5 minutes. Token lifetime increased.",
   }),
   t("hero-section", "acme", "website-redesign", "projects/website-redesign", {
     title: "Migrate the hero section to the new layout",
@@ -260,7 +260,7 @@ export const mockTasks: Task[] = [
     status: "waiting",
     priority: "medium",
     created: iso(-6),
-    content: "Ops ticket open — need read access before the test migration can run.",
+    content: "Ops ticket open. Need read access before the test migration can run.",
   }),
   t("map-legacy-fields", "acme", "data-migration", "projects/data-migration", {
     title: "Map legacy fields to the new schema",
@@ -281,7 +281,7 @@ export const mockTasks: Task[] = [
     title: "Decision needed: rate-limit strategy",
     status: "waiting",
     created: iso(-18),
-    content: "Per-key vs per-IP limits — waiting on a call with the platform team.",
+    content: "Per-key vs per-IP limits. Waiting on a call with the platform team.",
   }),
   t("evaluate-graphql", "acme", "api-v2", "projects/api-v2", {
     title: "Evaluate a GraphQL endpoint",
@@ -321,7 +321,7 @@ export const mockTasks: Task[] = [
     priority: "high",
     due: iso(3),
     created: iso(-2),
-    content: "Auto-renew failed last cycle — renew manually before it expires.",
+    content: "Auto-renew failed last cycle. Renew manually before it expires.",
   }),
   t("audit-third-party-scripts", "acme", "_unassigned", "_unassigned", {
     title: "Audit third-party scripts",
@@ -345,7 +345,7 @@ export const mockTasks: Task[] = [
     status: "doing",
     priority: "medium",
     created: iso(-10),
-    content: "Photos done — application form left to submit.",
+    content: "Photos done. Application form left to submit.",
   }),
   t("dentist-appointment", "personal", "home-admin", "projects/home-admin", {
     title: "Book a dentist appointment",
@@ -431,7 +431,7 @@ export const mockDocs: Doc[] = [
     title: "Project Brief",
     created: iso(-95),
     content:
-      "# Website Redesign — Project Brief\n\n## Goal\nRebuild the Acme Co marketing site on the new stack with a refreshed brand.\n\n## Scope\n- Homepage, pricing, and contact pages\n- New design system components\n- Working contact form with analytics\n\n## Out of scope\n- The customer portal (separate project)\n- Blog migration\n\n## Success looks like\nA faster, on-brand site live before the end of the quarter.",
+      "# Website Redesign: Project Brief\n\n## Goal\nRebuild the Acme Co marketing site on the new stack with a refreshed brand.\n\n## Scope\n- Homepage, pricing, and contact pages\n- New design system components\n- Working contact form with analytics\n\n## Out of scope\n- The customer portal (separate project)\n- Blog migration\n\n## Success looks like\nA faster, on-brand site live before the end of the quarter.",
     preview: "Rebuild the Acme Co marketing site on the new stack with a refreshed brand.",
   },
   {
@@ -442,7 +442,7 @@ export const mockDocs: Doc[] = [
     title: "Content Inventory",
     created: iso(-60),
     content:
-      "# Content Inventory\n\n| Page | Status | Owner |\n|------|--------|-------|\n| Home | Draft | Client |\n| Pricing | Needs copy | Client |\n| Contact | Ready | — |\n| About | Ready | — |\n\nMost pages are ready — pricing copy is the remaining blocker.",
+      "# Content Inventory\n\n| Page | Status | Owner |\n|------|--------|-------|\n| Home | Draft | Client |\n| Pricing | Needs copy | Client |\n| Contact | Ready |  |\n| About | Ready |  |\n\nMost pages are ready. Pricing copy is the remaining blocker.",
     preview: "A page-by-page inventory of site content and who owns each piece.",
   },
   {
@@ -453,7 +453,7 @@ export const mockDocs: Doc[] = [
     title: "Website Redesign context (AI-distilled)",
     created: iso(-30),
     content:
-      "# Website Redesign — context\n\nDistilled from kickoff meetings and email threads.\n\n## Stakeholders\n- Acme marketing lead — owns sign-off, targets an end-of-quarter go-live.\n\n## Outstanding risks\n- Final homepage copy still pending from the client.\n- Security review not yet scheduled.",
+      "# Website Redesign context\n\nDistilled from kickoff meetings and email threads.\n\n## Stakeholders\n- Acme marketing lead: owns sign-off, targets an end-of-quarter go-live.\n\n## Outstanding risks\n- Final homepage copy still pending from the client.\n- Security review not yet scheduled.",
     preview: "Distilled from kickoff meetings and email threads.",
   },
   {
@@ -464,7 +464,7 @@ export const mockDocs: Doc[] = [
     title: "Research: webhook auth approaches",
     created: iso(-28),
     content:
-      "# Research: webhook auth approaches\n\nComparing HMAC-signed payloads vs. mTLS for the contact-form webhook.\n\n- **HMAC** — simple, no cert management, good enough here.\n- **mTLS** — stronger, but heavier to operate.\n\n**Recommendation:** HMAC-signed payloads with a rotating secret.",
+      "# Research: webhook auth approaches\n\nComparing HMAC-signed payloads vs. mTLS for the contact-form webhook.\n\n- **HMAC**: simple, no cert management, good enough here.\n- **mTLS**: stronger, but heavier to operate.\n\n**Recommendation:** HMAC-signed payloads with a rotating secret.",
     preview: "Comparing HMAC-signed payloads vs. mTLS for the contact-form webhook.",
   },
   {
@@ -475,7 +475,7 @@ export const mockDocs: Doc[] = [
     title: "Migration Plan",
     created: iso(-68),
     content:
-      "# Data Migration Plan\n\n## Phases\n1. **Mapping** — field-by-field mapping of legacy → new.\n2. **Test migration** — dry run against a staging copy.\n3. **Cutover** — production migration during a maintenance window.\n\n## Rollback\nKeep the legacy DB read-only for two weeks after cutover.",
+      "# Data Migration Plan\n\n## Phases\n1. **Mapping**: field-by-field mapping of legacy to new.\n2. **Test migration**: dry run against a staging copy.\n3. **Cutover**: production migration during a maintenance window.\n\n## Rollback\nKeep the legacy DB read-only for two weeks after cutover.",
     preview: "Field mapping, a staging dry run, then a production cutover.",
   },
   {
@@ -497,7 +497,7 @@ export const mockDocs: Doc[] = [
     title: "API v2 Design Notes",
     created: iso(-130),
     content:
-      "# API v2 — Design Notes\n\n## Principles\n- Resource-oriented, JSON:API response shape.\n- Versioned under `/v2`.\n- Cursor-based pagination.\n\n## Open questions\n- Rate-limit strategy (per-key vs per-IP).\n- Whether to expose a GraphQL endpoint.",
+      "# API v2: Design Notes\n\n## Principles\n- Resource-oriented, JSON:API response shape.\n- Versioned under `/v2`.\n- Cursor-based pagination.\n\n## Open questions\n- Rate-limit strategy (per-key vs per-IP).\n- Whether to expose a GraphQL endpoint.",
     preview: "Design principles and open questions for the v2 partner API.",
   },
   {
@@ -508,7 +508,7 @@ export const mockDocs: Doc[] = [
     title: "Brand Guidelines",
     created: iso(-130),
     content:
-      "# Acme Co — Brand Guidelines\n\n## Logo\nUse the horizontal lockup by default; icon-only for small sizes.\n\n## Color\nPrimary blue `#3b82f6`, near-black ink, generous white space.\n\n## Typography\nGeist for everything — semibold for headings, regular for body.",
+      "# Acme Co: Brand Guidelines\n\n## Logo\nUse the horizontal lockup by default; icon-only for small sizes.\n\n## Color\nPrimary blue `#3b82f6`, near-black ink, generous white space.\n\n## Typography\nGeist for everything: semibold for headings, regular for body.",
     preview: "Logo usage, color, and typography for the refreshed Acme brand.",
   },
   {
@@ -539,7 +539,7 @@ export const mockMeetings: Meeting[] = [
     created: iso(-90),
     content:
       "# Client Kickoff\n\n## Attendees\n- You\n- Alex (Acme)\n- Sam (Acme)\n\n## Purpose\nKick off the website redesign.\n\n## Discussion\n- Walked through the new site structure.\n- Agreed on a webhook-based contact-form integration.\n- Go-live target: end of the quarter.\n\n## Decisions\n- Webhook integration over a direct DB write.\n- Security review required before launch.\n- Weekly status updates by email.\n\n## Action Items\n- [ ] Send API documentation\n- [ ] Client to share current system details\n- [ ] Schedule a technical deep-dive",
-    preview: "Kick off the website redesign — structure, integration, and timeline.",
+    preview: "Kick off the website redesign: structure, integration, and timeline.",
   },
   {
     id: "design-review",
@@ -598,7 +598,7 @@ export const mockMeetings: Meeting[] = [
     date: iso(-130),
     created: iso(-130),
     content:
-      "# Brand Handoff\n\n## Delivered\n- Logo lockups (horizontal, stacked, icon).\n- Color palette as design tokens.\n- 24-page brand guidelines PDF.\n\n## Notes\nEverything signed off — project closed.",
+      "# Brand Handoff\n\n## Delivered\n- Logo lockups (horizontal, stacked, icon).\n- Color palette as design tokens.\n- 24-page brand guidelines PDF.\n\n## Notes\nEverything signed off. Project closed.",
     preview: "Final handoff of the refreshed Acme brand system.",
   },
 ];

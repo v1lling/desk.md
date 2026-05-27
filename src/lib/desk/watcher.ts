@@ -179,7 +179,7 @@ export async function startWatching(): Promise<boolean> {
       return true;
     } catch (retryErr) {
       console.error("[watcher] File watcher failed after retry:", retryErr);
-      toast.error("File watcher stopped — external edits won't sync until you restart Desk.");
+      toast.error("File watcher stopped. External edits won't sync until you restart Desk.");
       return false;
     }
   }

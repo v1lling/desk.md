@@ -131,7 +131,7 @@ export function AgentsTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={GLOBAL_SCOPE}>— Select a workspace —</SelectItem>
+                <SelectItem value={GLOBAL_SCOPE}>Select a workspace…</SelectItem>
                 {workspaces.map((ws) => (
                   <SelectItem key={ws.id} value={ws.id}>
                     <span className="flex items-center gap-2">

@@ -27,7 +27,7 @@ export function useSecretHydration() {
         if (!hydrationToastShown) {
           hydrationToastShown = true;
           toast.warning(
-            "Couldn't access the OS keychain. AI features will be off until this is resolved — open Settings → AI for details."
+            "Couldn't access the OS keychain. AI features will be off until this is resolved. Open Settings → AI for details."
           );
         }
       }

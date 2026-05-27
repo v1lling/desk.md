@@ -10,7 +10,7 @@ interface Props {
 const GLOBAL_PLACEHOLDER =
   "e.g., Always reply in German. Use Conventional Commit prefixes when writing files.";
 const WORKSPACE_PLACEHOLDER =
-  "e.g., This workspace is for client X — never reference internal projects in drafts.";
+  "e.g., This workspace is for client X. Never reference internal projects in drafts.";
 
 export function AgentInstructionsCard({ scope }: Props) {
   const isGlobal = scope === "global";

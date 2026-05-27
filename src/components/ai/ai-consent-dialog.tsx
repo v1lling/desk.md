@@ -56,7 +56,7 @@ export function AIConsentDialog() {
           <div>
             <p className="font-medium text-foreground">Retention</p>
             <p className="mt-1">
-              Handled under your provider's API terms — Anthropic and OpenAI state
+              Handled under your provider's API terms. Anthropic and OpenAI state
               that API data is not used to train their models by default.
             </p>
           </div>

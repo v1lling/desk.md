@@ -412,7 +412,7 @@ export function DocsTree({
           fromResolved.scope !== targetResolved.scope
           || fromResolved.projectId !== targetResolved.projectId
         ) {
-          toast.error("Cross-scope moves aren't supported yet — moves must stay inside the same workspace or project.");
+          toast.error("Cross-scope moves aren't supported yet. Moves must stay inside the same workspace or project.");
           continue;
         }
 
@@ -445,7 +445,7 @@ export function DocsTree({
             // a full directory move from docs/<src> to ai-docs/<dst> (or vice-versa) — currently it
             // doesn't. Surface a friendly toast until that's implemented.
             toast.error(
-              "Moving folders between Docs and AI Docs isn't supported yet — move docs individually.",
+              "Moving folders between Docs and AI Docs isn't supported yet. Move docs individually.",
             );
             continue;
           }
@@ -556,7 +556,7 @@ export function DocsTree({
           fromResolved.scope !== toResolved.scope
           || fromResolved.projectId !== toResolved.projectId
         ) {
-          toast.error("Cross-scope moves aren't supported yet — moves must stay inside the same workspace or project.");
+          toast.error("Cross-scope moves aren't supported yet. Moves must stay inside the same workspace or project.");
           return;
         }
         const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);

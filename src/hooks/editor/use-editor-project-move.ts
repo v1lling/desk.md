@@ -48,7 +48,7 @@ export function useEditorProjectMove<TArgs>({
         const saved = await save();
         if (!saved) {
           setCurrentProjectId(originalProjectId);
-          toast.error(`Save failed — cannot move ${entityLabel}`);
+          toast.error(`Save failed. Can't move ${entityLabel}.`);
           return;
         }
 

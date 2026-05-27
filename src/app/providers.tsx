@@ -40,7 +40,7 @@ function StartupError({
           Desk couldn&apos;t start
         </h1>
         <p className="text-sm text-muted-foreground">
-          Desk failed to set up its data folder. Your files are safe — this is a
+          Desk failed to set up its data folder. Your files are safe. This is a
           startup problem, not data loss.
         </p>
         <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-3 text-left text-xs text-muted-foreground">
