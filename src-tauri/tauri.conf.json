@@ -4,11 +4,6 @@
   "version": "0.8.0",
   "identifier": "de.svilling.deskmd",
   "plugins": {
-    "deep-link": {
-      "desktop": {
-        "schemes": ["desk"]
-      }
-    },
     "updater": {
       "endpoints": [
         "https://github.com/v1lling/desk.md/releases/latest/download/latest.json"

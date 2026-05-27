@@ -3,6 +3,7 @@ import * as React from "react";
 import { type DialogProps } from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -33,12 +34,13 @@ const CommandDialog = ({
   shouldFilter = true,
   ...props
 }: CommandDialogProps) => {
+  const { t } = useTranslation();
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
         <VisuallyHidden.Root>
-          <DialogTitle>Search</DialogTitle>
-          <DialogDescription>Search tasks, docs, and projects</DialogDescription>
+          <DialogTitle>{t("ui.command.searchTitle")}</DialogTitle>
+          <DialogDescription>{t("ui.command.searchDescription")}</DialogDescription>
         </VisuallyHidden.Root>
         <Command
           shouldFilter={shouldFilter}

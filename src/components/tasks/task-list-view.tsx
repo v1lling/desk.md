@@ -1,6 +1,7 @@
 
 import { useMemo, useState } from "react";
 import { Archive, CheckCircle2, Circle, Clock, Loader2, FolderKanban, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
 import {
@@ -49,6 +50,7 @@ export function TaskListView({
   hiddenStatuses,
   isLoading,
 }: TaskListViewProps) {
+  const { t } = useTranslation();
   // Track which status sections are collapsed
   const [collapsedSections, setCollapsedSections] = useState<Set<TaskStatus>>(new Set());
 
@@ -79,11 +81,11 @@ export function TaskListView({
   }, [tasks, groupByStatus]);
 
   if (isLoading) {
-    return <LoadingState label="tasks" />;
+    return <LoadingState label={t("entities.task.pluralLowercase")} />;
   }
 
   if (tasks.length === 0) {
-    return <EmptyState title="No tasks found" />;
+    return <EmptyState title={t("emptyStates.tasks.noResults.title")} />;
   }
 
   if (!groupByStatus) {
@@ -164,6 +166,7 @@ interface TaskListItemProps {
 }
 
 function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListItemProps) {
+  const { t } = useTranslation();
   const Icon = statusIcons[task.status];
   const projectName = showProject && getProjectName ? getProjectName(task.projectId) : null;
 
@@ -204,7 +207,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
             <span className={cn(
               new Date(task.due) < new Date() && task.status !== "done" && "text-destructive"
             )}>
-              Due: {formatDate(task.due)}
+              {t("pages.tasks.list.dueLabel", { date: formatDate(task.due) })}
             </span>
           )}
         </div>

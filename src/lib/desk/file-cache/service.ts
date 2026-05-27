@@ -53,14 +53,12 @@ class FileTreeService implements IFileTreeService {
     if (this.initialized) return;
 
     if (!isFileSystemAvailable()) {
-      console.log("[FileTreeService] File system not available (browser mode)");
       this.initialized = true;
       return;
     }
 
     this.deskRoot = await getDeskRoot();
     this.initialized = true;
-    console.log("[FileTreeService] Initialized with root:", this.deskRoot);
   }
 
   /**
@@ -71,7 +69,6 @@ class FileTreeService implements IFileTreeService {
     this.subscribers.clear();
     this.treeCache = null;
     this.initialized = false;
-    console.log("[FileTreeService] Shutdown");
   }
 
   /**

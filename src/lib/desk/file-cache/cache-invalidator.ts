@@ -55,16 +55,6 @@ function handleWatchEvent(event: WatchEvent): void {
 
   // Notify the service (which will notify its subscribers)
   service.notifyChange(fileEvent);
-
-  // Log for debugging
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      `[file-tree] ${fileEvent.type}:`,
-      fileEvent.paths.length === 1
-        ? fileEvent.paths[0].split("/").slice(-2).join("/")
-        : `${fileEvent.paths.length} files`
-    );
-  }
 }
 
 /**
@@ -73,13 +63,11 @@ function handleWatchEvent(event: WatchEvent): void {
  */
 export function connectToWatcher(): void {
   if (isConnected) {
-    console.log("[file-tree] Already connected to watcher");
     return;
   }
 
   unsubscribe = onFileChange(handleWatchEvent);
   isConnected = true;
-  console.log("[file-tree] Connected to file watcher");
 }
 
 /**
@@ -93,7 +81,6 @@ export function disconnectFromWatcher(): void {
   unsubscribe();
   unsubscribe = null;
   isConnected = false;
-  console.log("[file-tree] Disconnected from file watcher");
 }
 
 /**

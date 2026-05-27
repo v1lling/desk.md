@@ -2,8 +2,10 @@ import { SettingsSection } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
 import { Info, ExternalLink, FileText, Bug, Github, Scale } from "lucide-react";
 import { open as openShell } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 import { UpdateSection } from "./update-section";
 import { isTauri } from "@/lib/desk";
+import { formatLocaleDate } from "@/lib/i18n/format";
 
 const REPO_URL = "https://github.com/v1lling/desk.md";
 
@@ -16,9 +18,7 @@ function openExternal(url: string) {
 }
 
 function formatBuildTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+  return formatLocaleDate(iso, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -50,6 +50,7 @@ function LinkRow({ icon, label, href }: LinkRowProps) {
 }
 
 export function AboutTab() {
+  const { t } = useTranslation();
   const version = __APP_VERSION__;
   const commit = __GIT_COMMIT__;
   const buildTime = __BUILD_TIME__;
@@ -58,15 +59,15 @@ export function AboutTab() {
     <div className="space-y-6">
       <SettingsSection
         icon={<Info className="h-4 w-4" />}
-        title="Desk"
-        description="Project & task management in plain Markdown"
+        title={t("settings.about.app.title")}
+        description={t("settings.about.app.description")}
       >
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-          <dt className="text-muted-foreground">Version</dt>
+          <dt className="text-muted-foreground">{t("settings.about.app.version")}</dt>
           <dd className="font-mono">{version}</dd>
-          <dt className="text-muted-foreground">Commit</dt>
+          <dt className="text-muted-foreground">{t("settings.about.app.commit")}</dt>
           <dd className="font-mono">{commit}</dd>
-          <dt className="text-muted-foreground">Built</dt>
+          <dt className="text-muted-foreground">{t("settings.about.app.built")}</dt>
           <dd>{formatBuildTime(buildTime)}</dd>
         </dl>
       </SettingsSection>
@@ -75,28 +76,28 @@ export function AboutTab() {
 
       <SettingsSection
         icon={<ExternalLink className="h-4 w-4" />}
-        title="Links"
-        description="Open project resources in your browser"
+        title={t("settings.about.links.title")}
+        description={t("settings.about.links.description")}
       >
         <div className="divide-y divide-border/40">
           <LinkRow
             icon={<FileText className="h-3.5 w-3.5" />}
-            label={`Release notes for v${version}`}
+            label={t("settings.about.links.releaseNotes", { version })}
             href={`${REPO_URL}/releases/tag/v${version}`}
           />
           <LinkRow
             icon={<FileText className="h-3.5 w-3.5" />}
-            label="All releases"
+            label={t("settings.about.links.allReleases")}
             href={`${REPO_URL}/releases`}
           />
           <LinkRow
             icon={<Github className="h-3.5 w-3.5" />}
-            label="View on GitHub"
+            label={t("settings.about.links.viewOnGithub")}
             href={REPO_URL}
           />
           <LinkRow
             icon={<Bug className="h-3.5 w-3.5" />}
-            label="Report an issue"
+            label={t("settings.about.links.reportIssue")}
             href={`${REPO_URL}/issues/new`}
           />
         </div>
@@ -104,8 +105,8 @@ export function AboutTab() {
 
       <SettingsSection
         icon={<Scale className="h-4 w-4" />}
-        title="License"
-        description="Open source under the GNU General Public License"
+        title={t("settings.about.license.title")}
+        description={t("settings.about.license.description")}
       >
         <div className="flex items-center justify-between py-1 text-sm">
           <span className="font-mono text-foreground/80">GPL-3.0-or-later</span>
@@ -114,7 +115,7 @@ export function AboutTab() {
             size="sm"
             onClick={() => openExternal(`${REPO_URL}/blob/main/LICENSE`)}
           >
-            View license
+            {t("settings.about.license.viewLicense")}
           </Button>
         </div>
       </SettingsSection>

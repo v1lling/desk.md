@@ -8,10 +8,12 @@
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
     "dialog:default",
     "fs:default",
     "shell:allow-open",
-    "deep-link:default",
     "updater:default",
     "process:allow-restart",
     "fs:allow-read-text-file",

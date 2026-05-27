@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Calendar, X } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -33,15 +34,17 @@ export function DateField({
   value,
   onChange,
   variant = "input",
-  placeholder = "Select date",
+  placeholder,
   id,
   clearable = true,
   disabled,
   className,
 }: DateFieldProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const display = formatDisplay(value);
   const isChip = variant === "chip";
+  const resolvedPlaceholder = placeholder ?? t("ui.dateField.placeholder");
 
   const openPicker = () => {
     const el = inputRef.current;
@@ -88,7 +91,7 @@ export function DateField({
           )}
         />
         <span className={cn("truncate", !display && "text-muted-foreground")}>
-          {display ?? placeholder}
+          {display ?? resolvedPlaceholder}
         </span>
       </button>
 
@@ -96,7 +99,7 @@ export function DateField({
         <button
           type="button"
           onClick={handleClear}
-          aria-label="Clear date"
+          aria-label={t("ui.dateField.clearAriaLabel")}
           className={cn(
             "flex shrink-0 items-center justify-center rounded text-muted-foreground/50 outline-none hover:text-foreground focus-visible:text-foreground",
             isChip ? "h-7 px-1" : "h-full px-1"

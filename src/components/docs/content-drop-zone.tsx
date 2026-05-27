@@ -1,5 +1,6 @@
 
 import { useState, useCallback, type ReactNode, type DragEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 
@@ -16,6 +17,7 @@ export function ContentDropZone({
   className,
   disabled = false,
 }: ContentDropZoneProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragEnter = useCallback(
@@ -97,9 +99,9 @@ export function ContentDropZone({
         <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-50 pointer-events-none">
           <div className="flex flex-col items-center gap-2 text-primary">
             <Upload className="size-8" />
-            <p className="text-sm font-medium">Drop files to import</p>
+            <p className="text-sm font-medium">{t("pages.docs.dropZone.title")}</p>
             <p className="text-xs text-muted-foreground">
-              Any file type supported
+              {t("pages.docs.dropZone.subtitle")}
             </p>
           </div>
         </div>

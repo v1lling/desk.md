@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Calendar, CheckSquare, FileText, FolderKanban, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatLocaleDate } from "@/lib/i18n/format";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +21,7 @@ import { useProject, useUpdateProject } from "@/stores";
 import type { Project, ProjectStatus } from "@/types";
 import { taskStatusLabels, taskStatusOrder, taskStatusTextColors } from "@/lib/design-tokens";
 
-const statusOptions: { value: ProjectStatus; label: string }[] = [
-  { value: "active", label: "Active" },
-  { value: "paused", label: "Paused" },
-  { value: "completed", label: "Completed" },
-  { value: "archived", label: "Archived" },
-];
+const statusValues: ProjectStatus[] = ["active", "paused", "completed", "archived"];
 
 const statusDotColors: Record<ProjectStatus, string> = {
   active: "bg-emerald-500",
@@ -34,9 +31,7 @@ const statusDotColors: Record<ProjectStatus, string> = {
 };
 
 function safeFormatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return formatLocaleDate(iso, { day: "numeric", month: "short", year: "numeric" });
 }
 
 interface ProjectOverviewProps {
@@ -45,6 +40,7 @@ interface ProjectOverviewProps {
 }
 
 export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps) {
+  const { t } = useTranslation();
   const { data: project, isLoading } = useProject(workspaceId, projectId);
   const updateProject = useUpdateProject();
 
@@ -55,20 +51,20 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
       await updateProject.mutateAsync({ projectId, workspaceId, updates });
     } catch (err) {
       console.error("Failed to update project:", err);
-      toast.error("Failed to update project");
+      toast.error(t("toasts.project.update.error"));
     }
   };
 
   if (isLoading) {
-    return <StatePanel variant="loading" title="Loading project…" className="h-full" />;
+    return <StatePanel variant="loading" title={t("pages.projects.overview.loading")} className="h-full" />;
   }
   if (!project) {
     return (
       <StatePanel
         variant="notFound"
         icon={FolderKanban}
-        title="Project not found"
-        description="This project may have been deleted or moved."
+        title={t("pages.projects.overview.notFoundTitle")}
+        description={t("pages.projects.overview.notFoundDescription")}
         className="h-full"
       />
     );
@@ -84,7 +80,7 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
             <div className="min-w-0 flex-1">
               <InlineName value={project.name} onSave={(name) => handleUpdate({ name })} />
               <p className="mt-1 text-xs text-muted-foreground">
-                Created {safeFormatDate(project.created)}
+                {t("pages.projects.overview.createdOn", { date: safeFormatDate(project.created) })}
               </p>
             </div>
             <Select
@@ -95,11 +91,11 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
+                {statusValues.map((value) => (
+                  <SelectItem key={value} value={value}>
                     <span className="flex items-center gap-2">
-                      <span className={cn("size-2 rounded-full", statusDotColors[opt.value])} />
-                      {opt.label}
+                      <span className={cn("size-2 rounded-full", statusDotColors[value])} />
+                      {t(`entities.project.status.${value}`)}
                     </span>
                   </SelectItem>
                 ))}
@@ -115,7 +111,7 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
         {/* Task stats */}
         <div>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70 mb-2">
-            Tasks
+            {t("pages.projects.overview.tasksHeading")}
           </h2>
           <div className="grid grid-cols-5 gap-2">
             {taskStatusOrder.map((status) => (
@@ -140,20 +136,25 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
         {/* Quick links */}
         <div>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70 mb-2">
-            Open
+            {t("pages.projects.overview.openHeading")}
           </h2>
           <div className="grid grid-cols-3 gap-3">
             <QuickLink
               to={`/tasks?project=${projectId}`}
               icon={CheckSquare}
-              label="Tasks"
+              label={t("pages.projects.overview.quickLinks.tasks")}
               count={project.taskCount ?? 0}
             />
-            <QuickLink to="/docs" icon={FileText} label="Docs" count={project.docCount ?? 0} />
+            <QuickLink
+              to="/docs"
+              icon={FileText}
+              label={t("pages.projects.overview.quickLinks.docs")}
+              count={project.docCount ?? 0}
+            />
             <QuickLink
               to={`/meetings?project=${projectId}`}
               icon={Calendar}
-              label="Meetings"
+              label={t("pages.projects.overview.quickLinks.meetings")}
               count={project.meetingCount ?? 0}
             />
           </div>
@@ -165,6 +166,7 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
 
 /** Click-to-edit project name — preserves rename now that the Edit modal is gone. */
 function InlineName({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -206,7 +208,7 @@ function InlineName({ value, onSave }: { value: string; onSave: (v: string) => v
   return (
     <h1
       className="text-2xl font-semibold tracking-tight cursor-text rounded px-1.5 -mx-1.5 py-0.5 hover:bg-accent/60 truncate"
-      title="Click to rename"
+      title={t("pages.projects.overview.renameTitle")}
       onClick={() => {
         setDraft(value);
         setEditing(true);
@@ -219,6 +221,7 @@ function InlineName({ value, onSave }: { value: string; onSave: (v: string) => v
 
 /** Click-to-edit short description. Stays a plain-text caption — not a document. */
 function InlineDescription({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -250,7 +253,7 @@ function InlineDescription({ value, onSave }: { value: string; onSave: (v: strin
             setEditing(false);
           }
         }}
-        placeholder="Add a short description…"
+        placeholder={t("pages.projects.overview.descriptionPlaceholder")}
         className="min-h-[60px] resize-none text-sm"
       />
     );
@@ -261,18 +264,19 @@ function InlineDescription({ value, onSave }: { value: string; onSave: (v: strin
         "text-sm cursor-text rounded px-1.5 -mx-1.5 py-1 hover:bg-accent/60",
         value ? "text-muted-foreground whitespace-pre-wrap" : "text-muted-foreground/50 italic",
       )}
-      title="Click to edit"
+      title={t("pages.projects.overview.descriptionEditTitle")}
       onClick={() => {
         setDraft(value);
         setEditing(true);
       }}
     >
-      {value || "Add a short description…"}
+      {value || t("pages.projects.overview.descriptionPlaceholder")}
     </p>
   );
 }
 
 function ProgressBar({ tasksByStatus }: { tasksByStatus?: Project["tasksByStatus"] }) {
+  const { t } = useTranslation();
   const total = tasksByStatus
     ? tasksByStatus.backlog +
       tasksByStatus.todo +
@@ -286,9 +290,11 @@ function ProgressBar({ tasksByStatus }: { tasksByStatus?: Project["tasksByStatus
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-        <span>Progress</span>
+        <span>{t("pages.projects.overview.progress")}</span>
         <span className="tabular-nums">
-          {total === 0 ? "No tasks yet" : `${done} of ${total} done · ${pct}%`}
+          {total === 0
+            ? t("pages.projects.overview.noTasksYet")
+            : t("pages.projects.overview.progressSummary", { done, total, pct })}
         </span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">

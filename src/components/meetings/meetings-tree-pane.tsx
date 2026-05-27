@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,7 @@ function safeFormat(iso: string, pattern: string): string {
 }
 
 export function MeetingsTreePane({ workspaceId, initialProjectFilter }: MeetingsTreePaneProps) {
+  const { t } = useTranslation();
   const { data: meetings = [] } = useMeetings(workspaceId);
   const { data: projects = [] } = useProjects(workspaceId);
   const { openMeeting } = useOpenTab();
@@ -146,13 +148,13 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           workspaceId: meeting.workspaceId,
           projectId: meeting.projectId,
         });
-        toast.success("Meeting deleted");
+        toast.success(t("toasts.meeting.deleted"));
       } catch (err) {
         console.error("Failed to delete meeting:", err);
-        toast.error("Failed to delete meeting");
+        toast.error(t("errors.meeting.deleteFailed"));
       }
     },
-    [deleteMeeting],
+    [deleteMeeting, t],
   );
 
   const showProjectTag = projectFilter === ALL_PROJECTS;
@@ -166,7 +168,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search…"
+            placeholder={t("pages.meetings.tree.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -195,7 +197,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
               variant="ghost"
               size="icon"
               className="size-7 text-muted-foreground hover:text-foreground"
-              title="Sort"
+              title={t("pages.meetings.tree.sort.title")}
             >
               <ChevronsUpDown className="size-3.5" />
             </Button>
@@ -206,14 +208,14 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
               className={cn(sortDir === "desc" && "bg-accent")}
             >
               <ArrowDown01 className="size-4 mr-2" />
-              Newest first
+              {t("pages.meetings.tree.sort.newestFirst")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setSortDir("asc")}
               className={cn(sortDir === "asc" && "bg-accent")}
             >
               <ArrowUp01 className="size-4 mr-2" />
-              Oldest first
+              {t("pages.meetings.tree.sort.oldestFirst")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -231,7 +233,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setNewMeetingOpen(true)}>
               <Plus className="size-4 mr-2" />
-              New Meeting
+              {t("pages.meetings.tree.actions.newMeeting")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -241,11 +243,11 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
       <div className="shrink-0 px-3 py-2 border-b border-border/40">
         <Select value={projectFilter} onValueChange={setProjectFilter}>
           <SelectTrigger size="xs" className="h-7 w-full text-xs">
-            <SelectValue placeholder="All projects" />
+            <SelectValue placeholder={t("pages.meetings.tree.filter.allProjects")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
-            <SelectItem value={UNASSIGNED}>No project</SelectItem>
+            <SelectItem value={ALL_PROJECTS}>{t("pages.meetings.tree.filter.allProjects")}</SelectItem>
+            <SelectItem value={UNASSIGNED}>{t("pages.meetings.tree.filter.noProject")}</SelectItem>
             {sortedProjects.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 {p.name}
@@ -258,7 +260,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
       {/* Action row: count + new meeting */}
       <div className="shrink-0 px-3 py-1 flex items-center gap-2 border-b border-border/40">
         <span className="text-xs text-muted-foreground tabular-nums">
-          {filtered.length} {filtered.length === 1 ? "meeting" : "meetings"}
+          {t("pages.meetings.tree.meetingCount", { count: filtered.length })}
         </span>
         <div className="flex-1" />
         <Button
@@ -268,7 +270,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           onClick={() => setNewMeetingOpen(true)}
         >
           <Plus className="size-3.5 mr-1" />
-          New Meeting
+          {t("pages.meetings.tree.actions.newMeeting")}
         </Button>
       </div>
 
@@ -277,7 +279,9 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
         <div className="py-1">
           {filtered.length === 0 ? (
             <div className="px-4 py-6 text-xs text-muted-foreground text-center">
-              {searchQuery.trim() ? "No matching meetings." : "No meetings yet."}
+              {searchQuery.trim()
+                ? t("pages.meetings.tree.emptyMatching")
+                : t("pages.meetings.tree.emptyAll")}
             </div>
           ) : (
             groups.map((group) => (
@@ -341,7 +345,7 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="size-4 mr-2" />
-                            Delete
+                            {t("common.buttons.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

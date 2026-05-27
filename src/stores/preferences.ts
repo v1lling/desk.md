@@ -1,5 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import i18next from "i18next";
+
+export type Language = "en" | "de" | "fr";
 
 // Sidebar width constants
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
@@ -15,6 +18,7 @@ export const SECONDARY_SIDEBAR_MAX_WIDTH = 480;
 
 interface PreferencesState {
   theme: "light" | "dark" | "system";
+  language: Language;
   sidebarWidth: number;
   workDayStartHour: number;
   workDayEndHour: number;
@@ -26,6 +30,7 @@ interface PreferencesState {
   /** Version of an update the user explicitly skipped — suppresses the launch toast */
   dismissedUpdateVersion: string | null;
   setTheme: (theme: PreferencesState["theme"]) => void;
+  setLanguage: (language: Language) => void;
   setSidebarWidth: (width: number) => void;
   setWorkDayHours: (start: number, end: number) => void;
   setShowWeekends: (show: boolean) => void;
@@ -37,6 +42,7 @@ interface PreferencesState {
 
 const defaultPreferences = {
   theme: "system" as const,
+  language: "en" as Language,
   sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
   workDayStartHour: 9,
   workDayEndHour: 18,
@@ -51,6 +57,10 @@ export const usePreferencesStore = create<PreferencesState>()(
     (set) => ({
       ...defaultPreferences,
       setTheme: (theme) => set({ theme }),
+      setLanguage: (language) => {
+        set({ language });
+        void i18next.changeLanguage(language);
+      },
       setSidebarWidth: (width) => set({ sidebarWidth: width }),
       setWorkDayHours: (start, end) =>
         set({ workDayStartHour: start, workDayEndHour: end }),
@@ -64,6 +74,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       name: "desk-preferences",
       partialize: (state) => ({
         theme: state.theme,
+        language: state.language,
         sidebarWidth: state.sidebarWidth,
         workDayStartHour: state.workDayStartHour,
         workDayEndHour: state.workDayEndHour,

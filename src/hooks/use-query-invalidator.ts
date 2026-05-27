@@ -158,22 +158,6 @@ async function handleFileChange(
     }
   }
 
-  // Log what's happening
-  if (handledByEditor.size > 0) {
-    console.log(
-      `[query-invalidator] ${handledByEditor.size} path(s) routed to editor(s)`
-    );
-  }
-
-  if (affectedTypes.size > 0) {
-    console.log(
-      `[query-invalidator] File change: ${event.kind}`,
-      `types: [${Array.from(affectedTypes).join(", ")}]`,
-      `workspaces: [${Array.from(affectedWorkspaces).join(", ")}]`,
-      hasCaptureChanges ? "(includes capture)" : ""
-    );
-  }
-
   // Invalidate caches based on what changed (for non-editor paths)
   invalidateQueriesForChanges(
     affectedTypes,
@@ -231,9 +215,6 @@ async function handleOpenFileChange(
     }
 
     // External change → update editor via event bus
-    console.log(
-      `[query-invalidator] External change detected: ${path.split("/").pop()}`
-    );
     publishContentUpdate(path, fileContent); // Publish full file (handler parses it)
 
     // Update lastSavedContent in registry with body (not full file) to maintain consistency
@@ -344,7 +325,6 @@ function invalidateQueriesForChanges(
 
       case "config":
         // Config changed - this is handled by Zustand persist, not TanStack Query
-        console.log("[query-invalidator] Config file changed externally");
         break;
 
       case "unknown":

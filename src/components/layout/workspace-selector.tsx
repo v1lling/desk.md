@@ -8,6 +8,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ interface WorkspaceSelectorProps {
 const DEFAULT_WORKSPACE_COLOR = "#64748b"; // slate-500
 
 export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProps) {
+  const { t } = useTranslation();
   const { data: workspaces = [], isLoading } = useWorkspaces();
   const currentWorkspace = useCurrentWorkspace();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
@@ -56,7 +58,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
           onClick={() => setShowNewWorkspaceModal(true)}
         >
           <Plus className="size-4" />
-          {!isCollapsed && "Create Workspace"}
+          {!isCollapsed && t("nav.workspaceSwitcher.createWorkspace")}
         </Button>
         <NewWorkspaceModal
           open={showNewWorkspaceModal}
@@ -78,7 +80,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                 variant="ghost"
                 size="icon"
                 className="w-full h-11 hover:bg-sidebar-accent rounded-lg transition-all"
-                title={currentWorkspace?.name || "Select Workspace"}
+                title={currentWorkspace?.name || t("nav.workspaceSwitcher.selectWorkspace")}
               >
                 <Circle
                   className="size-5 transition-transform hover:scale-110"
@@ -100,7 +102,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                     fill={fillColor}
                   />
                   <span className="font-medium truncate text-sidebar-foreground">
-                    {currentWorkspace?.name || "Select Workspace"}
+                    {currentWorkspace?.name || t("nav.workspaceSwitcher.selectWorkspace")}
                   </span>
                 </div>
                 <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
@@ -143,7 +145,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
                           setShowEditModal(true);
                         }}
                         className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 transition-colors"
-                        title="Edit workspace"
+                        title={t("nav.workspaceSwitcher.editWorkspace")}
                       >
                         <Pencil className="size-3.5" />
                       </span>
@@ -160,7 +162,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
               onClick={() => setShowNewWorkspaceModal(true)}
             >
               <Plus className="size-3.5" />
-              <span className="font-medium">New Workspace</span>
+              <span className="font-medium">{t("menus.workspaceSwitcher.newWorkspace")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

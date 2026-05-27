@@ -50,10 +50,7 @@ export function TabContent({ children }: TabContentProps) {
               onClose={() => closeTab(tab.id)}
             />
           ) : tab.type === "email" && tab.emailData ? (
-            <EmailViewer
-              email={tab.emailData}
-              onClose={() => closeTab(tab.id)}
-            />
+            <EmailViewer email={tab.emailData} />
           ) : null}
         </div>
       ))}

@@ -15,6 +15,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
+import { useTranslation } from "react-i18next";
 import { taskStatusOrder } from "@/lib/design-tokens";
 import {
   useTasks,
@@ -52,6 +53,7 @@ export function KanbanBoard({
   hiddenStatuses,
   isLoading: externalIsLoading,
 }: KanbanBoardProps) {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
 
@@ -272,7 +274,7 @@ export function KanbanBoard({
   );
 
   if (isLoading) {
-    return <LoadingState label="tasks" />;
+    return <LoadingState label={t("entities.task.pluralLowercase")} />;
   }
 
   return (

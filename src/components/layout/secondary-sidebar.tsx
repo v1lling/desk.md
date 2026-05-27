@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function SecondarySidebar({
   onExpand,
   children,
 }: SecondarySidebarProps) {
+  const { t } = useTranslation();
   if (isCollapsed) {
     return (
       <aside
@@ -35,7 +37,7 @@ export function SecondarySidebar({
             size="icon"
             className="size-7 text-muted-foreground hover:text-foreground"
             onClick={onExpand}
-            title="Expand panel"
+            title={t("nav.secondarySidebar.expandPanel")}
           >
             <PanelLeftOpen className="size-4" />
           </Button>

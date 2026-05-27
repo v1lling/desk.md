@@ -131,6 +131,10 @@ interface DraftEmailMessageInput {
   source?: string;
   body?: string;
   instructions?: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  projectId?: string;
+  projectName?: string;
 }
 
 export function buildDraftEmailUserMessage(input?: DraftEmailMessageInput): string {
@@ -142,6 +146,10 @@ export function buildDraftEmailUserMessage(input?: DraftEmailMessageInput): stri
   const source = input?.source?.trim() || "";
   const body = input?.body?.trim() || "";
   const instructions = input?.instructions?.trim() || "";
+  const workspaceId = input?.workspaceId?.trim() || "";
+  const workspaceName = input?.workspaceName?.trim() || "";
+  const projectId = input?.projectId?.trim() || "";
+  const projectName = input?.projectName?.trim() || "";
 
   const headerLines: string[] = [];
   if (from) headerLines.push(`- From: ${from}`);
@@ -165,6 +173,28 @@ export function buildDraftEmailUserMessage(input?: DraftEmailMessageInput): stri
 
   if (instructions) {
     parts.push("", "Additional instructions:", instructions);
+  }
+
+  if (workspaceId || projectId) {
+    const hintLines: string[] = [];
+    if (workspaceId) {
+      hintLines.push(`- Workspace: ${workspaceName || workspaceId} (id: ${workspaceId})`);
+    }
+    if (projectId) {
+      hintLines.push(`- Project: ${projectName || projectId} (id: ${projectId})`);
+    }
+    const pathHint = workspaceId && projectId
+      ? `workspaces/${workspaceId}/projects/${projectId}/`
+      : workspaceId
+        ? `workspaces/${workspaceId}/`
+        : "";
+    parts.push(
+      "",
+      "Context hints:",
+      ...hintLines,
+      "",
+      `If the workspace or project context above is relevant to drafting this reply, use desk_tree / desk_catalog / desk_read to pull supporting docs, tasks, or meeting notes from \`${pathHint}\` before responding. Skip if not relevant.`,
+    );
   }
 
   if (headerLines.length === 0 && !body) {

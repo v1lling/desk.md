@@ -1,24 +1,39 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, User, Users, Calendar, Bot, ExternalLink, Loader2, ChevronUp, X } from "lucide-react";
+import { Bot, ExternalLink, Loader2, ChevronRight, FolderKanban, Folder } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useAISettingsStore } from "@/stores/ai";
 import { useAssistantStore } from "@/stores/assistant";
 import { useTabStore } from "@/stores/tabs";
+import { useNavigationStore } from "@/stores/navigation";
+import { useWorkspaces } from "@/stores/workspaces";
+import { useProjects } from "@/stores/projects";
 import type { IncomingEmail } from "@/lib/email/types";
 import { formatEmailAddress, formatEmailDate } from "@/lib/email/types";
 
 interface EmailViewerProps {
   email: IncomingEmail;
-  onClose: () => void;
 }
 
-export function EmailViewer({ email, onClose }: EmailViewerProps) {
-  const [showDraft, setShowDraft] = useState(false);
+// Matches MetadataToolbar's chipClass so the context selects sit visually
+// alongside the chips in DocEditor / TaskEditor / MeetingEditor.
+const chipClass =
+  "border-none bg-transparent shadow-none px-1.5 gap-1.5 text-xs font-medium hover:bg-accent/50 rounded-md";
+
+export function EmailViewer({ email }: EmailViewerProps) {
+  const { t } = useTranslation();
   const [instructions, setInstructions] = useState("");
+  const [bodyExpanded, setBodyExpanded] = useState(false);
   const [isLaunchingAssistant, setIsLaunchingAssistant] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,11 +43,41 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
   const navigate = useNavigate();
   const setActiveTab = useTabStore((s) => s.setActiveTab);
 
+  const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
+  const { data: workspaces = [] } = useWorkspaces();
+  const [workspaceId, setWorkspaceId] = useState<string | null>(currentWorkspaceId);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const { data: projects = [] } = useProjects(workspaceId);
+
+  const selectedWorkspace = useMemo(
+    () => workspaces.find((w) => w.id === workspaceId) || null,
+    [workspaces, workspaceId],
+  );
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === projectId) || null,
+    [projects, projectId],
+  );
+
   useEffect(() => {
     setInstructions("");
     setError(null);
-    setShowDraft(false);
+    setBodyExpanded(false);
+    setWorkspaceId(currentWorkspaceId);
+    setProjectId(null);
+    // Reset everything when a different email lands in this tab.
+    // currentWorkspaceId intentionally excluded — picking a workspace
+    // here shouldn't be undone by a background nav store change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
+
+  const handleWorkspaceChange = useCallback((value: string) => {
+    setWorkspaceId(value === "_none" ? null : value);
+    setProjectId(null);
+  }, []);
+
+  const handleProjectChange = useCallback((value: string) => {
+    setProjectId(value === "_none" ? null : value);
+  }, []);
 
   const handleOpenAssistantDraft = useCallback(async () => {
     setIsLaunchingAssistant(true);
@@ -44,6 +89,10 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
       await startEmailDraft({
         email,
         instructions: instructions.trim() || undefined,
+        workspaceId: workspaceId ?? undefined,
+        workspaceName: selectedWorkspace?.name ?? undefined,
+        projectId: projectId ?? undefined,
+        projectName: selectedProject?.name ?? undefined,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -52,160 +101,220 @@ export function EmailViewer({ email, onClose }: EmailViewerProps) {
     } finally {
       setIsLaunchingAssistant(false);
     }
-  }, [email, instructions, navigate, setActiveTab, startEmailDraft]);
+  }, [
+    email,
+    instructions,
+    navigate,
+    setActiveTab,
+    startEmailDraft,
+    workspaceId,
+    selectedWorkspace,
+    projectId,
+    selectedProject,
+  ]);
+
+  const sourceKey = (() => {
+    switch (email.source) {
+      case "apple-mail":
+        return "email.viewer.source.appleMail";
+      case "outlook":
+        return "email.viewer.source.outlook";
+      case "thunderbird":
+        return "email.viewer.source.thunderbird";
+      default:
+        return "email.viewer.source.other";
+    }
+  })();
+  const sourceDisplayName = email.source ? t(sourceKey) : null;
+  const subtitleParts = [
+    formatEmailAddress(email.from),
+    email.date ? formatEmailDate(email.date) : null,
+    sourceDisplayName ? t("email.viewer.viaSource", { source: sourceDisplayName }) : null,
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="shrink-0 border-b px-6 py-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Mail className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold truncate">{email.subject}</h1>
-            <p className="text-sm text-muted-foreground">
-              From external mail client ({email.source})
+      <div className="shrink-0 bg-background">
+        <div className="max-w-4xl mx-auto px-6 py-2">
+          <h1 className="text-xl font-semibold truncate">
+            {email.subject || t("email.viewer.noSubject")}
+          </h1>
+          {subtitleParts.length > 0 && (
+            <p className="text-sm text-muted-foreground truncate mt-0.5">
+              {subtitleParts.join(" · ")}
             </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Close
-          </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="shrink-0">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="h-px bg-border/40 mt-4" />
         </div>
       </div>
 
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-6 space-y-6">
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground">From:</span>
-              <span className="font-medium">{formatEmailAddress(email.from)}</span>
-            </div>
-
-            {email.to && email.to.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">To:</span>
-                <span>{email.to.map(formatEmailAddress).join(", ")}</span>
-              </div>
-            )}
-
-            {email.cc && email.cc.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">CC:</span>
-                <span>{email.cc.map(formatEmailAddress).join(", ")}</span>
-              </div>
-            )}
-
-            {email.date && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">Date:</span>
-                <span>{formatEmailDate(email.date)}</span>
+        <div className="max-w-4xl mx-auto px-6 pt-3 pb-6 space-y-5">
+          <div>
+            <button
+              type="button"
+              onClick={() => setBodyExpanded((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-expanded={bodyExpanded}
+            >
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  bodyExpanded && "rotate-90",
+                )}
+              />
+              {bodyExpanded ? t("email.viewer.hideFull") : t("email.viewer.showFull")}
+            </button>
+            {bodyExpanded && (
+              <div className="mt-3 rounded-lg border bg-card max-h-[40vh] overflow-auto">
+                <div className="p-4 space-y-3">
+                  {(email.to?.length || email.cc?.length) && (
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      {email.to && email.to.length > 0 && (
+                        <div className="truncate">
+                          <span className="font-medium">{t("email.viewer.toLabel")} </span>
+                          {email.to.map(formatEmailAddress).join(", ")}
+                        </div>
+                      )}
+                      {email.cc && email.cc.length > 0 && (
+                        <div className="truncate">
+                          <span className="font-medium">{t("email.viewer.ccLabel")} </span>
+                          {email.cc.map(formatEmailAddress).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                    {email.body}
+                  </pre>
+                </div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Message</h2>
-            <div className="p-4 rounded-lg border bg-card">
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                {email.body}
-              </pre>
+            <label
+              htmlFor="email-instructions"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {t("email.replyHelper.instructionsLabel")}
+            </label>
+            <Textarea
+              id="email-instructions"
+              placeholder={t("email.replyHelper.instructionsPlaceholder")}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              disabled={isLaunchingAssistant}
+              rows={3}
+              className="resize-none min-h-[72px] text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t("email.replyHelper.contextHeading")}
+            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select
+                value={workspaceId ?? "_none"}
+                onValueChange={handleWorkspaceChange}
+                disabled={isLaunchingAssistant}
+              >
+                <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
+                  <Folder className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="truncate">
+                    {selectedWorkspace?.name || t("email.replyHelper.noWorkspace")}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">
+                    <span className="flex items-center gap-2">
+                      <Folder className="h-3 w-3 text-muted-foreground" />
+                      {t("email.replyHelper.noWorkspace")}
+                    </span>
+                  </SelectItem>
+                  {workspaces.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      <span className="flex items-center gap-2">
+                        <Folder className="h-3 w-3 text-muted-foreground" />
+                        {w.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={projectId ?? "_none"}
+                onValueChange={handleProjectChange}
+                disabled={isLaunchingAssistant || !workspaceId}
+              >
+                <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
+                  <FolderKanban className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="truncate">
+                    {selectedProject?.name || t("email.replyHelper.noProject")}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">
+                    <span className="flex items-center gap-2">
+                      <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                      {t("email.replyHelper.noProject")}
+                    </span>
+                  </SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                        {p.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4 border-t">
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant={showDraft ? "secondary" : "default"}
-              onClick={() => setShowDraft(!showDraft)}
+              onClick={handleOpenAssistantDraft}
+              disabled={isLaunchingAssistant || !hasAIProvider}
             >
-              {showDraft ? (
+              {isLaunchingAssistant ? (
                 <>
-                  <ChevronUp className="h-4 w-4 mr-2" />
-                  Hide Draft
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t("email.replyHelper.opening")}
                 </>
               ) : (
                 <>
                   <Bot className="h-4 w-4 mr-2" />
-                  Draft Reply
+                  {t("email.replyHelper.openInAssistant")}
                 </>
               )}
             </Button>
             <Button variant="outline" disabled>
               <ExternalLink className="h-4 w-4 mr-2" />
-              Extract Tasks
-              <span className="ml-2 text-xs text-muted-foreground">(coming soon)</span>
+              {t("email.replyHelper.extractTasks")}
+              <span className="ml-2 text-xs text-muted-foreground">{t("email.replyHelper.comingSoon")}</span>
             </Button>
           </div>
 
-          {showDraft && (
-            <div className="p-4 rounded-lg border bg-muted/20 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <Bot className="h-4 w-4" />
-                  Assistant Draft
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setShowDraft(false)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+          {!hasAIProvider && (
+            <p className="text-xs text-muted-foreground">
+              {t("email.replyHelper.configureProvider")}
+            </p>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="instructions" className="text-xs">Custom instructions (optional)</Label>
-                <Input
-                  id="instructions"
-                  placeholder="e.g., be warm, concise, cite project status from docs..."
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  disabled={isLaunchingAssistant}
-                  className="text-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={handleOpenAssistantDraft}
-                  disabled={isLaunchingAssistant || !hasAIProvider}
-                  size="sm"
-                >
-                  {isLaunchingAssistant ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Opening Assistant...
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="h-4 w-4 mr-2" />
-                      Open Draft in Assistant
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {!hasAIProvider && (
-                <p className="text-xs text-muted-foreground">
-                  Configure an AI provider in Settings to use Assistant drafting.
-                </p>
-              )}
-
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <p className="text-sm text-destructive">Failed to start assistant draft. Check Settings → AI.</p>
-                </div>
-              )}
-
-              <div className="p-3 rounded-md bg-muted/50 text-xs text-muted-foreground">
-                Assistant opens with a prefilled draft request and starts one run automatically. Keep this tab open
-                to reference the original email while refining the reply in Assistant. When ready, copy the final
-                reply from Assistant and paste it into Outlook's Reply or Reply All composer.
-              </div>
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">
+                {t("errors.email.draftStartFailed")}
+              </p>
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
  * Handles: file deleted, file moved, loading, and not-found states.
  * Returns null if none apply (editor should render normally).
  */
+import { useTranslation } from "react-i18next";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Button } from "@/components/ui/button";
 import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
@@ -36,6 +37,19 @@ export function EditorRenderStates({
   isDirty,
   onRecover,
 }: EditorRenderStatesProps) {
+  const { t } = useTranslation();
+
+  // Translated, capitalized entity name used in "<Entity> not found".
+  const entityKeyMap: Record<string, string> = {
+    doc: "editors.shared.entityName.doc",
+    task: "editors.shared.entityName.task",
+    meeting: "editors.shared.entityName.meeting",
+  };
+  const entityName =
+    entityKeyMap[entityLabel] !== undefined
+      ? t(entityKeyMap[entityLabel])
+      : entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1);
+
   if (fileDeleted) {
     return (
       <FileDeletedBanner
@@ -70,9 +84,9 @@ export function EditorRenderStates({
     return (
       <div className="h-full flex items-center justify-center bg-background">
         <div className="text-center text-muted-foreground">
-          <p>{entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} not found</p>
+          <p>{t("editors.shared.entityNotFound", { entity: entityName })}</p>
           <Button variant="ghost" onClick={onClose} className="mt-2">
-            Close tab
+            {t("editors.shared.closeTab")}
           </Button>
         </div>
       </div>

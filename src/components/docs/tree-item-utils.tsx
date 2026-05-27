@@ -1,4 +1,6 @@
 import { type ReactNode } from "react";
+import i18next from "i18next";
+import { formatLocaleDate } from "@/lib/i18n/format";
 import {
   FileText,
   File,
@@ -43,11 +45,11 @@ export function formatRelativeDate(dateStr: string | undefined): string {
 
   // Same year: "Jan 15"
   if (date.getFullYear() === now.getFullYear()) {
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return formatLocaleDate(date, { month: "short", day: "numeric" });
   }
 
   // Different year: "Jan 2024"
-  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return formatLocaleDate(date, { month: "short", year: "numeric" });
 }
 
 // ── Sorting ─────────────────────────────────────────────────────────
@@ -121,21 +123,21 @@ export async function revealInFinder(path: string) {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("reveal_in_finder", { path });
     } else {
-      toast.error("Cannot reveal files in browser mode");
+      toast.error(i18next.t("errors.doc.cannotRevealBrowser"));
     }
   } catch (error) {
     console.error("Failed to reveal in Finder:", error);
-    toast.error("Could not reveal in Finder");
+    toast.error(i18next.t("errors.doc.revealFailed"));
   }
 }
 
 export async function copyPath(path: string) {
   try {
     await navigator.clipboard.writeText(path);
-    toast.success("Path copied to clipboard");
+    toast.success(i18next.t("toasts.doc.pathCopied"));
   } catch (error) {
     console.error("Failed to copy path:", error);
-    toast.error("Could not copy path");
+    toast.error(i18next.t("errors.doc.copyPathFailed"));
   }
 }
 
@@ -145,11 +147,11 @@ export async function openWithDefaultApp(filePath: string) {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("open_file_with_default_app", { path: filePath });
     } else {
-      toast.error("Cannot open files in browser mode");
+      toast.error(i18next.t("errors.doc.cannotOpenBrowser"));
     }
   } catch (error) {
     console.error("Failed to open file:", error);
-    toast.error("Could not open file");
+    toast.error(i18next.t("errors.doc.openFailed"));
   }
 }
 
@@ -230,14 +232,14 @@ export function buildFolderMenuItems(opts: {
   if (opts.onNewDocInFolder) {
     items.push({
       icon: <FileText className="size-4 mr-2" />,
-      label: "New Doc",
+      label: i18next.t("menus.folderContextMenu.newDoc"),
       onClick: () => opts.onNewDocInFolder!(opts.folderPath),
     });
   }
   if (opts.onNewSubfolder) {
     items.push({
       icon: <FolderPlus className="size-4 mr-2" />,
-      label: "New Subfolder",
+      label: i18next.t("menus.folderContextMenu.newSubfolder"),
       onClick: () => opts.onNewSubfolder!(opts.folderPath),
     });
   }
@@ -246,8 +248,8 @@ export function buildFolderMenuItems(opts: {
   }
   if (opts.hasBasePath) {
     items.push(
-      { icon: <FolderSearch className="size-4 mr-2" />, label: "Reveal in Finder", onClick: () => revealInFinder(opts.fullFolderPath) },
-      { icon: <Copy className="size-4 mr-2" />, label: "Copy Path", onClick: () => copyPath(opts.fullFolderPath) },
+      { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.fullFolderPath) },
+      { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.fullFolderPath) },
       "separator"
     );
   }
@@ -256,21 +258,23 @@ export function buildFolderMenuItems(opts: {
       icon: opts.isAIIncluded
         ? <SparklesOff className="size-4 mr-2" />
         : <Sparkles className="size-4 mr-2" />,
-      label: opts.isAIIncluded ? "Exclude from AI" : "Include in AI",
+      label: opts.isAIIncluded
+        ? i18next.t("menus.folderContextMenu.excludeFromAI")
+        : i18next.t("menus.folderContextMenu.includeInAI"),
       onClick: () => opts.onToggleFolderAI!(opts.folderPath, opts.isAIIncluded),
     });
   }
   if (opts.onRenameFolder) {
     items.push({
       icon: <Pencil className="size-4 mr-2" />,
-      label: "Rename",
+      label: i18next.t("common.buttons.rename"),
       onClick: () => opts.onRenameFolder!(opts.folderPath),
     });
   }
   if (opts.onDeleteFolder) {
     items.push({
       icon: <Trash2 className="size-4 mr-2" />,
-      label: "Delete",
+      label: i18next.t("common.buttons.delete"),
       onClick: () => opts.onDeleteFolder!(opts.folderPath),
       destructive: true,
     });
@@ -285,14 +289,14 @@ export function buildAssetMenuItems(opts: {
   onDeleteAsset?: () => void;
 }): MenuItem[] {
   const items: MenuItem[] = [
-    { icon: <ExternalLink className="size-4 mr-2" />, label: "Open in Default App", onClick: opts.onOpenExternal },
-    { icon: <FolderSearch className="size-4 mr-2" />, label: "Reveal in Finder", onClick: () => revealInFinder(opts.filePath) },
-    { icon: <Copy className="size-4 mr-2" />, label: "Copy Path", onClick: () => copyPath(opts.filePath) },
+    { icon: <ExternalLink className="size-4 mr-2" />, label: i18next.t("menus.assetContextMenu.openInDefaultApp"), onClick: opts.onOpenExternal },
+    { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
+    { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
   ];
   if (opts.onDeleteAsset) {
     items.push("separator", {
       icon: <Trash2 className="size-4 mr-2" />,
-      label: "Delete",
+      label: i18next.t("common.buttons.delete"),
       onClick: opts.onDeleteAsset,
       destructive: true,
     });
@@ -315,7 +319,7 @@ export function buildDocMenuItems(opts: {
   if (opts.onRenameDoc) {
     items.push({
       icon: <Pencil className="size-4 mr-2" />,
-      label: "Rename",
+      label: i18next.t("common.buttons.rename"),
       onClick: opts.onRenameDoc,
     });
   }
@@ -325,7 +329,7 @@ export function buildDocMenuItems(opts: {
     if (opts.docFolderPath) {
       submenuItems.push({
         icon: <Folder className="size-4 mr-2" />,
-        label: "Root",
+        label: i18next.t("menus.docContextMenu.moveToRoot"),
         onClick: () => opts.onMoveToFolder!(""),
       });
     }
@@ -338,21 +342,21 @@ export function buildDocMenuItems(opts: {
     }
     items.push({
       icon: <FolderInput className="size-4 mr-2" />,
-      label: "Move to...",
+      label: i18next.t("menus.docContextMenu.moveTo"),
       onClick: () => {},
       submenu: submenuItems,
     });
   }
 
   items.push(
-    { icon: <FolderSearch className="size-4 mr-2" />, label: "Reveal in Finder", onClick: () => revealInFinder(opts.filePath) },
-    { icon: <Copy className="size-4 mr-2" />, label: "Copy Path", onClick: () => copyPath(opts.filePath) },
+    { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
+    { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
   );
 
   if (opts.onDeleteDoc) {
     items.push("separator", {
       icon: <Trash2 className="size-4 mr-2" />,
-      label: "Delete",
+      label: i18next.t("common.buttons.delete"),
       onClick: opts.onDeleteDoc,
       destructive: true,
     });

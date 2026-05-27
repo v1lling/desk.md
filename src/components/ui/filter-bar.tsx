@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,9 @@ export function FilterBar({
   rightElement,
   density = "regular",
 }: FilterBarProps) {
+  const { t } = useTranslation();
   const rowHeight = densityClasses[density].section;
+  const defaultAllLabel = t("common.buttons.all");
 
   return (
     <div className={cn("px-4 py-2 border-b border-border/80 flex items-center gap-3 flex-wrap", rowHeight, className)}>
@@ -49,10 +52,10 @@ export function FilterBar({
           <span className="text-xs text-muted-foreground">{filter.label}:</span>
           <Select value={filter.value} onValueChange={filter.onChange}>
             <SelectTrigger size="xs" className={cn("text-xs", filter.width || "w-[160px]")}>
-              <SelectValue placeholder={filter.allLabel || "All"} />
+              <SelectValue placeholder={filter.allLabel || defaultAllLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{filter.allLabel || "All"}</SelectItem>
+              <SelectItem value="all">{filter.allLabel || defaultAllLabel}</SelectItem>
               {filter.options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}

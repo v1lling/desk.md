@@ -7,6 +7,8 @@ use tauri_plugin_fs::FsExt;
 pub mod app_config;
 pub mod desk_commands;
 mod desk_tools;
+#[cfg(target_os = "macos")]
+mod drop_view;
 mod secrets;
 
 // Flag to track if close has been confirmed by frontend
@@ -19,6 +21,25 @@ fn confirm_close(window: tauri::Window) {
     window.close().unwrap_or_else(|e| {
         log::error!("Failed to close window: {}", e);
     });
+}
+
+/// Read a user-dropped file as text. The path comes from a Tauri drag-drop
+/// event, which implies user consent — no extra fs-scope check needed.
+#[tauri::command]
+fn read_eml_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+}
+
+/// Delete a temp file that was created from a file-promise drop, after the
+/// frontend has parsed it. Paths originate from our own drop_view code under
+/// `NSTemporaryDirectory()/desk-drops/`, so missing-file is non-fatal.
+#[tauri::command]
+fn delete_dropped_file(path: String) -> Result<(), String> {
+    match std::fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 /// Open a file with the system's default application
@@ -229,13 +250,14 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             confirm_close,
             expand_fs_scope,
             allow_data_path,
+            read_eml_file,
+            delete_dropped_file,
             open_file_with_default_app,
             reveal_in_finder,
             open_in_terminal,
@@ -321,11 +343,19 @@ pub fn run() {
 
             app.set_menu(menu)?;
 
+            #[cfg(target_os = "macos")]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    if let Err(e) = drop_view::install(&window) {
+                        log::error!("Failed to install email drop view: {}", e);
+                    }
+                }
+            }
+
             Ok(())
         })
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "save" {
-                // Forward save action to frontend
                 if let Some(window) = app.get_webview_window("main") {
                     window.emit("menu-save", ()).unwrap_or_else(|e| {
                         log::error!("Failed to emit menu-save event: {}", e);

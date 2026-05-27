@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import i18next from "i18next";
 
 interface UseEditorProjectMoveOptions<TArgs> {
   /** The entity being edited (must have id, workspaceId, projectId) */
@@ -48,7 +49,7 @@ export function useEditorProjectMove<TArgs>({
         const saved = await save();
         if (!saved) {
           setCurrentProjectId(originalProjectId);
-          toast.error(`Save failed — cannot move ${entityLabel}`);
+          toast.error(i18next.t("toasts.editor.moveProject.saveFailed", { entity: entityLabel }));
           return;
         }
 
@@ -62,7 +63,7 @@ export function useEditorProjectMove<TArgs>({
         setOriginalProjectId(newProjectId);
       } catch {
         setCurrentProjectId(originalProjectId);
-        toast.error(`Failed to move ${entityLabel}`);
+        toast.error(i18next.t("toasts.editor.moveProject.failed", { entity: entityLabel }));
       }
     },
     [entity, originalProjectId, move, acceptPathChange, save, entityLabel, buildMoveArgs]

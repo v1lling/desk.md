@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Doc, Asset } from "@/types";
+import { extractDocs } from "@/lib/desk/content-tree";
 import { PROJECT_TREE_PATH_PREFIX } from "@/lib/desk/tree-path";
 import { TreeItemMenus, TreeItemDropdown } from "../tree-item-menus";
 import {
@@ -76,9 +77,36 @@ interface DocsTreeRowProps {
 
 export function DocsTreeRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
+  if (data.kind === "section-header") return <SectionHeaderRow node={node} style={style} />;
   if (data.kind === "folder") return <FolderRow node={node} style={style} dragHandle={dragHandle} />;
   if (data.kind === "doc") return <DocRow node={node} style={style} dragHandle={dragHandle} />;
   return <AssetRow node={node} style={style} dragHandle={dragHandle} />;
+}
+
+// ── Section header row (synthetic, non-interactive) ───────────────────────────
+
+function SectionHeaderRow({
+  node,
+  style,
+}: {
+  node: NodeApi<ArboristNode>;
+  style: CSSProperties;
+}) {
+  const data = node.data;
+  return (
+    <div
+      style={style}
+      className="flex flex-col justify-end gap-2 h-7 pb-0.5 pointer-events-none select-none"
+    >
+      {data.sectionShowDivider && <div className="h-px bg-border/60" />}
+      <span
+        style={{ paddingLeft: 16 }}
+        className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/45"
+      >
+        {data.name}
+      </span>
+    </div>
+  );
 }
 
 // ── Folder row ────────────────────────────────────────────────────────────────
@@ -107,6 +135,11 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const isAIRoot = isAIDocsRoot(data);
   const isProtected = isAIRoot; // synthetic AI Docs cannot be renamed/deleted/dragged
   const isExcludedFromAI = handlers.folderAIStates.get(data.treePath) === false;
+  // Counts: projects expose a precomputed recursive total (lazy children aren't loaded yet);
+  // everything else has a fully populated subtree from the overview shell, so count inline.
+  const docCount = isProject
+    ? folder.docCount ?? 0
+    : extractDocs([data.node]).length;
   // Folders living inside a project subtree don't support AI inclusion toggling yet.
   // Suppress the menu item entirely instead of showing a stub that explains itself.
   const isInsideProject = data.treePath.startsWith(PROJECT_TREE_PATH_PREFIX);
@@ -168,16 +201,22 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
             >
               {folder.name}
             </span>
-            {isProject && folder.docCount ? (
-              <span className="text-xs text-muted-foreground/60 tabular-nums">{folder.docCount}</span>
-            ) : null}
-            {isExcludedFromAI && !isProject && !isAIRoot && (
-              <SparklesOff className="size-3.5 text-muted-foreground/60" />
-            )}
-            {isAIRoot && <Sparkles className="size-3.5 text-muted-foreground/50 ml-auto" />}
+            <div
+              className={cn(
+                "ml-auto flex items-center gap-1 shrink-0",
+                !isProtected && "group-hover:hidden",
+              )}
+            >
+              {docCount > 0 ? (
+                <span className="text-[11px] text-muted-foreground/40 tabular-nums">{docCount}</span>
+              ) : null}
+              {isExcludedFromAI && !isProject && !isAIRoot && (
+                <SparklesOff className="size-3.5 text-muted-foreground/60" />
+              )}
+              {isAIRoot && <Sparkles className="size-3.5 text-muted-foreground/50" />}
+            </div>
           </>
         )}
-        <div className="ml-auto" />
         {!isProtected && <TreeItemDropdown items={menuItems} />}
       </div>
     </TreeItemMenus>

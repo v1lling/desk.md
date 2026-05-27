@@ -3,6 +3,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CalendarDays, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +17,7 @@ import type { TaskViewMode } from "@/types";
 type PlannerView = "board" | "week";
 
 export default function PlannerPage() {
+  const { t } = useTranslation();
   const [view, setView] = useState<PlannerView>("week");
   const [boardViewMode, setBoardViewMode] = useState<TaskViewMode>("kanban");
   const [filterWorkspace, setFilterWorkspace] = useState("all");
@@ -39,7 +41,7 @@ export default function PlannerPage() {
             onClick={() => setView("week")}
           >
             <CalendarDays className="h-3.5 w-3.5" />
-            Week
+            {t("pages.planner.week")}
           </Button>
           <Button
             variant="ghost"
@@ -53,7 +55,7 @@ export default function PlannerPage() {
             onClick={() => setView("board")}
           >
             <ListChecks className="h-3.5 w-3.5" />
-            All Tasks
+            {t("pages.planner.allTasks")}
           </Button>
         </div>
 
@@ -64,10 +66,10 @@ export default function PlannerPage() {
           <>
             <Select value={filterWorkspace} onValueChange={setFilterWorkspace}>
               <SelectTrigger className="h-7 w-[160px] text-xs">
-                <SelectValue placeholder="All Workspaces" />
+                <SelectValue placeholder={t("pages.planner.allWorkspaces")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Workspaces</SelectItem>
+                <SelectItem value="all">{t("pages.planner.allWorkspaces")}</SelectItem>
                 {workspaces.map((ws) => (
                   <SelectItem key={ws.id} value={ws.id}>
                     <span className="flex items-center gap-1.5">

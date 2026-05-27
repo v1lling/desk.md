@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Sidebar, SecondarySidebar } from "@/components/layout";
 import { SetupWizard } from "@/components/setup";
 import { TabBar, TabContent } from "@/components/tabs";
@@ -19,6 +20,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const { t } = useTranslation();
   const [hydrated, setHydrated] = useState(false);
   const [hasMacTrafficLights, setHasMacTrafficLights] = useState(false);
   const setupCompleted = useBootStore((state) => state.setupCompleted);
@@ -61,7 +63,7 @@ export function AppShell({ children }: AppShellProps) {
   if (!hydrated) {
     return (
       <div className="flex h-screen bg-background items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
       </div>
     );
   }
@@ -101,7 +103,7 @@ export function AppShell({ children }: AppShellProps) {
             <button
               type="button"
               onClick={openGlobalSearch}
-              title="Search (⌘K)"
+              title={t("tooltips.appShell.search")}
               className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors"
             >
               <Search className="h-3.5 w-3.5" />

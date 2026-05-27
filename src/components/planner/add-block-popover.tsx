@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Popover,
   PopoverContent,
@@ -25,6 +26,7 @@ interface AddBlockButtonProps {
 }
 
 export function AddBlockButton({ date, weekOf, blocks = [], compact }: AddBlockButtonProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { data: workspaces = [] } = useWorkspaces();
   const addBlock = usePlannerStore((s) => s.addBlock);
@@ -66,7 +68,7 @@ export function AddBlockButton({ date, weekOf, blocks = [], compact }: AddBlockB
           }
         >
           <Plus className={compact ? "h-3.5 w-3.5" : "h-3 w-3 inline-block mr-0.5"} />
-          {!compact && "Add"}
+          {!compact && t("common.buttons.add")}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-44 p-1" align="start">

@@ -1,2 +1,2 @@
 export * from './types';
-export * from './deep-link';
+export * from './eml-import';

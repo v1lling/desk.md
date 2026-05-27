@@ -5,6 +5,8 @@
  * This is a generic format that any mail client add-in/extension can use.
  */
 
+import { formatLocaleDate } from "@/lib/i18n/format";
+
 export type EmailSource = 'outlook' | 'thunderbird' | 'apple-mail' | 'other';
 
 export interface EmailAddress {
@@ -52,17 +54,12 @@ export function formatEmailAddress(addr: EmailAddress): string {
  */
 export function formatEmailDate(dateStr?: string): string {
   if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatLocaleDate(dateStr, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

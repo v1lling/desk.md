@@ -181,7 +181,14 @@ async function captureBanner(browser, theme, iconB64, fontB64) {
 // ── Window framing ──────────────────────────────────────────────────────────
 
 /** HTML that wraps a raw screenshot in a macOS-style window. */
-function frameHtml(pngB64, w, h, pad) {
+function frameHtml(pngB64, w, h, pad, theme) {
+  // 1px ring against the GitHub page background so the framed window has a
+  // visible edge on both light and dark themes. Pure-black drop shadows
+  // disappear against dark GitHub; the ring carries the separation work there.
+  const ring =
+    theme === "dark"
+      ? "0 0 0 1px rgba(255, 255, 255, 0.30)"
+      : "0 0 0 1px rgba(0, 0, 0, 0.08)";
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     * { margin: 0; box-sizing: border-box; }
     html, body { width: ${w + pad * 2}px; height: ${h + pad * 2}px; background: transparent; }
@@ -189,7 +196,7 @@ function frameHtml(pngB64, w, h, pad) {
     .window {
       position: relative; width: ${w}px; height: ${h}px;
       border-radius: 20px; overflow: hidden;
-      box-shadow: 0 24px 70px -16px rgba(0,0,0,0.35), 0 8px 24px -8px rgba(0,0,0,0.22);
+      box-shadow: ${ring}, 0 24px 70px -16px rgba(0,0,0,0.35), 0 8px 24px -8px rgba(0,0,0,0.22);
     }
     .window img { display: block; width: ${w}px; height: ${h}px; }
     /* Traffic-light dots, overlaid in the app's (empty) title-bar strip. */
@@ -211,7 +218,7 @@ function frameHtml(pngB64, w, h, pad) {
 }
 
 /** Composite a raw screenshot into a framed macOS window; write it to `outPath`. */
-async function frameWindow(browser, rawBuffer, outPath) {
+async function frameWindow(browser, rawBuffer, outPath, theme) {
   const w = VIEWPORT.width * 2; // raw image is captured at deviceScaleFactor 2
   const h = VIEWPORT.height * 2;
   const pad = 110; // transparent margin for the drop shadow
@@ -220,7 +227,7 @@ async function frameWindow(browser, rawBuffer, outPath) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
-  await page.setContent(frameHtml(rawBuffer.toString("base64"), w, h, pad), {
+  await page.setContent(frameHtml(rawBuffer.toString("base64"), w, h, pad, theme), {
     waitUntil: "load",
   });
   await page.screenshot({ path: outPath, omitBackground: true });
@@ -250,7 +257,7 @@ async function capturePages(browser, theme) {
     await context.close();
 
     // Second pass: wrap the raw shot in a macOS window frame.
-    await frameWindow(browser, raw, path.join(OUT_DIR, `${shot.name}-${theme}.png`));
+    await frameWindow(browser, raw, path.join(OUT_DIR, `${shot.name}-${theme}.png`), theme);
     console.log(`  ✓ ${shot.name}-${theme}.png`);
   }
 }

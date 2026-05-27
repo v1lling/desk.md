@@ -1,6 +1,9 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./app/globals.css";
+// i18n init runs as a side-effect on import — must precede modules that read
+// translations at module-eval time (e.g. src/lib/design-tokens.ts).
+import "./i18n";
 import { Buffer as BufferPolyfill } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

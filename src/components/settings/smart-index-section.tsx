@@ -23,6 +23,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useContextStore } from "@/stores/context";
 import { useContextIndexStore } from "@/stores/context-index";
 import { useAISettingsStore } from "@/stores/ai";
@@ -40,11 +41,10 @@ import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/t
 import { formatRelativeTime } from "./context-tab-utils";
 
 export function SmartIndexSection() {
+  const { t } = useTranslation();
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
-    generateAgentFiles,
-    setGenerateAgentFiles,
     summaryDetail,
     setSummaryDetail,
   } = useContextStore();
@@ -110,13 +110,18 @@ export function SmartIndexSection() {
 
       if (accumulatedResult) {
         setIndexResult(accumulatedResult);
-        toast.success(`Index built: ${accumulatedResult.totalFiles} files across ${workspaces.length} workspaces`);
+        toast.success(
+          t("toasts.settings.indexBuilt", {
+            files: accumulatedResult.totalFiles,
+            workspaces: workspaces.length,
+          }),
+        );
         // Refresh top-level agent files
         writeTopLevelAgentFiles(workspaces).catch(() => {});
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Index build failed: ${message}`);
+      toast.error(t("errors.settings.indexBuildFailed", { message }));
     } finally {
       setIsBuilding(false);
       setIndexProgress(null);
@@ -134,43 +139,20 @@ export function SmartIndexSection() {
       await deleteGeneratedAgentFiles(workspaces);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Index cleared, but some agent files could not be removed: ${message}`);
+      toast.error(t("errors.settings.catalogClearedPartial", { message }));
       setShowClearConfirm(false);
       return;
     }
-    toast.success("Catalog cleared");
+    toast.success(t("toasts.settings.catalogCleared"));
     setShowClearConfirm(false);
-  };
-
-  // Toggling agent files on regenerates them from current state; off deletes them.
-  const handleToggleGenerateAgentFiles = async (enabled: boolean) => {
-    setGenerateAgentFiles(enabled);
-    try {
-      if (enabled) {
-        for (const workspace of workspaces) {
-          const projects = await getProjects(workspace.id);
-          await writePerWorkspaceAgentFiles(workspace.id, workspace, projects);
-          const index = indexes[workspace.id];
-          if (index) await writeWorkspaceContextArtifact(index);
-        }
-        await writeTopLevelAgentFiles(workspaces);
-        toast.success("Agent files enabled");
-      } else {
-        await deleteGeneratedAgentFiles(workspaces);
-        toast.success("Agent files removed from your data folder");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Could not update agent files: ${message}`);
-    }
   };
 
   return (
     <>
       <SettingsSection
         icon={<Database className="h-4 w-4" />}
-        title="Catalog Status"
-        description="Index stats, errors, and build controls"
+        title={t("settings.smartIndex.status.title")}
+        description={t("settings.smartIndex.status.description")}
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -178,14 +160,14 @@ export function SmartIndexSection() {
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-2xl font-semibold">{totalIndexFiles}</p>
-                <p className="text-xs text-muted-foreground">Files indexed</p>
+                <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.filesIndexed")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-lg border p-3">
               <Clock className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">{formatRelativeTime(lastBuiltAt)}</p>
-                <p className="text-xs text-muted-foreground">Last built</p>
+                <p className="text-sm font-medium">{formatRelativeTime(lastBuiltAt, t)}</p>
+                <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.lastBuilt")}</p>
               </div>
             </div>
           </div>
@@ -202,7 +184,7 @@ export function SmartIndexSection() {
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Rebuild Catalog
+                {t("settings.smartIndex.actions.rebuild")}
               </Button>
               <Button
                 variant="outline"
@@ -210,19 +192,22 @@ export function SmartIndexSection() {
                 disabled={isBuilding}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Clear Catalog
+                {t("settings.smartIndex.actions.clear")}
               </Button>
             </div>
 
             {indexProgress && indexProgress.phase === "summarizing" && (
               <div className="text-sm text-muted-foreground">
-                Summarizing {indexProgress.currentWorkspace}...{" "}
-                {indexProgress.processed}/{indexProgress.total} files
+                {t("settings.smartIndex.progress.summarizing", {
+                  workspace: indexProgress.currentWorkspace,
+                  processed: indexProgress.processed,
+                  total: indexProgress.total,
+                })}
               </div>
             )}
             {indexProgress && indexProgress.phase === "collecting" && (
               <div className="text-sm text-muted-foreground">
-                Collecting files...
+                {t("settings.smartIndex.progress.collecting")}
               </div>
             )}
 
@@ -231,7 +216,7 @@ export function SmartIndexSection() {
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                   <span className="text-sm font-medium text-destructive">
-                    Errors ({indexResult.errors.length})
+                    {t("settings.smartIndex.errors.title", { count: indexResult.errors.length })}
                   </span>
                 </div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
@@ -246,23 +231,23 @@ export function SmartIndexSection() {
 
             {indexResult && indexResult.errors.length === 0 && (
               <div className="text-sm text-muted-foreground">
-                {indexResult.summarized} summarized, {indexResult.reused} reused
-                {indexResult.excluded > 0 && `, ${indexResult.excluded} excluded`}
+                {indexResult.excluded > 0
+                  ? t("settings.smartIndex.results.successWithExcluded", {
+                      summarized: indexResult.summarized,
+                      reused: indexResult.reused,
+                      excluded: indexResult.excluded,
+                    })
+                  : t("settings.smartIndex.results.success", {
+                      summarized: indexResult.summarized,
+                      reused: indexResult.reused,
+                    })}
               </div>
             )}
 
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
-              <p>
-                One catalog, two readers: the in-app assistant queries this index
-                directly, and — when <span className="text-foreground">Generate agent files</span> is
-                on — the same catalog is written as Markdown so external agents
-                (Claude Code, Codex, Gemini CLI) can read it with no setup.
-              </p>
+              <p>{t("settings.smartIndex.info.oneCatalog")}</p>
               {!aiKeyConfigured && (
-                <p>
-                  No AI provider configured — summaries use plain text previews.
-                  Add a key in Settings → AI for AI-generated summaries.
-                </p>
+                <p>{t("settings.smartIndex.info.noProvider")}</p>
               )}
             </div>
           </div>
@@ -271,36 +256,39 @@ export function SmartIndexSection() {
 
       <SettingsSection
         icon={<SlidersHorizontal className="h-4 w-4" />}
-        title="Catalog Settings"
-        description="When summaries refresh and what's shared with external agents"
+        title={t("settings.smartIndex.config.title")}
+        description={t("settings.smartIndex.config.description")}
       >
         <div className="flex items-center justify-between py-3">
           <div className="space-y-0.5">
-            <Label>Auto-summarize on save</Label>
+            <Label>{t("settings.smartIndex.autoSummarize.label")}</Label>
             <p className="text-sm text-muted-foreground">
-              Keep summaries fresh as you edit, and add new files to the catalog on first save.
+              {t("settings.smartIndex.autoSummarize.description")}
             </p>
           </div>
           <Switch
             checked={autoSummarizeOnSave}
             onCheckedChange={(checked) => {
               setAutoSummarizeOnSave(checked);
-              toast.success(checked ? "Auto-summarize enabled" : "Auto-summarize disabled");
+              toast.success(
+                checked
+                  ? t("toasts.settings.autoSummarizeEnabled")
+                  : t("toasts.settings.autoSummarizeDisabled"),
+              );
             }}
           />
         </div>
         {autoSummarizeOnSave && aiKeyConfigured && (
           <p className="pb-3 text-xs text-amber-600 dark:text-amber-400">
-            ~5 seconds after your last save, each file whose body actually changed is
-            re-summarized (one API call per file). Metadata-only saves don't trigger a call.
+            {t("settings.smartIndex.autoSummarize.activeWarning")}
           </p>
         )}
 
         <div className="flex items-center justify-between py-3 border-t border-border/40">
           <div className="space-y-0.5 pr-4">
-            <Label>Summary detail level</Label>
+            <Label>{t("settings.smartIndex.detail.label")}</Label>
             <p className="text-sm text-muted-foreground">
-              How much of each file is sent for summarization. Higher = better summaries, more tokens.
+              {t("settings.smartIndex.detail.description")}
             </p>
           </div>
           <Select
@@ -311,37 +299,21 @@ export function SmartIndexSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="brief">Brief (~125 tok)</SelectItem>
-              <SelectItem value="standard">Standard (~500 tok)</SelectItem>
-              <SelectItem value="detailed">Detailed (~1250 tok)</SelectItem>
+              <SelectItem value="brief">{t("settings.smartIndex.detail.options.brief")}</SelectItem>
+              <SelectItem value="standard">{t("settings.smartIndex.detail.options.standard")}</SelectItem>
+              <SelectItem value="detailed">{t("settings.smartIndex.detail.options.detailed")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-border/40">
-          <div className="space-y-0.5 pr-4">
-            <Label>Generate agent files</Label>
-            <p className="text-sm text-muted-foreground">
-              Write <code className="text-xs">CLAUDE.md</code>,{" "}
-              <code className="text-xs">AGENTS.md</code>,{" "}
-              <code className="text-xs">GEMINI.md</code>, and{" "}
-              <code className="text-xs">WORKSPACE_CONTEXT.md</code> into your data
-              folder for external agents. Turning this off deletes them.
-            </p>
-          </div>
-          <Switch
-            checked={generateAgentFiles}
-            onCheckedChange={handleToggleGenerateAgentFiles}
-          />
-        </div>
       </SettingsSection>
 
       <ConfirmDialog
         open={showClearConfirm}
         onOpenChange={setShowClearConfirm}
-        title="Clear Catalog"
-        description="This empties the file index used by the in-app assistant and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone."
-        confirmLabel="Clear Catalog"
+        title={t("settings.smartIndex.clearDialog.title")}
+        description={t("settings.smartIndex.clearDialog.description")}
+        confirmLabel={t("settings.smartIndex.clearDialog.confirmLabel")}
         variant="destructive"
         onConfirm={handleClearCatalog}
       />

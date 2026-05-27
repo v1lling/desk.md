@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { workspaceColorOptions } from "@/lib/design-tokens";
 
 interface ColorPickerProps {
@@ -7,6 +8,7 @@ interface ColorPickerProps {
 }
 
 export function ColorPicker({ value, onChange }: ColorPickerProps) {
+  const { t } = useTranslation();
   const nativeInputRef = useRef<HTMLInputElement>(null);
 
   const isPreset = workspaceColorOptions.some((opt) => opt.value === value);
@@ -38,7 +40,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             : "border-muted-foreground/30 hover:scale-105"
         }`}
         style={!isPreset ? { backgroundColor: value } : undefined}
-        title="Custom color"
+        title={t("ui.colorPicker.customColor")}
       >
         {isPreset && (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-muted-foreground">

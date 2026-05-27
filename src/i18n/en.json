@@ -1,0 +1,1276 @@
+{
+  "common": {
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "confirm": "Confirm",
+      "close": "Close",
+      "back": "Back",
+      "continue": "Continue",
+      "retry": "Retry",
+      "dontSave": "Don't Save",
+      "open": "Open",
+      "create": "Create",
+      "edit": "Edit",
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "remove": "Remove",
+      "add": "Add",
+      "search": "Search",
+      "all": "All",
+      "more": "More",
+      "loading": "Loading…",
+      "tryAgain": "Try Again",
+      "reloadPage": "Reload Page"
+    }
+  },
+  "nav": {
+    "sidebar": {
+      "search": "Search",
+      "dashboard": "Dashboard",
+      "planner": "Planner",
+      "tasks": "Tasks",
+      "docs": "Docs",
+      "meetings": "Meetings",
+      "projects": "Projects",
+      "assistant": "Assistant",
+      "settings": "Settings",
+      "desk": "Desk",
+      "workspaceViews": "Workspace Views"
+    },
+    "secondarySidebar": {
+      "expandPanel": "Expand panel"
+    },
+    "workspaceSwitcher": {
+      "createWorkspace": "Create Workspace",
+      "selectWorkspace": "Select Workspace",
+      "editWorkspace": "Edit workspace"
+    }
+  },
+  "pages": {
+    "dashboard": {
+      "focus": {
+        "title": "Focus",
+        "highlightedCount_one": "{{count}} highlighted",
+        "highlightedCount_other": "{{count}} highlighted",
+        "loadingLabel": "tasks",
+        "emptyTitle": "No highlighted tasks",
+        "emptyDescription": "Right-click a task on the board and choose \"Highlight for focus\"."
+      },
+      "workspaces": {
+        "title": "Workspaces",
+        "loadingLabel": "workspaces",
+        "emptyTitle": "No workspaces yet"
+      },
+      "capture": {
+        "title": "Capture",
+        "defaultHomeName": "Home",
+        "toTriageCount_one": "{{count}} to triage",
+        "toTriageCount_other": "{{count}} to triage",
+        "quickAddPlaceholder": "Quick capture...",
+        "loadingLabel": "tasks",
+        "emptyTitle": "Capture tasks quickly, triage later",
+        "triageButton": "Triage",
+        "moveToHomeTasks": "Move to {{home}} Tasks",
+        "noWorkspacesYet": "No workspaces yet",
+        "unassigned": "Unassigned"
+      }
+    },
+    "tasks": {
+      "kanban": {
+        "noTasks": "No tasks"
+      },
+      "list": {
+        "dueLabel": "Due: {{date}}"
+      },
+      "visibility": {
+        "show": "Show {{label}}",
+        "hide": "Hide {{label}}"
+      },
+      "newTask": "New Task",
+      "noProject": "No project",
+      "countLabel": "tasks",
+      "filters": {
+        "projectLabel": "Project",
+        "priorityLabel": "Priority",
+        "allProjects": "All projects",
+        "allPriorities": "All priorities"
+      }
+    },
+    "docs": {
+      "dropZone": {
+        "title": "Drop files to import",
+        "subtitle": "Any file type supported"
+      },
+      "tree": {
+        "searchPlaceholder": "Search docs…",
+        "fileCount_one": "{{count}} file",
+        "fileCount_other": "{{count}} files",
+        "sections": {
+          "workspace": "Workspace",
+          "projects": "Projects"
+        },
+        "sort": {
+          "title": "Sort",
+          "name": "Name",
+          "nameAsc": "A-Z",
+          "nameDesc": "Z-A",
+          "created": "Created",
+          "modified": "Modified",
+          "newest": "newest",
+          "oldest": "oldest"
+        },
+        "actions": {
+          "newFolder": "New Folder",
+          "newDoc": "New Doc",
+          "importFiles": "Import Files",
+          "openInFinder": "Open in Finder"
+        },
+        "newFolderDialog": {
+          "title": "New Folder",
+          "description": "Create a new folder",
+          "placeholder": "Folder name",
+          "creatingIn": "Creating in: {{path}}"
+        }
+      },
+      "selectWorkspaceTitle": "Select a workspace",
+      "selectWorkspaceDescription": "Choose a workspace in the sidebar to view docs.",
+      "selectDocTitle": "Select a doc",
+      "selectDocDescription": "Pick a doc from the list to open it."
+    },
+    "meetings": {
+      "latestBadge": "Latest",
+      "tree": {
+        "searchPlaceholder": "Search…",
+        "meetingCount_one": "{{count}} meeting",
+        "meetingCount_other": "{{count}} meetings",
+        "emptyAll": "No meetings yet.",
+        "emptyMatching": "No matching meetings.",
+        "sort": {
+          "title": "Sort",
+          "newestFirst": "Newest first",
+          "oldestFirst": "Oldest first"
+        },
+        "actions": {
+          "newMeeting": "New Meeting"
+        },
+        "filter": {
+          "allProjects": "All projects",
+          "noProject": "No project"
+        }
+      },
+      "selectWorkspaceTitle": "Select a workspace",
+      "selectWorkspaceDescription": "Choose a workspace in the sidebar to view meetings.",
+      "noMeetingsTitle": "No meetings yet",
+      "noMeetingsDescription": "Create one with + New Meeting in the panel.",
+      "selectMeetingTitle": "Select a meeting",
+      "selectMeetingDescription": "Pick a meeting from the list to open it."
+    },
+    "projects": {
+      "overview": {
+        "loading": "Loading project…",
+        "notFoundTitle": "Project not found",
+        "notFoundDescription": "This project may have been deleted or moved.",
+        "createdOn": "Created {{date}}",
+        "tasksHeading": "Tasks",
+        "openHeading": "Open",
+        "progress": "Progress",
+        "noTasksYet": "No tasks yet",
+        "progressSummary": "{{done}} of {{total}} done · {{pct}}%",
+        "renameTitle": "Click to rename",
+        "descriptionPlaceholder": "Add a short description…",
+        "descriptionEditTitle": "Click to edit",
+        "quickLinks": {
+          "tasks": "Tasks",
+          "docs": "Docs",
+          "meetings": "Meetings"
+        }
+      },
+      "tree": {
+        "searchPlaceholder": "Search…",
+        "sortTitle": "Sort",
+        "sortAsc": "Name A–Z",
+        "sortDesc": "Name Z–A",
+        "newProject": "New Project",
+        "allStatuses": "All statuses",
+        "projectCount_one": "{{count}} project",
+        "projectCount_other": "{{count}} projects",
+        "deleteConfirmTitle": "Delete Project",
+        "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This will permanently remove the project and all its tasks, docs, and meetings."
+      },
+      "selectWorkspaceTitle": "Select a workspace",
+      "selectWorkspaceDescription": "Choose a workspace in the sidebar to view projects.",
+      "noProjectsTitle": "No projects yet",
+      "noProjectsDescription": "Create one with + New Project in the panel.",
+      "selectProjectTitle": "Select a project",
+      "selectProjectDescription": "Pick a project from the list to view its overview."
+    },
+    "planner": {
+      "toggle": {
+        "showColumn": "Show {{label}} column",
+        "hideColumn": "Hide {{label}} column"
+      },
+      "taskPicker": {
+        "placeholder": "Add task or note...",
+        "pressEnterAsNote": "Press Enter to add as note",
+        "noAvailableTasks": "No available tasks"
+      },
+      "block": {
+        "addNote": "Add note",
+        "removeBlock": "Remove block",
+        "notePlaceholder": "Type a note...",
+        "moreCount": "+{{count}} more"
+      },
+      "week": "Week",
+      "allTasks": "All Tasks",
+      "allWorkspaces": "All Workspaces"
+    },
+    "assistant": {},
+    "settings": {}
+  },
+  "settings": {
+    "general": {
+      "appearance": {
+        "title": "Appearance",
+        "description": "Customize how Desk looks"
+      },
+      "theme": {
+        "label": "Theme",
+        "description": "Select your preferred color scheme",
+        "options": {
+          "light": "Light",
+          "dark": "Dark",
+          "system": "System"
+        }
+      },
+      "language": {
+        "label": "Language",
+        "description": "Language for the interface",
+        "options": {
+          "en": "English",
+          "de": "Deutsch",
+          "fr": "Français"
+        }
+      },
+      "compactSidebar": {
+        "label": "Compact sidebar",
+        "description": "Show only icons in the sidebar (or drag the edge to resize)"
+      }
+    },
+    "planner": {
+      "title": "Planner",
+      "description": "Configure your weekly planner",
+      "workDayStart": {
+        "label": "Work day start",
+        "description": "When your work day begins"
+      },
+      "workDayEnd": {
+        "label": "Work day end",
+        "description": "When your work day ends"
+      },
+      "showWeekends": {
+        "label": "Show weekends",
+        "description": "Include Saturday and Sunday in the week view"
+      }
+    },
+    "templates": {
+      "title": "Templates",
+      "description": "Define default content for new meetings, docs, and tasks. Set global defaults or customize per workspace.",
+      "scopeLabel": "Scope",
+      "globalDefaults": "Global Defaults",
+      "cardTitle": "{{label}} Template",
+      "usingGlobalDefault": "Using global default.",
+      "customizeForWorkspace": "Customize for this workspace",
+      "placeholder": "Template content (markdown)...",
+      "variablesLabel": "Variables:",
+      "resetToDefault": "Reset to default",
+      "removeOverride": "Remove override",
+      "types": {
+        "meeting": {
+          "label": "Meeting",
+          "description": "Pre-filled content for new meeting notes"
+        },
+        "doc": {
+          "label": "Doc",
+          "description": "Pre-filled content for new documents",
+          "note": "The title heading (# Title) is added automatically."
+        },
+        "task": {
+          "label": "Task",
+          "description": "Pre-filled content for new tasks"
+        }
+      }
+    },
+    "ai": {
+      "provider": {
+        "title": "Provider",
+        "description": "Connect an AI provider. Powers the assistant, drafting, and catalog summaries.",
+        "label": "Provider",
+        "helperText": "AI API backend"
+      },
+      "providers": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic"
+      },
+      "model": {
+        "label": "Model",
+        "helperText": "Default model for provider"
+      },
+      "apiKey": {
+        "label": "API Key ({{provider}})",
+        "placeholderOpenai": "sk-...",
+        "placeholderAnthropic": "sk-ant-...",
+        "showAriaLabel": "Show API key",
+        "hideAriaLabel": "Hide API key",
+        "storedNotice": "Stored in the OS keychain (Keychain / Credential Manager / Secret Service).",
+        "notConfigured": "Provider key not configured."
+      },
+      "browserMode": {
+        "title": "AI is unavailable in browser mode",
+        "descriptionStart": "API keys are only stored in the OS keychain, which Desk can't reach from",
+        "descriptionMiddle": ". Run",
+        "descriptionEnd": " (or the built app) to configure providers and use the assistant."
+      },
+      "keychainError": {
+        "title": "Couldn't read the keychain",
+        "description": "Desk couldn't fetch the stored key. Saving a new one may still work, but existing keys can't be loaded until this clears.",
+        "errorDetails": "Error details"
+      },
+      "errors": {
+        "linuxKeyring": "On Linux, this usually means GNOME Keyring or KWallet isn't running. Start your desktop secret service and try again."
+      },
+      "usage": {
+        "title": "Usage Statistics",
+        "clear": "Clear",
+        "noUsage": "No usage yet",
+        "totalTokens": "Total tokens",
+        "requests": "Requests"
+      },
+      "privacy": {
+        "title": "Data & Privacy",
+        "description": "What Desk sends to your AI provider, and when.",
+        "intro": "AI features send content to the provider selected above (Anthropic or OpenAI) over their API. Desk has no AI server of its own, and nothing is sent until you configure an API key.",
+        "assistantLabel": "Assistant chat & drafting",
+        "assistantBody": ": your messages, the conversation history, and the contents of files the assistant reads to answer you.",
+        "smartIndexLabel": "Smart Index",
+        "smartIndexBody": ": short previews and summaries of your files, sent when you rebuild the catalog or, if Auto-summarize on save is enabled, automatically after a save.",
+        "retention": "Retention is governed by your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
+        "acknowledgement": {
+          "title": "Privacy acknowledgement",
+          "given": "You have acknowledged the AI privacy notice.",
+          "notGiven": "Shown once before your first AI request.",
+          "revoke": "Revoke"
+        }
+      }
+    },
+    "assistant": {
+      "title": "Assistant",
+      "description": "How the in-app assistant chats, drafts, and retrieves context.",
+      "contextNotice": "The assistant doesn't auto-inject context at the start of a turn. It decides when to query the catalog and read files. Manage the catalog itself under Settings → Catalog.",
+      "toolDetails": {
+        "label": "Show tool details in assistant responses",
+        "description": "Display tool arguments, results, and retrieved file details inline."
+      },
+      "customInstructions": {
+        "label": "Custom Instructions",
+        "description": "Always included in prompt generation, for both the assistant and drafting.",
+        "placeholder": "e.g., respond with concise bullet points.",
+        "helperText": "For instructions to external CLI agents (Claude Code, Codex, Gemini CLI) reading your data folder, see Settings → Agents."
+      }
+    },
+    "agents": {
+      "title": "External Agents",
+      "description": "Generate Markdown files alongside your data so external CLI agents understand your work with no setup.",
+      "notice": "These settings apply to <strong>external CLI agents</strong> (Claude Code, Codex, Gemini CLI) reading your data folder directly. For instructions to the <strong>in-app assistant</strong>, see Settings → Assistant.",
+      "emit": {
+        "title": "Emit Files",
+        "description": "Choose which agent files to write into your data folder. Identical content, three filenames.",
+        "claude": "For Claude Code",
+        "agents": "For Codex / OpenAI Agents",
+        "gemini": "For Gemini CLI",
+        "noneEnabled": "No agent files are being emitted. Your instructions below are saved but won't be written to disk until at least one toggle is on."
+      },
+      "global": {
+        "title": "Global Instructions",
+        "description": "Inlined into the top-level agent files. Applies across all workspaces."
+      },
+      "perWorkspace": {
+        "title": "Per-Workspace",
+        "description": "Workspace-specific instructions appended to that workspace's agent files.",
+        "workspaceLabel": "Workspace",
+        "selectPlaceholder": "Select a workspace…",
+        "homeBadge": "(home)",
+        "selectPrompt": "Select a workspace to edit its instructions."
+      },
+      "instructions": {
+        "globalLabel": "Global Instructions",
+        "workspaceLabel": "Workspace Instructions",
+        "globalDescription": "Inlined into the top-level CLAUDE.md / AGENTS.md / GEMINI.md between <code>desk:user-instructions</code> markers on every regen.",
+        "workspaceDescription": "Inlined into this workspace's CLAUDE.md / AGENTS.md / GEMINI.md between <code>desk:user-instructions</code> markers on every regen.",
+        "globalPlaceholder": "e.g., Always reply in German. Use Conventional Commit prefixes when writing files.",
+        "workspacePlaceholder": "e.g., This workspace is for client X. Never reference internal projects in drafts.",
+        "charCount_one": "{{count}} character · saves automatically · written on the next regen.",
+        "charCount_other": "{{count}} characters · saves automatically · written on the next regen."
+      },
+      "preview": {
+        "toggle": "Preview generated CLAUDE.md",
+        "revealInFinder": "Reveal in Finder",
+        "refresh": "Refresh",
+        "errorBrowserMode": "Preview is only available in the desktop app.",
+        "errorFileMissing": "File doesn't exist yet. Toggle CLAUDE.md on, then come back."
+      }
+    },
+    "context": {},
+    "data": {
+      "storage": {
+        "title": "Data Storage",
+        "description": "Where your projects and files are stored",
+        "pathLabel": "Data folder path",
+        "pathPlaceholder": "~/Desk",
+        "change": "Change",
+        "helperText": "All your workspaces, projects, tasks, and notes are stored as markdown files in this folder."
+      },
+      "reset": {
+        "title": "Reset",
+        "description": "Restore defaults and re-run setup. Your data files are kept.",
+        "button": "Reset All Settings",
+        "helperText": "This will reset all settings and show the setup wizard again. Your data files will not be deleted."
+      },
+      "resetDialog": {
+        "title": "Reset All Settings",
+        "description": "Are you sure you want to reset all settings to defaults? This will show the setup wizard again. Your data files will not be deleted.",
+        "confirmLabel": "Reset"
+      },
+      "pathDialog": {
+        "existingTitle": "Existing Data Found",
+        "existingDescription_one": "Found {{count}} workspace at this location.",
+        "existingDescription_other": "Found {{count}} workspaces at this location.",
+        "emptyTitle": "Empty Location",
+        "emptyDescription": "No Desk data found at this path. You'll need to create your first workspace.",
+        "useExisting": "Use Existing Data",
+        "startFresh": "Start Fresh Instead",
+        "continueToSetup": "Continue to Setup"
+      }
+    },
+    "about": {
+      "app": {
+        "title": "Desk",
+        "description": "Project & task management in plain Markdown",
+        "version": "Version",
+        "commit": "Commit",
+        "built": "Built"
+      },
+      "updates": {
+        "title": "Updates",
+        "description": "Check for new versions of Desk",
+        "noUpdates": "No updates available",
+        "onLatest": "You're on the latest version",
+        "check": "Check",
+        "checking": "Checking for updates...",
+        "versionAvailable": "Version {{version}} available",
+        "updateAndRestart": "Update & Restart",
+        "skipThisVersion": "Skip this version",
+        "downloading": "Downloading and installing update...",
+        "checkFailed": "Update check failed"
+      },
+      "links": {
+        "title": "Links",
+        "description": "Open project resources in your browser",
+        "releaseNotes": "Release notes for v{{version}}",
+        "allReleases": "All releases",
+        "viewOnGithub": "View on GitHub",
+        "reportIssue": "Report an issue"
+      },
+      "license": {
+        "title": "License",
+        "description": "Open source under the GNU General Public License",
+        "viewLicense": "View license"
+      }
+    },
+    "nav": {
+      "title": "Settings",
+      "general": "General",
+      "planner": "Planner",
+      "templates": "Templates",
+      "ai": "AI Provider",
+      "assistant": "Assistant",
+      "agents": "Agents",
+      "context": "Catalog",
+      "data": "Data",
+      "about": "About"
+    },
+    "smartIndex": {
+      "status": {
+        "title": "Catalog Status",
+        "description": "Index stats, errors, and build controls",
+        "filesIndexed": "Files indexed",
+        "lastBuilt": "Last built"
+      },
+      "actions": {
+        "rebuild": "Rebuild Catalog",
+        "clear": "Clear Catalog"
+      },
+      "progress": {
+        "summarizing": "Summarizing {{workspace}}... {{processed}}/{{total}} files",
+        "collecting": "Collecting files..."
+      },
+      "errors": {
+        "title_one": "Errors ({{count}})",
+        "title_other": "Errors ({{count}})"
+      },
+      "results": {
+        "success": "{{summarized}} summarized, {{reused}} reused",
+        "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded"
+      },
+      "info": {
+        "oneCatalog": "One catalog, two readers: the in-app assistant queries this index directly. When any agent file is enabled (Settings → Agents) the same catalog is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
+        "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries."
+      },
+      "config": {
+        "title": "Catalog Settings",
+        "description": "When summaries refresh and how much of each file is sent for summarization."
+      },
+      "autoSummarize": {
+        "label": "Auto-summarize on save",
+        "description": "Keep summaries fresh as you edit, and add new files to the catalog on first save.",
+        "activeWarning": "~5 seconds after your last save, each file whose body actually changed is re-summarized (one API call per file). Metadata-only saves don't trigger a call."
+      },
+      "detail": {
+        "label": "Summary detail level",
+        "description": "How much of each file is sent for summarization. Higher = better summaries, more tokens.",
+        "options": {
+          "brief": "Brief (~125 tok)",
+          "standard": "Standard (~500 tok)",
+          "detailed": "Detailed (~1250 tok)"
+        }
+      },
+      "clearDialog": {
+        "title": "Clear Catalog",
+        "description": "This empties the file index used by the in-app assistant and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone.",
+        "confirmLabel": "Clear Catalog"
+      },
+      "relativeTime": {
+        "never": "Never",
+        "justNow": "Just now",
+        "minutesAgo_one": "{{count}} minute ago",
+        "minutesAgo_other": "{{count}} minutes ago",
+        "hoursAgo_one": "{{count}} hour ago",
+        "hoursAgo_other": "{{count}} hours ago",
+        "daysAgo_one": "{{count}} day ago",
+        "daysAgo_other": "{{count}} days ago"
+      }
+    },
+    "systemPrompts": {
+      "title": "System Prompts",
+      "description": "Default prompts the AI receives, plus your own per-type additions.",
+      "viewBaseContext": "View base context (included in all prompts)",
+      "viewDefaultPrompt": "View default prompt",
+      "additionalInstructions": "Additional instructions for {{label}}",
+      "placeholder": "e.g., specific instructions for {{label}}...",
+      "footer": "Per-type instructions are combined with your global custom instructions above.",
+      "purposes": {
+        "chat": {
+          "label": "Assistant",
+          "description": "General assistant interactions in the Assistant tab"
+        },
+        "draft-email": {
+          "label": "Email Draft",
+          "description": "Drafting email replies via Assistant"
+        }
+      }
+    }
+  },
+  "modals": {
+    "newWorkspace": {
+      "title": "New Workspace",
+      "description": "Create a workspace to separate an area of your work, like a client, side project, or anything else",
+      "nameLabel": "Workspace Name",
+      "namePlaceholder": "e.g., Acme Corp, Side Projects, Studies",
+      "folderHint": "Folder: ~/Desk/workspaces/{{folder}}",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of this workspace...",
+      "colorLabel": "Color",
+      "submit": "Create Workspace"
+    },
+    "newProject": {
+      "title": "New Project",
+      "description": "Create a new project in your workspace",
+      "nameLabel": "Project Name",
+      "namePlaceholder": "e.g., Website Redesign",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of the project...",
+      "statusLabel": "Status",
+      "submit": "Create Project"
+    },
+    "newTask": {
+      "title": "New Task",
+      "description": "Create a new task in your workspace",
+      "submit": "Create Task",
+      "fields": {
+        "title": "Title",
+        "project": "Project",
+        "priority": "Priority",
+        "dueDate": "Due Date"
+      },
+      "placeholders": {
+        "title": "What needs to be done?",
+        "noProject": "No project",
+        "priorityNone": "None",
+        "noDueDate": "No due date"
+      }
+    },
+    "newDoc": {
+      "title": "New Doc",
+      "description": "Create a new document in your workspace",
+      "submit": "Create Doc",
+      "creatingIn": "Creating in: {{path}}",
+      "fields": {
+        "title": "Title",
+        "project": "Project"
+      },
+      "placeholders": {
+        "title": "Doc title",
+        "noProject": "No project"
+      }
+    },
+    "newMeeting": {
+      "title": "New Meeting",
+      "description": "Create a new meeting in your workspace",
+      "submit": "Create Meeting",
+      "fields": {
+        "title": "Title",
+        "project": "Project",
+        "date": "Date"
+      },
+      "placeholders": {
+        "title": "Weekly Sync, 1:1, Sprint Planning...",
+        "project": "Select project"
+      }
+    },
+    "triageDetail": {
+      "title": "Task Moved",
+      "priorityLabel": "Priority (optional)",
+      "priorityPlaceholder": "Select priority",
+      "noPriority": "No priority",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add any notes or details...",
+      "skip": "Skip",
+      "saveDetails": "Save Details",
+      "homeTasks": "{{home}} Tasks"
+    },
+    "editWorkspace": {
+      "title": "Edit Workspace",
+      "description": "Edit workspace settings",
+      "nameLabel": "Workspace Name",
+      "namePlaceholder": "e.g., Acme Corp, Side Projects, Studies",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of this workspace...",
+      "colorLabel": "Color",
+      "homeNote": "This is your home workspace. It holds the quick-capture inbox and can't be deleted, but you can rename and recolor it.",
+      "dangerZone": "Danger Zone",
+      "deleteNote": "Permanently delete this workspace and all its projects, tasks, docs, and meetings.",
+      "deleteButton": "Delete Workspace",
+      "deleteConfirmTitle": "Delete Workspace",
+      "deleteConfirmDescription": "This will permanently delete \"{{name}}\" and all its projects, tasks, docs, and meetings. This action cannot be undone."
+    }
+  },
+  "editors": {
+    "doc": {
+      "titlePlaceholder": "Doc title",
+      "contentPlaceholder": "Write your doc in markdown...",
+      "deleteTitle": "Delete Doc",
+      "deleteDescription": "Are you sure you want to delete this doc? This action cannot be undone."
+    },
+    "task": {
+      "titlePlaceholder": "Task title",
+      "contentPlaceholder": "Add notes, details, or checklist items...",
+      "deleteTitle": "Delete Task",
+      "deleteDescription": "Are you sure you want to delete this task? This action cannot be undone."
+    },
+    "meeting": {
+      "titlePlaceholder": "Meeting title",
+      "contentPlaceholder": "Write your meeting notes...",
+      "deleteTitle": "Delete Meeting",
+      "deleteDescription": "Are you sure you want to delete this meeting? This action cannot be undone."
+    },
+    "aiChat": {},
+    "shared": {
+      "untitled": "Untitled",
+      "saveTooltip": "Save (⌘S)",
+      "noChangesTooltip": "No changes to save",
+      "aiIncludedToggle": "Included in AI context (click to exclude)",
+      "aiExcludedToggle": "Excluded from AI context (click to include)",
+      "aiExcludedByFolder": "Excluded by folder: {{path}}",
+      "revealInFinder": "Reveal in Finder",
+      "entityName": {
+        "doc": "Doc",
+        "task": "Task",
+        "meeting": "Meeting"
+      },
+      "entityNotFound": "{{entity}} not found",
+      "closeTab": "Close tab"
+    }
+  },
+  "entities": {
+    "workspace": {
+      "colors": {
+        "blue": "Blue",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "red": "Red",
+        "violet": "Violet",
+        "pink": "Pink",
+        "slate": "Slate"
+      }
+    },
+    "project": {
+      "status": {
+        "active": "Active",
+        "paused": "Paused",
+        "completed": "Completed",
+        "archived": "Archived"
+      }
+    },
+    "task": {
+      "status": {
+        "backlog": "Backlog",
+        "todo": "To Do",
+        "doing": "In Progress",
+        "waiting": "Waiting",
+        "done": "Done"
+      },
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "pluralLowercase": "tasks"
+    },
+    "doc": {},
+    "meeting": {},
+    "email": {
+      "defaultTitle": "Email"
+    },
+    "assistant": {
+      "defaults": {
+        "newConversation": "New Assistant",
+        "emailDraft": "Draft Email Reply",
+        "emailDraftWithSubject": "Draft: {{subject}}"
+      }
+    }
+  },
+  "emptyStates": {
+    "projects": {
+      "noMatches": "No matching projects.",
+      "noProjects": "No projects yet."
+    },
+    "tasks": {
+      "noResults": {
+        "title": "No tasks found"
+      },
+      "noActive": {
+        "title": "No active tasks",
+        "description": "Tasks from all workspaces will appear here"
+      },
+      "inWorkspace": {
+        "title": "No tasks in {{workspace}}",
+        "description": "Tasks assigned to this workspace will appear here"
+      }
+    },
+    "docs": {
+      "none": {
+        "title": "No docs yet",
+        "description": "Create your first doc to get started"
+      }
+    },
+    "meetings": {
+      "none": {
+        "title": "No meetings yet",
+        "description": "Create your first meeting note to get started"
+      }
+    }
+  },
+  "toasts": {
+    "settings": {
+      "themeSet": "Theme set to {{theme}}",
+      "sidebarCollapsed": "Sidebar collapsed",
+      "sidebarExpanded": "Sidebar expanded",
+      "apiKeySaved": "{{provider}} key saved to keychain",
+      "providerSet": "Provider set to {{provider}}",
+      "modelSet": "Model set to {{model}}",
+      "usageCleared": "Usage history cleared",
+      "privacyAcknowledgementReset": "AI privacy acknowledgement reset",
+      "toolDetailsShown": "Tool details will be shown",
+      "toolDetailsHidden": "Tool details hidden",
+      "agentFileEnabled": "{{file}} enabled",
+      "agentFileRemoved": "{{file}} removed",
+      "indexBuilt": "Index built: {{files}} files across {{workspaces}} workspaces",
+      "catalogCleared": "Catalog cleared",
+      "autoSummarizeEnabled": "Auto-summarize enabled",
+      "autoSummarizeDisabled": "Auto-summarize disabled",
+      "settingsReset": "Settings reset to defaults",
+      "dataPathUpdated": "Data path updated",
+      "switchedToPath": "Switched to {{path}} with existing data",
+      "dataPathUpdatedCreateWorkspace": "Data path updated. Create your first workspace.",
+      "dataPathUpdatedWizard": "Data path updated. Setup wizard will guide you."
+    },
+    "workspace": {
+      "create": {
+        "success": "Workspace created",
+        "error": "Failed to create workspace"
+      },
+      "update": {
+        "success": "Workspace updated",
+        "error": "Failed to update workspace"
+      },
+      "delete": {
+        "success": "Workspace \"{{name}}\" deleted",
+        "error": "Failed to delete workspace"
+      }
+    },
+    "project": {
+      "create": {
+        "success": "Project created",
+        "error": "Failed to create project"
+      },
+      "update": {
+        "error": "Failed to update project"
+      },
+      "delete": {
+        "success": "Project deleted",
+        "error": "Failed to delete project"
+      }
+    },
+    "common": {
+      "renamed": "Renamed"
+    },
+    "task": {
+      "created": "Task created"
+    },
+    "doc": {
+      "created": "Doc created",
+      "pathCopied": "Path copied to clipboard",
+      "importDocs_one": "Imported {{count}} doc",
+      "importDocs_other": "Imported {{count}} docs",
+      "importFiles_one": "Imported {{count}} file",
+      "importFiles_other": "Imported {{count}} files",
+      "importMixed": "Imported {{docs}} docs and {{files}} files"
+    },
+    "meeting": {
+      "created": "Meeting created",
+      "deleted": "Meeting deleted"
+    },
+    "folder": {
+      "includedInAI": "\"{{name}}\" included in AI",
+      "excludedFromAI": "\"{{name}}\" excluded from AI"
+    },
+    "editor": {
+      "docDeleted": "Doc deleted",
+      "taskDeleted": "Task deleted",
+      "meetingDeleted": "Meeting deleted",
+      "moveProject": {
+        "saveFailed": "Save failed. Can't move {{entity}}.",
+        "failed": "Failed to move {{entity}}"
+      }
+    },
+    "assistant": {
+      "conversationNotFound": "Conversation not found."
+    },
+    "secrets": {
+      "keychainUnavailable": "Couldn't access the OS keychain. AI features will be off until this is resolved. Open Settings → AI for details."
+    },
+    "link": {
+      "notFound": "Linked note not found"
+    },
+    "ai": {
+      "inclusionUpdateFailed": "Failed to update AI setting"
+    }
+  },
+  "errors": {
+    "startup": {
+      "title": "Desk couldn't start",
+      "description": "Desk failed to set up its data folder. Your files are safe. This is a startup problem, not data loss.",
+      "hint": "Make sure the data folder exists and is readable, then retry."
+    },
+    "generic": {
+      "unexpected": {
+        "title": "Something went wrong",
+        "description": "An unexpected error occurred. You can try again or reload the page."
+      }
+    },
+    "settings": {
+      "apiKeyEmpty": "API key cannot be empty",
+      "apiKeySaveFailed": "Failed to save API key: {{message}}",
+      "apiKeySaveFailedWithHint": "Failed to save API key: {{message}}\n\n{{hint}}",
+      "agentFilesUpdateFailed": "Could not update agent files: {{message}}",
+      "indexBuildFailed": "Index build failed: {{message}}",
+      "catalogClearedPartial": "Index cleared, but some agent files could not be removed: {{message}}"
+    },
+    "setup": {
+      "checkDataFolder": "Couldn't access \"{{path}}\". Check that the folder path is valid and that Desk can write there, then try again.",
+      "createDataFolder": "Setup couldn't create your data folder at \"{{path}}\". Make sure the location exists and Desk has permission to write there, then try again."
+    },
+    "task": {
+      "createFailed": "Failed to create task"
+    },
+    "doc": {
+      "createFailed": "Failed to create doc",
+      "renameFailed": "Failed to rename doc",
+      "deleteFailed": "Failed to delete doc",
+      "deleteFileFailed": "Failed to delete file",
+      "moveFailed": "Failed to move doc",
+      "openFailed": "Could not open file",
+      "revealFailed": "Could not reveal in Finder",
+      "copyPathFailed": "Could not copy path",
+      "cannotRevealBrowser": "Cannot reveal files in browser mode",
+      "cannotOpenBrowser": "Cannot open files in browser mode",
+      "importFailed": "Failed to import files",
+      "reservedName": "\"{{name}}\" is a reserved name.",
+      "crossScopeMove": "Cross-scope moves aren't supported yet. Moves must stay inside the same workspace or project."
+    },
+    "meeting": {
+      "createFailed": "Failed to create meeting",
+      "deleteFailed": "Failed to delete meeting"
+    },
+    "folder": {
+      "createFailed": "Failed to create folder",
+      "renameFailed": "Failed to rename folder",
+      "deleteFailed": "Failed to delete folder",
+      "moveFailed": "Failed to move folder",
+      "reservedName": "\"{{name}}\" is a reserved folder name.",
+      "crossKindMove": "Moving folders between Docs and AI Docs isn't supported yet. Move docs individually."
+    },
+    "editor": {
+      "deleteDocFailed": "Failed to delete doc",
+      "deleteTaskFailed": "Failed to delete task",
+      "deleteMeetingFailed": "Failed to delete meeting"
+    },
+    "email": {
+      "openFailed": "Could not open email",
+      "draftStartFailed": "Failed to start assistant draft. Check Settings → AI."
+    },
+    "update": {
+      "checkFailed": "Update check failed",
+      "installFailed": "Update install failed"
+    }
+  },
+  "assistant": {
+    "conversations": {
+      "heading": "Conversations",
+      "newConversation": "New conversation",
+      "deleteConversation": "Delete conversation",
+      "empty": "No conversations yet"
+    },
+    "input": {
+      "placeholder": "Ask Assistant… (Enter to send, Shift+Enter for newline)",
+      "working": "Working…",
+      "enterToSend": "Enter to send",
+      "send": "Send"
+    },
+    "thinking": "Thinking…",
+    "notConfigured": "Assistant is not configured. Open Settings → AI and add a provider key.",
+    "promptInUse": "Prompt in use ({{mode}}): Effective Prompt",
+    "mode": {
+      "chat": "Assistant",
+      "draftEmail": "Email Draft"
+    },
+    "empty": {
+      "title": "Start with Desk Assistant",
+      "description": "Ask for analysis, context lookup, or task/doc/meeting updates. Assistant will use tools when needed."
+    },
+    "actions": {
+      "draftEmail": "Draft Email"
+    },
+    "toolActivity": {
+      "heading": "Tool Activity",
+      "showLess": "Show less",
+      "showMore_one": "Show {{count}} more",
+      "showMore_other": "Show {{count}} more",
+      "details": "Details",
+      "arguments": "Arguments",
+      "result": "Result"
+    },
+    "tools": {
+      "deskTree": "Browse workspace",
+      "deskCatalog": "Browse catalog",
+      "deskRead": "Read file",
+      "deskSearch": "Search files",
+      "deskWorkspaceInfo": "Get workspace info",
+      "deskCreateTask": "Create task",
+      "deskUpdateTask": "Update task",
+      "deskCreateMeeting": "Create meeting",
+      "deskUpdateMeeting": "Update meeting",
+      "deskCreateDoc": "Create document",
+      "deskUpdateDoc": "Update document",
+      "webSearch": "Web search"
+    },
+    "sources": {
+      "label": "Sources:",
+      "fileLabel": "File:",
+      "openTitle": "Open {{title}}",
+      "openTitleWithWorkspace": "Open {{title}} ({{workspace}})"
+    },
+    "consent": {
+      "title": "Before you use AI features",
+      "description": "Desk's AI features send content to the provider you chose (Anthropic or OpenAI) over their API. Desk runs no AI server of its own.",
+      "whatHeading": "What gets sent",
+      "whatItems": {
+        "messages": "Messages you type to the assistant, plus the conversation history.",
+        "previews": "Short previews and summaries of your files for the Smart Index catalog.",
+        "fileContents": "The contents of files the assistant reads to answer you."
+      },
+      "whenHeading": "When",
+      "whenBody": "Only when you use an AI feature. With <strong>Auto-summarize on save</strong> enabled, short file previews are also sent automatically after you edit a file.",
+      "retentionHeading": "Retention",
+      "retentionBody": "Handled under your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
+      "footer": "Nothing is sent if you have not configured an API key. You can review this anytime in Settings → AI.",
+      "accept": "I Understand & Continue"
+    }
+  },
+  "email": {
+    "dropOverlay": {
+      "title": "Drop email to open in Desk",
+      "subtitle": "Apple Mail · Outlook · Thunderbird"
+    },
+    "viewer": {
+      "noSubject": "(no subject)",
+      "showFull": "Show full email",
+      "hideFull": "Hide full email",
+      "toLabel": "To:",
+      "ccLabel": "CC:",
+      "viaSource": "via {{source}}",
+      "source": {
+        "appleMail": "Apple Mail",
+        "outlook": "Outlook",
+        "thunderbird": "Thunderbird",
+        "other": "Mail"
+      }
+    },
+    "replyHelper": {
+      "instructionsLabel": "Instructions (optional)",
+      "instructionsPlaceholder": "e.g., be warm, concise, cite project status from docs...",
+      "contextHeading": "Context for assistant",
+      "noWorkspace": "No workspace",
+      "noProject": "No project",
+      "opening": "Opening Assistant...",
+      "openInAssistant": "Open Draft in Assistant",
+      "extractTasks": "Extract Tasks",
+      "comingSoon": "(coming soon)",
+      "configureProvider": "Configure an AI provider in Settings to use Assistant drafting."
+    }
+  },
+  "search": {
+    "globalSearch": {
+      "placeholder": "Search tasks, docs, projects...",
+      "noResults": "No results found.",
+      "buildingIndex": "Building search index...",
+      "recentHeading": "Recent",
+      "resultsHeading": "Results",
+      "types": {
+        "task": "Task",
+        "doc": "Doc",
+        "meeting": "Meeting",
+        "project": "Project"
+      }
+    }
+  },
+  "smartIndex": {},
+  "setup": {
+    "welcome": {
+      "title": "Welcome to Desk.",
+      "subtitle": "Your projects, tasks, docs, and meetings, as plain Markdown files you own."
+    },
+    "dataFolder": {
+      "title": "Where should we store your files?",
+      "subtitle": "Pick any folder. Desk creates the structure for you, and you can move it later.",
+      "label": "Data folder",
+      "pickerTitle": "Select Data Folder",
+      "browseTitle": "Browse for folder"
+    },
+    "existingDetected": {
+      "title": "You already have Desk data here.",
+      "description_one": "Found {{count}} workspace in this folder. Continue where you left off, or start fresh.",
+      "description_other": "Found {{count}} workspaces in this folder. Continue where you left off, or start fresh.",
+      "useExisting": "Use existing data",
+      "startFresh": "Start fresh"
+    },
+    "workspace": {
+      "title": "Name your workspace.",
+      "subtitle": "This is your home, for personal notes and the capture inbox. Add more workspaces later for clients, projects, or other areas.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Personal",
+      "finish": "Finish"
+    }
+  },
+  "tooltips": {
+    "priorityIcon": "{{label}} priority",
+    "appShell": {
+      "search": "Search (⌘K)"
+    }
+  },
+  "menus": {
+    "common": {
+      "revealInFinder": "Reveal in Finder",
+      "copyPath": "Copy Path"
+    },
+    "taskContextMenu": {
+      "highlightForFocus": "Highlight for focus",
+      "removeHighlight": "Remove highlight"
+    },
+    "docContextMenu": {
+      "moveTo": "Move to...",
+      "moveToRoot": "Root"
+    },
+    "folderContextMenu": {
+      "newDoc": "New Doc",
+      "newSubfolder": "New Subfolder",
+      "includeInAI": "Include in AI",
+      "excludeFromAI": "Exclude from AI"
+    },
+    "assetContextMenu": {
+      "openInDefaultApp": "Open in Default App"
+    },
+    "workspaceSwitcher": {
+      "newWorkspace": "New Workspace"
+    },
+    "tabContextMenu": {
+      "close": "Close",
+      "closeOthers": "Close Others",
+      "moreTabs_one": "{{count}} more tab",
+      "moreTabs_other": "{{count}} more tabs",
+      "unsavedTabDescription": "\"{{title}}\" has unsaved changes. Do you want to save before closing?"
+    }
+  },
+  "updates": {
+    "available": "Update available: v{{version}}",
+    "description": "A new version of Desk is ready to install.",
+    "updateAndRestart": "Update & Restart",
+    "skip": "Skip"
+  },
+  "unsavedChanges": {
+    "title": "Unsaved Changes",
+    "description": "You have unsaved changes in: {{tabs}}{{more}}. Do you want to save before quitting?",
+    "more_one": " and {{count}} more",
+    "more_other": " and {{count}} more"
+  },
+  "ui": {
+    "colorPicker": {
+      "customColor": "Custom color"
+    },
+    "dateField": {
+      "placeholder": "Select date",
+      "clearAriaLabel": "Clear date"
+    },
+    "formField": {
+      "optional": "(optional)"
+    },
+    "loadingState": {
+      "defaultLabel": "content",
+      "title": "Loading {{label}}…"
+    },
+    "saveChanges": {
+      "title": "Unsaved Changes",
+      "description": "Do you want to save the changes you made?"
+    },
+    "saveStatus": {
+      "failed": "Save failed"
+    },
+    "viewMode": {
+      "list": "List view",
+      "kanban": "Kanban board"
+    },
+    "metadataToolbar": {
+      "none": "None",
+      "noProject": "No project",
+      "addDueDate": "Add due date",
+      "addDate": "Add date"
+    },
+    "richTextEditor": {
+      "placeholder": "Write something…"
+    },
+    "noteLinkPicker": {
+      "placeholder": "Search notes to link…",
+      "noNotesFound": "No notes found.",
+      "buildingIndex": "Building search index…",
+      "results": "Results",
+      "recent": "Recent",
+      "types": {
+        "task": "Task",
+        "doc": "Doc",
+        "meeting": "Meeting"
+      }
+    },
+    "command": {
+      "searchTitle": "Search",
+      "searchDescription": "Search tasks, docs, and projects"
+    },
+    "editorBanners": {
+      "fileMoved": {
+        "title": "File Moved",
+        "description": "This file has been moved or renamed externally.",
+        "newLocation": "New location:",
+        "continueEditing": "Continue Editing"
+      },
+      "fileDeleted": {
+        "title": "File Deleted",
+        "description": "This file has been deleted from the file system.",
+        "unsavedHint": "You have unsaved edits. Restore them to re-create the file.",
+        "restoreFromEdits": "Restore from edits",
+        "closeTab": "Close Tab"
+      },
+      "externalChange": "External changes detected"
+    },
+    "slashCommands": {
+      "empty": "No matching commands",
+      "heading1": {
+        "title": "Heading 1",
+        "description": "Large section heading"
+      },
+      "heading2": {
+        "title": "Heading 2",
+        "description": "Medium section heading"
+      },
+      "heading3": {
+        "title": "Heading 3",
+        "description": "Small section heading"
+      },
+      "bulletList": {
+        "title": "Bullet List",
+        "description": "Unordered list"
+      },
+      "numberedList": {
+        "title": "Numbered List",
+        "description": "Ordered list"
+      },
+      "taskList": {
+        "title": "Task List",
+        "description": "Task list with checkboxes"
+      },
+      "table": {
+        "title": "Table",
+        "description": "Insert a 3×3 table"
+      },
+      "codeBlock": {
+        "title": "Code Block",
+        "description": "Code block"
+      },
+      "blockquote": {
+        "title": "Blockquote",
+        "description": "Block quotation"
+      },
+      "divider": {
+        "title": "Divider",
+        "description": "Horizontal rule"
+      },
+      "link": {
+        "title": "Link",
+        "description": "Insert a note link"
+      }
+    }
+  },
+  "tabs": {
+    "desk": "Desk",
+    "emailDefault": "Email"
+  }
+}

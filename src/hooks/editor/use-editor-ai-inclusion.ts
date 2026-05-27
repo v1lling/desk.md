@@ -7,6 +7,7 @@ import { getAiExclusionState, setAIInclusion } from "@/lib/context-index/aiignor
 import { removeFromIndex } from "@/lib/context-index/indexer";
 import type { AiExclusionState } from "@/lib/context-index/aiignore";
 import { toast } from "sonner";
+import i18next from "i18next";
 
 export function useEditorAIInclusion(
   filePath: string | undefined,
@@ -36,7 +37,7 @@ export function useEditorAIInclusion(
         }
       } catch (error) {
         console.error(`[${entityLabel}-editor] Failed to update AI inclusion:`, error);
-        toast.error("Failed to update AI setting");
+        toast.error(i18next.t("toasts.ai.inclusionUpdateFailed"));
       }
     },
     [filePath, workspaceId, aiExclusionState.isInExcludedFolder, entityLabel]

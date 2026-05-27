@@ -44,7 +44,6 @@ export function publishContentUpdate(path: string, content: string): void {
   const handlers = subscribers.get(path);
   if (handlers?.onContentUpdate) {
     handlers.onContentUpdate(content);
-    console.log("[event-bus] Content update published:", path.split("/").pop());
   }
 }
 
@@ -56,12 +55,6 @@ export function publishPathChange(path: string, newPath: string): void {
   const handlers = subscribers.get(path);
   if (handlers?.onPathChange) {
     handlers.onPathChange(newPath);
-    console.log(
-      "[event-bus] Path change published:",
-      path.split("/").pop(),
-      "→",
-      newPath.split("/").pop()
-    );
   }
 }
 
@@ -73,7 +66,6 @@ export function publishDeleted(path: string): void {
   const handlers = subscribers.get(path);
   if (handlers?.onDeleted) {
     handlers.onDeleted();
-    console.log("[event-bus] Deleted published:", path.split("/").pop());
   }
 }
 

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Tree, type NodeApi, type TreeApi } from "react-arborist";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useQueries } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import type { Asset, Doc, FileTreeNode } from "@/types";
@@ -35,6 +36,7 @@ import { isTauri } from "@/lib/desk/tauri-fs";
 import { sortNodes, type DocSortBy } from "../tree-item-utils";
 import {
   canDropInto,
+  insertSectionHeaders,
   isAllowedNewFolderName,
   isDraggable,
   isAIDocsRoot,
@@ -124,6 +126,7 @@ export function DocsTree({
   onCreateDocIn,
   onCreateFolderIn,
 }: DocsTreeProps) {
+  const { t } = useTranslation();
   const { data: overviewTree = [], isLoading } = useMergedWorkspaceOverviewShell(workspaceId);
 
   // Locally tracked set of expanded project IDs — drives per-project query subscriptions.
@@ -186,8 +189,11 @@ export function DocsTree({
     return sortNodes(filtered, sortBy, sortDir);
   }, [composedTree, searchQuery, sortBy, sortDir]);
 
-  // Adapt to arborist
-  const arboristData = useMemo(() => nodesToArborist(filteredTree, ""), [filteredTree]);
+  // Adapt to arborist, then splice in Workspace/Projects section headers at the boundary.
+  const arboristData = useMemo(
+    () => insertSectionHeaders(nodesToArborist(filteredTree, "")),
+    [filteredTree],
+  );
 
   // Folder AI states — feed both top-level paths (for the toggle) and project paths
   const folderTreePaths = useMemo(() => collectFolderTreePaths(filteredTree), [filteredTree]);
@@ -214,9 +220,13 @@ export function DocsTree({
       if (treePath.startsWith(PROJECT_TREE_PATH_PREFIX)) return;
       await toggleWorkspaceAI(treePath, currentlyIncluded);
       const name = treePath.includes("/") ? treePath.split("/").pop() : treePath;
-      toast.success(currentlyIncluded ? `"${name}" excluded from AI` : `"${name}" included in AI`);
+      toast.success(
+        currentlyIncluded
+          ? t("toasts.folder.excludedFromAI", { name })
+          : t("toasts.folder.includedInAI", { name }),
+      );
     },
-    [toggleWorkspaceAI],
+    [toggleWorkspaceAI, t],
   );
 
   // Base path for "Reveal in Finder"
@@ -344,7 +354,7 @@ export function DocsTree({
       const d = node.data;
       if (d.kind === "folder" && d.node.type === "folder") {
         if (!isAllowedNewFolderName(d.parentTreePath, trimmed)) {
-          toast.error(`"${trimmed}" is a reserved folder name.`);
+          toast.error(t("errors.folder.reservedName", { name: trimmed }));
           return;
         }
         const resolved = resolveTreePath(d.treePath);
@@ -358,24 +368,24 @@ export function DocsTree({
             projectId: resolved.projectId,
             kind,
           });
-          toast.success("Renamed");
+          toast.success(t("toasts.common.renamed"));
         } catch (err) {
           console.error("Failed to rename folder:", err);
-          toast.error("Failed to rename folder");
+          toast.error(t("errors.folder.renameFailed"));
         }
         return;
       }
       if (d.kind === "doc" && d.node.type === "doc") {
         try {
           await updateDoc.mutateAsync({ doc: d.node.doc, updates: { title: trimmed } });
-          toast.success("Renamed");
+          toast.success(t("toasts.common.renamed"));
         } catch (err) {
           console.error("Failed to rename doc:", err);
-          toast.error("Failed to rename doc");
+          toast.error(t("errors.doc.renameFailed"));
         }
       }
     },
-    [renameFolder, updateDoc, workspaceId],
+    [renameFolder, updateDoc, workspaceId, t],
   );
 
   const handleMove = useCallback(
@@ -408,7 +418,7 @@ export function DocsTree({
           fromResolved.scope !== targetResolved.scope
           || fromResolved.projectId !== targetResolved.projectId
         ) {
-          toast.error("Cross-scope moves aren't supported yet — moves must stay inside the same workspace or project.");
+          toast.error(t("errors.doc.crossScopeMove"));
           continue;
         }
 
@@ -428,7 +438,7 @@ export function DocsTree({
             });
           } catch (err) {
             console.error("Failed to move doc:", err);
-            toast.error("Failed to move doc");
+            toast.error(t("errors.doc.moveFailed"));
           }
           continue;
         }
@@ -440,9 +450,7 @@ export function DocsTree({
             // Cross-kind folder move: useMoveFolder takes a single kind. The lib needs to handle
             // a full directory move from docs/<src> to ai-docs/<dst> (or vice-versa) — currently it
             // doesn't. Surface a friendly toast until that's implemented.
-            toast.error(
-              "Moving folders between Docs and AI Docs isn't supported yet — move docs individually.",
-            );
+            toast.error(t("errors.folder.crossKindMove"));
             continue;
           }
           // The fromSubPath represents the OLD path of the folder being moved (the folder itself,
@@ -460,12 +468,12 @@ export function DocsTree({
             });
           } catch (err) {
             console.error("Failed to move folder:", err);
-            toast.error("Failed to move folder");
+            toast.error(t("errors.folder.moveFailed"));
           }
         }
       }
     },
-    [moveDoc, moveFolder, workspaceId],
+    [moveDoc, moveFolder, workspaceId, t],
   );
 
   const handleDelete = useCallback(
@@ -477,14 +485,14 @@ export function DocsTree({
             await deleteDoc.mutateAsync(d.node.doc);
           } catch (err) {
             console.error("Failed to delete doc:", err);
-            toast.error("Failed to delete doc");
+            toast.error(t("errors.doc.deleteFailed"));
           }
         } else if (d.kind === "asset" && d.node.type === "asset") {
           try {
             await deleteAsset.mutateAsync(d.node.asset);
           } catch (err) {
             console.error("Failed to delete asset:", err);
-            toast.error("Failed to delete file");
+            toast.error(t("errors.doc.deleteFileFailed"));
           }
         } else if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue;
@@ -501,12 +509,12 @@ export function DocsTree({
             });
           } catch (err) {
             console.error("Failed to delete folder:", err);
-            toast.error("Failed to delete folder");
+            toast.error(t("errors.folder.deleteFailed"));
           }
         }
       }
     },
-    [deleteDoc, deleteAsset, deleteFolder, workspaceId],
+    [deleteDoc, deleteAsset, deleteFolder, workspaceId, t],
   );
 
   // ── Row-level handlers (provided via context) ────────────────────────────────
@@ -552,7 +560,7 @@ export function DocsTree({
           fromResolved.scope !== toResolved.scope
           || fromResolved.projectId !== toResolved.projectId
         ) {
-          toast.error("Cross-scope moves aren't supported yet — moves must stay inside the same workspace or project.");
+          toast.error(t("errors.doc.crossScopeMove"));
           return;
         }
         const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);
@@ -589,6 +597,7 @@ export function DocsTree({
       folderTreePaths,
       basePathFor,
       workspaceId,
+      t,
     ],
   );
 
@@ -621,7 +630,7 @@ export function DocsTree({
       {isLoading ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           <Loader2 className="size-4 animate-spin mr-2" />
-          Loading…
+          {t("common.buttons.loading")}
         </div>
       ) : (
         <DocsTreeHandlersProvider handlers={handlers}>
@@ -631,6 +640,7 @@ export function DocsTree({
               data={arboristData}
               idAccessor={(n) => n.id}
               childrenAccessor={(n) => n.children ?? null}
+              className="desk-thin-scrollbar"
               width={size.width}
               height={size.height}
               rowHeight={28}
@@ -647,8 +657,15 @@ export function DocsTree({
               // not to re-filter by name so content-only matches stay visible. The searchTerm
               // prop is still useful — arborist auto-expands matched branches.
               searchMatch={() => true}
-              disableDrag={(n) => !isDraggable(n as unknown as ArboristNode)}
-              disableDrop={(args) => !canDropInto(args.parentNode?.data ?? null, args.dragNodes.map((dn) => dn.data))}
+              disableDrag={(n) => {
+                const data = n as unknown as ArboristNode;
+                return data.kind === "section-header" || !isDraggable(data);
+              }}
+              disableDrop={(args) => {
+                const parent = args.parentNode?.data ?? null;
+                if (parent?.kind === "section-header") return true;
+                return !canDropInto(parent, args.dragNodes.map((dn) => dn.data));
+              }}
             >
               {DocsTreeRow}
             </Tree>

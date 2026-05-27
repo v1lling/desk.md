@@ -147,12 +147,10 @@ async function attachWatcher(): Promise<void> {
 
 export async function startWatching(): Promise<boolean> {
   if (!isTauri()) {
-    console.log("[watcher] Not in Tauri mode, skipping file watcher");
     return false;
   }
 
   if (isWatching) {
-    console.log("[watcher] Already watching");
     return true;
   }
 
@@ -160,14 +158,12 @@ export async function startWatching(): Promise<boolean> {
   // won't help, and toasting "watcher stopped" would just be noise.
   const deskPath = await getDeskPath();
   if (!(await exists(deskPath))) {
-    console.log("[watcher] Desk path does not exist yet, skipping watcher start:", deskPath);
     return false;
   }
 
   try {
     await attachWatcher();
     isWatching = true;
-    console.log("[watcher] File watcher started successfully");
     return true;
   } catch (err) {
     console.error("[watcher] Failed to start file watcher (attempt 1):", err);
@@ -175,11 +171,10 @@ export async function startWatching(): Promise<boolean> {
     try {
       await attachWatcher();
       isWatching = true;
-      console.log("[watcher] File watcher started successfully on retry");
       return true;
     } catch (retryErr) {
       console.error("[watcher] File watcher failed after retry:", retryErr);
-      toast.error("File watcher stopped — external edits won't sync until you restart Desk.");
+      toast.error("File watcher stopped. External edits won't sync until you restart Desk.");
       return false;
     }
   }
@@ -197,7 +192,6 @@ export async function stopWatching(): Promise<void> {
     unwatchFn();
     unwatchFn = null;
     isWatching = false;
-    console.log("[watcher] File watcher stopped");
   } catch (err) {
     console.error("[watcher] Failed to stop file watcher:", err);
   }

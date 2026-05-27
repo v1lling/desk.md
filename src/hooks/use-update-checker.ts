@@ -1,5 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import i18next from "i18next";
 import { isTauri } from "@/lib/desk";
 import { usePreferencesStore } from "@/stores/preferences";
 
@@ -50,7 +51,7 @@ export function useUpdateChecker() {
       console.error("[Update] Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
       // Only show error in UI when manually triggered
       if (manual) {
-        setError(err instanceof Error ? err.message : "Update check failed");
+        setError(err instanceof Error ? err.message : i18next.t("errors.update.checkFailed"));
         setStatus("error");
       } else {
         setStatus("idle");
@@ -87,7 +88,7 @@ export function useUpdateChecker() {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error("[Update] Error message:", errorMessage);
 
-      setError(errorMessage || "Update install failed");
+      setError(errorMessage || i18next.t("errors.update.installFailed"));
       setStatus("error");
     }
   }, []);

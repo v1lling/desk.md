@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowDownAZ,
   ArrowUpAZ,
@@ -44,19 +45,14 @@ const statusDotColors: Record<ProjectStatus, string> = {
   archived: "bg-slate-400",
 };
 
-const statusFilterOptions: { value: string; label: string }[] = [
-  { value: ALL_STATUSES, label: "All statuses" },
-  { value: "active", label: "Active" },
-  { value: "paused", label: "Paused" },
-  { value: "completed", label: "Completed" },
-  { value: "archived", label: "Archived" },
-];
+const statusFilterValues: ProjectStatus[] = ["active", "paused", "completed", "archived"];
 
 interface ProjectsTreePaneProps {
   workspaceId: string;
 }
 
 export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
+  const { t } = useTranslation();
   const { data: projects = [] } = useProjects(workspaceId);
   const deleteProject = useDeleteProject();
   const selectedProjectId = useProjectSelectionStore((s) => s.selectedProjectId);
@@ -95,13 +91,13 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
         workspaceId: deletingProject.workspaceId,
       });
       if (selectedProjectId === deletingProject.id) setSelectedProject(null);
-      toast.success("Project deleted");
+      toast.success(t("toasts.project.delete.success"));
       setDeletingProject(null);
     } catch (err) {
       console.error("Failed to delete project:", err);
-      toast.error("Failed to delete project");
+      toast.error(t("toasts.project.delete.error"));
     }
-  }, [deletingProject, deleteProject, selectedProjectId, setSelectedProject]);
+  }, [deletingProject, deleteProject, selectedProjectId, setSelectedProject, t]);
 
   const isFiltering = searchQuery.trim() !== "" || statusFilter !== ALL_STATUSES;
 
@@ -114,7 +110,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search…"
+            placeholder={t("pages.projects.tree.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -143,7 +139,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
               variant="ghost"
               size="icon"
               className="size-7 text-muted-foreground hover:text-foreground"
-              title="Sort"
+              title={t("pages.projects.tree.sortTitle")}
             >
               <ChevronsUpDown className="size-3.5" />
             </Button>
@@ -154,14 +150,14 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
               className={cn(sortDir === "asc" && "bg-accent")}
             >
               <ArrowDownAZ className="size-4 mr-2" />
-              Name A–Z
+              {t("pages.projects.tree.sortAsc")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setSortDir("desc")}
               className={cn(sortDir === "desc" && "bg-accent")}
             >
               <ArrowUpAZ className="size-4 mr-2" />
-              Name Z–A
+              {t("pages.projects.tree.sortDesc")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -179,7 +175,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setNewProjectOpen(true)}>
               <Plus className="size-4 mr-2" />
-              New Project
+              {t("pages.projects.tree.newProject")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -189,12 +185,13 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
       <div className="shrink-0 px-3 py-2 border-b border-border/40">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger size="xs" className="h-7 w-full text-xs">
-            <SelectValue placeholder="All statuses" />
+            <SelectValue placeholder={t("pages.projects.tree.allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            {statusFilterOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+            <SelectItem value={ALL_STATUSES}>{t("pages.projects.tree.allStatuses")}</SelectItem>
+            {statusFilterValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`entities.project.status.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -204,7 +201,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
       {/* Action row: count + new project */}
       <div className="shrink-0 px-3 py-1 flex items-center gap-2 border-b border-border/40">
         <span className="text-xs text-muted-foreground tabular-nums">
-          {filtered.length} {filtered.length === 1 ? "project" : "projects"}
+          {t("pages.projects.tree.projectCount", { count: filtered.length })}
         </span>
         <div className="flex-1" />
         <Button
@@ -214,7 +211,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
           onClick={() => setNewProjectOpen(true)}
         >
           <Plus className="size-3.5 mr-1" />
-          New Project
+          {t("pages.projects.tree.newProject")}
         </Button>
       </div>
 
@@ -223,7 +220,9 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
         <div className="py-1">
           {filtered.length === 0 ? (
             <div className="px-4 py-6 text-xs text-muted-foreground text-center">
-              {isFiltering ? "No matching projects." : "No projects yet."}
+              {isFiltering
+                ? t("emptyStates.projects.noMatches")
+                : t("emptyStates.projects.noProjects")}
             </div>
           ) : (
             filtered.map((project) => {
@@ -248,7 +247,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
                       "size-2 rounded-full shrink-0",
                       statusDotColors[project.status],
                     )}
-                    title={project.status}
+                    title={t(`entities.project.status.${project.status}`)}
                   />
                   <span className="text-sm truncate flex-1">{project.name}</span>
                   <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70 tabular-nums shrink-0">
@@ -275,7 +274,7 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="size-4 mr-2" />
-                        Delete
+                        {t("common.buttons.delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -291,9 +290,9 @@ export function ProjectsTreePane({ workspaceId }: ProjectsTreePaneProps) {
       <ConfirmDialog
         open={!!deletingProject}
         onOpenChange={(open) => !open && setDeletingProject(null)}
-        title="Delete Project"
-        description={`Are you sure you want to delete "${deletingProject?.name}"? This will permanently remove the project and all its tasks, docs, and meetings.`}
-        confirmLabel="Delete"
+        title={t("pages.projects.tree.deleteConfirmTitle")}
+        description={t("pages.projects.tree.deleteConfirmDescription", { name: deletingProject?.name ?? "" })}
+        confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

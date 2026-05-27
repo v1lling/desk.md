@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
@@ -23,6 +24,7 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
+  const { t } = useTranslation();
   const tabId = `task-${taskId}`;
   const handleInternalLinkClick = useInternalLinkHandler();
   const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
@@ -189,12 +191,12 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         projectId: task.projectId,
         taskId: task.id,
       });
-      toast.success("Task deleted");
+      toast.success(t("toasts.editor.taskDeleted"));
       onClose();
     } catch {
-      toast.error("Failed to delete task");
+      toast.error(t("errors.editor.deleteTaskFailed"));
     }
-  }, [task, deleteTask, removeTaskFromOrder, onClose]);
+  }, [task, deleteTask, removeTaskFromOrder, onClose, t]);
 
   const saveStatus = useMemo(() => {
     if (contentSaveStatus === "saving") return "saving" as const;
@@ -225,6 +227,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     onPriorityChange: handlePriorityChange,
     date: due,
     onDateChange: handleDueChange,
+    // dateLabel acts as a discriminator inside MetadataToolbar
+    // (isDue = dateLabel === "Due") — keep as English identifier.
     dateLabel: "Due" as const,
     projectId: currentProjectId,
     onProjectChange: handleProjectChange,
@@ -237,7 +241,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}
-        placeholder="Task title"
+        placeholder={t("editors.task.titlePlaceholder")}
         saveStatus={saveStatus}
         onSave={save}
         isDirty={isDirty}
@@ -263,7 +267,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
             <RichTextEditor
               value={content}
               onChange={setContent}
-              placeholder="Add notes, details, or checklist items..."
+              placeholder={t("editors.task.contentPlaceholder")}
               minHeight="400px"
               borderless
               onInternalLinkClick={handleInternalLinkClick}
@@ -279,9 +283,9 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Delete Task"
-        description="Are you sure you want to delete this task? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("editors.task.deleteTitle")}
+        description={t("editors.task.deleteDescription")}
+        confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

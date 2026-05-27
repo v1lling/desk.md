@@ -77,13 +77,20 @@ Key features:
 - Global search (Cmd+K)
 - Manual save with Cmd+S, unsaved changes protection
 
-## Email Integration (Deep Links)
+## Email Integration
 
-External mail clients can send emails to Desk via deep links for AI-assisted workflows.
+**Drag any message onto the Desk window** — works for Apple Mail, Outlook for Mac (Legacy and New Outlook), Thunderbird, and Finder. The dropped message is parsed and opened in a session-only email tab; the user runs "Draft Reply → Open Draft in Assistant" and copies the reply back to their mail client.
 
-**Protocol:** `desk://email?data={base64_encoded_json}`
+Two parallel drop paths feed the same import pipeline:
 
-**Email Schema:**
+- **Direct file URLs** (Thunderbird, Finder) — handled by Tauri's built-in `onDragDropEvent` in [src/components/email/email-drop-overlay.tsx](src/components/email/email-drop-overlay.tsx).
+- **File promises** (Apple Mail, Outlook) — handled by a native Cocoa `NSView` overlay in [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m). Apple Mail / Outlook drag emails as `NSFilePromiseReceiver`, which Tauri's WKWebView drop handler ignores. The overlay accepts the promise, materializes it into `$TMPDIR/desk-drops/`, and emits `email-drag-{enter,leave,drop}` Tauri events.
+
+The Cocoa file carries an inline comment block explaining the Apple Mail 60-second callback hang and the FSEvents workaround that makes drops feel instant for that client. Read [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m) before touching this code.
+
+Web mail (Gmail, Outlook Web) — out of scope. Workaround: "Show original" → save → drag the resulting `.eml`.
+
+**Email Schema (in-memory):**
 ```typescript
 interface IncomingEmail {
   subject: string;
@@ -98,34 +105,16 @@ interface IncomingEmail {
 ```
 
 **Key Files:**
-| Directory | Purpose |
-|-----------|---------|
-| `src/lib/email/` | Email types and deep link parser |
+| File | Purpose |
+|------|---------|
+| `src/lib/email/types.ts` | `IncomingEmail` / `EmailTabData` shapes |
+| `src/lib/email/eml-import.ts` | `.eml` parsing (postal-mime) + Tauri `read_eml_file` invoke |
+| `src/components/email/email-drop-overlay.tsx` | Listens for both direct-URL and promise drops |
 | `src/components/email/` | Email viewer and draft reply UI |
-| `src/hooks/use-deep-link.ts` | Deep link initialization |
-| `outlook-addin/` | Outlook Add-in source |
-
-### Outlook Add-in Deployment
-
-The add-in files live in `outlook-addin/` but are deployed to a **separate public repo** for GitHub Pages hosting (this repo is private).
-
-**After modifying `outlook-addin/` files, deploy with:**
-```bash
-git subtree push --prefix=outlook-addin outlook-public main
-```
-
-This pushes only the `outlook-addin/` folder to `github.com/v1lling/deskmd-outlook-addin`, which serves the files via GitHub Pages.
-
-**Remotes:**
-- `outlook-public` → `git@github.com:v1lling/deskmd-outlook-addin.git` (for subtree push)
-
-**Testing deep links (requires built .app in /Applications):**
-```bash
-# Test email: {"subject":"Test","from":{"email":"test@example.com"},"body":"Hello","source":"other"}
-open "desk://email?data=eyJzdWJqZWN0IjoiVGVzdCIsImZyb20iOnsiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0sImJvZHkiOiJIZWxsbyIsInNvdXJjZSI6Im90aGVyIn0="
-```
-
-**Flow:** Email opens in session-only tab → user links to project → AI drafts reply → copy to clipboard → return to Outlook → "Insert Reply from Desk" button opens threaded reply form
+| `src-tauri/src/drop_view.m` | Cocoa NSView accepting `NSFilePromiseReceiver` drops + FSEvents fallback |
+| `src-tauri/src/drop_view.rs` | Rust FFI wrapper around the Cocoa overlay |
+| `src-tauri/src/lib.rs` (`read_eml_file`, `delete_dropped_file`) | File read + temp cleanup |
+| `src-tauri/build.rs` | Compiles `drop_view.m` on macOS via the `cc` crate |
 
 ## AI Context
 
@@ -140,6 +129,25 @@ The Smart Index builds an AI-summarized file catalog per workspace. The in-app a
 | `src/stores/context-index.ts` | Smart Index data store |
 
 ## UI Patterns
+
+### UI Strings (i18n)
+
+All user-facing strings live in [src/i18n/en.json](src/i18n/en.json). Never hardcode user-visible copy in JSX, toasts, or thrown errors that bubble to the UI.
+
+```tsx
+// React components
+import { useTranslation } from "react-i18next";
+const { t } = useTranslation();
+return <Button>{t("common.buttons.save")}</Button>;
+
+// Non-React code (stores, hooks, libs)
+import i18next from "i18next";
+toast.success(i18next.t("toasts.workspace.create.success"));
+```
+
+Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `assistant`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
+
+**Out of scope for translation** — these stay English in source: AI system prompts ([src/lib/ai/prompts.ts](src/lib/ai/prompts.ts)), assistant tool descriptions ([src/lib/assistant/](src/lib/assistant/)), generated agent files ([src/lib/context-index/agent-context.ts](src/lib/context-index/agent-context.ts), [src/lib/context-index/artifacts.ts](src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
 
 ### Scrolling
 Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).

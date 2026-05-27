@@ -9,25 +9,43 @@
  * - Use with cn(): cn("text-sm", priorityMeta.high.color)
  */
 
+import i18next from "i18next";
 import { SignalHigh, SignalMedium, SignalLow, type LucideIcon } from "lucide-react";
 
 // =============================================================================
 // PRIORITY
 // One source of truth for every place priority is shown or selected: a
 // signal-bar icon + colour per level. Traffic-light hues so the levels are
-// instantly distinguishable — calm green for low, neutral grey for medium,
+// instantly distinguishable: calm green for low, neutral grey for medium,
 // urgent rose for high.
+//
+// `label` is a getter so its value follows the current i18n language without
+// callers having to subscribe — read-only consumers see the up-to-date string
+// at each access. Language switches at runtime are not reactive (the WebView
+// is restarted on locale change in this app's flow), so a plain getter is enough.
 // =============================================================================
 
 export type Priority = "high" | "medium" | "low";
 
 export const priorityMeta: Record<
   Priority,
-  { label: string; icon: LucideIcon; color: string }
+  { readonly label: string; icon: LucideIcon; color: string }
 > = {
-  high: { label: "High", icon: SignalHigh, color: "text-rose-500 dark:text-rose-400" },
-  medium: { label: "Medium", icon: SignalMedium, color: "text-muted-foreground" },
-  low: { label: "Low", icon: SignalLow, color: "text-emerald-500 dark:text-emerald-400" },
+  high: {
+    get label() { return i18next.t("entities.task.priority.high"); },
+    icon: SignalHigh,
+    color: "text-rose-500 dark:text-rose-400",
+  },
+  medium: {
+    get label() { return i18next.t("entities.task.priority.medium"); },
+    icon: SignalMedium,
+    color: "text-muted-foreground",
+  },
+  low: {
+    get label() { return i18next.t("entities.task.priority.low"); },
+    icon: SignalLow,
+    color: "text-emerald-500 dark:text-emerald-400",
+  },
 };
 
 /** Ordered list of priorities for consistent display (highest first). */
@@ -52,14 +70,23 @@ export type ProjectStatus = keyof typeof statusColors;
 // Default color palette for workspaces - refined selection
 // =============================================================================
 
-export const workspaceColorOptions: readonly { value: string; label: string }[] = [
-  { value: "#3b82f6", label: "Blue" },
-  { value: "#10b981", label: "Emerald" },
-  { value: "#f59e0b", label: "Amber" },
-  { value: "#ef4444", label: "Red" },
-  { value: "#8b5cf6", label: "Violet" },
-  { value: "#ec4899", label: "Pink" },
-  { value: "#64748b", label: "Slate" },
+// Each `label` is a getter that resolves through i18next at access time so
+// option lists stay translated (see priorityMeta note above).
+type ColorKey = "blue" | "emerald" | "amber" | "red" | "violet" | "pink" | "slate";
+function colorOption(value: string, key: ColorKey) {
+  return {
+    value,
+    get label() { return i18next.t(`entities.workspace.colors.${key}`); },
+  };
+}
+export const workspaceColorOptions: readonly { value: string; readonly label: string }[] = [
+  colorOption("#3b82f6", "blue"),
+  colorOption("#10b981", "emerald"),
+  colorOption("#f59e0b", "amber"),
+  colorOption("#ef4444", "red"),
+  colorOption("#8b5cf6", "violet"),
+  colorOption("#ec4899", "pink"),
+  colorOption("#64748b", "slate"),
 ];
 
 // =============================================================================
@@ -95,13 +122,14 @@ export const taskStatusTextColors = {
 // Complete status configuration with labels for UI display
 // =============================================================================
 
-export const taskStatusLabels = {
-  backlog: "Backlog",
-  todo: "To Do",
-  doing: "In Progress",
-  waiting: "Waiting",
-  done: "Done",
-} as const;
+// Proxy-backed lookup so reads stay `taskStatusLabels[status]` at call sites
+// but resolve through i18next at access time. See note above `priorityMeta`.
+export const taskStatusLabels: Record<TaskStatus, string> = new Proxy(
+  {} as Record<TaskStatus, string>,
+  {
+    get: (_t, prop: string) => i18next.t(`entities.task.status.${prop}`),
+  },
+);
 
 /** Ordered list of statuses for consistent display across views */
 export const taskStatusOrder: TaskStatus[] = ["backlog", "todo", "doing", "waiting", "done"];

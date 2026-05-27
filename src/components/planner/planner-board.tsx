@@ -14,9 +14,10 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { formatDate, stripMarkdown } from "@/lib/format";
-import { taskStatusTextColors } from "@/lib/design-tokens";
+import { taskStatusColors, taskStatusLabels, taskStatusTextColors } from "@/lib/design-tokens";
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -35,14 +36,6 @@ const statusIcons = {
   done: CheckCircle2,
 } as const;
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  backlog: { label: "Backlog", color: "bg-slate-500/50" },
-  todo: { label: "To Do", color: "bg-muted-foreground/50" },
-  doing: { label: "In Progress", color: "bg-blue-500" },
-  waiting: { label: "Waiting", color: "bg-amber-500" },
-  done: { label: "Done", color: "bg-emerald-500" },
-};
-
 const CORE_STATUSES: TaskStatus[] = ["todo", "doing", "waiting"];
 
 interface PlannerBoardProps {
@@ -51,6 +44,7 @@ interface PlannerBoardProps {
 }
 
 export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
+  const { t } = useTranslation();
   const { data: allTasks = [], isLoading } = useAllWorkspaceTasksAllStatuses();
   const { data: workspaces = [] } = useWorkspaces();
   const { openTask } = useOpenTab();
@@ -59,7 +53,7 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
 
   const filteredTasks = useMemo(() => {
     if (filterWorkspace === "all") return allTasks;
-    return allTasks.filter((t) => t.workspaceId === filterWorkspace);
+    return allTasks.filter((task) => task.workspaceId === filterWorkspace);
   }, [allTasks, filterWorkspace]);
 
   const groupedTasks = useMemo(() => {
@@ -99,7 +93,7 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <LoadingState label="tasks" />
+        <LoadingState label={t("entities.task.pluralLowercase")} />
       </div>
     );
   }
@@ -113,11 +107,15 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
         <EmptyState
-          title={wsName ? `No tasks in ${wsName}` : "No active tasks"}
+          title={
+            wsName
+              ? t("emptyStates.tasks.inWorkspace.title", { workspace: wsName })
+              : t("emptyStates.tasks.noActive.title")
+          }
           description={
             wsName
-              ? "Tasks assigned to this workspace will appear here"
-              : "Tasks from all workspaces will appear here"
+              ? t("emptyStates.tasks.inWorkspace.description")
+              : t("emptyStates.tasks.noActive.description")
           }
           display="inline"
         />
@@ -132,14 +130,18 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
         <button
           onClick={() => setShowBacklog((prev) => !prev)}
           className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 hover:bg-slate-500/20 transition-colors text-[12px] font-medium"
-          title={showBacklog ? "Hide Backlog column" : "Show Backlog column"}
+          title={
+            showBacklog
+              ? t("pages.planner.toggle.hideColumn", { label: taskStatusLabels.backlog })
+              : t("pages.planner.toggle.showColumn", { label: taskStatusLabels.backlog })
+          }
         >
           {showBacklog ? (
             <EyeOff className="h-3 w-3" />
           ) : (
             <Eye className="h-3 w-3" />
           )}
-          <span>Backlog</span>
+          <span>{taskStatusLabels.backlog}</span>
           <span className="tabular-nums opacity-70">
             {groupedTasks.backlog.length}
           </span>
@@ -147,14 +149,18 @@ export function PlannerBoard({ viewMode, filterWorkspace }: PlannerBoardProps) {
         <button
           onClick={() => setShowDone((prev) => !prev)}
           className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors text-[12px] font-medium"
-          title={showDone ? "Hide Done column" : "Show Done column"}
+          title={
+            showDone
+              ? t("pages.planner.toggle.hideColumn", { label: taskStatusLabels.done })
+              : t("pages.planner.toggle.showColumn", { label: taskStatusLabels.done })
+          }
         >
           {showDone ? (
             <EyeOff className="h-3 w-3" />
           ) : (
             <Eye className="h-3 w-3" />
           )}
-          <span>Done</span>
+          <span>{taskStatusLabels.done}</span>
           <span className="tabular-nums opacity-70">
             {groupedTasks.done.length}
           </span>
@@ -189,11 +195,11 @@ function BoardKanbanView({
   statuses: TaskStatus[];
   onTaskClick: (task: ActiveTask) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <ScrollArea className="flex-1 min-h-0" orientation="horizontal">
       <div className="grid grid-flow-col auto-cols-[280px] gap-4 p-6 h-full">
         {statuses.map((status) => {
-          const config = statusConfig[status];
           const statusTasks = tasks[status] || [];
 
           return (
@@ -202,9 +208,9 @@ function BoardKanbanView({
               className="flex flex-col h-full min-w-[280px] min-h-0"
             >
               <div className="flex items-center gap-2 mb-3 px-1 shrink-0">
-                <div className={cn("w-2 h-2 rounded-full", config.color)} />
+                <div className={cn("w-2 h-2 rounded-full", taskStatusColors[status])} />
                 <h3 className="font-semibold text-[13px] text-foreground/80">
-                  {config.label}
+                  {taskStatusLabels[status]}
                 </h3>
                 <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
                   {statusTasks.length}
@@ -221,7 +227,7 @@ function BoardKanbanView({
                   ))}
                   {statusTasks.length === 0 && (
                     <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
-                      No tasks
+                      {t("pages.tasks.kanban.noTasks")}
                     </div>
                   )}
                 </div>
@@ -264,7 +270,6 @@ function BoardListView({
         {statuses.map((status) => {
           const statusTasks = tasks[status] || [];
           if (statusTasks.length === 0) return null;
-          const config = statusConfig[status];
           const Icon = statusIcons[status];
           const isCollapsed = collapsedSections.has(status);
 
@@ -280,9 +285,9 @@ function BoardListView({
                     !isCollapsed && "rotate-90"
                   )}
                 />
-                <div className={cn("w-2 h-2 rounded-full", config.color)} />
+                <div className={cn("w-2 h-2 rounded-full", taskStatusColors[status])} />
                 <h3 className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  {config.label}
+                  {taskStatusLabels[status]}
                 </h3>
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {statusTasks.length}
@@ -364,6 +369,7 @@ function BoardListItem({
   task: ActiveTask;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon = statusIcons[task.status];
   const wsColor = task.workspaceColor || "#64748b";
 
@@ -399,7 +405,7 @@ function BoardListItem({
             />
             {task.workspaceName}
           </span>
-          {task.due && <span>Due: {formatDate(task.due)}</span>}
+          {task.due && <span>{t("pages.tasks.list.dueLabel", { date: formatDate(task.due) })}</span>}
         </div>
         {task.content && (
           <p className="text-sm text-muted-foreground line-clamp-1 mt-1">

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
+import i18next from "i18next";
 import { BrowserModeError, getSecret } from "@/lib/ai/secrets";
 import { useAISettingsStore } from "@/stores/ai";
 
@@ -26,9 +27,7 @@ export function useSecretHydration() {
         console.warn("[secrets] Failed to hydrate secrets:", error);
         if (!hydrationToastShown) {
           hydrationToastShown = true;
-          toast.warning(
-            "Couldn't access the OS keychain. AI features will be off until this is resolved — open Settings → AI for details."
-          );
+          toast.warning(i18next.t("toasts.secrets.keychainUnavailable"));
         }
       }
     }

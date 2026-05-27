@@ -8,8 +8,15 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function formatRelativeTime(dateStr: string | null): string {
-  if (!dateStr) return "Never";
+type TFunction = (key: string, options?: Record<string, unknown>) => string;
+
+/**
+ * Format a date string as a relative-time label. Requires a translator function
+ * since the labels ("Never", "Just now", "{{count}} minutes ago", …) are
+ * user-facing.
+ */
+export function formatRelativeTime(dateStr: string | null, t: TFunction): string {
+  if (!dateStr) return t("settings.smartIndex.relativeTime.never");
   const date = new Date(dateStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
@@ -17,10 +24,10 @@ export function formatRelativeTime(dateStr: string | null): string {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  return `${days} day${days > 1 ? "s" : ""} ago`;
+  if (minutes < 1) return t("settings.smartIndex.relativeTime.justNow");
+  if (minutes < 60) return t("settings.smartIndex.relativeTime.minutesAgo", { count: minutes });
+  if (hours < 24) return t("settings.smartIndex.relativeTime.hoursAgo", { count: hours });
+  return t("settings.smartIndex.relativeTime.daysAgo", { count: days });
 }
 
 /**

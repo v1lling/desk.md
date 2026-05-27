@@ -1,35 +1,25 @@
-
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBootStore } from "@/stores/boot";
 import { useNavigationStore } from "@/stores/navigation";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding, expandFsScope } from "@/lib/desk";
-import { FolderOpen, Palette, Loader2, CheckCircle2, FolderSearch } from "lucide-react";
+import { Loader2, FolderSearch } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Workspace } from "@/types";
 
 type Step = "welcome" | "data-folder" | "existing-detected" | "workspace";
 
-const COLORS = [
-  "#6366f1", // indigo
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#f97316", // orange
-];
+const HOME_WORKSPACE_COLOR = "#6366f1";
 
 export function SetupWizard() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("welcome");
   const [dataPath, setDataPath] = useState("~/Desk");
   const [workspaceName, setWorkspaceName] = useState("Personal");
-  const [workspaceColor, setWorkspaceColor] = useState(COLORS[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
   const [hasTitleBarPadding, setHasTitleBarPadding] = useState(false);
@@ -52,7 +42,7 @@ export function SetupWizard() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "Select Data Folder",
+        title: t("setup.dataFolder.pickerTitle"),
       });
 
       if (selected && typeof selected === "string") {
@@ -68,13 +58,9 @@ export function SetupWizard() {
     setError(null);
 
     try {
-      // Save the data path first so getWorkspaces knows where to look
       setSettingsDataPath(dataPath);
-
-      // Expand FS scope to the new data path before any file operations
       await expandFsScope(dataPath);
 
-      // Only check for existing workspaces in Tauri mode
       if (isTauri()) {
         const workspaces = await getWorkspaces();
         if (workspaces.length > 0) {
@@ -84,17 +70,13 @@ export function SetupWizard() {
         }
       }
 
-      // No existing data, proceed to set up the home workspace
       setStep("workspace");
     } catch (err) {
       console.error("Error checking data folder:", err);
       if (isTauri()) {
-        setError(
-          `Couldn't access "${dataPath}". Check that the folder path is valid and that Desk can write there, then try again.`
-        );
+        setError(t("errors.setup.checkDataFolder", { path: dataPath }));
         return;
       }
-      // Browser mode — file access is mocked, so proceed regardless.
       setStep("workspace");
     } finally {
       setIsLoading(false);
@@ -102,7 +84,6 @@ export function SetupWizard() {
   };
 
   const handleUseExisting = () => {
-    // Use the first existing workspace as the current one
     if (existingWorkspaces.length > 0) {
       setCurrentWorkspaceId(existingWorkspaces[0].id);
     }
@@ -114,18 +95,14 @@ export function SetupWizard() {
     setError(null);
 
     try {
-      // Save settings
       setSettingsDataPath(dataPath);
-
-      // Initialize the Desk directory structure
       await initDeskDirectory();
 
-      // Create the home workspace
       const workspaceId = slugify(workspaceName);
       await createWorkspace.mutateAsync({
         id: workspaceId,
         name: workspaceName.trim(),
-        color: workspaceColor,
+        color: HOME_WORKSPACE_COLOR,
         home: true,
       });
 
@@ -134,14 +111,9 @@ export function SetupWizard() {
     } catch (err) {
       console.error("Setup failed:", err);
       if (isTauri()) {
-        // A real file-system failure — surface it instead of completing setup
-        // into a broken state with no data folder.
-        setError(
-          `Setup couldn't create your data folder at "${dataPath}". Make sure the location exists and Desk has permission to write there, then try again.`
-        );
+        setError(t("errors.setup.createDataFolder", { path: dataPath }));
         return;
       }
-      // Browser mode — file access is mocked, so complete setup regardless.
       const workspaceId = slugify(workspaceName);
       setCurrentWorkspaceId(workspaceId);
       setSetupCompleted(true);
@@ -151,57 +123,41 @@ export function SetupWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
-      {/* Draggable title bar region for macOS */}
-      {hasTitleBarPadding && (
-        <div data-tauri-drag-region className="h-7 shrink-0" />
-      )}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-lg">
-        {step === "welcome" && (
-          <>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                <img
-                  src="/icon.png"
-                  alt="Desk"
-                  width={80}
-                  height={80}
-                  className="rounded-xl"
-                />
+    <div className="min-h-screen bg-background flex flex-col">
+      {hasTitleBarPadding && <div data-tauri-drag-region className="h-7 shrink-0" />}
+      <main className="flex-1 flex items-center justify-center px-8">
+        <div className="w-full max-w-md flex flex-col items-center gap-10">
+          {step === "welcome" && (
+            <div className="flex flex-col items-center text-center gap-6">
+              <img
+                src="/icon.png"
+                alt="Desk"
+                width={64}
+                height={64}
+                className="rounded-xl"
+              />
+              <div className="flex flex-col gap-2">
+                <h1 className="text-xl font-semibold tracking-tight">{t("setup.welcome.title")}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {t("setup.welcome.subtitle")}
+                </p>
               </div>
-              <CardTitle className="text-2xl">Welcome to Desk</CardTitle>
-              <CardDescription>
-                Your projects, tasks, docs, and meetings — as plain Markdown files you own.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Organize your work into <strong>workspaces</strong> and projects.
-                Everything stays on your machine as plain Markdown files — yours
-                to keep, edit anywhere, and never locked in.
-              </p>
               <Button className="w-full" onClick={() => setStep("data-folder")}>
-                Get Started
+                {t("common.buttons.continue")}
               </Button>
-            </CardContent>
-          </>
-        )}
+            </div>
+          )}
 
-        {step === "data-folder" && (
-          <>
-            <CardHeader>
-              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <FolderOpen className="h-6 w-6 text-primary" />
+          {step === "data-folder" && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.dataFolder.title")}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {t("setup.dataFolder.subtitle")}
+                </p>
               </div>
-              <CardTitle>Choose Data Location</CardTitle>
-              <CardDescription>
-                Where should Desk store your projects and tasks?
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="dataPath">Data Folder</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="dataPath">{t("setup.dataFolder.label")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="dataPath"
@@ -219,15 +175,12 @@ export function SetupWizard() {
                       variant="outline"
                       size="icon"
                       onClick={handleBrowseFolder}
-                      title="Browse for folder"
+                      title={t("setup.dataFolder.browseTitle")}
                     >
                       <FolderSearch className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Your workspaces, projects, and notes will be stored here as markdown files.
-                </p>
               </div>
               {error && (
                 <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -236,100 +189,65 @@ export function SetupWizard() {
               )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep("welcome")} disabled={isLoading}>
-                  Back
+                  {t("common.buttons.back")}
                 </Button>
                 <Button className="flex-1" onClick={handleCheckDataFolder} disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue
+                  {t("common.buttons.continue")}
                 </Button>
               </div>
-            </CardContent>
-          </>
-        )}
+            </div>
+          )}
 
-        {step === "existing-detected" && (
-          <>
-            <CardHeader>
-              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+          {step === "existing-detected" && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.existingDetected.title")}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {t("setup.existingDetected.description", { count: existingWorkspaces.length })}
+                </p>
               </div>
-              <CardTitle>Existing Data Found</CardTitle>
-              <CardDescription>
-                We found {existingWorkspaces.length} existing workspace{existingWorkspaces.length > 1 ? "s" : ""} in this folder.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+              <ul className="flex flex-col gap-1.5">
                 {existingWorkspaces.map((workspace) => (
-                  <div
+                  <li
                     key={workspace.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
+                    className="flex items-center gap-3 rounded-md border border-border/60 bg-card px-3 py-2"
                   >
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: workspace.color || "#3b82f6" }}
+                    <span
+                      className="size-2 rounded-full shrink-0"
+                      style={{ backgroundColor: workspace.color || HOME_WORKSPACE_COLOR }}
                     />
-                    <div>
-                      <p className="font-medium text-sm">{workspace.name}</p>
-                      {workspace.description && (
-                        <p className="text-xs text-muted-foreground">{workspace.description}</p>
-                      )}
-                    </div>
-                  </div>
+                    <span className="text-sm font-medium truncate">{workspace.name}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
               <div className="flex flex-col gap-2">
                 <Button className="w-full" onClick={handleUseExisting}>
-                  Use Existing Data
+                  {t("setup.existingDetected.useExisting")}
                 </Button>
-                <Button variant="outline" onClick={() => setStep("workspace")}>
-                  Create New Workspace Instead
+                <Button variant="outline" className="w-full" onClick={() => setStep("workspace")}>
+                  {t("setup.existingDetected.startFresh")}
                 </Button>
               </div>
-            </CardContent>
-          </>
-        )}
+            </div>
+          )}
 
-        {step === "workspace" && (
-          <>
-            <CardHeader>
-              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Palette className="h-6 w-6 text-primary" />
+          {step === "workspace" && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.workspace.title")}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {t("setup.workspace.subtitle")}
+                </p>
               </div>
-              <CardTitle>Your home workspace</CardTitle>
-              <CardDescription>
-                Workspaces keep separate areas of work apart. This is your home
-                workspace — name it anything (your name, &ldquo;Personal&rdquo;,
-                &ldquo;Home&rdquo;…). You can add more later for clients, side
-                projects, or other areas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="workspaceName">Workspace Name</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="workspaceName">{t("setup.workspace.nameLabel")}</Label>
                 <Input
                   id="workspaceName"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="e.g., Personal, Home"
+                  placeholder={t("setup.workspace.namePlaceholder")}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {COLORS.map((color) => (
-                    <button
-                      key={color}
-                      className={`w-8 h-8 rounded-full transition-all ${
-                        workspaceColor === color
-                          ? "ring-2 ring-offset-2 ring-primary"
-                          : "hover:scale-110"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setWorkspaceColor(color)}
-                    />
-                  ))}
-                </div>
               </div>
               {error && (
                 <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -339,10 +257,12 @@ export function SetupWizard() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => existingWorkspaces.length > 0 ? setStep("existing-detected") : setStep("data-folder")}
+                  onClick={() =>
+                    existingWorkspaces.length > 0 ? setStep("existing-detected") : setStep("data-folder")
+                  }
                   disabled={isLoading}
                 >
-                  Back
+                  {t("common.buttons.back")}
                 </Button>
                 <Button
                   className="flex-1"
@@ -350,14 +270,32 @@ export function SetupWizard() {
                   disabled={!workspaceName.trim() || isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Get Started
+                  {t("setup.workspace.finish")}
                 </Button>
               </div>
-            </CardContent>
-          </>
-        )}
-        </Card>
-      </div>
+            </div>
+          )}
+
+          <ProgressDots step={step} />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function ProgressDots({ step }: { step: Step }) {
+  const index = step === "welcome" ? 0 : step === "workspace" ? 2 : 1;
+  return (
+    <div className="flex gap-1.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={cn(
+            "size-1.5 rounded-full transition-colors",
+            i === index ? "bg-foreground/70" : "bg-foreground/15",
+          )}
+        />
+      ))}
     </div>
   );
 }

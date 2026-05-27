@@ -1,4 +1,5 @@
 import { FolderOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { revealInFinder } from "@/components/docs/tree-item-utils";
 import { PATH_SEGMENTS } from "@/lib/desk/constants";
@@ -26,6 +27,7 @@ function getDisplaySegments(filePath: string): string[] {
 }
 
 export function EditorPathBar({ filePath }: EditorPathBarProps) {
+  const { t } = useTranslation();
   if (!filePath) return null;
 
   const segments = getDisplaySegments(filePath);
@@ -43,7 +45,7 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
           type="button"
           onClick={handleClick}
           className="group flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default"
-          title={isTauri() ? "Reveal in Finder" : filePath}
+          title={isTauri() ? t("editors.shared.revealInFinder") : filePath}
         >
           {segments.map((segment, i) => (
             <span key={i} className="flex items-center gap-1.5">

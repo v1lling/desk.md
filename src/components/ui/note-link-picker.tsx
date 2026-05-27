@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CommandDialog,
   CommandEmpty,
@@ -40,9 +41,16 @@ export function NoteLinkPicker({
   onOpenChange,
   onSelect,
 }: NoteLinkPickerProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const typeLabels: Record<string, string> = {
+    task: t("ui.noteLinkPicker.types.task"),
+    doc: t("ui.noteLinkPicker.types.doc"),
+    meeting: t("ui.noteLinkPicker.types.meeting"),
+  };
 
   useEffect(() => {
     if (!open || !isIndexReady()) {
@@ -83,15 +91,15 @@ export function NoteLinkPicker({
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="Search notes to link..."
+        placeholder={t("ui.noteLinkPicker.placeholder")}
         value={query}
         onValueChange={setQuery}
       />
       <CommandList ref={listRef}>
         <CommandEmpty>
-          {isIndexReady() ? "No notes found." : "Building search index..."}
+          {isIndexReady() ? t("ui.noteLinkPicker.noNotesFound") : t("ui.noteLinkPicker.buildingIndex")}
         </CommandEmpty>
-        <CommandGroup heading={query.trim() ? "Results" : "Recent"}>
+        <CommandGroup heading={query.trim() ? t("ui.noteLinkPicker.results") : t("ui.noteLinkPicker.recent")}>
           {results.map((result) => (
             <CommandItem
               key={`${result.item.type}-${result.item.id}`}
@@ -110,8 +118,7 @@ export function NoteLinkPicker({
                   {[
                     result.item.workspaceName,
                     result.item.projectName,
-                    result.item.type.charAt(0).toUpperCase() +
-                      result.item.type.slice(1),
+                    typeLabels[result.item.type] ?? result.item.type,
                   ]
                     .filter(Boolean)
                     .join(" \u203a ")}

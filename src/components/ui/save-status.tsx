@@ -1,4 +1,5 @@
 
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { CloudOff } from "lucide-react";
 
@@ -25,6 +26,7 @@ export function SaveStatusIndicator({
   className,
   compact = false,
 }: SaveStatusIndicatorProps) {
+  const { t } = useTranslation();
   // Only show errors - everything else is silent
   if (status !== "error") {
     return null;
@@ -38,7 +40,7 @@ export function SaveStatusIndicator({
           "flex items-center justify-center h-8 w-8 text-destructive",
           className
         )}
-        title="Save failed"
+        title={t("ui.saveStatus.failed")}
       >
         <CloudOff className="h-3.5 w-3.5" />
       </div>
@@ -54,7 +56,7 @@ export function SaveStatusIndicator({
       )}
     >
       <CloudOff className="h-3 w-3" />
-      <span>Save failed</span>
+      <span>{t("ui.saveStatus.failed")}</span>
     </div>
   );
 }

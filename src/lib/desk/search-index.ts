@@ -64,7 +64,6 @@ export function rebuildIndex(newItems: SearchItem[]): void {
   items = newItems;
   fuse = new Fuse(items, FUSE_OPTIONS);
   isInitialized = true;
-  console.log(`[search-index] Index built with ${items.length} items`);
 }
 
 /**

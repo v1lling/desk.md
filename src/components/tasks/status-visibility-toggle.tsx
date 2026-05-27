@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { TaskStatus } from "@/types";
 import { taskStatusColors, taskStatusLabels, taskStatusOrder } from "@/lib/design-tokens";
@@ -22,6 +23,7 @@ export function StatusVisibilityToggle({
   hiddenStatuses,
   onToggle,
 }: StatusVisibilityToggleProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {taskStatusOrder.map((status) => {
@@ -32,7 +34,11 @@ export function StatusVisibilityToggle({
             key={status}
             type="button"
             onClick={() => onToggle(status)}
-            title={hidden ? `Show ${label}` : `Hide ${label}`}
+            title={
+              hidden
+                ? t("pages.tasks.visibility.show", { label })
+                : t("pages.tasks.visibility.hide", { label })
+            }
             aria-pressed={!hidden}
             className={cn(
               "flex items-center gap-1.5 h-6 px-2 rounded-full border text-[11px] font-medium transition-colors",

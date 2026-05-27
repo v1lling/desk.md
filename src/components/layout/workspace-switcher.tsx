@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ function WorkspaceDot({ color, size = "sm" }: { color?: string; size?: "sm" | "l
 }
 
 export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps) {
+  const { t } = useTranslation();
   const { data: workspaces = [], isLoading } = useWorkspaces();
   const currentWorkspace = useCurrentWorkspace();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
@@ -62,7 +64,7 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
         onClick={() => setShowNewWorkspaceModal(true)}
       >
         <Plus className="size-3" />
-        New Workspace
+        {t("menus.workspaceSwitcher.newWorkspace")}
       </DropdownMenuItem>
     </DropdownMenuContent>
   );

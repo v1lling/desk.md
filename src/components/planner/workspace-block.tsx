@@ -6,6 +6,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Circle, StickyNote, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import {
   ContextMenu,
@@ -51,6 +52,7 @@ export function TimeBlock({
   siblingBlocks,
   onDragStart,
 }: TimeBlockProps) {
+  const { t } = useTranslation();
   const workspace = workspaces.find((w) => w.id === block.workspaceId);
   const removeBlock = usePlannerStore((s) => s.removeBlock);
   const updateBlockTime = usePlannerStore((s) => s.updateBlockTime);
@@ -309,7 +311,7 @@ export function TimeBlock({
                   ))}
                 {isMedium && block.notes.length > 2 && (
                   <span className="text-[10px] text-muted-foreground pl-1.5">
-                    +{block.notes.length - 2} more
+                    {t("pages.planner.block.moreCount", { count: block.notes.length - 2 })}
                   </span>
                 )}
               </div>
@@ -319,7 +321,7 @@ export function TimeBlock({
                 <input
                   type="text"
                   className="w-full text-xs px-1.5 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  placeholder="Type a note..."
+                  placeholder={t("pages.planner.block.notePlaceholder")}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && e.currentTarget.value.trim()) {
@@ -354,7 +356,7 @@ export function TimeBlock({
                   ))}
                   {isMedium && tasks.length > 3 && (
                     <span className="text-[10px] text-muted-foreground pl-1.5">
-                      +{tasks.length - 3} more
+                      {t("pages.planner.block.moreCount", { count: tasks.length - 3 })}
                     </span>
                   )}
                 </div>
@@ -396,7 +398,7 @@ export function TimeBlock({
       <ContextMenuContent>
         <ContextMenuItem onClick={() => setAddingNote(true)}>
           <StickyNote className="h-4 w-4" />
-          Add note
+          {t("pages.planner.block.addNote")}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
@@ -404,7 +406,7 @@ export function TimeBlock({
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
-          Remove block
+          {t("pages.planner.block.removeBlock")}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "sonner";
+import i18next from "i18next";
 import { runAssistantTurn } from "@/lib/assistant/orchestrator";
 import type {
   AssistantConversation,
@@ -33,7 +34,14 @@ interface AssistantState {
     message: string,
     options?: { mode?: AssistantTurnMode; forceNewConversation?: boolean; title?: string }
   ) => Promise<void>;
-  startEmailDraft: (params: { email: IncomingEmail; instructions?: string }) => Promise<void>;
+  startEmailDraft: (params: {
+    email: IncomingEmail;
+    instructions?: string;
+    workspaceId?: string | null;
+    workspaceName?: string | null;
+    projectId?: string | null;
+    projectName?: string | null;
+  }) => Promise<void>;
   cancelRun: () => void;
 }
 
@@ -63,7 +71,8 @@ function appendMessage(
 ): AssistantConversation {
   const messages = [...conversation.messages, message];
   let title = conversation.title;
-  if (title === "New Assistant" && message.role === "user") {
+  const defaultTitle = i18next.t("entities.assistant.defaults.newConversation");
+  if (title === defaultTitle && message.role === "user") {
     title = message.content.length > 50 ? `${message.content.slice(0, 50)}...` : message.content;
   }
 
@@ -101,7 +110,7 @@ export const useAssistantStore = create<AssistantState>()(
 
         const conversation: AssistantConversation = {
           id,
-          title: options?.title || "New Assistant",
+          title: options?.title || i18next.t("entities.assistant.defaults.newConversation"),
           mode: options?.mode || "chat",
           messages: [],
           createdAt: now,
@@ -148,7 +157,7 @@ export const useAssistantStore = create<AssistantState>()(
 
         const baseConversation = get().conversations.find((item) => item.id === conversationId);
         if (!baseConversation) {
-          toast.error("Conversation not found.");
+          toast.error(i18next.t("toasts.assistant.conversationNotFound"));
           return;
         }
 
@@ -307,8 +316,17 @@ export const useAssistantStore = create<AssistantState>()(
         }
       },
 
-      startEmailDraft: async ({ email, instructions }) => {
-        const titleBase = email.subject?.trim() ? `Draft: ${email.subject.trim()}` : "Draft Email Reply";
+      startEmailDraft: async ({
+        email,
+        instructions,
+        workspaceId,
+        workspaceName,
+        projectId,
+        projectName,
+      }) => {
+        const titleBase = email.subject?.trim()
+          ? i18next.t("entities.assistant.defaults.emailDraftWithSubject", { subject: email.subject.trim() })
+          : i18next.t("entities.assistant.defaults.emailDraft");
         const prompt = buildAssistantTurnUserMessage("draft-email", {
           emailContext: {
             from: formatEmailAddress(email.from),
@@ -319,6 +337,10 @@ export const useAssistantStore = create<AssistantState>()(
             source: email.source || "",
             body: email.body || "",
             instructions: instructions?.trim() || "",
+            workspaceId: workspaceId ?? "",
+            workspaceName: workspaceName ?? "",
+            projectId: projectId ?? "",
+            projectName: projectName ?? "",
           },
         });
         await get().sendMessage(prompt, {

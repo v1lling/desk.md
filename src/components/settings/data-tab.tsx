@@ -13,6 +13,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FolderOpen, Loader2, CheckCircle2, FolderPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useBootStore } from "@/stores/boot";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useNavigationStore } from "@/stores/navigation";
@@ -21,6 +22,7 @@ import { getWorkspaces, isTauri, expandFsScope } from "@/lib/desk";
 import type { Workspace } from "@/types";
 
 export function DataTab() {
+  const { t } = useTranslation();
   const { dataPath, setDataPath, setSetupCompleted, reset: resetBoot } = useBootStore();
   const { reset: resetPreferences } = usePreferencesStore();
   const { setCurrentWorkspaceId, reset: resetNavigation } = useNavigationStore();
@@ -42,7 +44,7 @@ export function DataTab() {
     const root = document.documentElement;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     root.classList.toggle("dark", systemDark);
-    toast.success("Settings reset to defaults");
+    toast.success(t("toasts.settings.settingsReset"));
   };
 
   const handleCheckDataPath = async () => {
@@ -62,7 +64,7 @@ export function DataTab() {
       } else {
         // In browser mode, just update the path
         queryClient.invalidateQueries();
-        toast.success("Data path updated");
+        toast.success(t("toasts.settings.dataPathUpdated"));
       }
 
       // If dialog will open, restore old path until user confirms
@@ -92,15 +94,15 @@ export function DataTab() {
     if (useExisting && foundWorkspaces.length > 0) {
       // Use first existing workspace
       setCurrentWorkspaceId(foundWorkspaces[0].id);
-      toast.success(`Switched to ${pendingPath} with existing data`);
+      toast.success(t("toasts.settings.switchedToPath", { path: pendingPath }));
     } else if (foundWorkspaces.length === 0) {
       // No workspaces found - trigger setup wizard for this path
       setSetupCompleted(false);
-      toast.success("Data path updated. Create your first workspace.");
+      toast.success(t("toasts.settings.dataPathUpdatedCreateWorkspace"));
     } else {
       // User wants to create new despite existing
       setSetupCompleted(false);
-      toast.success("Data path updated. Setup wizard will guide you.");
+      toast.success(t("toasts.settings.dataPathUpdatedWizard"));
     }
 
     setPathDialogOpen(false);
@@ -113,17 +115,17 @@ export function DataTab() {
       {/* Data Storage */}
       <SettingsSection
         icon={<FolderOpen className="h-4 w-4" />}
-        title="Data Storage"
-        description="Where your projects and files are stored"
+        title={t("settings.data.storage.title")}
+        description={t("settings.data.storage.description")}
       >
         <div className="space-y-2">
-          <Label htmlFor="data-path">Data folder path</Label>
+          <Label htmlFor="data-path">{t("settings.data.storage.pathLabel")}</Label>
           <div className="flex gap-2">
             <Input
               id="data-path"
               value={pendingPath || dataPath}
               onChange={(e) => setPendingPath(e.target.value)}
-              placeholder="~/Desk"
+              placeholder={t("settings.data.storage.pathPlaceholder")}
               className="font-mono text-sm"
             />
             <Button
@@ -132,11 +134,11 @@ export function DataTab() {
               disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
             >
               {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Change
+              {t("settings.data.storage.change")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            All your workspaces, projects, tasks, and notes are stored as markdown files in this folder.
+            {t("settings.data.storage.helperText")}
           </p>
         </div>
       </SettingsSection>
@@ -144,14 +146,14 @@ export function DataTab() {
       {/* Reset Settings */}
       <SettingsSection
         icon={<RotateCcw className="h-4 w-4" />}
-        title="Reset"
-        description="Restore defaults and re-run setup. Your data files are kept."
+        title={t("settings.data.reset.title")}
+        description={t("settings.data.reset.description")}
       >
         <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
-          Reset All Settings
+          {t("settings.data.reset.button")}
         </Button>
         <p className="text-xs text-muted-foreground mt-2">
-          This will reset all settings and show the setup wizard again. Your data files will not be deleted.
+          {t("settings.data.reset.helperText")}
         </p>
       </SettingsSection>
 
@@ -159,9 +161,9 @@ export function DataTab() {
       <ConfirmDialog
         open={showResetConfirm}
         onOpenChange={setShowResetConfirm}
-        title="Reset All Settings"
-        description="Are you sure you want to reset all settings to defaults? This will show the setup wizard again. Your data files will not be deleted."
-        confirmLabel="Reset"
+        title={t("settings.data.resetDialog.title")}
+        description={t("settings.data.resetDialog.description")}
+        confirmLabel={t("settings.data.resetDialog.confirmLabel")}
         variant="destructive"
         onConfirm={handleResetConfirm}
       />
@@ -175,9 +177,11 @@ export function DataTab() {
                 <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 </div>
-                <DialogTitle>Existing Data Found</DialogTitle>
+                <DialogTitle>{t("settings.data.pathDialog.existingTitle")}</DialogTitle>
                 <DialogDescription>
-                  Found {foundWorkspaces.length} workspace{foundWorkspaces.length > 1 ? "s" : ""} at this location.
+                  {t("settings.data.pathDialog.existingDescription", {
+                    count: foundWorkspaces.length,
+                  })}
                 </DialogDescription>
               </>
             ) : (
@@ -185,9 +189,9 @@ export function DataTab() {
                 <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <FolderPlus className="h-6 w-6 text-primary" />
                 </div>
-                <DialogTitle>Empty Location</DialogTitle>
+                <DialogTitle>{t("settings.data.pathDialog.emptyTitle")}</DialogTitle>
                 <DialogDescription>
-                  No Desk data found at this path. You&apos;ll need to create your first workspace.
+                  {t("settings.data.pathDialog.emptyDescription")}
                 </DialogDescription>
               </>
             )}
@@ -219,19 +223,19 @@ export function DataTab() {
             {foundWorkspaces.length > 0 ? (
               <>
                 <Button onClick={() => handleConfirmPathChange(true)}>
-                  Use Existing Data
+                  {t("settings.data.pathDialog.useExisting")}
                 </Button>
                 <Button variant="outline" onClick={() => handleConfirmPathChange(false)}>
-                  Start Fresh Instead
+                  {t("settings.data.pathDialog.startFresh")}
                 </Button>
               </>
             ) : (
               <>
                 <Button onClick={() => handleConfirmPathChange(false)}>
-                  Continue to Setup
+                  {t("settings.data.pathDialog.continueToSetup")}
                 </Button>
                 <Button variant="outline" onClick={() => setPathDialogOpen(false)}>
-                  Cancel
+                  {t("common.buttons.cancel")}
                 </Button>
               </>
             )}

@@ -5,6 +5,7 @@
  * can collide between docs/ and ai-docs/ trees, so we qualify them by tree path.
  */
 
+import i18next from "i18next";
 import type { FileTreeNode } from "@/types";
 import {
   AI_DOCS_SENTINEL,
@@ -12,7 +13,7 @@ import {
   isReservedAIDocsName,
 } from "@/lib/desk/tree-path";
 
-export type ArboristNodeKind = "folder" | "doc" | "asset";
+export type ArboristNodeKind = "folder" | "doc" | "asset" | "section-header";
 
 export interface ArboristNode {
   /** Unique id within the tree. */
@@ -29,6 +30,8 @@ export interface ArboristNode {
   node: FileTreeNode;
   /** Children — undefined for leaves, [] for empty branches (incl. unloaded lazy project stubs). */
   children?: ArboristNode[];
+  /** For "section-header" kind: render a thin top border to separate from the previous group. */
+  sectionShowDivider?: boolean;
 }
 
 function buildId(kind: ArboristNodeKind, treePath: string): string {
@@ -88,7 +91,37 @@ export function nodesToArborist(
  * True when a node represents a lazy-loaded project stub (synthesized in workspace overview).
  */
 export function isProjectStub(node: ArboristNode): boolean {
+  if (node.kind !== "folder") return false;
   return node.node.type === "folder" && node.node.folder.isProject === true;
+}
+
+/**
+ * Insert "Workspace" + "Projects" section headers at the top-level boundary.
+ * Headers are only added when the list actually mixes non-project and project rows;
+ * a list that is all-one-kind renders untouched.
+ */
+export function insertSectionHeaders(nodes: ArboristNode[]): ArboristNode[] {
+  const firstProjectIdx = nodes.findIndex((n) => isProjectStub(n));
+  if (firstProjectIdx <= 0) return nodes;
+  return [
+    makeSectionHeader("section-workspace", i18next.t("pages.docs.tree.sections.workspace"), false),
+    ...nodes.slice(0, firstProjectIdx),
+    makeSectionHeader("section-projects", i18next.t("pages.docs.tree.sections.projects"), true),
+    ...nodes.slice(firstProjectIdx),
+  ];
+}
+
+function makeSectionHeader(id: string, label: string, showDivider: boolean): ArboristNode {
+  return {
+    id,
+    name: label,
+    kind: "section-header",
+    treePath: id,
+    parentTreePath: "",
+    node: { type: "folder", folder: { name: label, path: id, children: [] } } as FileTreeNode,
+    children: undefined,
+    sectionShowDivider: showDivider,
+  };
 }
 
 /**
