@@ -35,6 +35,7 @@ import { isTauri } from "@/lib/desk/tauri-fs";
 import { sortNodes, type DocSortBy } from "../tree-item-utils";
 import {
   canDropInto,
+  insertSectionHeaders,
   isAllowedNewFolderName,
   isDraggable,
   isAIDocsRoot,
@@ -186,8 +187,11 @@ export function DocsTree({
     return sortNodes(filtered, sortBy, sortDir);
   }, [composedTree, searchQuery, sortBy, sortDir]);
 
-  // Adapt to arborist
-  const arboristData = useMemo(() => nodesToArborist(filteredTree, ""), [filteredTree]);
+  // Adapt to arborist, then splice in Workspace/Projects section headers at the boundary.
+  const arboristData = useMemo(
+    () => insertSectionHeaders(nodesToArborist(filteredTree, "")),
+    [filteredTree],
+  );
 
   // Folder AI states — feed both top-level paths (for the toggle) and project paths
   const folderTreePaths = useMemo(() => collectFolderTreePaths(filteredTree), [filteredTree]);
@@ -631,6 +635,7 @@ export function DocsTree({
               data={arboristData}
               idAccessor={(n) => n.id}
               childrenAccessor={(n) => n.children ?? null}
+              className="desk-thin-scrollbar"
               width={size.width}
               height={size.height}
               rowHeight={28}
@@ -647,8 +652,15 @@ export function DocsTree({
               // not to re-filter by name so content-only matches stay visible. The searchTerm
               // prop is still useful — arborist auto-expands matched branches.
               searchMatch={() => true}
-              disableDrag={(n) => !isDraggable(n as unknown as ArboristNode)}
-              disableDrop={(args) => !canDropInto(args.parentNode?.data ?? null, args.dragNodes.map((dn) => dn.data))}
+              disableDrag={(n) => {
+                const data = n as unknown as ArboristNode;
+                return data.kind === "section-header" || !isDraggable(data);
+              }}
+              disableDrop={(args) => {
+                const parent = args.parentNode?.data ?? null;
+                if (parent?.kind === "section-header") return true;
+                return !canDropInto(parent, args.dragNodes.map((dn) => dn.data));
+              }}
             >
               {DocsTreeRow}
             </Tree>
