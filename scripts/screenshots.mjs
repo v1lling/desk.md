@@ -187,7 +187,7 @@ function frameHtml(pngB64, w, h, pad, theme) {
   // disappear against dark GitHub; the ring carries the separation work there.
   const ring =
     theme === "dark"
-      ? "0 0 0 1px rgba(255, 255, 255, 0.10)"
+      ? "0 0 0 1px rgba(255, 255, 255, 0.30)"
       : "0 0 0 1px rgba(0, 0, 0, 0.08)";
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     * { margin: 0; box-sizing: border-box; }
