@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import i18next from "i18next";
 
 import type { IncomingEmail } from "@/lib/email/types";
 
@@ -42,12 +43,14 @@ interface TabState {
   getTabByEntityId: (type: TabType, entityId: string) => TabItem | undefined;
 }
 
-const DESK_TAB: TabItem = {
-  id: "desk",
-  type: "desk",
-  title: "Desk",
-  isPinned: true,
-};
+function makeDeskTab(): TabItem {
+  return {
+    id: "desk",
+    type: "desk",
+    title: i18next.t("tabs.desk"),
+    isPinned: true,
+  };
+}
 
 function stripSessionOnlyTabData(tab: TabItem): Omit<TabItem, "emailData"> {
   const next = { ...tab };
@@ -58,7 +61,7 @@ function stripSessionOnlyTabData(tab: TabItem): Omit<TabItem, "emailData"> {
 export const useTabStore = create<TabState>()(
   persist(
     (set, get) => ({
-      tabs: [DESK_TAB],
+      tabs: [makeDeskTab()],
       activeTabId: "desk",
       pendingSaveAndClose: null,
 
@@ -235,7 +238,7 @@ export function useOpenTab() {
     openEmail: (email: IncomingEmail) => {
       openTab({
         type: "email",
-        title: email.subject || "Email",
+        title: email.subject || i18next.t("tabs.emailDefault"),
         emailData: email,
       });
     },

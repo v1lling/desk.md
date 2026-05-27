@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { formatDate } from "@/lib/format";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,11 +35,11 @@ const TYPE_ICONS: Record<SearchItemType, React.ReactNode> = {
   project: <FolderKanban className="h-4 w-4" />,
 };
 
-const TYPE_LABELS: Record<SearchItemType, string> = {
-  task: "Task",
-  doc: "Doc",
-  meeting: "Meeting",
-  project: "Project",
+const TYPE_LABEL_KEYS: Record<SearchItemType, string> = {
+  task: "search.globalSearch.types.task",
+  doc: "search.globalSearch.types.doc",
+  meeting: "search.globalSearch.types.meeting",
+  project: "search.globalSearch.types.project",
 };
 
 /**
@@ -50,6 +51,7 @@ export function openGlobalSearch() {
 }
 
 export function GlobalSearch() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -143,19 +145,19 @@ export function GlobalSearch() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
       <CommandInput
-        placeholder="Search tasks, docs, projects..."
+        placeholder={t("search.globalSearch.placeholder")}
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
         <CommandEmpty>
           {isIndexReady()
-            ? "No results found."
-            : "Building search index..."}
+            ? t("search.globalSearch.noResults")
+            : t("search.globalSearch.buildingIndex")}
         </CommandEmpty>
 
         {!query.trim() && results.length > 0 && (
-          <CommandGroup heading="Recent">
+          <CommandGroup heading={t("search.globalSearch.recentHeading")}>
             {results.map((result) => (
               <SearchResultItem
                 key={`${result.item.type}-${result.item.id}`}
@@ -167,7 +169,7 @@ export function GlobalSearch() {
         )}
 
         {query.trim() && results.length > 0 && (
-          <CommandGroup heading="Results">
+          <CommandGroup heading={t("search.globalSearch.resultsHeading")}>
             {results.map((result) => (
               <SearchResultItem
                 key={`${result.item.type}-${result.item.id}`}
@@ -189,6 +191,7 @@ function SearchResultItem({
   result: SearchResult;
   onSelect: (result: SearchResult) => void;
 }) {
+  const { t } = useTranslation();
   const { item } = result;
 
   return (
@@ -208,7 +211,7 @@ function SearchResultItem({
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{TYPE_LABELS[item.type]}</span>
+          <span>{t(TYPE_LABEL_KEYS[item.type])}</span>
           {item.projectName && item.type !== "project" && (
             <>
               <span>·</span>

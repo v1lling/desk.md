@@ -1,5 +1,6 @@
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ className }: ConversationListProps) {
+  const { t } = useTranslation();
   const conversations = useAssistantStore((s) => s.conversations);
   const activeConversationId = useAssistantStore((s) => s.activeConversationId);
   const createConversation = useAssistantStore((s) => s.createConversation);
@@ -25,12 +27,12 @@ export function ConversationList({ className }: ConversationListProps) {
     <div className={cn("flex flex-col h-full", className)}>
       {/* Header */}
       <div className="shrink-0 min-h-11 py-2 px-3 border-b border-border/60 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">Conversations</span>
+        <span className="text-sm font-medium">{t("assistant.conversations.heading")}</span>
         <Button
           variant="ghost"
           size="icon"
           className="h-7 w-7 shrink-0"
-          title="New conversation"
+          title={t("assistant.conversations.newConversation")}
           onClick={() => createConversation()}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -42,7 +44,7 @@ export function ConversationList({ className }: ConversationListProps) {
         <div className="px-2 pb-2 space-y-0.5">
           {conversations.length === 0 && (
             <p className="text-xs text-muted-foreground px-2 py-4 text-center">
-              No conversations yet
+              {t("assistant.conversations.empty")}
             </p>
           )}
           {conversations.map((conv) => (
@@ -71,6 +73,7 @@ function ConversationItem({
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
+  const { t } = useTranslation();
   const relativeDate = formatDistanceToNow(parseISO(conversation.updatedAt), {
     addSuffix: true,
   });
@@ -92,7 +95,7 @@ function ConversationItem({
       <button
         onClick={onDelete}
         className="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
-        title="Delete conversation"
+        title={t("assistant.conversations.deleteConversation")}
       >
         <Trash2 className="size-3" />
       </button>

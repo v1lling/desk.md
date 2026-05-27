@@ -3,6 +3,7 @@ import { useOpenTab } from "@/stores/tabs";
 import { findByTypeAndId } from "@/lib/desk/search-index";
 import type { NoteLink } from "@/lib/desk/note-link";
 import { toast } from "sonner";
+import i18next from "i18next";
 
 /**
  * Hook that resolves internal note links (desk:// URIs) and opens them in tabs.
@@ -14,7 +15,7 @@ export function useInternalLinkHandler() {
     (link: NoteLink) => {
       const item = findByTypeAndId(link.type, link.id);
       if (!item) {
-        toast.error("Linked note not found");
+        toast.error(i18next.t("toasts.link.notFound"));
         return;
       }
       const nav = {

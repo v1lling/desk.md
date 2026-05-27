@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   KanbanBoard,
   NewTaskModal,
@@ -19,6 +20,7 @@ import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
 import type { Task, TaskStatus } from "@/types";
 
 export default function TasksPage() {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: tasks = [] } = useTasks(currentWorkspaceId);
@@ -78,10 +80,10 @@ export default function TasksPage() {
   // Prepare filter options - include "No project" for unassigned
   const projectOptions = useMemo(
     () => [
-      { value: "_unassigned", label: "No project" },
+      { value: "_unassigned", label: t("pages.tasks.noProject") },
       ...projects.map((p) => ({ value: p.id, label: p.name })),
     ],
-    [projects]
+    [projects, t]
   );
 
   const priorityOptions = priorityOrder.map((p) => ({
@@ -91,30 +93,30 @@ export default function TasksPage() {
 
   return (
     <FilteredListPage
-      actionLabel="New Task"
+      actionLabel={t("pages.tasks.newTask")}
       onAction={() => setShowNewTask(true)}
       filters={[
         {
           id: "project",
-          label: "Project",
+          label: t("pages.tasks.filters.projectLabel"),
           value: filterProject,
           onChange: setFilterProject,
           options: projectOptions,
-          allLabel: "All projects",
+          allLabel: t("pages.tasks.filters.allProjects"),
           width: "w-[200px]",
         },
         {
           id: "priority",
-          label: "Priority",
+          label: t("pages.tasks.filters.priorityLabel"),
           value: filterPriority,
           onChange: setFilterPriority,
           options: priorityOptions,
-          allLabel: "All priorities",
+          allLabel: t("pages.tasks.filters.allPriorities"),
           width: "w-[150px]",
         },
       ]}
       count={filteredTasks.length}
-      countLabel="tasks"
+      countLabel={t("pages.tasks.countLabel")}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       modal={

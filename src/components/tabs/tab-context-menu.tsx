@@ -1,5 +1,6 @@
 
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -24,6 +25,8 @@ export function TabContextMenu({
   onClose,
   onCloseOthers,
 }: TabContextMenuProps) {
+  const { t } = useTranslation();
+
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
@@ -38,7 +41,7 @@ export function TabContextMenu({
       <ContextMenuContent>
         {!tab.isPinned && (
           <ContextMenuItem onClick={handleClose}>
-            Close
+            {t("menus.tabContextMenu.close")}
             <ContextMenuShortcut>Cmd+W</ContextMenuShortcut>
           </ContextMenuItem>
         )}
@@ -46,7 +49,7 @@ export function TabContextMenu({
           onClick={handleCloseOthers}
           disabled={!hasOtherClosableTabs}
         >
-          Close Others
+          {t("menus.tabContextMenu.closeOthers")}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

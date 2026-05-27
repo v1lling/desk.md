@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ type Step = "welcome" | "data-folder" | "existing-detected" | "workspace";
 const HOME_WORKSPACE_COLOR = "#6366f1";
 
 export function SetupWizard() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("welcome");
   const [dataPath, setDataPath] = useState("~/Desk");
   const [workspaceName, setWorkspaceName] = useState("Personal");
@@ -40,7 +42,7 @@ export function SetupWizard() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "Select Data Folder",
+        title: t("setup.dataFolder.pickerTitle"),
       });
 
       if (selected && typeof selected === "string") {
@@ -72,9 +74,7 @@ export function SetupWizard() {
     } catch (err) {
       console.error("Error checking data folder:", err);
       if (isTauri()) {
-        setError(
-          `Couldn't access "${dataPath}". Check that the folder path is valid and that Desk can write there, then try again.`
-        );
+        setError(t("errors.setup.checkDataFolder", { path: dataPath }));
         return;
       }
       setStep("workspace");
@@ -111,9 +111,7 @@ export function SetupWizard() {
     } catch (err) {
       console.error("Setup failed:", err);
       if (isTauri()) {
-        setError(
-          `Setup couldn't create your data folder at "${dataPath}". Make sure the location exists and Desk has permission to write there, then try again.`
-        );
+        setError(t("errors.setup.createDataFolder", { path: dataPath }));
         return;
       }
       const workspaceId = slugify(workspaceName);
@@ -139,13 +137,13 @@ export function SetupWizard() {
                 className="rounded-xl"
               />
               <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-semibold tracking-tight">Welcome to Desk.</h1>
+                <h1 className="text-xl font-semibold tracking-tight">{t("setup.welcome.title")}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Your projects, tasks, docs, and meetings, as plain Markdown files you own.
+                  {t("setup.welcome.subtitle")}
                 </p>
               </div>
               <Button className="w-full" onClick={() => setStep("data-folder")}>
-                Continue
+                {t("common.buttons.continue")}
               </Button>
             </div>
           )}
@@ -153,13 +151,13 @@ export function SetupWizard() {
           {step === "data-folder" && (
             <div className="w-full flex flex-col gap-6">
               <div className="flex flex-col gap-2 text-center">
-                <h1 className="text-base font-semibold tracking-tight">Where should we store your files?</h1>
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.dataFolder.title")}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Pick any folder. Desk creates the structure for you, and you can move it later.
+                  {t("setup.dataFolder.subtitle")}
                 </p>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="dataPath">Data folder</Label>
+                <Label htmlFor="dataPath">{t("setup.dataFolder.label")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="dataPath"
@@ -177,7 +175,7 @@ export function SetupWizard() {
                       variant="outline"
                       size="icon"
                       onClick={handleBrowseFolder}
-                      title="Browse for folder"
+                      title={t("setup.dataFolder.browseTitle")}
                     >
                       <FolderSearch className="h-4 w-4" />
                     </Button>
@@ -191,11 +189,11 @@ export function SetupWizard() {
               )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep("welcome")} disabled={isLoading}>
-                  Back
+                  {t("common.buttons.back")}
                 </Button>
                 <Button className="flex-1" onClick={handleCheckDataFolder} disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue
+                  {t("common.buttons.continue")}
                 </Button>
               </div>
             </div>
@@ -204,10 +202,9 @@ export function SetupWizard() {
           {step === "existing-detected" && (
             <div className="w-full flex flex-col gap-6">
               <div className="flex flex-col gap-2 text-center">
-                <h1 className="text-base font-semibold tracking-tight">You already have Desk data here.</h1>
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.existingDetected.title")}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Found {existingWorkspaces.length} workspace{existingWorkspaces.length > 1 ? "s" : ""} in this folder.
-                  Continue where you left off, or start fresh.
+                  {t("setup.existingDetected.description", { count: existingWorkspaces.length })}
                 </p>
               </div>
               <ul className="flex flex-col gap-1.5">
@@ -226,10 +223,10 @@ export function SetupWizard() {
               </ul>
               <div className="flex flex-col gap-2">
                 <Button className="w-full" onClick={handleUseExisting}>
-                  Use existing data
+                  {t("setup.existingDetected.useExisting")}
                 </Button>
                 <Button variant="outline" className="w-full" onClick={() => setStep("workspace")}>
-                  Start fresh
+                  {t("setup.existingDetected.startFresh")}
                 </Button>
               </div>
             </div>
@@ -238,19 +235,18 @@ export function SetupWizard() {
           {step === "workspace" && (
             <div className="w-full flex flex-col gap-6">
               <div className="flex flex-col gap-2 text-center">
-                <h1 className="text-base font-semibold tracking-tight">Name your workspace.</h1>
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.workspace.title")}</h1>
                 <p className="text-sm text-muted-foreground">
-                  This is your home, for personal notes and the capture inbox. Add more workspaces later for clients,
-                  projects, or other areas.
+                  {t("setup.workspace.subtitle")}
                 </p>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="workspaceName">Name</Label>
+                <Label htmlFor="workspaceName">{t("setup.workspace.nameLabel")}</Label>
                 <Input
                   id="workspaceName"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="Personal"
+                  placeholder={t("setup.workspace.namePlaceholder")}
                 />
               </div>
               {error && (
@@ -266,7 +262,7 @@ export function SetupWizard() {
                   }
                   disabled={isLoading}
                 >
-                  Back
+                  {t("common.buttons.back")}
                 </Button>
                 <Button
                   className="flex-1"
@@ -274,7 +270,7 @@ export function SetupWizard() {
                   disabled={!workspaceName.trim() || isLoading}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Finish
+                  {t("setup.workspace.finish")}
                 </Button>
               </div>
             </div>

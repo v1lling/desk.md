@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -42,6 +43,7 @@ export interface TriageDestination {
 }
 
 export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
+  const { t } = useTranslation();
   const { data: tasks = [], isLoading } = useCaptureTasks();
   const { data: workspaces = [] } = useWorkspaces();
   const createTask = useCreateCaptureTask();
@@ -52,7 +54,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
   const homeWorkspace = workspaces.find((w) => w.isHome);
-  const homeName = homeWorkspace?.name ?? "Home";
+  const homeName = homeWorkspace?.name ?? t("pages.dashboard.capture.defaultHomeName");
   const otherWorkspaces = workspaces.filter((w) => !w.isHome);
 
   const handleQuickAdd = async (e: React.FormEvent) => {
@@ -109,10 +111,10 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
     >
       <div className="flex items-center gap-2 mb-3">
         <Zap className={cn("size-4", hasTasks ? "text-brand-accent" : "text-primary")} />
-        <h2 className="font-medium">Capture</h2>
+        <h2 className="font-medium">{t("pages.dashboard.capture.title")}</h2>
         {hasTasks && (
           <span className="text-xs font-medium text-brand-accent">
-            {tasks.length} to triage
+            {t("pages.dashboard.capture.toTriageCount", { count: tasks.length })}
           </span>
         )}
       </div>
@@ -123,7 +125,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
           <Input
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Quick capture..."
+            placeholder={t("pages.dashboard.capture.quickAddPlaceholder")}
             className="pr-9 h-9 text-sm"
           />
           <Button
@@ -144,9 +146,9 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 
       {/* Task List */}
       {isLoading ? (
-        <LoadingState label="tasks" display="inline" className="py-6" />
+        <LoadingState label={t("pages.dashboard.capture.loadingLabel")} display="inline" className="py-6" />
       ) : !hasTasks ? (
-        <EmptyState title="Capture tasks quickly, triage later" display="inline" className="py-6" />
+        <EmptyState title={t("pages.dashboard.capture.emptyTitle")} display="inline" className="py-6" />
       ) : (
         <ScrollArea className="max-h-[280px]">
           <div className="space-y-1.5">
@@ -187,6 +189,7 @@ function CaptureItem({
   onMoveToWorkspace,
   onDelete,
 }: CaptureItemProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 px-3 py-2 rounded-md border-l-2 border-brand-accent bg-brand-accent/5 hover:bg-brand-accent/10 transition-colors group">
       <span className="flex-1 text-sm font-medium truncate">{task.title}</span>
@@ -198,7 +201,7 @@ function CaptureItem({
             size="sm"
             className="h-7 px-2 opacity-60 group-hover:opacity-100 transition-opacity text-xs font-medium"
           >
-            Triage
+            {t("pages.dashboard.capture.triageButton")}
             <MoreHorizontal className="size-3.5 ml-1" />
           </Button>
         </DropdownMenuTrigger>
@@ -206,7 +209,7 @@ function CaptureItem({
           {/* Home workspace tasks */}
           <DropdownMenuItem onClick={onMoveToPersonal}>
             <User className="size-4 mr-2" />
-            Move to {homeName} Tasks
+            {t("pages.dashboard.capture.moveToHomeTasks", { home: homeName })}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
@@ -224,7 +227,7 @@ function CaptureItem({
             ))
           ) : (
             <DropdownMenuItem disabled className="text-muted-foreground">
-              No workspaces yet
+              {t("pages.dashboard.capture.noWorkspacesYet")}
             </DropdownMenuItem>
           )}
 
@@ -236,7 +239,7 @@ function CaptureItem({
             className="text-destructive focus:text-destructive"
           >
             <Trash2 className="size-4 mr-2" />
-            Delete
+            {t("common.buttons.delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -250,7 +253,9 @@ interface WorkspaceSubmenuProps {
 }
 
 function WorkspaceSubmenu({ workspace, onSelect }: WorkspaceSubmenuProps) {
+  const { t } = useTranslation();
   const { data: projects = [] } = useProjects(workspace.id);
+  const unassignedLabel = t("pages.dashboard.capture.unassigned");
 
   return (
     <DropdownMenuSub>
@@ -261,9 +266,9 @@ function WorkspaceSubmenu({ workspace, onSelect }: WorkspaceSubmenuProps) {
       <DropdownMenuSubContent className="w-48">
         {/* Unassigned option */}
         <DropdownMenuItem
-          onClick={() => onSelect(SPECIAL_DIRS.UNASSIGNED, "Unassigned")}
+          onClick={() => onSelect(SPECIAL_DIRS.UNASSIGNED, unassignedLabel)}
         >
-          Unassigned
+          {unassignedLabel}
         </DropdownMenuItem>
 
         {projects.length > 0 && <DropdownMenuSeparator />}

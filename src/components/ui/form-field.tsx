@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +22,13 @@ export function FormField({
   className,
   children,
 }: FormFieldProps) {
+  const { t } = useTranslation();
   return (
     <div className={cn("space-y-2", className)}>
       <Label htmlFor={id}>
         {label}
         {optional && (
-          <span className="text-muted-foreground font-normal ml-1">(optional)</span>
+          <span className="text-muted-foreground font-normal ml-1">{t("ui.formField.optional")}</span>
         )}
       </Label>
       {children}

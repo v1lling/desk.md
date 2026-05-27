@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
@@ -22,6 +23,7 @@ interface DocEditorProps {
 }
 
 export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
+  const { t } = useTranslation();
   const tabId = `doc-${docId}`;
   const handleInternalLinkClick = useInternalLinkHandler();
 
@@ -145,13 +147,13 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
 
     try {
       await deleteDoc.mutateAsync(doc);
-      toast.success("Doc deleted");
+      toast.success(t("toasts.editor.docDeleted"));
       setShowDeleteConfirm(false);
       onClose();
     } catch {
-      toast.error("Failed to delete doc");
+      toast.error(t("errors.editor.deleteDocFailed"));
     }
-  }, [doc, deleteDoc, onClose]);
+  }, [doc, deleteDoc, onClose, t]);
 
   const headerSaveStatus = useMemo(() => {
     if (saveStatus === "saving") return "saving" as const;
@@ -184,7 +186,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}
-        placeholder="Doc title"
+        placeholder={t("editors.doc.titlePlaceholder")}
         saveStatus={headerSaveStatus}
         onSave={save}
         isDirty={isDirty}
@@ -214,7 +216,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
             <RichTextEditor
               value={content}
               onChange={setContent}
-              placeholder="Write your doc in markdown..."
+              placeholder={t("editors.doc.contentPlaceholder")}
               minHeight="400px"
               borderless
               onInternalLinkClick={handleInternalLinkClick}
@@ -230,9 +232,9 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Delete Doc"
-        description="Are you sure you want to delete this doc? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("editors.doc.deleteTitle")}
+        description={t("editors.doc.deleteDescription")}
+        confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

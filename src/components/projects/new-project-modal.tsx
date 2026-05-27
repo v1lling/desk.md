@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -28,12 +29,10 @@ interface NewProjectModalProps {
   onClose: () => void;
 }
 
-const statusOptions: { value: ProjectStatus; label: string }[] = [
-  { value: "active", label: "Active" },
-  { value: "paused", label: "Paused" },
-];
+const statusValues: ProjectStatus[] = ["active", "paused"];
 
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const createProject = useCreateProject();
 
@@ -54,7 +53,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
         status,
       });
 
-      toast.success("Project created");
+      toast.success(t("toasts.project.create.success"));
 
       // Reset form
       setName("");
@@ -63,7 +62,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
       onClose();
     } catch (error) {
       console.error("Failed to create project:", error);
-      toast.error("Failed to create project");
+      toast.error(t("toasts.project.create.error"));
     }
   };
 
@@ -78,40 +77,40 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Project</DialogTitle>
-          <DialogDescription className="sr-only">Create a new project in your workspace</DialogDescription>
+          <DialogTitle>{t("modals.newProject.title")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("modals.newProject.description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <FormField id="project-name" label="Project Name">
+          <FormField id="project-name" label={t("modals.newProject.nameLabel")}>
             <Input
               id="project-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Website Redesign"
+              placeholder={t("modals.newProject.namePlaceholder")}
               autoFocus
             />
           </FormField>
 
-          <FormField id="project-description" label="Description" optional>
+          <FormField id="project-description" label={t("modals.newProject.descriptionLabel")} optional>
             <Textarea
               id="project-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the project..."
+              placeholder={t("modals.newProject.descriptionPlaceholder")}
               className="min-h-[80px] resize-none"
             />
           </FormField>
 
-          <FormField label="Status">
+          <FormField label={t("modals.newProject.statusLabel")}>
             <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {statusValues.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`entities.project.status.${value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -120,13 +119,13 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button type="submit" disabled={!name.trim() || !currentWorkspace || createProject.isPending}>
               {createProject.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Project
+              {t("modals.newProject.submit")}
             </Button>
           </div>
         </form>

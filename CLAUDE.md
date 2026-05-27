@@ -130,6 +130,25 @@ The Smart Index builds an AI-summarized file catalog per workspace. The in-app a
 
 ## UI Patterns
 
+### UI Strings (i18n)
+
+All user-facing strings live in [src/i18n/en.json](src/i18n/en.json). Never hardcode user-visible copy in JSX, toasts, or thrown errors that bubble to the UI.
+
+```tsx
+// React components
+import { useTranslation } from "react-i18next";
+const { t } = useTranslation();
+return <Button>{t("common.buttons.save")}</Button>;
+
+// Non-React code (stores, hooks, libs)
+import i18next from "i18next";
+toast.success(i18next.t("toasts.workspace.create.success"));
+```
+
+Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `assistant`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
+
+**Out of scope for translation** — these stay English in source: AI system prompts ([src/lib/ai/prompts.ts](src/lib/ai/prompts.ts)), assistant tool descriptions ([src/lib/assistant/](src/lib/assistant/)), generated agent files ([src/lib/context-index/agent-context.ts](src/lib/context-index/agent-context.ts), [src/lib/context-index/artifacts.ts](src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
+
 ### Scrolling
 Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).
 

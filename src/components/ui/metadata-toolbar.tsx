@@ -1,6 +1,7 @@
 
 import type { ReactNode } from "react";
 import { Circle, Minus, FolderKanban } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ export function MetadataToolbar({
   dateLabel = "Due",
   className,
 }: MetadataToolbarProps) {
+  const { t } = useTranslation();
   const selectedProject = projects.find((p) => p.id === projectId);
 
   const fields: ReactNode[] = [];
@@ -97,11 +99,11 @@ export function MetadataToolbar({
             current ? current.color : "text-muted-foreground"
           )}>
             <CurrentIcon className="h-3.5 w-3.5" />
-            <span>{current ? current.label : "None"}</span>
+            <span>{current ? current.label : t("ui.metadataToolbar.none")}</span>
           </span>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">None</SelectItem>
+          <SelectItem value="none">{t("ui.metadataToolbar.none")}</SelectItem>
           {priorityOrder.map((p) => {
             const { label, icon: Icon, color } = priorityMeta[p];
             return (
@@ -124,14 +126,14 @@ export function MetadataToolbar({
         <SelectTrigger size="xs" className={cn(chipClass, "max-w-[180px]")}>
           <FolderKanban className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
           <span className="truncate">
-            {selectedProject?.name || "No project"}
+            {selectedProject?.name || t("ui.metadataToolbar.noProject")}
           </span>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_unassigned">
             <span className="flex items-center gap-2">
               <FolderKanban className="h-3 w-3 text-muted-foreground" />
-              No project
+              {t("ui.metadataToolbar.noProject")}
             </span>
           </SelectItem>
           {projects.map((p) => (
@@ -155,7 +157,7 @@ export function MetadataToolbar({
         variant="chip"
         value={date}
         onChange={onDateChange}
-        placeholder={isDue ? "Add due date" : "Add date"}
+        placeholder={isDue ? t("ui.metadataToolbar.addDueDate") : t("ui.metadataToolbar.addDate")}
         clearable={isDue}
       />
     );

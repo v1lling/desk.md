@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export function NewMeetingModal({
   onClose,
   defaultProjectId,
 }: NewMeetingModalProps) {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const createMeeting = useCreateMeeting();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
@@ -76,7 +78,7 @@ export function NewMeetingModal({
         templateBody,
       });
 
-      toast.success("Meeting created");
+      toast.success(t("toasts.meeting.created"));
 
       // Reset form
       setTitle("");
@@ -92,7 +94,7 @@ export function NewMeetingModal({
       });
     } catch (error) {
       console.error("Failed to create meeting:", error);
-      toast.error("Failed to create meeting");
+      toast.error(t("errors.meeting.createFailed"));
     }
   };
 
@@ -106,26 +108,26 @@ export function NewMeetingModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Meeting</DialogTitle>
-          <DialogDescription className="sr-only">Create a new meeting in your workspace</DialogDescription>
+          <DialogTitle>{t("modals.newMeeting.title")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("modals.newMeeting.description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <FormField id="meeting-title" label="Title">
+          <FormField id="meeting-title" label={t("modals.newMeeting.fields.title")}>
             <Input
               id="meeting-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Weekly Sync, 1:1, Sprint Planning..."
+              placeholder={t("modals.newMeeting.placeholders.title")}
               autoFocus
             />
           </FormField>
 
           <FormGrid>
-            <FormField label="Project">
+            <FormField label={t("modals.newMeeting.fields.project")}>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select project" />
+                  <SelectValue placeholder={t("modals.newMeeting.placeholders.project")} />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((project) => (
@@ -137,7 +139,7 @@ export function NewMeetingModal({
               </Select>
             </FormField>
 
-            <FormField id="meeting-date" label="Date">
+            <FormField id="meeting-date" label={t("modals.newMeeting.fields.date")}>
               <DateField
                 id="meeting-date"
                 value={date}
@@ -149,7 +151,7 @@ export function NewMeetingModal({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button
               type="submit"
@@ -158,7 +160,7 @@ export function NewMeetingModal({
               {createMeeting.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Meeting
+              {t("modals.newMeeting.submit")}
             </Button>
           </div>
         </form>

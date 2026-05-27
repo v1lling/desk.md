@@ -1,5 +1,6 @@
 
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { MeetingCard } from "./meeting-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { format, parseISO } from "date-fns";
@@ -40,14 +41,15 @@ function groupMeetingsByMonth(meetings: Meeting[]): GroupedMeetings[] {
 }
 
 export function MeetingList({ meetings, onMeetingClick }: MeetingListProps) {
+  const { t } = useTranslation();
   const grouped = useMemo(() => groupMeetingsByMonth(meetings), [meetings]);
   const mostRecentId = grouped[0]?.meetings[0]?.id;
 
   if (meetings.length === 0) {
     return (
       <EmptyState
-        title="No meetings yet"
-        description="Create your first meeting note to get started"
+        title={t("emptyStates.meetings.none.title")}
+        description={t("emptyStates.meetings.none.description")}
       />
     );
   }

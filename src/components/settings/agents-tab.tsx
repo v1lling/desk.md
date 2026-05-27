@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Users, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Trans, useTranslation } from "react-i18next";
 import { useContextStore, anyAgentFileEnabled } from "@/stores/context";
 import { useWorkspaces } from "@/stores";
 import {
@@ -24,6 +25,7 @@ import { AgentFilePreviewCard } from "./agent-file-preview-card";
 const GLOBAL_SCOPE = "global";
 
 export function AgentsTab() {
+  const { t } = useTranslation();
   const {
     emitClaudeMd,
     emitAgentsMd,
@@ -45,7 +47,7 @@ export function AgentsTab() {
       await writeTopLevelAgentFiles(workspaces);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Could not update agent files: ${message}`);
+      toast.error(t("errors.settings.agentFilesUpdateFailed", { message }));
     }
   };
 
@@ -53,7 +55,11 @@ export function AgentsTab() {
     (setter: (v: boolean) => void, label: string) => async (enabled: boolean) => {
       setter(enabled);
       await refreshAgentFiles();
-      toast.success(enabled ? `${label} enabled` : `${label} removed`);
+      toast.success(
+        enabled
+          ? t("toasts.settings.agentFileEnabled", { file: label })
+          : t("toasts.settings.agentFileRemoved", { file: label }),
+      );
     };
 
   const anyEnabled = anyAgentFileEnabled();
@@ -64,55 +70,55 @@ export function AgentsTab() {
     <div className="space-y-6">
       <SettingsSection
         icon={<Users className="h-4 w-4" />}
-        title="External Agents"
-        description="Generate Markdown files alongside your data so external CLI agents understand your work with no setup."
+        title={t("settings.agents.title")}
+        description={t("settings.agents.description")}
       >
         <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
           <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            These settings apply to <strong>external CLI agents</strong> (Claude Code,
-            Codex, Gemini CLI) reading your data folder directly. For instructions to
-            the <strong>in-app assistant</strong>, see Settings → Assistant.
+            <Trans
+              i18nKey="settings.agents.notice"
+              components={{ strong: <strong /> }}
+            />
           </p>
         </div>
       </SettingsSection>
 
       <SettingsSection
-        title="Emit Files"
-        description="Choose which agent files to write into your data folder. Identical content, three filenames."
+        title={t("settings.agents.emit.title")}
+        description={t("settings.agents.emit.description")}
       >
         <ToggleRow
           label="CLAUDE.md"
-          description="For Claude Code"
+          description={t("settings.agents.emit.claude")}
           checked={emitClaudeMd}
           onChange={makeToggleHandler(setEmitClaudeMd, "CLAUDE.md")}
         />
         <ToggleRow
           label="AGENTS.md"
-          description="For Codex / OpenAI Agents"
+          description={t("settings.agents.emit.agents")}
           checked={emitAgentsMd}
           onChange={makeToggleHandler(setEmitAgentsMd, "AGENTS.md")}
           bordered
         />
         <ToggleRow
           label="GEMINI.md"
-          description="For Gemini CLI"
+          description={t("settings.agents.emit.gemini")}
           checked={emitGeminiMd}
           onChange={makeToggleHandler(setEmitGeminiMd, "GEMINI.md")}
           bordered
         />
         {!anyEnabled && (
           <p className="pt-3 text-xs text-amber-600 dark:text-amber-400">
-            No agent files are being emitted. Your instructions below are saved but
-            won't be written to disk until at least one toggle is on.
+            {t("settings.agents.emit.noneEnabled")}
           </p>
         )}
       </SettingsSection>
 
       <div className={!anyEnabled ? "opacity-60" : undefined}>
         <SettingsSection
-          title="Global Instructions"
-          description="Inlined into the top-level agent files. Applies across all workspaces."
+          title={t("settings.agents.global.title")}
+          description={t("settings.agents.global.description")}
         >
           <AgentInstructionsCard scope={GLOBAL_SCOPE} />
           <AgentFilePreviewCard scope={GLOBAL_SCOPE} />
@@ -121,17 +127,17 @@ export function AgentsTab() {
 
       <div className={!anyEnabled ? "opacity-60" : undefined}>
         <SettingsSection
-          title="Per-Workspace"
-          description="Workspace-specific instructions appended to that workspace's agent files."
+          title={t("settings.agents.perWorkspace.title")}
+          description={t("settings.agents.perWorkspace.description")}
         >
           <div className="space-y-1 py-3">
-            <Label>Workspace</Label>
+            <Label>{t("settings.agents.perWorkspace.workspaceLabel")}</Label>
             <Select value={scope} onValueChange={setScope}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={GLOBAL_SCOPE}>Select a workspace…</SelectItem>
+                <SelectItem value={GLOBAL_SCOPE}>{t("settings.agents.perWorkspace.selectPlaceholder")}</SelectItem>
                 {workspaces.map((ws) => (
                   <SelectItem key={ws.id} value={ws.id}>
                     <span className="flex items-center gap-2">
@@ -141,7 +147,7 @@ export function AgentsTab() {
                       />
                       {ws.name}
                       {ws.isHome && (
-                        <span className="text-xs text-muted-foreground">(home)</span>
+                        <span className="text-xs text-muted-foreground">{t("settings.agents.perWorkspace.homeBadge")}</span>
                       )}
                     </span>
                   </SelectItem>
@@ -157,7 +163,7 @@ export function AgentsTab() {
             </>
           ) : (
             <p className="py-3 text-sm text-muted-foreground">
-              Select a workspace to edit its instructions.
+              {t("settings.agents.perWorkspace.selectPrompt")}
             </p>
           )}
         </SettingsSection>

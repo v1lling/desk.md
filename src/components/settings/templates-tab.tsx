@@ -11,44 +11,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileText, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useWorkspaces } from "@/stores";
 import { useTemplatesStore } from "@/stores/templates";
 import { DEFAULT_TEMPLATES, type TemplateType } from "@/lib/templates";
 
 const GLOBAL_SCOPE = "__global__";
 
-const TEMPLATE_TYPES: { type: TemplateType; label: string; description: string; note?: string }[] = [
-  {
-    type: "meeting",
-    label: "Meeting",
-    description: "Pre-filled content for new meeting notes",
-  },
-  {
-    type: "doc",
-    label: "Doc",
-    description: "Pre-filled content for new documents",
-    note: "The title heading (# Title) is added automatically.",
-  },
-  {
-    type: "task",
-    label: "Task",
-    description: "Pre-filled content for new tasks",
-  },
+interface TemplateMeta {
+  type: TemplateType;
+  /** i18n key fragment under settings.templates.types */
+  metaKey: "meeting" | "doc" | "task";
+  hasNote?: boolean;
+}
+
+const TEMPLATE_TYPES: TemplateMeta[] = [
+  { type: "meeting", metaKey: "meeting" },
+  { type: "doc", metaKey: "doc", hasNote: true },
+  { type: "task", metaKey: "task" },
 ];
 
 function TemplateCard({
   type,
-  label,
-  description,
-  note,
+  metaKey,
+  hasNote,
   scope,
 }: {
   type: TemplateType;
-  label: string;
-  description: string;
-  note?: string;
+  metaKey: "meeting" | "doc" | "task";
+  hasNote?: boolean;
   scope: string;
 }) {
+  const { t } = useTranslation();
   const isGlobal = scope === GLOBAL_SCOPE;
   const {
     global,
@@ -92,14 +86,21 @@ function TemplateCard({
     setWorkspaceTemplate(scope, type, resolvedValue);
   }, [scope, type, resolvedValue, setWorkspaceTemplate]);
 
+  const label = t(`settings.templates.types.${metaKey}.label`);
+  const description = t(`settings.templates.types.${metaKey}.description`);
+  const note = hasNote ? t(`settings.templates.types.${metaKey}.note`) : undefined;
+
   return (
-    <SettingsSection title={`${label} Template`} description={description}>
+    <SettingsSection
+      title={t("settings.templates.cardTitle", { label })}
+      description={description}
+    >
       <div className="space-y-3">
         {!isGlobal && !hasWorkspaceOverride ? (
           <div className="space-y-2">
             <div className="rounded-md border border-dashed p-3">
               <p className="text-sm text-muted-foreground">
-                Using global default.
+                {t("settings.templates.usingGlobalDefault")}
               </p>
               {resolvedValue && (
                 <pre className="mt-2 text-xs text-muted-foreground/70 whitespace-pre-wrap font-mono max-h-20 overflow-hidden">
@@ -108,7 +109,7 @@ function TemplateCard({
               )}
             </div>
             <Button variant="outline" size="sm" onClick={handleCustomize}>
-              Customize for this workspace
+              {t("settings.templates.customizeForWorkspace")}
             </Button>
           </div>
         ) : (
@@ -116,7 +117,7 @@ function TemplateCard({
             <Textarea
               value={currentValue}
               onChange={(e) => handleChange(e.target.value)}
-              placeholder="Template content (markdown)..."
+              placeholder={t("settings.templates.placeholder")}
               className="min-h-[120px] resize-y font-mono text-sm"
             />
             {note && (
@@ -124,7 +125,8 @@ function TemplateCard({
             )}
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                Variables: <code className="text-xs">{"{{title}}"}</code>{" "}
+                {t("settings.templates.variablesLabel")}{" "}
+                <code className="text-xs">{"{{title}}"}</code>{" "}
                 <code className="text-xs">{"{{date}}"}</code>{" "}
                 <code className="text-xs">{"{{project}}"}</code>{" "}
                 <code className="text-xs">{"{{workspace}}"}</code>
@@ -136,7 +138,9 @@ function TemplateCard({
                 className="text-xs"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
-                {isGlobal ? "Reset to default" : "Remove override"}
+                {isGlobal
+                  ? t("settings.templates.resetToDefault")
+                  : t("settings.templates.removeOverride")}
               </Button>
             </div>
           </>
@@ -147,6 +151,7 @@ function TemplateCard({
 }
 
 export function TemplatesTab() {
+  const { t } = useTranslation();
   const { data: workspaces = [] } = useWorkspaces();
   const [scope, setScope] = useState(GLOBAL_SCOPE);
 
@@ -154,17 +159,17 @@ export function TemplatesTab() {
     <div className="space-y-6">
       <SettingsSection
         icon={<FileText className="h-4 w-4" />}
-        title="Templates"
-        description="Define default content for new meetings, docs, and tasks. Set global defaults or customize per workspace."
+        title={t("settings.templates.title")}
+        description={t("settings.templates.description")}
       >
         <div className="space-y-1">
-          <Label>Scope</Label>
+          <Label>{t("settings.templates.scopeLabel")}</Label>
           <Select value={scope} onValueChange={setScope}>
             <SelectTrigger className="w-[260px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={GLOBAL_SCOPE}>Global Defaults</SelectItem>
+              <SelectItem value={GLOBAL_SCOPE}>{t("settings.templates.globalDefaults")}</SelectItem>
               {workspaces.map((ws) => (
                 <SelectItem key={ws.id} value={ws.id}>
                   <span className="flex items-center gap-2">
@@ -181,13 +186,12 @@ export function TemplatesTab() {
         </div>
       </SettingsSection>
 
-      {TEMPLATE_TYPES.map(({ type, label, description, note }) => (
+      {TEMPLATE_TYPES.map(({ type, metaKey, hasNote }) => (
         <TemplateCard
           key={`${scope}-${type}`}
           type={type}
-          label={label}
-          description={description}
-          note={note}
+          metaKey={metaKey}
+          hasNote={hasNote}
           scope={scope}
         />
       ))}

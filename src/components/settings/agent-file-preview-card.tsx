@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, ExternalLink, RefreshCw } from "lucide-react";
 import { open as openShell } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ interface Props {
 
 // CLAUDE/AGENTS/GEMINI have identical content — previewing CLAUDE.md is enough.
 export function AgentFilePreviewCard({ scope }: Props) {
+  const { t } = useTranslation();
   const isGlobal = scope === "global";
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
 
   const loadFile = async () => {
     if (!isTauri()) {
-      setError("Preview is only available in the desktop app.");
+      setError(t("settings.agents.preview.errorBrowserMode"));
       return;
     }
     setLoading(true);
@@ -37,7 +39,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
       const filePath = await joinPath(parent, FILE_NAMES.CLAUDE_MD);
       if (!(await exists(filePath))) {
         setContent(null);
-        setError("File doesn't exist yet. Toggle CLAUDE.md on, then come back.");
+        setError(t("settings.agents.preview.errorFileMissing"));
         return;
       }
       setContent(await readTextFile(filePath));
@@ -77,18 +79,18 @@ export function AgentFilePreviewCard({ scope }: Props) {
               open && "rotate-90"
             )}
           />
-          Preview generated CLAUDE.md
+          {t("settings.agents.preview.toggle")}
         </button>
         <Button variant="ghost" size="sm" onClick={handleReveal} className="text-xs">
           <ExternalLink className="h-3 w-3 mr-1" />
-          Reveal in Finder
+          {t("settings.agents.preview.revealInFinder")}
         </Button>
       </div>
 
       {open && (
         <div className="space-y-2">
           {loading && (
-            <p className="text-xs text-muted-foreground italic">Loading…</p>
+            <p className="text-xs text-muted-foreground italic">{t("common.buttons.loading")}</p>
           )}
           {error && (
             <p className="text-xs text-amber-600 dark:text-amber-400">{error}</p>
@@ -100,7 +102,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
               </pre>
               <Button variant="ghost" size="sm" onClick={loadFile} className="text-xs">
                 <RefreshCw className="h-3 w-3 mr-1" />
-                Refresh
+                {t("settings.agents.preview.refresh")}
               </Button>
             </>
           )}

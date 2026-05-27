@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CaptureWidget,
@@ -24,6 +25,7 @@ import { DenseList } from "@/components/ui/dense-list";
 const DEFAULT_WORKSPACE_COLOR = "#64748b";
 
 function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boolean }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
 
@@ -36,16 +38,16 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
     <DataCard>
       <div className="flex items-center gap-2 mb-2">
         <Star className="size-4 text-brand-accent" />
-        <h2 className="text-base font-medium">Focus</h2>
-        <span className="text-xs text-muted-foreground">{tasks.length} highlighted</span>
+        <h2 className="text-base font-medium">{t("pages.dashboard.focus.title")}</h2>
+        <span className="text-xs text-muted-foreground">{t("pages.dashboard.focus.highlightedCount", { count: tasks.length })}</span>
       </div>
 
       {isLoading ? (
-        <LoadingState label="tasks" display="inline" className="py-8" />
+        <LoadingState label={t("pages.dashboard.focus.loadingLabel")} display="inline" className="py-8" />
       ) : tasks.length === 0 ? (
         <EmptyState
-          title="No highlighted tasks"
-          description='Right-click a task on the board and choose "Highlight for focus".'
+          title={t("pages.dashboard.focus.emptyTitle")}
+          description={t("pages.dashboard.focus.emptyDescription")}
           display="inline"
           className="py-8"
         />
@@ -77,6 +79,7 @@ function WorkspacesWidget({
   summaries: WorkspaceSummary[];
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useNavigationStore(
     (state) => state.setCurrentWorkspaceId
@@ -91,13 +94,13 @@ function WorkspacesWidget({
     <DataCard>
       <div className="flex items-center gap-2 mb-2">
         <CheckCircle2 className="size-4 text-primary" />
-        <h2 className="text-base font-medium">Workspaces</h2>
+        <h2 className="text-base font-medium">{t("pages.dashboard.workspaces.title")}</h2>
       </div>
 
       {isLoading ? (
-        <LoadingState label="workspaces" display="inline" className="py-8" />
+        <LoadingState label={t("pages.dashboard.workspaces.loadingLabel")} display="inline" className="py-8" />
       ) : summaries.length === 0 ? (
-        <EmptyState title="No workspaces yet" display="inline" className="py-8" />
+        <EmptyState title={t("pages.dashboard.workspaces.emptyTitle")} display="inline" className="py-8" />
       ) : (
         <DenseList className="space-y-1.5">
           {summaries.map((summary) => (

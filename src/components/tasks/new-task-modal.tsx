@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ interface NewTaskModalProps {
 }
 
 export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalProps) {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const createTask = useCreateTask();
   const { data: projects = [] } = useProjects(currentWorkspace?.id || null);
@@ -80,7 +82,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
         templateBody: templateBody || undefined,
       });
 
-      toast.success("Task created");
+      toast.success(t("toasts.task.created"));
 
       // Reset form
       setTitle("");
@@ -97,7 +99,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
       });
     } catch (error) {
       console.error("Failed to create task:", error);
-      toast.error("Failed to create task");
+      toast.error(t("errors.task.createFailed"));
     }
   };
 
@@ -112,28 +114,28 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Task</DialogTitle>
-          <DialogDescription className="sr-only">Create a new task in your workspace</DialogDescription>
+          <DialogTitle>{t("modals.newTask.title")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("modals.newTask.description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <FormField id="new-title" label="Title">
+          <FormField id="new-title" label={t("modals.newTask.fields.title")}>
             <Input
               id="new-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs to be done?"
+              placeholder={t("modals.newTask.placeholders.title")}
               autoFocus
             />
           </FormField>
 
-          <FormField label="Project" optional>
+          <FormField label={t("modals.newTask.fields.project")} optional>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="No project" />
+                <SelectValue placeholder={t("modals.newTask.placeholders.noProject")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={SPECIAL_DIRS.UNASSIGNED}>No project</SelectItem>
+                <SelectItem value={SPECIAL_DIRS.UNASSIGNED}>{t("modals.newTask.placeholders.noProject")}</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
@@ -144,16 +146,16 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
           </FormField>
 
           <FormGrid>
-            <FormField label="Priority">
+            <FormField label={t("modals.newTask.fields.priority")}>
               <Select
                 value={priority}
                 onValueChange={(v) => setPriority(v as TaskPriority | "none")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={t("modals.newTask.placeholders.priorityNone")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t("modals.newTask.placeholders.priorityNone")}</SelectItem>
                   {priorityOrder.map((p) => {
                     const { label, icon: Icon, color } = priorityMeta[p];
                     return (
@@ -169,25 +171,25 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
               </Select>
             </FormField>
 
-            <FormField id="new-due" label="Due Date">
+            <FormField id="new-due" label={t("modals.newTask.fields.dueDate")}>
               <DateField
                 id="new-due"
                 value={due}
                 onChange={setDue}
-                placeholder="No due date"
+                placeholder={t("modals.newTask.placeholders.noDueDate")}
               />
             </FormField>
           </FormGrid>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button type="submit" disabled={!title.trim() || createTask.isPending}>
               {createTask.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Task
+              {t("modals.newTask.submit")}
             </Button>
           </div>
         </form>

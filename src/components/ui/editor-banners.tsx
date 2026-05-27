@@ -6,6 +6,7 @@
  */
 
 import { AlertTriangle, FileX, FolderInput } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 
 interface FileMovedBannerProps {
@@ -20,6 +21,7 @@ interface FileMovedBannerProps {
  * User must acknowledge before continuing to edit.
  */
 export function FileMovedBanner({ newPath, onAcknowledge }: FileMovedBannerProps) {
+  const { t } = useTranslation();
   // Extract just the filename from the path for display
   const fileName = newPath.split("/").pop() || newPath;
 
@@ -30,16 +32,16 @@ export function FileMovedBanner({ newPath, onAcknowledge }: FileMovedBannerProps
           <FolderInput className="h-6 w-6 text-amber-500" />
         </div>
         <div>
-          <h3 className="font-semibold text-lg">File Moved</h3>
+          <h3 className="font-semibold text-lg">{t("ui.editorBanners.fileMoved.title")}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            This file has been moved or renamed externally.
+            {t("ui.editorBanners.fileMoved.description")}
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            New location: <code className="text-xs bg-muted px-1 py-0.5 rounded">{fileName}</code>
+            {t("ui.editorBanners.fileMoved.newLocation")} <code className="text-xs bg-muted px-1 py-0.5 rounded">{fileName}</code>
           </p>
         </div>
         <Button onClick={onAcknowledge}>
-          Continue Editing
+          {t("ui.editorBanners.fileMoved.continueEditing")}
         </Button>
       </div>
     </div>
@@ -60,6 +62,7 @@ interface FileDeletedBannerProps {
  * If there are unsaved edits, offers to recover by re-creating the file.
  */
 export function FileDeletedBanner({ onClose, hasUnsavedEdits, onRecover }: FileDeletedBannerProps) {
+  const { t } = useTranslation();
   return (
     <div className="h-full flex items-center justify-center bg-background">
       <div className="max-w-md text-center space-y-4 p-6">
@@ -67,24 +70,24 @@ export function FileDeletedBanner({ onClose, hasUnsavedEdits, onRecover }: FileD
           <FileX className="h-6 w-6 text-destructive" />
         </div>
         <div>
-          <h3 className="font-semibold text-lg">File Deleted</h3>
+          <h3 className="font-semibold text-lg">{t("ui.editorBanners.fileDeleted.title")}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            This file has been deleted from the file system.
+            {t("ui.editorBanners.fileDeleted.description")}
           </p>
           {hasUnsavedEdits && (
             <p className="text-sm text-muted-foreground mt-2">
-              You have unsaved edits. Restore them to re-create the file.
+              {t("ui.editorBanners.fileDeleted.unsavedHint")}
             </p>
           )}
         </div>
         <div className="flex gap-2 justify-center">
           {hasUnsavedEdits && onRecover && (
             <Button onClick={onRecover}>
-              Restore from edits
+              {t("ui.editorBanners.fileDeleted.restoreFromEdits")}
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>
-            Close Tab
+            {t("ui.editorBanners.fileDeleted.closeTab")}
           </Button>
         </div>
       </div>
@@ -102,12 +105,13 @@ interface ExternalChangeIndicatorProps {
  * Can be used in the editor header.
  */
 export function ExternalChangeIndicator({ hasExternalChange }: ExternalChangeIndicatorProps) {
+  const { t } = useTranslation();
   if (!hasExternalChange) return null;
 
   return (
     <div className="flex items-center gap-1.5 text-amber-500 text-xs">
       <AlertTriangle className="h-3.5 w-3.5" />
-      <span>External changes detected</span>
+      <span>{t("ui.editorBanners.externalChange")}</span>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Calendar } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useCurrentWorkspace, useMeetings, useOpenTab } from "@/stores";
@@ -8,6 +9,7 @@ import { StatePanel } from "@/components/ui/state-panel";
 import { MeetingsTreePane } from "@/components/meetings";
 
 export default function MeetingsPage() {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: meetings = [] } = useMeetings(currentWorkspaceId);
@@ -44,8 +46,8 @@ export default function MeetingsPage() {
         <StatePanel
           variant="empty"
           display="inline"
-          title="Select a workspace"
-          description="Choose a workspace in the sidebar to view meetings."
+          title={t("pages.meetings.selectWorkspaceTitle")}
+          description={t("pages.meetings.selectWorkspaceDescription")}
           className="h-full"
         />
       </div>
@@ -60,11 +62,11 @@ export default function MeetingsPage() {
         variant="empty"
         display="inline"
         icon={Calendar}
-        title={meetings.length === 0 ? "No meetings yet" : "Select a meeting"}
+        title={meetings.length === 0 ? t("pages.meetings.noMeetingsTitle") : t("pages.meetings.selectMeetingTitle")}
         description={
           meetings.length === 0
-            ? "Create one with + New Meeting in the panel."
-            : "Pick a meeting from the list to open it."
+            ? t("pages.meetings.noMeetingsDescription")
+            : t("pages.meetings.selectMeetingDescription")
         }
         className="h-full"
       />

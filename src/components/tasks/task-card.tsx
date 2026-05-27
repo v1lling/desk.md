@@ -1,6 +1,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { formatDate } from "@/lib/format";
@@ -39,6 +40,7 @@ export function TaskCard({
   workspaceColor,
   workspaceName,
 }: TaskCardProps) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -130,7 +132,9 @@ export function TaskCard({
             <Star
               className={cn("h-4 w-4", isHighlighted && "fill-current")}
             />
-            {isHighlighted ? "Remove highlight" : "Highlight for focus"}
+            {isHighlighted
+              ? t("menus.taskContextMenu.removeHighlight")
+              : t("menus.taskContextMenu.highlightForFocus")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

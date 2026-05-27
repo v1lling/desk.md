@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ export function NewDocModal({
   defaultWorkspaceId,
   defaultFolderPath,
 }: NewDocModalProps) {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const createDoc = useCreateDoc();
   const createDocInFolder = useCreateDocInFolder();
@@ -88,7 +90,7 @@ export function NewDocModal({
     // Block creating a doc whose name would create a reserved-name folder collision.
     // (Docs don't create folders, but be defensive about future automation.)
     if (!isAIDestination && !destinationSubPath && isReservedAIDocsName(trimmed)) {
-      toast.error(`"${trimmed}" is a reserved name.`);
+      toast.error(t("errors.doc.reservedName", { name: trimmed }));
       return;
     }
 
@@ -142,7 +144,7 @@ export function NewDocModal({
         });
       }
 
-      toast.success("Doc created");
+      toast.success(t("toasts.doc.created"));
 
       // Reset form
       setTitle("");
@@ -157,7 +159,7 @@ export function NewDocModal({
       });
     } catch (error) {
       console.error("Failed to create doc:", error);
-      toast.error("Failed to create doc");
+      toast.error(t("errors.doc.createFailed"));
     }
   };
 
@@ -173,17 +175,17 @@ export function NewDocModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Doc</DialogTitle>
-          <DialogDescription className="sr-only">Create a new document in your workspace</DialogDescription>
+          <DialogTitle>{t("modals.newDoc.title")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("modals.newDoc.description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <FormField id="doc-title" label="Title">
+          <FormField id="doc-title" label={t("modals.newDoc.fields.title")}>
             <Input
               id="doc-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Doc title"
+              placeholder={t("modals.newDoc.placeholders.title")}
               autoFocus
             />
           </FormField>
@@ -193,17 +195,17 @@ export function NewDocModal({
             friendlyPath && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
                 {isAIDestination ? <Sparkles className="size-4" /> : <Folder className="size-4" />}
-                <span>Creating in: {friendlyPath}</span>
+                <span>{t("modals.newDoc.creatingIn", { path: friendlyPath })}</span>
               </div>
             )
           ) : (
-            <FormField label="Project" optional>
+            <FormField label={t("modals.newDoc.fields.project")} optional>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="No project" />
+                  <SelectValue placeholder={t("modals.newDoc.placeholders.noProject")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No project</SelectItem>
+                  <SelectItem value="">{t("modals.newDoc.placeholders.noProject")}</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
@@ -216,7 +218,7 @@ export function NewDocModal({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button
               type="submit"
@@ -225,7 +227,7 @@ export function NewDocModal({
               {isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Doc
+              {t("modals.newDoc.submit")}
             </Button>
           </div>
         </form>

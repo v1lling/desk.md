@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import {
   GeneralTab,
+  PlannerTab,
   AITab,
   AssistantTab,
   AgentsTab,
@@ -16,6 +17,7 @@ import {
 
 const CONTENT: Record<SettingsCategory, React.ComponentType> = {
   general: GeneralTab,
+  planner: PlannerTab,
   templates: TemplatesTab,
   ai: AITab,
   assistant: AssistantTab,

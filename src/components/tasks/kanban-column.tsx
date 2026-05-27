@@ -4,7 +4,9 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useTranslation } from "react-i18next";
 import { TaskCard } from "./task-card";
+import { taskStatusColors, taskStatusLabels } from "@/lib/design-tokens";
 import type { Task, TaskStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -26,14 +28,6 @@ interface KanbanColumnProps {
   workspaceColor?: string;
 }
 
-const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
-  backlog: { label: "Backlog", color: "bg-slate-500" },
-  todo: { label: "To Do", color: "bg-muted-foreground/50" },
-  doing: { label: "In Progress", color: "bg-blue-500" },
-  waiting: { label: "Waiting", color: "bg-amber-500/80" },
-  done: { label: "Done", color: "bg-emerald-500" },
-};
-
 export function KanbanColumn({
   status,
   tasks,
@@ -46,11 +40,13 @@ export function KanbanColumn({
   onToggleHighlight,
   workspaceColor,
 }: KanbanColumnProps) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
 
-  const config = statusConfig[status];
+  const label = taskStatusLabels[status];
+  const dotColor = taskStatusColors[status];
   const showHighlight = isOver || isDropTarget;
 
   return (
@@ -58,8 +54,8 @@ export function KanbanColumn({
       {/* Column header */}
       {!hideHeader && (
         <div className="flex items-center gap-2 mb-3 px-1 flex-shrink-0">
-          <div className={cn("w-2 h-2 rounded-full", config.color)} />
-          <h3 className="font-semibold text-[13px] text-foreground/80">{config.label}</h3>
+          <div className={cn("w-2 h-2 rounded-full", dotColor)} />
+          <h3 className="font-semibold text-[13px] text-foreground/80">{label}</h3>
           <span className="text-[11px] text-muted-foreground ml-auto tabular-nums font-medium">
             {tasks.length}
           </span>
@@ -77,7 +73,7 @@ export function KanbanColumn({
         )}
       >
         <SortableContext
-          items={tasks.map((t) => t.id)}
+          items={tasks.map((task) => task.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-2">
@@ -101,7 +97,7 @@ export function KanbanColumn({
         </SortableContext>
         {tasks.length === 0 && (
           <div className="flex items-center justify-center h-20 text-[13px] text-muted-foreground/60 border border-dashed border-muted-foreground/15 rounded-lg">
-            No tasks
+            {t("pages.tasks.kanban.noTasks")}
           </div>
         )}
       </div>

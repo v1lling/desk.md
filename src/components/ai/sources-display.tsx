@@ -1,5 +1,6 @@
 
 import { FileText, CheckSquare, Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { parseDocPath, type AIMessageSource } from "@/lib/ai";
 import { useTabStore } from "@/stores/tabs";
@@ -57,10 +58,12 @@ function SourceIcon({ type }: { type: 'doc' | 'task' | 'meeting' }) {
  */
 export function SourcesDisplay({
   sources,
-  label = "Sources:",
+  label,
   className,
   onSourceClick,
 }: SourcesDisplayProps) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("assistant.sources.label");
   const openTab = useTabStore((state) => state.openTab);
 
   const parseRelativePath = (source: AIMessageSource): { workspaceId: string; entityId: string } | null => {
@@ -99,13 +102,20 @@ export function SourcesDisplay({
 
   return (
     <div className={cn("flex flex-wrap gap-1.5", className)}>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{resolvedLabel}</span>
       {sources.map((source, idx) => (
         <button
           key={idx}
           onClick={() => handleClick(source)}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-          title={`Open ${source.title}${source.workspaceName ? ` (${source.workspaceName})` : ''}`}
+          title={
+            source.workspaceName
+              ? t("assistant.sources.openTitleWithWorkspace", {
+                  title: source.title,
+                  workspace: source.workspaceName,
+                })
+              : t("assistant.sources.openTitle", { title: source.title })
+          }
         >
           <SourceIcon type={source.contentType} />
           {source.workspaceName && (

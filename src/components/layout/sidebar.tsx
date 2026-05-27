@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
 import { useWorkspaceOverviewShell } from "@/stores/content";
@@ -39,6 +40,7 @@ function Divider() {
 }
 
 export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const currentWorkspace = useCurrentWorkspace();
   const workspaceId = currentWorkspace?.id || null;
@@ -82,24 +84,24 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       <ScrollArea className="flex-1 min-h-0">
         <nav className="px-2 py-2 space-y-1">
           {collapsed && (
-            <SidebarNavRow label="Search" icon={Search} collapsed={collapsed} role="global" onClick={openGlobalSearch} />
+            <SidebarNavRow label={t("nav.sidebar.search")} icon={Search} collapsed={collapsed} role="global" onClick={openGlobalSearch} />
           )}
-          <SidebarNavRow to="/" label="Dashboard" icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" onClick={switchToDesk} />
-          <SidebarNavRow to="/planner" label="Planner" icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" onClick={switchToDesk} />
+          <SidebarNavRow to="/" label={t("nav.sidebar.dashboard")} icon={Home} active={pathname === "/"} collapsed={collapsed} role="global" onClick={switchToDesk} />
+          <SidebarNavRow to="/planner" label={t("nav.sidebar.planner")} icon={CalendarDays} active={pathname === "/planner"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 
           <Divider />
 
           {!collapsed && (
             <div className="px-2.5 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/45">
-              Workspace Views
+              {t("nav.sidebar.workspaceViews")}
             </div>
           )}
 
           <div className="space-y-0.5">
-            <SidebarNavRow to="/tasks" label="Tasks" icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} onClick={switchToDesk} />
-            <SidebarNavRow to="/docs" label="Docs" icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} onClick={switchToDesk} />
-            <SidebarNavRow to="/meetings" label="Meetings" icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} onClick={switchToDesk} />
-            <SidebarNavRow to="/projects" label="Projects" icon={FolderKanban} active={pathname.startsWith("/projects")} collapsed={collapsed} role="global" count={projectCount} onClick={switchToDesk} />
+            <SidebarNavRow to="/tasks" label={t("nav.sidebar.tasks")} icon={CheckSquare} active={pathname === "/tasks"} collapsed={collapsed} role="global" count={activeTaskCount} onClick={switchToDesk} />
+            <SidebarNavRow to="/docs" label={t("nav.sidebar.docs")} icon={FileText} active={pathname === "/docs"} collapsed={collapsed} role="global" count={totalFiles} onClick={switchToDesk} />
+            <SidebarNavRow to="/meetings" label={t("nav.sidebar.meetings")} icon={Calendar} active={pathname === "/meetings"} collapsed={collapsed} role="global" count={meetingCount} onClick={switchToDesk} />
+            <SidebarNavRow to="/projects" label={t("nav.sidebar.projects")} icon={FolderKanban} active={pathname.startsWith("/projects")} collapsed={collapsed} role="global" count={projectCount} onClick={switchToDesk} />
           </div>
 
           <Divider />
@@ -109,14 +111,14 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/60 space-y-0.5">
         <SidebarNavRow
           to="/assistant"
-          label="Assistant"
+          label={t("nav.sidebar.assistant")}
           icon={Bot}
           active={pathname === "/assistant"}
           collapsed={collapsed}
           role="global"
           onClick={switchToDesk}
         />
-        <SidebarNavRow to="/settings" label="Settings" icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />
+        <SidebarNavRow to="/settings" label={t("nav.sidebar.settings")} icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />
 
       </div>
 

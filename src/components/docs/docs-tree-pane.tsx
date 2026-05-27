@@ -14,6 +14,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ interface DocsTreePaneProps {
 }
 
 export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
+  const { t } = useTranslation();
   const { data: overviewTree = [] } = useMergedWorkspaceOverviewShell(workspaceId);
 
   const { openDoc } = useOpenTab();
@@ -133,8 +135,8 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
     // Open with default app — same behavior as the old tree.
     import("@tauri-apps/api/core")
       .then(({ invoke }) => invoke("open_file_with_default_app", { path: asset.filePath }))
-      .catch(() => toast.error("Could not open file"));
-  }, []);
+      .catch(() => toast.error(t("errors.doc.openFailed")));
+  }, [t]);
 
   const openNewDocForTreePath = useCallback(
     (treePath: string) => {
@@ -157,7 +159,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
     const trimmed = newFolderName.trim();
     if (!trimmed) return;
     if (!isAllowedNewFolderName(newFolderParent, trimmed)) {
-      toast.error(`"${trimmed}" is a reserved folder name.`);
+      toast.error(t("errors.folder.reservedName", { name: trimmed }));
       return;
     }
     const resolved = resolveTreePath(newFolderParent);
@@ -175,11 +177,11 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
       setNewFolderOpen(false);
     } catch (err) {
       console.error("Failed to create folder:", err);
-      toast.error("Failed to create folder");
+      toast.error(t("errors.folder.createFailed"));
     } finally {
       setCreatingFolder(false);
     }
-  }, [newFolderName, newFolderParent, createFolder, workspaceId]);
+  }, [newFolderName, newFolderParent, createFolder, workspaceId, t]);
 
   // ── Imports (OS drag-drop + button) ─────────────────────────────────────────
 
@@ -204,15 +206,15 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         const importedDocs = result.docs.length;
         const importedAssets = result.assets.length;
         if (importedDocs > 0 && importedAssets > 0) {
-          toast.success(`Imported ${importedDocs} docs and ${importedAssets} files`);
-        } else if (importedDocs > 0) toast.success(`Imported ${importedDocs} doc${importedDocs > 1 ? "s" : ""}`);
-        else if (importedAssets > 0) toast.success(`Imported ${importedAssets} file${importedAssets > 1 ? "s" : ""}`);
+          toast.success(t("toasts.doc.importMixed", { docs: importedDocs, files: importedAssets }));
+        } else if (importedDocs > 0) toast.success(t("toasts.doc.importDocs", { count: importedDocs }));
+        else if (importedAssets > 0) toast.success(t("toasts.doc.importFiles", { count: importedAssets }));
       } catch (err) {
         console.error("Failed to import files:", err);
-        toast.error("Failed to import files");
+        toast.error(t("errors.doc.importFailed"));
       }
     },
-    [importFiles, workspaceId],
+    [importFiles, workspaceId, t],
   );
 
   const handleImportClick = useCallback(() => {
@@ -239,7 +241,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search docs…"
+            placeholder={t("pages.docs.tree.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -268,7 +270,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               variant="ghost"
               size="icon"
               className="size-7 text-muted-foreground hover:text-foreground"
-              title="Sort"
+              title={t("pages.docs.tree.sort.title")}
             >
               <ChevronsUpDown className="size-3.5" />
             </Button>
@@ -286,7 +288,12 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               ) : (
                 <ArrowDownAZ className="size-4 mr-2" />
               )}
-              Name {sortBy === "name" ? (sortDir === "asc" ? "A-Z" : "Z-A") : ""}
+              {t("pages.docs.tree.sort.name")}{" "}
+              {sortBy === "name"
+                ? sortDir === "asc"
+                  ? t("pages.docs.tree.sort.nameAsc")
+                  : t("pages.docs.tree.sort.nameDesc")
+                : ""}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -300,7 +307,12 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               ) : (
                 <ArrowDown01 className="size-4 mr-2" />
               )}
-              Created {sortBy === "created" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              {t("pages.docs.tree.sort.created")}{" "}
+              {sortBy === "created"
+                ? sortDir === "desc"
+                  ? t("pages.docs.tree.sort.newest")
+                  : t("pages.docs.tree.sort.oldest")
+                : ""}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -314,7 +326,12 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               ) : (
                 <ArrowDown01 className="size-4 mr-2" />
               )}
-              Modified {sortBy === "modified" ? (sortDir === "desc" ? "newest" : "oldest") : ""}
+              {t("pages.docs.tree.sort.modified")}{" "}
+              {sortBy === "modified"
+                ? sortDir === "desc"
+                  ? t("pages.docs.tree.sort.newest")
+                  : t("pages.docs.tree.sort.oldest")
+                : ""}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -332,16 +349,16 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => openNewFolderForTreePath("")}>
               <FolderPlus className="size-4 mr-2" />
-              New Folder
+              {t("pages.docs.tree.actions.newFolder")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleImportClick}>
               <Upload className="size-4 mr-2" />
-              Import Files
+              {t("pages.docs.tree.actions.importFiles")}
             </DropdownMenuItem>
             {workspaceBasePath && (
               <DropdownMenuItem onClick={() => revealInFinder(workspaceBasePath)}>
                 <FolderOpen className="size-4 mr-2" />
-                Open in Finder
+                {t("pages.docs.tree.actions.openInFinder")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -351,7 +368,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
       {/* Action row: file count + new doc */}
       <div className="shrink-0 px-3 py-1 flex items-center gap-2 border-b border-border/40">
         <span className="text-xs text-muted-foreground tabular-nums">
-          {totalFiles} {totalFiles === 1 ? "file" : "files"}
+          {t("pages.docs.tree.fileCount", { count: totalFiles })}
         </span>
         <div className="flex-1" />
         <Button
@@ -361,7 +378,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
           onClick={() => openNewDocForTreePath("")}
         >
           <Plus className="size-3.5 mr-1" />
-          New Doc
+          {t("pages.docs.tree.actions.newDoc")}
         </Button>
       </div>
 
@@ -392,12 +409,12 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
       <Dialog open={newFolderOpen} onOpenChange={(o) => !o && setNewFolderOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Folder</DialogTitle>
-            <DialogDescription className="sr-only">Create a new folder</DialogDescription>
+            <DialogTitle>{t("pages.docs.tree.newFolderDialog.title")}</DialogTitle>
+            <DialogDescription className="sr-only">{t("pages.docs.tree.newFolderDialog.description")}</DialogDescription>
           </DialogHeader>
           <div className="py-2">
             <Input
-              placeholder="Folder name"
+              placeholder={t("pages.docs.tree.newFolderDialog.placeholder")}
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {
@@ -409,20 +426,20 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
             />
             {newFolderParent && (
               <p className="text-xs text-muted-foreground mt-2">
-                Creating in: {displayTreePath(newFolderParent)}
+                {t("pages.docs.tree.newFolderDialog.creatingIn", { path: displayTreePath(newFolderParent) })}
               </p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewFolderOpen(false)}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button
               onClick={handleSubmitNewFolder}
               disabled={!newFolderName.trim() || creatingFolder}
             >
               {creatingFolder && <Loader2 className="size-4 animate-spin mr-2" />}
-              Create
+              {t("common.buttons.create")}
             </Button>
           </DialogFooter>
         </DialogContent>

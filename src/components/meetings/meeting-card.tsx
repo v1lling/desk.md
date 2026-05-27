@@ -1,6 +1,7 @@
 
 import { Calendar, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Meeting } from "@/types";
 
@@ -20,6 +21,7 @@ function formatMeetingDate(dateStr: string): string {
 }
 
 export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
@@ -49,7 +51,7 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
           </span>
           {isLatest && (
             <span className="text-[10px] font-medium text-brand-accent bg-brand-accent/10 px-1.5 py-0.5 rounded shrink-0">
-              Latest
+              {t("pages.meetings.latestBadge")}
             </span>
           )}
         </div>

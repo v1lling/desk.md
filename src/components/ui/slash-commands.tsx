@@ -27,6 +27,8 @@ import {
   Minus,
   Link,
 } from "lucide-react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 // ─── Command Items ───────────────────────────────────────────────────────────
@@ -39,124 +41,128 @@ interface SlashCommandItem {
   command: (editor: Editor, range: Range) => void;
 }
 
-const SLASH_COMMANDS: SlashCommandItem[] = [
-  {
-    title: "Heading 1",
-    aliases: ["h1"],
-    description: "Large section heading",
-    icon: <Heading1 className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
+function getSlashCommands(): SlashCommandItem[] {
+  const t = i18next.t.bind(i18next);
+  return [
+    {
+      title: t("ui.slashCommands.heading1.title"),
+      aliases: ["h1"],
+      description: t("ui.slashCommands.heading1.description"),
+      icon: <Heading1 className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
+      },
     },
-  },
-  {
-    title: "Heading 2",
-    aliases: ["h2"],
-    description: "Medium section heading",
-    icon: <Heading2 className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
+    {
+      title: t("ui.slashCommands.heading2.title"),
+      aliases: ["h2"],
+      description: t("ui.slashCommands.heading2.description"),
+      icon: <Heading2 className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
+      },
     },
-  },
-  {
-    title: "Heading 3",
-    aliases: ["h3"],
-    description: "Small section heading",
-    icon: <Heading3 className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
+    {
+      title: t("ui.slashCommands.heading3.title"),
+      aliases: ["h3"],
+      description: t("ui.slashCommands.heading3.description"),
+      icon: <Heading3 className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
+      },
     },
-  },
-  {
-    title: "Bullet List",
-    aliases: ["bullet", "ul", "unordered"],
-    description: "Unordered list",
-    icon: <List className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).toggleBulletList().run();
+    {
+      title: t("ui.slashCommands.bulletList.title"),
+      aliases: ["bullet", "ul", "unordered"],
+      description: t("ui.slashCommands.bulletList.description"),
+      icon: <List className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).toggleBulletList().run();
+      },
     },
-  },
-  {
-    title: "Numbered List",
-    aliases: ["numbered", "ol", "ordered"],
-    description: "Ordered list",
-    icon: <ListOrdered className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+    {
+      title: t("ui.slashCommands.numberedList.title"),
+      aliases: ["numbered", "ol", "ordered"],
+      description: t("ui.slashCommands.numberedList.description"),
+      icon: <ListOrdered className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+      },
     },
-  },
-  {
-    title: "Task List",
-    aliases: ["task", "checkbox", "todo", "check"],
-    description: "Task list with checkboxes",
-    icon: <CheckSquare className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).toggleTaskList().run();
+    {
+      title: t("ui.slashCommands.taskList.title"),
+      aliases: ["task", "checkbox", "todo", "check"],
+      description: t("ui.slashCommands.taskList.description"),
+      icon: <CheckSquare className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).toggleTaskList().run();
+      },
     },
-  },
-  {
-    title: "Table",
-    aliases: ["table"],
-    description: "Insert a 3×3 table",
-    icon: <TableIcon className="size-4" />,
-    command: (editor, range) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-        .run();
+    {
+      title: t("ui.slashCommands.table.title"),
+      aliases: ["table"],
+      description: t("ui.slashCommands.table.description"),
+      icon: <TableIcon className="size-4" />,
+      command: (editor, range) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run();
+      },
     },
-  },
-  {
-    title: "Code Block",
-    aliases: ["code", "codeblock", "pre"],
-    description: "Code block",
-    icon: <Code2 className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+    {
+      title: t("ui.slashCommands.codeBlock.title"),
+      aliases: ["code", "codeblock", "pre"],
+      description: t("ui.slashCommands.codeBlock.description"),
+      icon: <Code2 className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+      },
     },
-  },
-  {
-    title: "Blockquote",
-    aliases: ["quote", "blockquote"],
-    description: "Block quotation",
-    icon: <Quote className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+    {
+      title: t("ui.slashCommands.blockquote.title"),
+      aliases: ["quote", "blockquote"],
+      description: t("ui.slashCommands.blockquote.description"),
+      icon: <Quote className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+      },
     },
-  },
-  {
-    title: "Divider",
-    aliases: ["divider", "hr", "rule", "separator"],
-    description: "Horizontal rule",
-    icon: <Minus className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+    {
+      title: t("ui.slashCommands.divider.title"),
+      aliases: ["divider", "hr", "rule", "separator"],
+      description: t("ui.slashCommands.divider.description"),
+      icon: <Minus className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+      },
     },
-  },
-  {
-    title: "Link",
-    aliases: ["link", "url"],
-    description: "Insert a note link",
-    icon: <Link className="size-4" />,
-    command: (editor, range) => {
-      editor.chain().focus().deleteRange(range).run();
-      window.dispatchEvent(
-        new CustomEvent("slash-command:open-link-picker", {
-          detail: { editor },
-        })
-      );
+    {
+      title: t("ui.slashCommands.link.title"),
+      aliases: ["link", "url"],
+      description: t("ui.slashCommands.link.description"),
+      icon: <Link className="size-4" />,
+      command: (editor, range) => {
+        editor.chain().focus().deleteRange(range).run();
+        window.dispatchEvent(
+          new CustomEvent("slash-command:open-link-picker", {
+            detail: { editor },
+          })
+        );
+      },
     },
-  },
-];
+  ];
+}
 
 // ─── Filter ──────────────────────────────────────────────────────────────────
 
 function filterCommands(query: string): SlashCommandItem[] {
-  if (!query) return SLASH_COMMANDS;
+  const commands = getSlashCommands();
+  if (!query) return commands;
   const lower = query.toLowerCase();
-  return SLASH_COMMANDS.filter(
+  return commands.filter(
     (item) =>
       item.title.toLowerCase().includes(lower) ||
       item.aliases.some((a) => a.includes(lower))
@@ -176,6 +182,7 @@ export interface SlashCommandsListRef {
 
 const SlashCommandsList = forwardRef<SlashCommandsListRef, SlashCommandsListProps>(
   ({ items, command }, ref) => {
+    const { t } = useTranslation();
     const [selectedIndex, setSelectedIndex] = useState(0);
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -220,7 +227,7 @@ const SlashCommandsList = forwardRef<SlashCommandsListRef, SlashCommandsListProp
       return (
         <div className="slash-commands-popup">
           <div className="px-3 py-2 text-sm text-muted-foreground">
-            No matching commands
+            {t("ui.slashCommands.empty")}
           </div>
         </div>
       );

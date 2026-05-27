@@ -1,6 +1,8 @@
+import "@/i18n";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@/stores/preferences";
 import { isTauri, initDeskDirectory, expandFsScope } from "@/lib/desk";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
@@ -33,23 +35,23 @@ function StartupError({
   message: string;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md space-y-4 rounded-lg border border-destructive/30 bg-card p-6 text-center">
         <h1 className="text-lg font-semibold text-foreground">
-          Desk couldn&apos;t start
+          {t("errors.startup.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Desk failed to set up its data folder. Your files are safe. This is a
-          startup problem, not data loss.
+          {t("errors.startup.description")}
         </p>
         <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-3 text-left text-xs text-muted-foreground">
           {message}
         </pre>
         <p className="text-sm text-muted-foreground">
-          Make sure the data folder exists and is readable, then retry.
+          {t("errors.startup.hint")}
         </p>
-        <Button onClick={onRetry}>Retry</Button>
+        <Button onClick={onRetry}>{t("common.buttons.retry")}</Button>
       </div>
     </div>
   );
@@ -116,6 +118,7 @@ function SecretHydrationProvider({ children }: { children: React.ReactNode }) {
 
 // Check for updates on launch and show toast if available
 function UpdateProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { status, updateInfo, downloadAndInstall, dismiss } = useUpdateChecker();
   const dismissedUpdateVersion = usePreferencesStore((s) => s.dismissedUpdateVersion);
 
@@ -125,26 +128,27 @@ function UpdateProvider({ children }: { children: React.ReactNode }) {
       updateInfo &&
       updateInfo.version !== dismissedUpdateVersion
     ) {
-      toast(`Update available: v${updateInfo.version}`, {
-        description: "A new version of Desk is ready to install.",
+      toast(t("updates.available", { version: updateInfo.version }), {
+        description: t("updates.description"),
         action: {
-          label: "Update & Restart",
+          label: t("updates.updateAndRestart"),
           onClick: () => downloadAndInstall(),
         },
         cancel: {
-          label: "Skip",
+          label: t("updates.skip"),
           onClick: () => dismiss(),
         },
         duration: 15000,
       });
     }
-  }, [status, updateInfo, downloadAndInstall, dismiss, dismissedUpdateVersion]);
+  }, [status, updateInfo, downloadAndInstall, dismiss, dismissedUpdateVersion, t]);
 
   return <>{children}</>;
 }
 
 // Handle window close with unsaved changes check
 function WindowCloseProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [dialogState, setDialogState] = useState<{
     open: boolean;
     dirtyTabs: string[];
@@ -177,7 +181,7 @@ function WindowCloseProvider({ children }: { children: React.ReactNode }) {
 
   const tabCount = dialogState.dirtyTabs.length;
   const tabNames = dialogState.dirtyTabs.slice(0, 3).join(", ");
-  const moreCount = tabCount > 3 ? ` and ${tabCount - 3} more` : "";
+  const moreCount = tabCount > 3 ? t("unsavedChanges.more", { count: tabCount - 3 }) : "";
 
   return (
     <>
@@ -190,8 +194,8 @@ function WindowCloseProvider({ children }: { children: React.ReactNode }) {
             cancelClose();
           }
         }}
-        title="Unsaved Changes"
-        description={`You have unsaved changes in: ${tabNames}${moreCount}. Do you want to save before quitting?`}
+        title={t("unsavedChanges.title")}
+        description={t("unsavedChanges.description", { tabs: tabNames, more: moreCount })}
         onSave={handleSave}
         onDontSave={handleDontSave}
         onCancel={handleCancel}

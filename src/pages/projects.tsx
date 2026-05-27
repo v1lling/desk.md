@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { FolderKanban } from "lucide-react";
 import { useCurrentWorkspace, useProjects } from "@/stores";
 import { useProjectSelectionStore } from "@/stores/project-selection";
@@ -14,6 +15,7 @@ import { ProjectsTreePane, ProjectOverview } from "@/components/projects";
  * stable (see `use-secondary-sidebar.ts`).
  */
 export default function ProjectsPage() {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
   const { data: projects = [] } = useProjects(currentWorkspaceId);
@@ -52,8 +54,8 @@ export default function ProjectsPage() {
         <StatePanel
           variant="empty"
           display="inline"
-          title="Select a workspace"
-          description="Choose a workspace in the sidebar to view projects."
+          title={t("pages.projects.selectWorkspaceTitle")}
+          description={t("pages.projects.selectWorkspaceDescription")}
           className="h-full"
         />
       </div>
@@ -67,11 +69,11 @@ export default function ProjectsPage() {
           variant="empty"
           display="inline"
           icon={FolderKanban}
-          title={projects.length === 0 ? "No projects yet" : "Select a project"}
+          title={projects.length === 0 ? t("pages.projects.noProjectsTitle") : t("pages.projects.selectProjectTitle")}
           description={
             projects.length === 0
-              ? "Create one with + New Project in the panel."
-              : "Pick a project from the list to view its overview."
+              ? t("pages.projects.noProjectsDescription")
+              : t("pages.projects.selectProjectDescription")
           }
           className="h-full"
         />

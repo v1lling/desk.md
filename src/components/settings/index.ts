@@ -1,4 +1,5 @@
 export { GeneralTab } from "./general-tab";
+export { PlannerTab } from "./planner-tab";
 export { AITab } from "./ai-tab";
 export { AssistantTab } from "./assistant-tab";
 export { AgentsTab } from "./agents-tab";

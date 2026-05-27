@@ -1,0 +1,1276 @@
+{
+  "common": {
+    "buttons": {
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "confirm": "Confirmer",
+      "close": "Fermer",
+      "back": "Retour",
+      "continue": "Continuer",
+      "retry": "Réessayer",
+      "dontSave": "Ne pas enregistrer",
+      "open": "Ouvrir",
+      "create": "Créer",
+      "edit": "Modifier",
+      "rename": "Renommer",
+      "duplicate": "Dupliquer",
+      "remove": "Retirer",
+      "add": "Ajouter",
+      "search": "Rechercher",
+      "all": "Tout",
+      "more": "Plus",
+      "loading": "Chargement…",
+      "tryAgain": "Réessayer",
+      "reloadPage": "Recharger la page"
+    }
+  },
+  "nav": {
+    "sidebar": {
+      "search": "Rechercher",
+      "dashboard": "Tableau de bord",
+      "planner": "Planificateur",
+      "tasks": "Tâches",
+      "docs": "Documents",
+      "meetings": "Réunions",
+      "projects": "Projets",
+      "assistant": "Assistant",
+      "settings": "Paramètres",
+      "desk": "Desk",
+      "workspaceViews": "Vues de l'espace"
+    },
+    "secondarySidebar": {
+      "expandPanel": "Déployer le panneau"
+    },
+    "workspaceSwitcher": {
+      "createWorkspace": "Créer un espace",
+      "selectWorkspace": "Sélectionner un espace",
+      "editWorkspace": "Modifier l'espace"
+    }
+  },
+  "pages": {
+    "dashboard": {
+      "focus": {
+        "title": "Focus",
+        "highlightedCount_one": "{{count}} mise en évidence",
+        "highlightedCount_other": "{{count}} mises en évidence",
+        "loadingLabel": "tâches",
+        "emptyTitle": "Aucune tâche mise en évidence",
+        "emptyDescription": "Clic droit sur une tâche dans le tableau, puis « Mettre en focus »."
+      },
+      "workspaces": {
+        "title": "Espaces",
+        "loadingLabel": "espaces",
+        "emptyTitle": "Aucun espace pour l'instant"
+      },
+      "capture": {
+        "title": "Capture",
+        "defaultHomeName": "Personnel",
+        "toTriageCount_one": "{{count}} à trier",
+        "toTriageCount_other": "{{count}} à trier",
+        "quickAddPlaceholder": "Capture rapide...",
+        "loadingLabel": "tâches",
+        "emptyTitle": "Capturez vite, triez plus tard",
+        "triageButton": "Trier",
+        "moveToHomeTasks": "Déplacer vers les tâches {{home}}",
+        "noWorkspacesYet": "Aucun espace pour l'instant",
+        "unassigned": "Non assigné"
+      }
+    },
+    "tasks": {
+      "kanban": {
+        "noTasks": "Aucune tâche"
+      },
+      "list": {
+        "dueLabel": "Échéance : {{date}}"
+      },
+      "visibility": {
+        "show": "Afficher {{label}}",
+        "hide": "Masquer {{label}}"
+      },
+      "newTask": "Nouvelle tâche",
+      "noProject": "Aucun projet",
+      "countLabel": "tâches",
+      "filters": {
+        "projectLabel": "Projet",
+        "priorityLabel": "Priorité",
+        "allProjects": "Tous les projets",
+        "allPriorities": "Toutes les priorités"
+      }
+    },
+    "docs": {
+      "dropZone": {
+        "title": "Déposez des fichiers pour les importer",
+        "subtitle": "Tous les types de fichiers sont pris en charge"
+      },
+      "tree": {
+        "searchPlaceholder": "Rechercher des documents…",
+        "fileCount_one": "{{count}} fichier",
+        "fileCount_other": "{{count}} fichiers",
+        "sections": {
+          "workspace": "Espace",
+          "projects": "Projets"
+        },
+        "sort": {
+          "title": "Trier",
+          "name": "Nom",
+          "nameAsc": "A-Z",
+          "nameDesc": "Z-A",
+          "created": "Créé",
+          "modified": "Modifié",
+          "newest": "du plus récent",
+          "oldest": "du plus ancien"
+        },
+        "actions": {
+          "newFolder": "Nouveau dossier",
+          "newDoc": "Nouveau document",
+          "importFiles": "Importer des fichiers",
+          "openInFinder": "Ouvrir dans le Finder"
+        },
+        "newFolderDialog": {
+          "title": "Nouveau dossier",
+          "description": "Créer un nouveau dossier",
+          "placeholder": "Nom du dossier",
+          "creatingIn": "Création dans : {{path}}"
+        }
+      },
+      "selectWorkspaceTitle": "Sélectionner un espace",
+      "selectWorkspaceDescription": "Choisissez un espace dans la barre latérale pour voir les documents.",
+      "selectDocTitle": "Sélectionner un document",
+      "selectDocDescription": "Choisissez un document dans la liste pour l'ouvrir."
+    },
+    "meetings": {
+      "latestBadge": "Dernière",
+      "tree": {
+        "searchPlaceholder": "Rechercher…",
+        "meetingCount_one": "{{count}} réunion",
+        "meetingCount_other": "{{count}} réunions",
+        "emptyAll": "Aucune réunion pour l'instant.",
+        "emptyMatching": "Aucune réunion correspondante.",
+        "sort": {
+          "title": "Trier",
+          "newestFirst": "Plus récentes d'abord",
+          "oldestFirst": "Plus anciennes d'abord"
+        },
+        "actions": {
+          "newMeeting": "Nouvelle réunion"
+        },
+        "filter": {
+          "allProjects": "Tous les projets",
+          "noProject": "Aucun projet"
+        }
+      },
+      "selectWorkspaceTitle": "Sélectionner un espace",
+      "selectWorkspaceDescription": "Choisissez un espace dans la barre latérale pour voir les réunions.",
+      "noMeetingsTitle": "Aucune réunion pour l'instant",
+      "noMeetingsDescription": "Créez-en une via + Nouvelle réunion dans le panneau.",
+      "selectMeetingTitle": "Sélectionner une réunion",
+      "selectMeetingDescription": "Choisissez une réunion dans la liste pour l'ouvrir."
+    },
+    "projects": {
+      "overview": {
+        "loading": "Chargement du projet…",
+        "notFoundTitle": "Projet introuvable",
+        "notFoundDescription": "Ce projet a peut-être été supprimé ou déplacé.",
+        "createdOn": "Créé le {{date}}",
+        "tasksHeading": "Tâches",
+        "openHeading": "Ouvertes",
+        "progress": "Avancement",
+        "noTasksYet": "Aucune tâche pour l'instant",
+        "progressSummary": "{{done}} sur {{total}} terminées · {{pct}}%",
+        "renameTitle": "Cliquer pour renommer",
+        "descriptionPlaceholder": "Ajouter une courte description…",
+        "descriptionEditTitle": "Cliquer pour modifier",
+        "quickLinks": {
+          "tasks": "Tâches",
+          "docs": "Documents",
+          "meetings": "Réunions"
+        }
+      },
+      "tree": {
+        "searchPlaceholder": "Rechercher…",
+        "sortTitle": "Trier",
+        "sortAsc": "Nom A–Z",
+        "sortDesc": "Nom Z–A",
+        "newProject": "Nouveau projet",
+        "allStatuses": "Tous les statuts",
+        "projectCount_one": "{{count}} projet",
+        "projectCount_other": "{{count}} projets",
+        "deleteConfirmTitle": "Supprimer le projet",
+        "deleteConfirmDescription": "Voulez-vous vraiment supprimer « {{name}} » ? Cela supprimera définitivement le projet et toutes ses tâches, documents et réunions."
+      },
+      "selectWorkspaceTitle": "Sélectionner un espace",
+      "selectWorkspaceDescription": "Choisissez un espace dans la barre latérale pour voir les projets.",
+      "noProjectsTitle": "Aucun projet pour l'instant",
+      "noProjectsDescription": "Créez-en un via + Nouveau projet dans le panneau.",
+      "selectProjectTitle": "Sélectionner un projet",
+      "selectProjectDescription": "Choisissez un projet dans la liste pour voir sa vue d'ensemble."
+    },
+    "planner": {
+      "toggle": {
+        "showColumn": "Afficher la colonne {{label}}",
+        "hideColumn": "Masquer la colonne {{label}}"
+      },
+      "taskPicker": {
+        "placeholder": "Ajouter une tâche ou une note...",
+        "pressEnterAsNote": "Appuyez sur Entrée pour ajouter comme note",
+        "noAvailableTasks": "Aucune tâche disponible"
+      },
+      "block": {
+        "addNote": "Ajouter une note",
+        "removeBlock": "Retirer le bloc",
+        "notePlaceholder": "Saisir une note...",
+        "moreCount": "+{{count}} de plus"
+      },
+      "week": "Semaine",
+      "allTasks": "Toutes les tâches",
+      "allWorkspaces": "Tous les espaces"
+    },
+    "assistant": {},
+    "settings": {}
+  },
+  "settings": {
+    "general": {
+      "appearance": {
+        "title": "Apparence",
+        "description": "Personnaliser l'apparence de Desk"
+      },
+      "theme": {
+        "label": "Thème",
+        "description": "Choisir votre palette préférée",
+        "options": {
+          "light": "Clair",
+          "dark": "Sombre",
+          "system": "Système"
+        }
+      },
+      "language": {
+        "label": "Langue",
+        "description": "Langue de l'interface",
+        "options": {
+          "en": "English",
+          "de": "Deutsch",
+          "fr": "Français"
+        }
+      },
+      "compactSidebar": {
+        "label": "Barre latérale compacte",
+        "description": "Afficher uniquement les icônes dans la barre latérale (ou faites glisser le bord pour redimensionner)"
+      }
+    },
+    "planner": {
+      "title": "Planificateur",
+      "description": "Configurer le planificateur hebdomadaire",
+      "workDayStart": {
+        "label": "Début de journée",
+        "description": "Heure à laquelle votre journée commence"
+      },
+      "workDayEnd": {
+        "label": "Fin de journée",
+        "description": "Heure à laquelle votre journée se termine"
+      },
+      "showWeekends": {
+        "label": "Afficher les week-ends",
+        "description": "Inclure samedi et dimanche dans la vue de la semaine"
+      }
+    },
+    "templates": {
+      "title": "Modèles",
+      "description": "Définir le contenu par défaut des nouvelles réunions, documents et tâches. Configurez des valeurs globales ou personnalisez par espace.",
+      "scopeLabel": "Portée",
+      "globalDefaults": "Valeurs globales",
+      "cardTitle": "Modèle {{label}}",
+      "usingGlobalDefault": "Valeur globale utilisée.",
+      "customizeForWorkspace": "Personnaliser pour cet espace",
+      "placeholder": "Contenu du modèle (markdown)...",
+      "variablesLabel": "Variables :",
+      "resetToDefault": "Réinitialiser",
+      "removeOverride": "Retirer la personnalisation",
+      "types": {
+        "meeting": {
+          "label": "Réunion",
+          "description": "Contenu prérempli pour les nouvelles notes de réunion"
+        },
+        "doc": {
+          "label": "Document",
+          "description": "Contenu prérempli pour les nouveaux documents",
+          "note": "Le titre principal (# Titre) est ajouté automatiquement."
+        },
+        "task": {
+          "label": "Tâche",
+          "description": "Contenu prérempli pour les nouvelles tâches"
+        }
+      }
+    },
+    "ai": {
+      "provider": {
+        "title": "Fournisseur",
+        "description": "Connecter un fournisseur d'IA. Alimente l'assistant, la rédaction et les résumés du catalogue.",
+        "label": "Fournisseur",
+        "helperText": "Backend API d'IA"
+      },
+      "providers": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic"
+      },
+      "model": {
+        "label": "Modèle",
+        "helperText": "Modèle par défaut du fournisseur"
+      },
+      "apiKey": {
+        "label": "Clé API ({{provider}})",
+        "placeholderOpenai": "sk-...",
+        "placeholderAnthropic": "sk-ant-...",
+        "showAriaLabel": "Afficher la clé API",
+        "hideAriaLabel": "Masquer la clé API",
+        "storedNotice": "Stockée dans le trousseau du système (Keychain / Credential Manager / Secret Service).",
+        "notConfigured": "Clé du fournisseur non configurée."
+      },
+      "browserMode": {
+        "title": "L'IA n'est pas disponible en mode navigateur",
+        "descriptionStart": "Les clés API ne sont stockées que dans le trousseau du système, auquel Desk ne peut pas accéder depuis",
+        "descriptionMiddle": ". Exécutez",
+        "descriptionEnd": " (ou l'application compilée) pour configurer les fournisseurs et utiliser l'assistant."
+      },
+      "keychainError": {
+        "title": "Impossible de lire le trousseau",
+        "description": "Desk n'a pas pu récupérer la clé stockée. En enregistrer une nouvelle peut fonctionner, mais les clés existantes ne pourront pas être chargées tant que ce problème persiste.",
+        "errorDetails": "Détails de l'erreur"
+      },
+      "errors": {
+        "linuxKeyring": "Sous Linux, cela signifie généralement que GNOME Keyring ou KWallet n'est pas en cours d'exécution. Démarrez le service de secrets de votre bureau et réessayez."
+      },
+      "usage": {
+        "title": "Statistiques d'utilisation",
+        "clear": "Effacer",
+        "noUsage": "Aucune utilisation pour l'instant",
+        "totalTokens": "Tokens au total",
+        "requests": "Requêtes"
+      },
+      "privacy": {
+        "title": "Données et confidentialité",
+        "description": "Ce que Desk envoie à votre fournisseur d'IA, et quand.",
+        "intro": "Les fonctionnalités d'IA envoient du contenu au fournisseur sélectionné ci-dessus (Anthropic ou OpenAI) via leur API. Desk n'a pas de serveur d'IA propre, et rien n'est envoyé tant qu'une clé API n'est pas configurée.",
+        "assistantLabel": "Chat de l'assistant et rédaction",
+        "assistantBody": " : vos messages, l'historique de la conversation et le contenu des fichiers que l'assistant lit pour vous répondre.",
+        "smartIndexLabel": "Smart Index",
+        "smartIndexBody": " : courts aperçus et résumés de vos fichiers, envoyés lors de la reconstruction du catalogue ou, si « Résumer automatiquement à l'enregistrement » est activé, automatiquement après un enregistrement.",
+        "retention": "La conservation est régie par les conditions API de votre fournisseur. Anthropic et OpenAI indiquent que les données API ne servent pas à entraîner leurs modèles par défaut.",
+        "acknowledgement": {
+          "title": "Confirmation de confidentialité",
+          "given": "Vous avez accepté l'avis de confidentialité de l'IA.",
+          "notGiven": "Affichée une fois avant votre première requête d'IA.",
+          "revoke": "Révoquer"
+        }
+      }
+    },
+    "assistant": {
+      "title": "Assistant",
+      "description": "Comment l'assistant intégré discute, rédige et récupère du contexte.",
+      "contextNotice": "L'assistant n'injecte pas automatiquement de contexte au début d'un tour. Il décide quand interroger le catalogue et lire des fichiers. Gérez le catalogue dans Paramètres → Catalogue.",
+      "toolDetails": {
+        "label": "Afficher les détails des outils dans les réponses",
+        "description": "Affiche les arguments, résultats et détails des fichiers récupérés en ligne."
+      },
+      "customInstructions": {
+        "label": "Instructions personnalisées",
+        "description": "Toujours incluses dans la génération du prompt, pour l'assistant comme pour la rédaction.",
+        "placeholder": "ex. répondez avec des listes à puces concises.",
+        "helperText": "Pour les instructions aux agents CLI externes (Claude Code, Codex, Gemini CLI) lisant votre dossier de données, voir Paramètres → Agents."
+      }
+    },
+    "agents": {
+      "title": "Agents externes",
+      "description": "Générer des fichiers Markdown à côté de vos données pour que les agents CLI externes comprennent votre travail sans configuration.",
+      "notice": "Ces paramètres s'appliquent aux <strong>agents CLI externes</strong> (Claude Code, Codex, Gemini CLI) qui lisent votre dossier de données directement. Pour les instructions à l'<strong>assistant intégré</strong>, voir Paramètres → Assistant.",
+      "emit": {
+        "title": "Générer les fichiers",
+        "description": "Choisissez quels fichiers d'agent écrire dans votre dossier de données. Contenu identique, trois noms de fichier.",
+        "claude": "Pour Claude Code",
+        "agents": "Pour Codex / OpenAI Agents",
+        "gemini": "Pour Gemini CLI",
+        "noneEnabled": "Aucun fichier d'agent n'est généré. Vos instructions ci-dessous sont enregistrées mais ne seront pas écrites tant qu'au moins un interrupteur n'est pas activé."
+      },
+      "global": {
+        "title": "Instructions globales",
+        "description": "Intégrées dans les fichiers d'agent racine. S'applique à tous les espaces."
+      },
+      "perWorkspace": {
+        "title": "Par espace",
+        "description": "Instructions spécifiques à un espace, ajoutées aux fichiers d'agent de cet espace.",
+        "workspaceLabel": "Espace",
+        "selectPlaceholder": "Sélectionner un espace…",
+        "homeBadge": "(personnel)",
+        "selectPrompt": "Sélectionnez un espace pour modifier ses instructions."
+      },
+      "instructions": {
+        "globalLabel": "Instructions globales",
+        "workspaceLabel": "Instructions de l'espace",
+        "globalDescription": "Intégrées dans les fichiers CLAUDE.md / AGENTS.md / GEMINI.md racine entre les marqueurs <code>desk:user-instructions</code> à chaque régénération.",
+        "workspaceDescription": "Intégrées dans les fichiers CLAUDE.md / AGENTS.md / GEMINI.md de cet espace entre les marqueurs <code>desk:user-instructions</code> à chaque régénération.",
+        "globalPlaceholder": "ex. Réponds toujours en français. Utilise des préfixes Conventional Commit lors de l'écriture de fichiers.",
+        "workspacePlaceholder": "ex. Cet espace est pour le client X. Ne mentionne jamais de projets internes dans les brouillons.",
+        "charCount_one": "{{count}} caractère · enregistré automatiquement · écrit à la prochaine régénération.",
+        "charCount_other": "{{count}} caractères · enregistrés automatiquement · écrits à la prochaine régénération."
+      },
+      "preview": {
+        "toggle": "Aperçu du CLAUDE.md généré",
+        "revealInFinder": "Afficher dans le Finder",
+        "refresh": "Actualiser",
+        "errorBrowserMode": "L'aperçu n'est disponible que dans l'application desktop.",
+        "errorFileMissing": "Le fichier n'existe pas encore. Activez CLAUDE.md, puis revenez."
+      }
+    },
+    "context": {},
+    "data": {
+      "storage": {
+        "title": "Stockage des données",
+        "description": "Emplacement de vos projets et fichiers",
+        "pathLabel": "Chemin du dossier de données",
+        "pathPlaceholder": "~/Desk",
+        "change": "Modifier",
+        "helperText": "Tous vos espaces, projets, tâches et notes sont stockés en fichiers Markdown dans ce dossier."
+      },
+      "reset": {
+        "title": "Réinitialiser",
+        "description": "Restaurer les valeurs par défaut et relancer la configuration. Vos fichiers de données sont conservés.",
+        "button": "Réinitialiser tous les paramètres",
+        "helperText": "Cela réinitialisera tous les paramètres et affichera de nouveau l'assistant de configuration. Vos fichiers de données ne seront pas supprimés."
+      },
+      "resetDialog": {
+        "title": "Réinitialiser tous les paramètres",
+        "description": "Voulez-vous vraiment réinitialiser tous les paramètres ? L'assistant de configuration s'affichera à nouveau. Vos fichiers de données ne seront pas supprimés.",
+        "confirmLabel": "Réinitialiser"
+      },
+      "pathDialog": {
+        "existingTitle": "Données existantes trouvées",
+        "existingDescription_one": "{{count}} espace trouvé à cet emplacement.",
+        "existingDescription_other": "{{count}} espaces trouvés à cet emplacement.",
+        "emptyTitle": "Emplacement vide",
+        "emptyDescription": "Aucune donnée Desk trouvée à ce chemin. Vous devrez créer votre premier espace.",
+        "useExisting": "Utiliser les données existantes",
+        "startFresh": "Repartir de zéro",
+        "continueToSetup": "Continuer vers la configuration"
+      }
+    },
+    "about": {
+      "app": {
+        "title": "Desk",
+        "description": "Gestion de projets et de tâches en Markdown",
+        "version": "Version",
+        "commit": "Commit",
+        "built": "Compilé"
+      },
+      "updates": {
+        "title": "Mises à jour",
+        "description": "Rechercher de nouvelles versions de Desk",
+        "noUpdates": "Aucune mise à jour disponible",
+        "onLatest": "Vous utilisez la dernière version",
+        "check": "Vérifier",
+        "checking": "Recherche de mises à jour...",
+        "versionAvailable": "Version {{version}} disponible",
+        "updateAndRestart": "Mettre à jour et redémarrer",
+        "skipThisVersion": "Ignorer cette version",
+        "downloading": "Téléchargement et installation de la mise à jour...",
+        "checkFailed": "Échec de la vérification des mises à jour"
+      },
+      "links": {
+        "title": "Liens",
+        "description": "Ouvrir les ressources du projet dans le navigateur",
+        "releaseNotes": "Notes de version pour v{{version}}",
+        "allReleases": "Toutes les versions",
+        "viewOnGithub": "Voir sur GitHub",
+        "reportIssue": "Signaler un problème"
+      },
+      "license": {
+        "title": "Licence",
+        "description": "Open source sous GNU General Public License",
+        "viewLicense": "Voir la licence"
+      }
+    },
+    "nav": {
+      "title": "Paramètres",
+      "general": "Général",
+      "planner": "Planificateur",
+      "templates": "Modèles",
+      "ai": "Fournisseur d'IA",
+      "assistant": "Assistant",
+      "agents": "Agents",
+      "context": "Catalogue",
+      "data": "Données",
+      "about": "À propos"
+    },
+    "smartIndex": {
+      "status": {
+        "title": "État du catalogue",
+        "description": "Statistiques d'index, erreurs et commandes de construction",
+        "filesIndexed": "Fichiers indexés",
+        "lastBuilt": "Dernière construction"
+      },
+      "actions": {
+        "rebuild": "Reconstruire le catalogue",
+        "clear": "Vider le catalogue"
+      },
+      "progress": {
+        "summarizing": "Résumé de {{workspace}}... {{processed}}/{{total}} fichiers",
+        "collecting": "Collecte des fichiers..."
+      },
+      "errors": {
+        "title_one": "Erreur ({{count}})",
+        "title_other": "Erreurs ({{count}})"
+      },
+      "results": {
+        "success": "{{summarized}} résumé(s), {{reused}} réutilisé(s)",
+        "successWithExcluded": "{{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s)"
+      },
+      "info": {
+        "oneCatalog": "Un catalogue, deux lecteurs : l'assistant intégré interroge cet index directement. Quand un fichier d'agent est activé (Paramètres → Agents), le même catalogue est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
+        "noProvider": "Aucun fournisseur d'IA configuré, les résumés utilisent donc des aperçus en texte brut. Ajoutez une clé dans Paramètres → IA pour des résumés générés par l'IA."
+      },
+      "config": {
+        "title": "Paramètres du catalogue",
+        "description": "Quand les résumés sont actualisés et quelle quantité de chaque fichier est envoyée pour le résumé."
+      },
+      "autoSummarize": {
+        "label": "Résumer automatiquement à l'enregistrement",
+        "description": "Garde les résumés à jour pendant que vous éditez, et ajoute les nouveaux fichiers au catalogue lors du premier enregistrement.",
+        "activeWarning": "Environ 5 secondes après votre dernier enregistrement, chaque fichier dont le corps a vraiment changé est résumé de nouveau (un appel API par fichier). Les enregistrements de métadonnées seules ne déclenchent pas d'appel."
+      },
+      "detail": {
+        "label": "Niveau de détail des résumés",
+        "description": "Quelle part de chaque fichier est envoyée pour le résumé. Plus haut = meilleurs résumés, plus de tokens.",
+        "options": {
+          "brief": "Bref (~125 tok)",
+          "standard": "Standard (~500 tok)",
+          "detailed": "Détaillé (~1250 tok)"
+        }
+      },
+      "clearDialog": {
+        "title": "Vider le catalogue",
+        "description": "Cela vide l'index utilisé par l'assistant intégré et supprime les fichiers générés CLAUDE.md, AGENTS.md, GEMINI.md et WORKSPACE_CONTEXT.md. Reconstruisez pour les régénérer. Cette action est irréversible.",
+        "confirmLabel": "Vider le catalogue"
+      },
+      "relativeTime": {
+        "never": "Jamais",
+        "justNow": "À l'instant",
+        "minutesAgo_one": "il y a {{count}} minute",
+        "minutesAgo_other": "il y a {{count}} minutes",
+        "hoursAgo_one": "il y a {{count}} heure",
+        "hoursAgo_other": "il y a {{count}} heures",
+        "daysAgo_one": "il y a {{count}} jour",
+        "daysAgo_other": "il y a {{count}} jours"
+      }
+    },
+    "systemPrompts": {
+      "title": "Prompts système",
+      "description": "Prompts par défaut envoyés à l'IA, plus vos ajouts par type.",
+      "viewBaseContext": "Voir le contexte de base (inclus dans tous les prompts)",
+      "viewDefaultPrompt": "Voir le prompt par défaut",
+      "additionalInstructions": "Instructions supplémentaires pour {{label}}",
+      "placeholder": "ex. instructions spécifiques pour {{label}}...",
+      "footer": "Les instructions par type sont combinées avec vos instructions globales ci-dessus.",
+      "purposes": {
+        "chat": {
+          "label": "Assistant",
+          "description": "Interactions générales dans l'onglet Assistant"
+        },
+        "draft-email": {
+          "label": "Brouillon e-mail",
+          "description": "Rédaction de réponses e-mail via l'assistant"
+        }
+      }
+    }
+  },
+  "modals": {
+    "newWorkspace": {
+      "title": "Nouvel espace",
+      "description": "Créez un espace pour séparer un domaine de travail, par exemple un client, un projet annexe ou autre chose",
+      "nameLabel": "Nom de l'espace",
+      "namePlaceholder": "ex. Acme SAS, Projets annexes, Études",
+      "folderHint": "Dossier : ~/Desk/workspaces/{{folder}}",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brève description de cet espace...",
+      "colorLabel": "Couleur",
+      "submit": "Créer l'espace"
+    },
+    "newProject": {
+      "title": "Nouveau projet",
+      "description": "Créer un nouveau projet dans votre espace",
+      "nameLabel": "Nom du projet",
+      "namePlaceholder": "ex. Refonte du site",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brève description du projet...",
+      "statusLabel": "Statut",
+      "submit": "Créer le projet"
+    },
+    "newTask": {
+      "title": "Nouvelle tâche",
+      "description": "Créer une nouvelle tâche dans votre espace",
+      "submit": "Créer la tâche",
+      "fields": {
+        "title": "Titre",
+        "project": "Projet",
+        "priority": "Priorité",
+        "dueDate": "Échéance"
+      },
+      "placeholders": {
+        "title": "Que faut-il faire ?",
+        "noProject": "Aucun projet",
+        "priorityNone": "Aucune",
+        "noDueDate": "Aucune échéance"
+      }
+    },
+    "newDoc": {
+      "title": "Nouveau document",
+      "description": "Créer un nouveau document dans votre espace",
+      "submit": "Créer le document",
+      "creatingIn": "Création dans : {{path}}",
+      "fields": {
+        "title": "Titre",
+        "project": "Projet"
+      },
+      "placeholders": {
+        "title": "Titre du document",
+        "noProject": "Aucun projet"
+      }
+    },
+    "newMeeting": {
+      "title": "Nouvelle réunion",
+      "description": "Créer une nouvelle réunion dans votre espace",
+      "submit": "Créer la réunion",
+      "fields": {
+        "title": "Titre",
+        "project": "Projet",
+        "date": "Date"
+      },
+      "placeholders": {
+        "title": "Point hebdo, 1:1, Sprint Planning...",
+        "project": "Sélectionner un projet"
+      }
+    },
+    "triageDetail": {
+      "title": "Tâche déplacée",
+      "priorityLabel": "Priorité (optionnelle)",
+      "priorityPlaceholder": "Choisir une priorité",
+      "noPriority": "Aucune priorité",
+      "notesLabel": "Notes (optionnelles)",
+      "notesPlaceholder": "Ajouter des notes ou des détails...",
+      "skip": "Ignorer",
+      "saveDetails": "Enregistrer les détails",
+      "homeTasks": "Tâches {{home}}"
+    },
+    "editWorkspace": {
+      "title": "Modifier l'espace",
+      "description": "Modifier les paramètres de l'espace",
+      "nameLabel": "Nom de l'espace",
+      "namePlaceholder": "ex. Acme SAS, Projets annexes, Études",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brève description de cet espace...",
+      "colorLabel": "Couleur",
+      "homeNote": "C'est votre espace personnel. Il contient la boîte de capture rapide et ne peut pas être supprimé, mais vous pouvez le renommer et changer sa couleur.",
+      "dangerZone": "Zone sensible",
+      "deleteNote": "Supprimer définitivement cet espace et tous ses projets, tâches, documents et réunions.",
+      "deleteButton": "Supprimer l'espace",
+      "deleteConfirmTitle": "Supprimer l'espace",
+      "deleteConfirmDescription": "Cela supprimera définitivement « {{name}} » et tous ses projets, tâches, documents et réunions. Cette action est irréversible."
+    }
+  },
+  "editors": {
+    "doc": {
+      "titlePlaceholder": "Titre du document",
+      "contentPlaceholder": "Rédigez votre document en Markdown...",
+      "deleteTitle": "Supprimer le document",
+      "deleteDescription": "Voulez-vous vraiment supprimer ce document ? Cette action est irréversible."
+    },
+    "task": {
+      "titlePlaceholder": "Titre de la tâche",
+      "contentPlaceholder": "Ajouter des notes, détails ou éléments de checklist...",
+      "deleteTitle": "Supprimer la tâche",
+      "deleteDescription": "Voulez-vous vraiment supprimer cette tâche ? Cette action est irréversible."
+    },
+    "meeting": {
+      "titlePlaceholder": "Titre de la réunion",
+      "contentPlaceholder": "Rédigez vos notes de réunion...",
+      "deleteTitle": "Supprimer la réunion",
+      "deleteDescription": "Voulez-vous vraiment supprimer cette réunion ? Cette action est irréversible."
+    },
+    "aiChat": {},
+    "shared": {
+      "untitled": "Sans titre",
+      "saveTooltip": "Enregistrer (⌘S)",
+      "noChangesTooltip": "Aucun changement à enregistrer",
+      "aiIncludedToggle": "Inclus dans le contexte IA (cliquer pour exclure)",
+      "aiExcludedToggle": "Exclu du contexte IA (cliquer pour inclure)",
+      "aiExcludedByFolder": "Exclu par dossier : {{path}}",
+      "revealInFinder": "Afficher dans le Finder",
+      "entityName": {
+        "doc": "Document",
+        "task": "Tâche",
+        "meeting": "Réunion"
+      },
+      "entityNotFound": "{{entity}} introuvable",
+      "closeTab": "Fermer l'onglet"
+    }
+  },
+  "entities": {
+    "workspace": {
+      "colors": {
+        "blue": "Bleu",
+        "emerald": "Émeraude",
+        "amber": "Ambre",
+        "red": "Rouge",
+        "violet": "Violet",
+        "pink": "Rose",
+        "slate": "Ardoise"
+      }
+    },
+    "project": {
+      "status": {
+        "active": "Actif",
+        "paused": "En pause",
+        "completed": "Terminé",
+        "archived": "Archivé"
+      }
+    },
+    "task": {
+      "status": {
+        "backlog": "Backlog",
+        "todo": "À faire",
+        "doing": "En cours",
+        "waiting": "En attente",
+        "done": "Terminée"
+      },
+      "priority": {
+        "high": "Haute",
+        "medium": "Moyenne",
+        "low": "Basse"
+      },
+      "pluralLowercase": "tâches"
+    },
+    "doc": {},
+    "meeting": {},
+    "email": {
+      "defaultTitle": "E-mail"
+    },
+    "assistant": {
+      "defaults": {
+        "newConversation": "Nouvel assistant",
+        "emailDraft": "Rédiger une réponse e-mail",
+        "emailDraftWithSubject": "Brouillon : {{subject}}"
+      }
+    }
+  },
+  "emptyStates": {
+    "projects": {
+      "noMatches": "Aucun projet correspondant.",
+      "noProjects": "Aucun projet pour l'instant."
+    },
+    "tasks": {
+      "noResults": {
+        "title": "Aucune tâche trouvée"
+      },
+      "noActive": {
+        "title": "Aucune tâche active",
+        "description": "Les tâches de tous les espaces apparaîtront ici"
+      },
+      "inWorkspace": {
+        "title": "Aucune tâche dans {{workspace}}",
+        "description": "Les tâches assignées à cet espace apparaîtront ici"
+      }
+    },
+    "docs": {
+      "none": {
+        "title": "Aucun document pour l'instant",
+        "description": "Créez votre premier document pour commencer"
+      }
+    },
+    "meetings": {
+      "none": {
+        "title": "Aucune réunion pour l'instant",
+        "description": "Créez votre première note de réunion pour commencer"
+      }
+    }
+  },
+  "toasts": {
+    "settings": {
+      "themeSet": "Thème défini sur {{theme}}",
+      "sidebarCollapsed": "Barre latérale repliée",
+      "sidebarExpanded": "Barre latérale dépliée",
+      "apiKeySaved": "Clé {{provider}} enregistrée dans le trousseau",
+      "providerSet": "Fournisseur défini sur {{provider}}",
+      "modelSet": "Modèle défini sur {{model}}",
+      "usageCleared": "Historique d'utilisation effacé",
+      "privacyAcknowledgementReset": "Acceptation de confidentialité IA réinitialisée",
+      "toolDetailsShown": "Détails des outils affichés",
+      "toolDetailsHidden": "Détails des outils masqués",
+      "agentFileEnabled": "{{file}} activé",
+      "agentFileRemoved": "{{file}} retiré",
+      "indexBuilt": "Index construit : {{files}} fichiers dans {{workspaces}} espaces",
+      "catalogCleared": "Catalogue vidé",
+      "autoSummarizeEnabled": "Résumé automatique activé",
+      "autoSummarizeDisabled": "Résumé automatique désactivé",
+      "settingsReset": "Paramètres réinitialisés",
+      "dataPathUpdated": "Chemin de données mis à jour",
+      "switchedToPath": "Basculé vers {{path}} avec les données existantes",
+      "dataPathUpdatedCreateWorkspace": "Chemin de données mis à jour. Créez votre premier espace.",
+      "dataPathUpdatedWizard": "Chemin de données mis à jour. L'assistant de configuration vous guidera."
+    },
+    "workspace": {
+      "create": {
+        "success": "Espace créé",
+        "error": "Échec de la création de l'espace"
+      },
+      "update": {
+        "success": "Espace mis à jour",
+        "error": "Échec de la mise à jour de l'espace"
+      },
+      "delete": {
+        "success": "Espace « {{name}} » supprimé",
+        "error": "Échec de la suppression de l'espace"
+      }
+    },
+    "project": {
+      "create": {
+        "success": "Projet créé",
+        "error": "Échec de la création du projet"
+      },
+      "update": {
+        "error": "Échec de la mise à jour du projet"
+      },
+      "delete": {
+        "success": "Projet supprimé",
+        "error": "Échec de la suppression du projet"
+      }
+    },
+    "common": {
+      "renamed": "Renommé"
+    },
+    "task": {
+      "created": "Tâche créée"
+    },
+    "doc": {
+      "created": "Document créé",
+      "pathCopied": "Chemin copié dans le presse-papier",
+      "importDocs_one": "{{count}} document importé",
+      "importDocs_other": "{{count}} documents importés",
+      "importFiles_one": "{{count}} fichier importé",
+      "importFiles_other": "{{count}} fichiers importés",
+      "importMixed": "{{docs}} documents et {{files}} fichiers importés"
+    },
+    "meeting": {
+      "created": "Réunion créée",
+      "deleted": "Réunion supprimée"
+    },
+    "folder": {
+      "includedInAI": "« {{name}} » inclus dans l'IA",
+      "excludedFromAI": "« {{name}} » exclu de l'IA"
+    },
+    "editor": {
+      "docDeleted": "Document supprimé",
+      "taskDeleted": "Tâche supprimée",
+      "meetingDeleted": "Réunion supprimée",
+      "moveProject": {
+        "saveFailed": "Échec de l'enregistrement. Impossible de déplacer {{entity}}.",
+        "failed": "Échec du déplacement de {{entity}}"
+      }
+    },
+    "assistant": {
+      "conversationNotFound": "Conversation introuvable."
+    },
+    "secrets": {
+      "keychainUnavailable": "Impossible d'accéder au trousseau du système. Les fonctionnalités d'IA sont désactivées jusqu'à résolution. Ouvrez Paramètres → IA pour les détails."
+    },
+    "link": {
+      "notFound": "Note liée introuvable"
+    },
+    "ai": {
+      "inclusionUpdateFailed": "Échec de la mise à jour du réglage IA"
+    }
+  },
+  "errors": {
+    "startup": {
+      "title": "Desk n'a pas pu démarrer",
+      "description": "Desk n'a pas pu configurer son dossier de données. Vos fichiers sont sauvegardés. Il s'agit d'un problème de démarrage, pas d'une perte de données.",
+      "hint": "Vérifiez que le dossier de données existe et est lisible, puis réessayez."
+    },
+    "generic": {
+      "unexpected": {
+        "title": "Quelque chose s'est mal passé",
+        "description": "Une erreur inattendue est survenue. Vous pouvez réessayer ou recharger la page."
+      }
+    },
+    "settings": {
+      "apiKeyEmpty": "La clé API ne peut pas être vide",
+      "apiKeySaveFailed": "Échec de l'enregistrement de la clé API : {{message}}",
+      "apiKeySaveFailedWithHint": "Échec de l'enregistrement de la clé API : {{message}}\n\n{{hint}}",
+      "agentFilesUpdateFailed": "Impossible de mettre à jour les fichiers d'agent : {{message}}",
+      "indexBuildFailed": "Échec de la construction de l'index : {{message}}",
+      "catalogClearedPartial": "Index vidé, mais certains fichiers d'agent n'ont pas pu être retirés : {{message}}"
+    },
+    "setup": {
+      "checkDataFolder": "Impossible d'accéder à « {{path}} ». Vérifiez que le chemin du dossier est valide et que Desk peut y écrire, puis réessayez.",
+      "createDataFolder": "La configuration n'a pas pu créer votre dossier de données à « {{path}} ». Vérifiez que l'emplacement existe et que Desk a les droits d'écriture, puis réessayez."
+    },
+    "task": {
+      "createFailed": "Échec de la création de la tâche"
+    },
+    "doc": {
+      "createFailed": "Échec de la création du document",
+      "renameFailed": "Échec du renommage du document",
+      "deleteFailed": "Échec de la suppression du document",
+      "deleteFileFailed": "Échec de la suppression du fichier",
+      "moveFailed": "Échec du déplacement du document",
+      "openFailed": "Impossible d'ouvrir le fichier",
+      "revealFailed": "Impossible d'afficher dans le Finder",
+      "copyPathFailed": "Impossible de copier le chemin",
+      "cannotRevealBrowser": "Impossible d'afficher les fichiers en mode navigateur",
+      "cannotOpenBrowser": "Impossible d'ouvrir les fichiers en mode navigateur",
+      "importFailed": "Échec de l'import des fichiers",
+      "reservedName": "« {{name}} » est un nom réservé.",
+      "crossScopeMove": "Les déplacements entre portées ne sont pas encore pris en charge. Les déplacements doivent rester dans le même espace ou projet."
+    },
+    "meeting": {
+      "createFailed": "Échec de la création de la réunion",
+      "deleteFailed": "Échec de la suppression de la réunion"
+    },
+    "folder": {
+      "createFailed": "Échec de la création du dossier",
+      "renameFailed": "Échec du renommage du dossier",
+      "deleteFailed": "Échec de la suppression du dossier",
+      "moveFailed": "Échec du déplacement du dossier",
+      "reservedName": "« {{name}} » est un nom de dossier réservé.",
+      "crossKindMove": "Le déplacement de dossiers entre Documents et Documents IA n'est pas encore pris en charge. Déplacez les documents un par un."
+    },
+    "editor": {
+      "deleteDocFailed": "Échec de la suppression du document",
+      "deleteTaskFailed": "Échec de la suppression de la tâche",
+      "deleteMeetingFailed": "Échec de la suppression de la réunion"
+    },
+    "email": {
+      "openFailed": "Impossible d'ouvrir l'e-mail",
+      "draftStartFailed": "Échec du démarrage du brouillon de l'assistant. Vérifiez Paramètres → IA."
+    },
+    "update": {
+      "checkFailed": "Échec de la vérification des mises à jour",
+      "installFailed": "Échec de l'installation de la mise à jour"
+    }
+  },
+  "assistant": {
+    "conversations": {
+      "heading": "Conversations",
+      "newConversation": "Nouvelle conversation",
+      "deleteConversation": "Supprimer la conversation",
+      "empty": "Aucune conversation pour l'instant"
+    },
+    "input": {
+      "placeholder": "Posez une question à l'assistant… (Entrée pour envoyer, Maj+Entrée pour saut de ligne)",
+      "working": "Travail en cours…",
+      "enterToSend": "Entrée pour envoyer",
+      "send": "Envoyer"
+    },
+    "thinking": "Réflexion…",
+    "notConfigured": "L'assistant n'est pas configuré. Ouvrez Paramètres → IA et ajoutez une clé de fournisseur.",
+    "promptInUse": "Prompt actif ({{mode}}) : Prompt effectif",
+    "mode": {
+      "chat": "Assistant",
+      "draftEmail": "Brouillon e-mail"
+    },
+    "empty": {
+      "title": "Commencez avec l'assistant Desk",
+      "description": "Demandez une analyse, une recherche de contexte ou des mises à jour de tâches, documents ou réunions. L'assistant utilisera des outils au besoin."
+    },
+    "actions": {
+      "draftEmail": "Rédiger un e-mail"
+    },
+    "toolActivity": {
+      "heading": "Activité des outils",
+      "showLess": "Afficher moins",
+      "showMore_one": "Afficher {{count}} de plus",
+      "showMore_other": "Afficher {{count}} de plus",
+      "details": "Détails",
+      "arguments": "Arguments",
+      "result": "Résultat"
+    },
+    "tools": {
+      "deskTree": "Parcourir l'espace",
+      "deskCatalog": "Parcourir le catalogue",
+      "deskRead": "Lire un fichier",
+      "deskSearch": "Rechercher dans les fichiers",
+      "deskWorkspaceInfo": "Obtenir les infos de l'espace",
+      "deskCreateTask": "Créer une tâche",
+      "deskUpdateTask": "Mettre à jour une tâche",
+      "deskCreateMeeting": "Créer une réunion",
+      "deskUpdateMeeting": "Mettre à jour une réunion",
+      "deskCreateDoc": "Créer un document",
+      "deskUpdateDoc": "Mettre à jour un document",
+      "webSearch": "Recherche web"
+    },
+    "sources": {
+      "label": "Sources :",
+      "fileLabel": "Fichier :",
+      "openTitle": "Ouvrir {{title}}",
+      "openTitleWithWorkspace": "Ouvrir {{title}} ({{workspace}})"
+    },
+    "consent": {
+      "title": "Avant d'utiliser les fonctionnalités d'IA",
+      "description": "Les fonctionnalités d'IA de Desk envoient du contenu au fournisseur choisi (Anthropic ou OpenAI) via son API. Desk n'a pas de serveur d'IA propre.",
+      "whatHeading": "Ce qui est envoyé",
+      "whatItems": {
+        "messages": "Les messages que vous tapez à l'assistant, ainsi que l'historique de la conversation.",
+        "previews": "Courts aperçus et résumés de vos fichiers pour le catalogue Smart Index.",
+        "fileContents": "Le contenu des fichiers que l'assistant lit pour vous répondre."
+      },
+      "whenHeading": "Quand",
+      "whenBody": "Seulement quand vous utilisez une fonctionnalité d'IA. Avec <strong>Résumer automatiquement à l'enregistrement</strong> activé, de courts aperçus de fichiers sont aussi envoyés automatiquement après une modification.",
+      "retentionHeading": "Conservation",
+      "retentionBody": "Régie par les conditions API de votre fournisseur. Anthropic et OpenAI indiquent que les données API ne servent pas à entraîner leurs modèles par défaut.",
+      "footer": "Rien n'est envoyé tant que vous n'avez pas configuré de clé API. Vous pouvez consulter ceci à tout moment dans Paramètres → IA.",
+      "accept": "Je comprends et je continue"
+    }
+  },
+  "email": {
+    "dropOverlay": {
+      "title": "Déposer l'e-mail pour l'ouvrir dans Desk",
+      "subtitle": "Apple Mail · Outlook · Thunderbird"
+    },
+    "viewer": {
+      "noSubject": "(sans objet)",
+      "showFull": "Afficher l'e-mail complet",
+      "hideFull": "Masquer l'e-mail complet",
+      "toLabel": "À :",
+      "ccLabel": "CC :",
+      "viaSource": "via {{source}}",
+      "source": {
+        "appleMail": "Apple Mail",
+        "outlook": "Outlook",
+        "thunderbird": "Thunderbird",
+        "other": "Mail"
+      }
+    },
+    "replyHelper": {
+      "instructionsLabel": "Instructions (optionnelles)",
+      "instructionsPlaceholder": "ex. ton chaleureux, concis, citer le statut projet depuis les documents...",
+      "contextHeading": "Contexte pour l'assistant",
+      "noWorkspace": "Aucun espace",
+      "noProject": "Aucun projet",
+      "opening": "Ouverture de l'assistant...",
+      "openInAssistant": "Ouvrir le brouillon dans l'assistant",
+      "extractTasks": "Extraire des tâches",
+      "comingSoon": "(bientôt)",
+      "configureProvider": "Configurez un fournisseur d'IA dans les Paramètres pour utiliser la rédaction par l'assistant."
+    }
+  },
+  "search": {
+    "globalSearch": {
+      "placeholder": "Rechercher tâches, documents, projets...",
+      "noResults": "Aucun résultat.",
+      "buildingIndex": "Construction de l'index de recherche...",
+      "recentHeading": "Récents",
+      "resultsHeading": "Résultats",
+      "types": {
+        "task": "Tâche",
+        "doc": "Document",
+        "meeting": "Réunion",
+        "project": "Projet"
+      }
+    }
+  },
+  "smartIndex": {},
+  "setup": {
+    "welcome": {
+      "title": "Bienvenue dans Desk.",
+      "subtitle": "Vos projets, tâches, documents et réunions, en fichiers Markdown que vous possédez."
+    },
+    "dataFolder": {
+      "title": "Où stocker vos fichiers ?",
+      "subtitle": "Choisissez un dossier. Desk crée la structure pour vous, et vous pourrez le déplacer plus tard.",
+      "label": "Dossier de données",
+      "pickerTitle": "Sélectionner le dossier de données",
+      "browseTitle": "Parcourir pour un dossier"
+    },
+    "existingDetected": {
+      "title": "Vous avez déjà des données Desk ici.",
+      "description_one": "{{count}} espace trouvé dans ce dossier. Reprenez là où vous en étiez, ou repartez de zéro.",
+      "description_other": "{{count}} espaces trouvés dans ce dossier. Reprenez là où vous en étiez, ou repartez de zéro.",
+      "useExisting": "Utiliser les données existantes",
+      "startFresh": "Repartir de zéro"
+    },
+    "workspace": {
+      "title": "Nommez votre espace.",
+      "subtitle": "C'est votre espace personnel, pour les notes et la boîte de capture. Ajoutez d'autres espaces plus tard pour les clients, projets ou autres domaines.",
+      "nameLabel": "Nom",
+      "namePlaceholder": "Personnel",
+      "finish": "Terminer"
+    }
+  },
+  "tooltips": {
+    "priorityIcon": "Priorité {{label}}",
+    "appShell": {
+      "search": "Rechercher (⌘K)"
+    }
+  },
+  "menus": {
+    "common": {
+      "revealInFinder": "Afficher dans le Finder",
+      "copyPath": "Copier le chemin"
+    },
+    "taskContextMenu": {
+      "highlightForFocus": "Mettre en focus",
+      "removeHighlight": "Retirer la mise en focus"
+    },
+    "docContextMenu": {
+      "moveTo": "Déplacer vers...",
+      "moveToRoot": "Racine"
+    },
+    "folderContextMenu": {
+      "newDoc": "Nouveau document",
+      "newSubfolder": "Nouveau sous-dossier",
+      "includeInAI": "Inclure dans l'IA",
+      "excludeFromAI": "Exclure de l'IA"
+    },
+    "assetContextMenu": {
+      "openInDefaultApp": "Ouvrir dans l'application par défaut"
+    },
+    "workspaceSwitcher": {
+      "newWorkspace": "Nouvel espace"
+    },
+    "tabContextMenu": {
+      "close": "Fermer",
+      "closeOthers": "Fermer les autres",
+      "moreTabs_one": "{{count}} onglet de plus",
+      "moreTabs_other": "{{count}} onglets de plus",
+      "unsavedTabDescription": "« {{title}} » contient des modifications non enregistrées. Enregistrer avant de fermer ?"
+    }
+  },
+  "updates": {
+    "available": "Mise à jour disponible : v{{version}}",
+    "description": "Une nouvelle version de Desk est prête à être installée.",
+    "updateAndRestart": "Mettre à jour et redémarrer",
+    "skip": "Ignorer"
+  },
+  "unsavedChanges": {
+    "title": "Modifications non enregistrées",
+    "description": "Vous avez des modifications non enregistrées dans : {{tabs}}{{more}}. Enregistrer avant de quitter ?",
+    "more_one": " et {{count}} de plus",
+    "more_other": " et {{count}} de plus"
+  },
+  "ui": {
+    "colorPicker": {
+      "customColor": "Couleur personnalisée"
+    },
+    "dateField": {
+      "placeholder": "Sélectionner une date",
+      "clearAriaLabel": "Effacer la date"
+    },
+    "formField": {
+      "optional": "(optionnel)"
+    },
+    "loadingState": {
+      "defaultLabel": "contenu",
+      "title": "Chargement de {{label}}…"
+    },
+    "saveChanges": {
+      "title": "Modifications non enregistrées",
+      "description": "Voulez-vous enregistrer les modifications apportées ?"
+    },
+    "saveStatus": {
+      "failed": "Échec de l'enregistrement"
+    },
+    "viewMode": {
+      "list": "Vue liste",
+      "kanban": "Tableau Kanban"
+    },
+    "metadataToolbar": {
+      "none": "Aucune",
+      "noProject": "Aucun projet",
+      "addDueDate": "Ajouter une échéance",
+      "addDate": "Ajouter une date"
+    },
+    "richTextEditor": {
+      "placeholder": "Écrivez quelque chose…"
+    },
+    "noteLinkPicker": {
+      "placeholder": "Rechercher des notes à lier…",
+      "noNotesFound": "Aucune note trouvée.",
+      "buildingIndex": "Construction de l'index de recherche…",
+      "results": "Résultats",
+      "recent": "Récents",
+      "types": {
+        "task": "Tâche",
+        "doc": "Document",
+        "meeting": "Réunion"
+      }
+    },
+    "command": {
+      "searchTitle": "Recherche",
+      "searchDescription": "Rechercher des tâches, documents et projets"
+    },
+    "editorBanners": {
+      "fileMoved": {
+        "title": "Fichier déplacé",
+        "description": "Ce fichier a été déplacé ou renommé en dehors de l'application.",
+        "newLocation": "Nouvel emplacement :",
+        "continueEditing": "Continuer l'édition"
+      },
+      "fileDeleted": {
+        "title": "Fichier supprimé",
+        "description": "Ce fichier a été supprimé du système de fichiers.",
+        "unsavedHint": "Vous avez des modifications non enregistrées. Restaurez-les pour recréer le fichier.",
+        "restoreFromEdits": "Restaurer depuis les modifications",
+        "closeTab": "Fermer l'onglet"
+      },
+      "externalChange": "Modifications externes détectées"
+    },
+    "slashCommands": {
+      "empty": "Aucune commande correspondante",
+      "heading1": {
+        "title": "Titre 1",
+        "description": "Grand titre de section"
+      },
+      "heading2": {
+        "title": "Titre 2",
+        "description": "Titre de section moyen"
+      },
+      "heading3": {
+        "title": "Titre 3",
+        "description": "Petit titre de section"
+      },
+      "bulletList": {
+        "title": "Liste à puces",
+        "description": "Liste non ordonnée"
+      },
+      "numberedList": {
+        "title": "Liste numérotée",
+        "description": "Liste ordonnée"
+      },
+      "taskList": {
+        "title": "Liste de tâches",
+        "description": "Liste de tâches avec cases à cocher"
+      },
+      "table": {
+        "title": "Tableau",
+        "description": "Insérer un tableau 3×3"
+      },
+      "codeBlock": {
+        "title": "Bloc de code",
+        "description": "Bloc de code"
+      },
+      "blockquote": {
+        "title": "Citation",
+        "description": "Citation en bloc"
+      },
+      "divider": {
+        "title": "Séparateur",
+        "description": "Trait horizontal"
+      },
+      "link": {
+        "title": "Lien",
+        "description": "Insérer un lien vers une note"
+      }
+    }
+  },
+  "tabs": {
+    "desk": "Desk",
+    "emailDefault": "E-mail"
+  }
+}

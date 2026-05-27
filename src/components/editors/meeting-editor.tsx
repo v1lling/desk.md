@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, useMoveMeetingToProject, useProjects } from "@/stores";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
@@ -22,6 +23,7 @@ interface MeetingEditorProps {
 }
 
 export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditorProps) {
+  const { t } = useTranslation();
   const tabId = `meeting-${meetingId}`;
   const handleInternalLinkClick = useInternalLinkHandler();
   const { data: meeting, isLoading: isLoadingMeeting } = useMeeting(workspaceId, meetingId);
@@ -177,12 +179,12 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         workspaceId: meeting.workspaceId,
         projectId: meeting.projectId,
       });
-      toast.success("Meeting deleted");
+      toast.success(t("toasts.editor.meetingDeleted"));
       onClose();
     } catch {
-      toast.error("Failed to delete meeting");
+      toast.error(t("errors.editor.deleteMeetingFailed"));
     }
-  }, [meeting, deleteMeeting, onClose]);
+  }, [meeting, deleteMeeting, onClose, t]);
 
   // Render states (deleted, moved, loading, not found)
   const renderState = EditorRenderStates({
@@ -206,7 +208,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       <EditorHeader
         title={title}
         onTitleChange={handleTitleChange}
-        placeholder="Meeting title"
+        placeholder={t("editors.meeting.titlePlaceholder")}
         saveStatus={saveStatus}
         onSave={save}
         isDirty={isDirty}
@@ -239,7 +241,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
             <RichTextEditor
               value={content}
               onChange={setContent}
-              placeholder="Write your meeting notes..."
+              placeholder={t("editors.meeting.contentPlaceholder")}
               minHeight="400px"
               borderless
               onInternalLinkClick={handleInternalLinkClick}
@@ -255,9 +257,9 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Delete Meeting"
-        description="Are you sure you want to delete this meeting? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("editors.meeting.deleteTitle")}
+        description={t("editors.meeting.deleteDescription")}
+        confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

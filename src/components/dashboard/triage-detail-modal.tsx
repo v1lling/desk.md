@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export function TriageDetailModal({
   task,
   destination,
 }: TriageDetailModalProps) {
+  const { t } = useTranslation();
   const updateTask = useUpdateTask();
 
   const [priority, setPriority] = useState<TaskPriority | "none">("none");
@@ -99,7 +101,7 @@ export function TriageDetailModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Check className="size-5 text-emerald-500" />
-            Task Moved
+            {t("modals.triageDetail.title")}
           </DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-2">
@@ -112,16 +114,16 @@ export function TriageDetailModal({
         <div className="space-y-4 py-2">
           {/* Priority */}
           <div className="space-y-2">
-            <Label htmlFor="triage-priority">Priority (optional)</Label>
+            <Label htmlFor="triage-priority">{t("modals.triageDetail.priorityLabel")}</Label>
             <Select
               value={priority}
               onValueChange={(v) => setPriority(v as TaskPriority | "none")}
             >
               <SelectTrigger id="triage-priority">
-                <SelectValue placeholder="Select priority" />
+                <SelectValue placeholder={t("modals.triageDetail.priorityPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No priority</SelectItem>
+                <SelectItem value="none">{t("modals.triageDetail.noPriority")}</SelectItem>
                 {priorityOrder.map((p) => {
                   const { label, icon: Icon, color } = priorityMeta[p];
                   return (
@@ -139,12 +141,12 @@ export function TriageDetailModal({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="triage-content">Notes (optional)</Label>
+            <Label htmlFor="triage-content">{t("modals.triageDetail.notesLabel")}</Label>
             <Textarea
               id="triage-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Add any notes or details..."
+              placeholder={t("modals.triageDetail.notesPlaceholder")}
               className="min-h-[80px] resize-none"
             />
           </div>
@@ -152,11 +154,11 @@ export function TriageDetailModal({
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="ghost" onClick={handleSkip} disabled={isPending}>
-            Skip
+            {t("modals.triageDetail.skip")}
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
             {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Save Details
+            {t("modals.triageDetail.saveDetails")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -165,11 +167,12 @@ export function TriageDetailModal({
 }
 
 function DestinationBadge({ destination }: { destination: TriageDestination }) {
+  const { t } = useTranslation();
   if (destination.type === "personal") {
     return (
       <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
         <User className="size-3" />
-        {destination.workspaceName ?? "Home"} Tasks
+        {t("modals.triageDetail.homeTasks", { home: destination.workspaceName ?? t("pages.dashboard.capture.defaultHomeName") })}
       </div>
     );
   }

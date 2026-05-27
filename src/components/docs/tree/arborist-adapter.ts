@@ -5,6 +5,7 @@
  * can collide between docs/ and ai-docs/ trees, so we qualify them by tree path.
  */
 
+import i18next from "i18next";
 import type { FileTreeNode } from "@/types";
 import {
   AI_DOCS_SENTINEL,
@@ -103,9 +104,9 @@ export function insertSectionHeaders(nodes: ArboristNode[]): ArboristNode[] {
   const firstProjectIdx = nodes.findIndex((n) => isProjectStub(n));
   if (firstProjectIdx <= 0) return nodes;
   return [
-    makeSectionHeader("section-workspace", "Workspace", false),
+    makeSectionHeader("section-workspace", i18next.t("pages.docs.tree.sections.workspace"), false),
     ...nodes.slice(0, firstProjectIdx),
-    makeSectionHeader("section-projects", "Projects", true),
+    makeSectionHeader("section-projects", i18next.t("pages.docs.tree.sections.projects"), true),
     ...nodes.slice(firstProjectIdx),
   ];
 }

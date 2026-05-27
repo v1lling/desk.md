@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Home, ChevronDown, FileText, CheckSquare, Calendar, Mail, X } from "lucide-react";
 import { useTabStore } from "@/stores/tabs";
 import { useCurrentWorkspace } from "@/stores/workspaces";
@@ -34,23 +35,17 @@ function isWorkspaceScopedPage(pathname: string): boolean {
   return WORKSPACE_SCOPED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-function getPageName(
-  pathname: string,
-): { title: string; isWorkspaceScoped: boolean } {
+function getPageNameKey(pathname: string): string {
   const pageMap: Record<string, string> = {
-    "/": "Dashboard",
-    "/tasks": "Tasks",
-    "/docs": "Docs",
-    "/meetings": "Meetings",
-    "/projects": "Projects",
-    "/settings": "Settings",
-    "/assistant": "Assistant",
+    "/": "nav.sidebar.dashboard",
+    "/tasks": "nav.sidebar.tasks",
+    "/docs": "nav.sidebar.docs",
+    "/meetings": "nav.sidebar.meetings",
+    "/projects": "nav.sidebar.projects",
+    "/settings": "nav.sidebar.settings",
+    "/assistant": "nav.sidebar.assistant",
   };
-
-  const baseName = pageMap[pathname] || "Desk";
-  const scoped = isWorkspaceScopedPage(pathname);
-
-  return { title: baseName, isWorkspaceScoped: scoped };
+  return pageMap[pathname] || "nav.sidebar.desk";
 }
 
 interface TabBarProps {
@@ -58,6 +53,7 @@ interface TabBarProps {
 }
 
 export function TabBar({ inTitleBar = false }: TabBarProps) {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const tabs = useTabStore((state) => state.tabs);
   const activeTabId = useTabStore((state) => state.activeTabId);
@@ -95,9 +91,9 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
   }, [pathname, setActiveTab]);
 
   useEffect(() => {
-    const { title } = getPageName(pathname);
+    const title = t(getPageNameKey(pathname));
     updateTab("desk", { title });
-  }, [pathname, updateTab]);
+  }, [pathname, updateTab, t]);
 
   const deskWorkspaceColor = isWorkspaceScopedPage(pathname)
     ? currentWorkspace?.color
@@ -360,7 +356,7 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
                 <button
                   type="button"
                   className="h-8 flex items-center gap-1 px-2 rounded-t-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 text-xs font-medium"
-                  title={`${overflowTabs.length} more tabs`}
+                  title={t("menus.tabContextMenu.moreTabs", { count: overflowTabs.length })}
                 >
                   <span>+{overflowTabs.length}</span>
                   <ChevronDown className="h-3 w-3" />
@@ -420,8 +416,8 @@ export function TabBar({ inTitleBar = false }: TabBarProps) {
             });
           }
         }}
-        title="Unsaved Changes"
-        description={`"${dirtyCloseDialog.tabTitle}" has unsaved changes. Do you want to save before closing?`}
+        title={t("unsavedChanges.title")}
+        description={t("menus.tabContextMenu.unsavedTabDescription", { title: dirtyCloseDialog.tabTitle })}
         onSave={handleDialogSave}
         onDontSave={handleDialogDontSave}
         onCancel={handleDialogCancel}

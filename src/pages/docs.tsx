@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
 import { useCurrentWorkspace } from "@/stores";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
@@ -6,6 +7,7 @@ import { StatePanel } from "@/components/ui/state-panel";
 import { DocsTreePane } from "@/components/docs/docs-tree-pane";
 
 export default function DocsPage() {
+  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
 
@@ -23,8 +25,8 @@ export default function DocsPage() {
         <StatePanel
           variant="empty"
           display="inline"
-          title="Select a workspace"
-          description="Choose a workspace in the sidebar to view docs."
+          title={t("pages.docs.selectWorkspaceTitle")}
+          description={t("pages.docs.selectWorkspaceDescription")}
           className="h-full"
         />
       </div>
@@ -39,8 +41,8 @@ export default function DocsPage() {
         variant="empty"
         display="inline"
         icon={FileText}
-        title="Select a doc"
-        description="Pick a doc from the list to open it."
+        title={t("pages.docs.selectDocTitle")}
+        description={t("pages.docs.selectDocDescription")}
         className="h-full"
       />
     </div>

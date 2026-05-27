@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { isTauri } from "@/lib/desk/tauri-fs";
 import { importEmlFromPath, isEmlPath } from "@/lib/email";
 import { useTabStore } from "@/stores/tabs";
@@ -14,6 +16,7 @@ import { useTabStore } from "@/stores/tabs";
 //      Cocoa drop view (drop_view.m) when an NSFilePromiseReceiver-based
 //      drop lands (Apple Mail, Outlook for Mac Legacy + New).
 export function EmailDropOverlay() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -89,9 +92,9 @@ export function EmailDropOverlay() {
     <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center bg-primary/10 backdrop-blur-sm">
       <div className="m-6 flex h-[calc(100%-3rem)] w-[calc(100%-3rem)] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary text-primary">
         <Mail className="size-10" />
-        <p className="text-lg font-medium">Drop email to open in Desk</p>
+        <p className="text-lg font-medium">{t("email.dropOverlay.title")}</p>
         <p className="text-sm text-muted-foreground">
-          Apple Mail · Outlook · Thunderbird
+          {t("email.dropOverlay.subtitle")}
         </p>
       </div>
     </div>
@@ -108,12 +111,12 @@ async function handleDroppedEmlPaths(
       const email = await importEmlFromPath(path);
       openTab({
         type: "email",
-        title: email.subject || "Email",
+        title: email.subject || i18n.t("entities.email.defaultTitle"),
         emailData: email,
       });
     } catch (error) {
       console.error("[email-drop] Failed to import .eml:", path, error);
-      toast.error("Could not open email", {
+      toast.error(i18n.t("errors.email.openFailed"), {
         description: error instanceof Error ? error.message : String(error),
       });
     } finally {

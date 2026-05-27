@@ -1,10 +1,12 @@
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { isTauri } from "@/lib/desk";
 
 export function UpdateSection() {
+  const { t } = useTranslation();
   const { status, updateInfo, error, checkForUpdate, downloadAndInstall, dismiss } = useUpdateChecker();
 
   // Don't render in browser mode
@@ -13,19 +15,19 @@ export function UpdateSection() {
   return (
     <SettingsSection
       icon={<Download className="h-4 w-4" />}
-      title="Updates"
-      description="Check for new versions of Desk"
+      title={t("settings.about.updates.title")}
+      description={t("settings.about.updates.description")}
     >
       <div className="space-y-3">
         {status === "idle" && !error && (
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
-              <p className="text-sm">No updates available</p>
-              <p className="text-xs text-muted-foreground">You're on the latest version</p>
+              <p className="text-sm">{t("settings.about.updates.noUpdates")}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.about.updates.onLatest")}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => checkForUpdate(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Check
+              {t("settings.about.updates.check")}
             </Button>
           </div>
         )}
@@ -33,7 +35,7 @@ export function UpdateSection() {
         {status === "checking" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Checking for updates...
+            {t("settings.about.updates.checking")}
           </div>
         )}
 
@@ -42,15 +44,15 @@ export function UpdateSection() {
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-emerald-500" />
               <p className="text-sm font-medium">
-                Version {updateInfo.version} available
+                {t("settings.about.updates.versionAvailable", { version: updateInfo.version })}
               </p>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={downloadAndInstall}>
-                Update & Restart
+                {t("settings.about.updates.updateAndRestart")}
               </Button>
               <Button variant="ghost" size="sm" onClick={dismiss}>
-                Skip this version
+                {t("settings.about.updates.skipThisVersion")}
               </Button>
             </div>
           </div>
@@ -59,7 +61,7 @@ export function UpdateSection() {
         {status === "downloading" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Downloading and installing update...
+            {t("settings.about.updates.downloading")}
           </div>
         )}
 
@@ -67,11 +69,11 @@ export function UpdateSection() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4" />
-              {error || "Update check failed"}
+              {error || t("settings.about.updates.checkFailed")}
             </div>
             <Button variant="outline" size="sm" onClick={() => checkForUpdate(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              {t("common.buttons.retry")}
             </Button>
           </div>
         )}

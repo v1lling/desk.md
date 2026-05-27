@@ -12,6 +12,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { Markdown } from "tiptap-markdown";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteLinkPicker } from "@/components/ui/note-link-picker";
@@ -74,12 +75,14 @@ interface OpenLinkPickerDetail {
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = "Write something...",
+  placeholder,
   className,
   minHeight = "300px",
   borderless = false,
   onInternalLinkClick,
 }: RichTextEditorProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("ui.richTextEditor.placeholder");
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   // Track if we're currently syncing to avoid loops
   const isSyncing = useRef(false);
@@ -112,7 +115,7 @@ export function RichTextEditor({
         },
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: resolvedPlaceholder,
       }),
       TaskList,
       TaskItem.configure({

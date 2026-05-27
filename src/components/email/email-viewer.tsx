@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bot, ExternalLink, Loader2, ChevronRight, FolderKanban, Folder } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,7 @@ const chipClass =
   "border-none bg-transparent shadow-none px-1.5 gap-1.5 text-xs font-medium hover:bg-accent/50 rounded-md";
 
 export function EmailViewer({ email }: EmailViewerProps) {
+  const { t } = useTranslation();
   const [instructions, setInstructions] = useState("");
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [isLaunchingAssistant, setIsLaunchingAssistant] = useState(false);
@@ -111,10 +113,23 @@ export function EmailViewer({ email }: EmailViewerProps) {
     selectedProject,
   ]);
 
+  const sourceKey = (() => {
+    switch (email.source) {
+      case "apple-mail":
+        return "email.viewer.source.appleMail";
+      case "outlook":
+        return "email.viewer.source.outlook";
+      case "thunderbird":
+        return "email.viewer.source.thunderbird";
+      default:
+        return "email.viewer.source.other";
+    }
+  })();
+  const sourceDisplayName = email.source ? t(sourceKey) : null;
   const subtitleParts = [
     formatEmailAddress(email.from),
     email.date ? formatEmailDate(email.date) : null,
-    email.source ? `via ${email.source}` : null,
+    sourceDisplayName ? t("email.viewer.viaSource", { source: sourceDisplayName }) : null,
   ].filter(Boolean);
 
   return (
@@ -122,7 +137,7 @@ export function EmailViewer({ email }: EmailViewerProps) {
       <div className="shrink-0 bg-background">
         <div className="max-w-4xl mx-auto px-6 py-2">
           <h1 className="text-xl font-semibold truncate">
-            {email.subject || "(no subject)"}
+            {email.subject || t("email.viewer.noSubject")}
           </h1>
           {subtitleParts.length > 0 && (
             <p className="text-sm text-muted-foreground truncate mt-0.5">
@@ -153,7 +168,7 @@ export function EmailViewer({ email }: EmailViewerProps) {
                   bodyExpanded && "rotate-90",
                 )}
               />
-              {bodyExpanded ? "Hide full email" : "Show full email"}
+              {bodyExpanded ? t("email.viewer.hideFull") : t("email.viewer.showFull")}
             </button>
             {bodyExpanded && (
               <div className="mt-3 rounded-lg border bg-card max-h-[40vh] overflow-auto">
@@ -162,13 +177,13 @@ export function EmailViewer({ email }: EmailViewerProps) {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       {email.to && email.to.length > 0 && (
                         <div className="truncate">
-                          <span className="font-medium">To: </span>
+                          <span className="font-medium">{t("email.viewer.toLabel")} </span>
                           {email.to.map(formatEmailAddress).join(", ")}
                         </div>
                       )}
                       {email.cc && email.cc.length > 0 && (
                         <div className="truncate">
-                          <span className="font-medium">CC: </span>
+                          <span className="font-medium">{t("email.viewer.ccLabel")} </span>
                           {email.cc.map(formatEmailAddress).join(", ")}
                         </div>
                       )}
@@ -187,11 +202,11 @@ export function EmailViewer({ email }: EmailViewerProps) {
               htmlFor="email-instructions"
               className="text-xs font-medium text-muted-foreground"
             >
-              Instructions (optional)
+              {t("email.replyHelper.instructionsLabel")}
             </label>
             <Textarea
               id="email-instructions"
-              placeholder="e.g., be warm, concise, cite project status from docs..."
+              placeholder={t("email.replyHelper.instructionsPlaceholder")}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               disabled={isLaunchingAssistant}
@@ -202,7 +217,7 @@ export function EmailViewer({ email }: EmailViewerProps) {
 
           <div className="space-y-2">
             <span className="text-xs font-medium text-muted-foreground">
-              Context for assistant
+              {t("email.replyHelper.contextHeading")}
             </span>
             <div className="flex items-center gap-2 flex-wrap">
               <Select
@@ -213,14 +228,14 @@ export function EmailViewer({ email }: EmailViewerProps) {
                 <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
                   <Folder className="h-3 w-3 text-muted-foreground shrink-0" />
                   <span className="truncate">
-                    {selectedWorkspace?.name || "No workspace"}
+                    {selectedWorkspace?.name || t("email.replyHelper.noWorkspace")}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">
                     <span className="flex items-center gap-2">
                       <Folder className="h-3 w-3 text-muted-foreground" />
-                      No workspace
+                      {t("email.replyHelper.noWorkspace")}
                     </span>
                   </SelectItem>
                   {workspaces.map((w) => (
@@ -242,14 +257,14 @@ export function EmailViewer({ email }: EmailViewerProps) {
                 <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
                   <FolderKanban className="h-3 w-3 text-muted-foreground shrink-0" />
                   <span className="truncate">
-                    {selectedProject?.name || "No project"}
+                    {selectedProject?.name || t("email.replyHelper.noProject")}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">
                     <span className="flex items-center gap-2">
                       <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                      No project
+                      {t("email.replyHelper.noProject")}
                     </span>
                   </SelectItem>
                   {projects.map((p) => (
@@ -273,32 +288,32 @@ export function EmailViewer({ email }: EmailViewerProps) {
               {isLaunchingAssistant ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Opening Assistant...
+                  {t("email.replyHelper.opening")}
                 </>
               ) : (
                 <>
                   <Bot className="h-4 w-4 mr-2" />
-                  Open Draft in Assistant
+                  {t("email.replyHelper.openInAssistant")}
                 </>
               )}
             </Button>
             <Button variant="outline" disabled>
               <ExternalLink className="h-4 w-4 mr-2" />
-              Extract Tasks
-              <span className="ml-2 text-xs text-muted-foreground">(coming soon)</span>
+              {t("email.replyHelper.extractTasks")}
+              <span className="ml-2 text-xs text-muted-foreground">{t("email.replyHelper.comingSoon")}</span>
             </Button>
           </div>
 
           {!hasAIProvider && (
             <p className="text-xs text-muted-foreground">
-              Configure an AI provider in Settings to use Assistant drafting.
+              {t("email.replyHelper.configureProvider")}
             </p>
           )}
 
           {error && (
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
               <p className="text-sm text-destructive">
-                Failed to start assistant draft. Check Settings → AI.
+                {t("errors.email.draftStartFailed")}
               </p>
             </div>
           )}

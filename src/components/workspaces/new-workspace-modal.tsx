@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ interface NewWorkspaceModalProps {
 }
 
 export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
+  const { t } = useTranslation();
   const createWorkspace = useCreateWorkspace();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
 
@@ -47,7 +49,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
         color,
       });
 
-      toast.success("Workspace created");
+      toast.success(t("toasts.workspace.create.success"));
 
       // Switch to the new workspace
       setCurrentWorkspaceId(newWorkspace.id);
@@ -59,7 +61,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
       onClose();
     } catch (error) {
       console.error("Failed to create workspace:", error);
-      toast.error("Failed to create workspace");
+      toast.error(t("toasts.workspace.create.error"));
     }
   };
 
@@ -74,49 +76,49 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>New Workspace</DialogTitle>
-          <DialogDescription className="sr-only">Create a workspace to separate an area of your work, like a client, side project, or anything else</DialogDescription>
+          <DialogTitle>{t("modals.newWorkspace.title")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("modals.newWorkspace.description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <FormField id="workspace-name" label="Workspace Name">
+          <FormField id="workspace-name" label={t("modals.newWorkspace.nameLabel")}>
             <Input
               id="workspace-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Acme Corp, Side Projects, Studies"
+              placeholder={t("modals.newWorkspace.namePlaceholder")}
               autoFocus
             />
             {name && (
               <p className="text-xs text-muted-foreground mt-1">
-                Folder: ~/Desk/workspaces/{slugify(name.trim()) || "..."}
+                {t("modals.newWorkspace.folderHint", { folder: slugify(name.trim()) || "..." })}
               </p>
             )}
           </FormField>
 
-          <FormField id="workspace-description" label="Description" optional>
+          <FormField id="workspace-description" label={t("modals.newWorkspace.descriptionLabel")} optional>
             <Textarea
               id="workspace-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this workspace..."
+              placeholder={t("modals.newWorkspace.descriptionPlaceholder")}
               className="min-h-[80px] resize-none"
             />
           </FormField>
 
-          <FormField label="Color">
+          <FormField label={t("modals.newWorkspace.colorLabel")}>
             <ColorPicker value={color} onChange={setColor} />
           </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.buttons.cancel")}
             </Button>
             <Button type="submit" disabled={!name.trim() || createWorkspace.isPending}>
               {createWorkspace.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Workspace
+              {t("modals.newWorkspace.submit")}
             </Button>
           </div>
         </form>

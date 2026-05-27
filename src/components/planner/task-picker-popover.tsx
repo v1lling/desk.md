@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Popover,
   PopoverContent,
@@ -37,6 +38,7 @@ export function TaskPickerPopover({
   onSelectTask,
   onAddNote,
 }: TaskPickerPopoverProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -76,13 +78,13 @@ export function TaskPickerPopover({
       <PopoverTrigger asChild>
         <button className="w-full py-1 rounded text-[11px] text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1">
           <Plus className="h-3 w-3" />
-          Add
+          {t("common.buttons.add")}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter>
           <CommandInput
-            placeholder="Add task or note..."
+            placeholder={t("pages.planner.taskPicker.placeholder")}
             value={query}
             onValueChange={setQuery}
             onKeyDown={handleKeyDown}
@@ -91,8 +93,8 @@ export function TaskPickerPopover({
           <CommandList ref={listRef} className="max-h-[200px]">
             <CommandEmpty className="py-3 text-center text-[11px] text-muted-foreground">
               {query.trim()
-                ? "Press Enter to add as note"
-                : "No available tasks"}
+                ? t("pages.planner.taskPicker.pressEnterAsNote")
+                : t("pages.planner.taskPicker.noAvailableTasks")}
             </CommandEmpty>
             {availableTasks.length > 0 && (
               <CommandGroup>

@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { useAIConsentStore } from "@/stores/ai-consent";
  * button, Escape, or an outside click — declines and aborts the AI action.
  */
 export function AIConsentDialog() {
+  const { t } = useTranslation();
   const isOpen = useAIConsentStore((s) => s.isOpen);
   const resolve = useAIConsentStore((s) => s.resolve);
 
@@ -27,50 +29,51 @@ export function AIConsentDialog() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-            Before you use AI features
+            {t("assistant.consent.title")}
           </DialogTitle>
           <DialogDescription>
-            Desk's AI features send content to the provider you chose (Anthropic
-            or OpenAI) over their API. Desk runs no AI server of its own.
+            {t("assistant.consent.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm text-muted-foreground">
           <div>
-            <p className="font-medium text-foreground">What gets sent</p>
+            <p className="font-medium text-foreground">
+              {t("assistant.consent.whatHeading")}
+            </p>
             <ul className="mt-1 list-disc space-y-1 pl-5">
-              <li>Messages you type to the assistant, plus the conversation history.</li>
-              <li>Short previews and summaries of your files for the Smart Index catalog.</li>
-              <li>The contents of files the assistant reads to answer you.</li>
+              <li>{t("assistant.consent.whatItems.messages")}</li>
+              <li>{t("assistant.consent.whatItems.previews")}</li>
+              <li>{t("assistant.consent.whatItems.fileContents")}</li>
             </ul>
           </div>
           <div>
-            <p className="font-medium text-foreground">When</p>
+            <p className="font-medium text-foreground">
+              {t("assistant.consent.whenHeading")}
+            </p>
             <p className="mt-1">
-              Only when you use an AI feature. With{" "}
-              <span className="font-medium text-foreground">Auto-summarize on save</span>{" "}
-              enabled, short file previews are also sent automatically after you
-              edit a file.
+              <Trans
+                i18nKey="assistant.consent.whenBody"
+                components={{ strong: <span className="font-medium text-foreground" /> }}
+              />
             </p>
           </div>
           <div>
-            <p className="font-medium text-foreground">Retention</p>
-            <p className="mt-1">
-              Handled under your provider's API terms. Anthropic and OpenAI state
-              that API data is not used to train their models by default.
+            <p className="font-medium text-foreground">
+              {t("assistant.consent.retentionHeading")}
             </p>
+            <p className="mt-1">{t("assistant.consent.retentionBody")}</p>
           </div>
-          <p>
-            Nothing is sent if you have not configured an API key. You can review
-            this anytime in Settings → AI.
-          </p>
+          <p>{t("assistant.consent.footer")}</p>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => resolve(false)}>
-            Cancel
+            {t("common.buttons.cancel")}
           </Button>
-          <Button onClick={() => resolve(true)}>I Understand &amp; Continue</Button>
+          <Button onClick={() => resolve(true)}>
+            {t("assistant.consent.accept")}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

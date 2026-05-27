@@ -1,4 +1,5 @@
 
+import { useTranslation } from "react-i18next";
 import { DocCard } from "./doc-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Doc } from "@/types";
@@ -9,11 +10,12 @@ interface DocListProps {
 }
 
 export function DocList({ docs, onDocClick }: DocListProps) {
+  const { t } = useTranslation();
   if (docs.length === 0) {
     return (
       <EmptyState
-        title="No docs yet"
-        description="Create your first doc to get started"
+        title={t("emptyStates.docs.none.title")}
+        description={t("emptyStates.docs.none.description")}
       />
     );
   }

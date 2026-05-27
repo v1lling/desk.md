@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ interface EditWorkspaceModalProps {
 }
 
 export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceModalProps) {
+  const { t } = useTranslation();
   const updateWorkspace = useUpdateWorkspace();
   const deleteWorkspace = useDeleteWorkspace();
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
@@ -58,18 +60,18 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
           color,
         },
       });
-      toast.success("Workspace updated");
+      toast.success(t("toasts.workspace.update.success"));
       onClose();
     } catch (error) {
       console.error("Failed to update workspace:", error);
-      toast.error("Failed to update workspace");
+      toast.error(t("toasts.workspace.update.error"));
     }
   };
 
   const handleDelete = async () => {
     try {
       await deleteWorkspace.mutateAsync(workspace.id);
-      toast.success(`Workspace "${workspace.name}" deleted`);
+      toast.success(t("toasts.workspace.delete.success", { name: workspace.name }));
       if (homeWorkspace) {
         setCurrentWorkspaceId(homeWorkspace.id);
       }
@@ -77,7 +79,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
       onClose();
     } catch (error) {
       console.error("Failed to delete workspace:", error);
-      toast.error("Failed to delete workspace");
+      toast.error(t("toasts.workspace.delete.error"));
     }
   };
 
@@ -86,59 +88,58 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Workspace</DialogTitle>
-            <DialogDescription className="sr-only">Edit workspace settings</DialogDescription>
+            <DialogTitle>{t("modals.editWorkspace.title")}</DialogTitle>
+            <DialogDescription className="sr-only">{t("modals.editWorkspace.description")}</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <FormField id="edit-workspace-name" label="Workspace Name">
+            <FormField id="edit-workspace-name" label={t("modals.editWorkspace.nameLabel")}>
               <Input
                 id="edit-workspace-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Acme Corp, Side Projects, Studies"
+                placeholder={t("modals.editWorkspace.namePlaceholder")}
                 autoFocus
               />
             </FormField>
 
-            <FormField id="edit-workspace-description" label="Description" optional>
+            <FormField id="edit-workspace-description" label={t("modals.editWorkspace.descriptionLabel")} optional>
               <Textarea
                 id="edit-workspace-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of this workspace..."
+                placeholder={t("modals.editWorkspace.descriptionPlaceholder")}
                 className="min-h-[80px] resize-none"
               />
             </FormField>
 
-            <FormField label="Color">
+            <FormField label={t("modals.editWorkspace.colorLabel")}>
               <ColorPicker value={color} onChange={setColor} />
             </FormField>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                {t("common.buttons.cancel")}
               </Button>
               <Button type="submit" disabled={!name.trim() || updateWorkspace.isPending}>
                 {updateWorkspace.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Save
+                {t("common.buttons.save")}
               </Button>
             </div>
 
             {isHome ? (
               <div className="border-t pt-4 mt-4">
                 <p className="text-sm text-muted-foreground">
-                  This is your home workspace. It holds the quick-capture inbox
-                  and can&apos;t be deleted, but you can rename and recolor it.
+                  {t("modals.editWorkspace.homeNote")}
                 </p>
               </div>
             ) : (
               <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-medium text-destructive mb-2">Danger Zone</p>
+                <p className="text-sm font-medium text-destructive mb-2">{t("modals.editWorkspace.dangerZone")}</p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Permanently delete this workspace and all its projects, tasks, docs, and meetings.
+                  {t("modals.editWorkspace.deleteNote")}
                 </p>
                 <Button
                   type="button"
@@ -146,7 +147,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
                   className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
-                  Delete Workspace
+                  {t("modals.editWorkspace.deleteButton")}
                 </Button>
               </div>
             )}
@@ -157,9 +158,9 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="Delete Workspace"
-        description={`This will permanently delete "${workspace.name}" and all its projects, tasks, docs, and meetings. This action cannot be undone.`}
-        confirmLabel="Delete"
+        title={t("modals.editWorkspace.deleteConfirmTitle")}
+        description={t("modals.editWorkspace.deleteConfirmDescription", { name: workspace.name })}
+        confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

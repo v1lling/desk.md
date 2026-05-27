@@ -6,6 +6,7 @@ import {
   Loader2,
   StopCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,10 +24,10 @@ import type { AssistantToolEvent, AssistantTurnMode } from "@/lib/assistant/type
 
 const EMPTY_MESSAGES: import("@/lib/assistant/types").AssistantMessage[] = [];
 
-const ASSISTANT_ACTIONS: Array<{ id: string; label: string; icon: typeof Mail; mode: AssistantTurnMode }> = [
+const ASSISTANT_ACTIONS: Array<{ id: string; labelKey: string; icon: typeof Mail; mode: AssistantTurnMode }> = [
   {
     id: "draft-email",
-    label: "Draft Email",
+    labelKey: "assistant.actions.draftEmail",
     icon: Mail,
     mode: "draft-email",
   },
@@ -38,22 +39,26 @@ function inferContentType(path: string): "doc" | "task" | "meeting" {
   return "doc";
 }
 
-function getToolLabel(toolName: string): string {
-  const labels: Record<string, string> = {
-    desk_tree: "Browse workspace",
-    desk_catalog: "Browse catalog",
-    desk_read: "Read file",
-    desk_search: "Search files",
-    desk_workspace_info: "Get workspace info",
-    desk_create_task: "Create task",
-    desk_update_task: "Update task",
-    desk_create_meeting: "Create meeting",
-    desk_update_meeting: "Update meeting",
-    desk_create_doc: "Create document",
-    desk_update_doc: "Update document",
-    web_search: "Web search",
+function useToolLabel() {
+  const { t } = useTranslation();
+  return (toolName: string): string => {
+    const labelKeys: Record<string, string> = {
+      desk_tree: "assistant.tools.deskTree",
+      desk_catalog: "assistant.tools.deskCatalog",
+      desk_read: "assistant.tools.deskRead",
+      desk_search: "assistant.tools.deskSearch",
+      desk_workspace_info: "assistant.tools.deskWorkspaceInfo",
+      desk_create_task: "assistant.tools.deskCreateTask",
+      desk_update_task: "assistant.tools.deskUpdateTask",
+      desk_create_meeting: "assistant.tools.deskCreateMeeting",
+      desk_update_meeting: "assistant.tools.deskUpdateMeeting",
+      desk_create_doc: "assistant.tools.deskCreateDoc",
+      desk_update_doc: "assistant.tools.deskUpdateDoc",
+      web_search: "assistant.tools.webSearch",
+    };
+    const key = labelKeys[toolName];
+    return key ? t(key) : toolName.replaceAll("_", " ");
   };
-  return labels[toolName] || toolName.replaceAll("_", " ");
 }
 
 function extractSources(item: AssistantToolEvent): AIMessageSource[] {
@@ -84,6 +89,8 @@ function InlineToolActivity({
   items: AssistantToolEvent[];
   showDetails: boolean;
 }) {
+  const { t } = useTranslation();
+  const getToolLabel = useToolLabel();
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const visibleItems = expanded ? items : items.slice(-3);
@@ -92,7 +99,7 @@ function InlineToolActivity({
   return (
     <div className="rounded-md border bg-muted/20 p-2 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">Tool Activity</p>
+        <p className="text-xs font-medium text-muted-foreground">{t("assistant.toolActivity.heading")}</p>
         {hiddenCount > 0 && (
           <Button
             type="button"
@@ -101,7 +108,9 @@ function InlineToolActivity({
             className="h-6 px-2 text-[11px]"
             onClick={() => setExpanded((prev) => !prev)}
           >
-            {expanded ? "Show less" : `Show ${hiddenCount} more`}
+            {expanded
+              ? t("assistant.toolActivity.showLess")
+              : t("assistant.toolActivity.showMore", { count: hiddenCount })}
           </Button>
         )}
       </div>
@@ -118,20 +127,20 @@ function InlineToolActivity({
           {extractSources(item).length > 0 && (
             <SourcesDisplay
               sources={extractSources(item)}
-              label="File:"
+              label={t("assistant.sources.fileLabel")}
               className="px-0.5"
             />
           )}
           {showDetails && (item.args !== undefined || item.result !== undefined) && (
             <>
               <details className="rounded bg-muted/40 p-1.5">
-                <summary className="cursor-pointer text-[11px] text-muted-foreground">Details</summary>
+                <summary className="cursor-pointer text-[11px] text-muted-foreground">{t("assistant.toolActivity.details")}</summary>
                 <div className="mt-1 space-y-1">
-                  <p className="text-[11px] text-muted-foreground">Arguments</p>
+                  <p className="text-[11px] text-muted-foreground">{t("assistant.toolActivity.arguments")}</p>
                   <pre className="overflow-x-auto text-[11px]">{JSON.stringify(item.args, null, 2)}</pre>
                   {item.result !== undefined && (
                     <>
-                      <p className="text-[11px] text-muted-foreground">Result</p>
+                      <p className="text-[11px] text-muted-foreground">{t("assistant.toolActivity.result")}</p>
                       <pre className="overflow-x-auto text-[11px]">{JSON.stringify(item.result, null, 2)}</pre>
                     </>
                   )}
@@ -146,6 +155,7 @@ function InlineToolActivity({
 }
 
 export function AIChatEditor() {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -225,14 +235,18 @@ export function AIChatEditor() {
             {!isConfigured && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
                 <p className="text-sm text-amber-600 dark:text-amber-400">
-                  Assistant is not configured. Open Settings → AI and add a provider key.
+                  {t("assistant.notConfigured")}
                 </p>
               </div>
             )}
 
             <details className="rounded-md border bg-muted/20 p-2">
               <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-                Prompt in use ({activeMode === "draft-email" ? "Email Draft" : "Assistant"}): Effective Prompt
+                {t("assistant.promptInUse", {
+                  mode: activeMode === "draft-email"
+                    ? t("assistant.mode.draftEmail")
+                    : t("assistant.mode.chat"),
+                })}
               </summary>
               <pre className="mt-2 rounded-md bg-background/70 p-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono">
                 {promptBreakdown.effectivePrompt}
@@ -242,8 +256,8 @@ export function AIChatEditor() {
             {messages.length === 0 ? (
               <div className="py-12">
                 <EmptyState
-                  title="Start with Desk Assistant"
-                  description="Ask for analysis, context lookup, or task/doc/meeting updates. Assistant will use tools when needed."
+                  title={t("assistant.empty.title")}
+                  description={t("assistant.empty.description")}
                   icon={MessageSquare}
                 />
                 <div className="flex flex-wrap gap-2 justify-center mt-6">
@@ -259,7 +273,7 @@ export function AIChatEditor() {
                         disabled={isRunning || !isConfigured}
                       >
                         <ActionIcon className="h-3.5 w-3.5 mr-1.5" />
-                        {action.label}
+                        {t(action.labelKey)}
                       </Button>
                     );
                   })}
@@ -288,7 +302,7 @@ export function AIChatEditor() {
                     <div className="rounded-lg px-3 py-2 text-sm bg-muted max-w-[80%]">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Thinking…</span>
+                        <span>{t("assistant.thinking")}</span>
                       </div>
                     </div>
                   </div>
@@ -308,7 +322,7 @@ export function AIChatEditor() {
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask Assistant… (Enter to send, Shift+Enter for newline)"
+                  placeholder={t("assistant.input.placeholder")}
                   disabled={isRunning}
                   className="w-full min-h-[88px] max-h-[220px] resize-none text-sm border-0 shadow-none focus-visible:ring-0 focus-visible:border-transparent rounded-none"
                   rows={3}
@@ -317,15 +331,15 @@ export function AIChatEditor() {
                   {isRunning ? (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Working…</span>
+                      <span>{t("assistant.input.working")}</span>
                     </div>
                   ) : (
-                    <span className="text-[11px] text-muted-foreground/40">Enter to send</span>
+                    <span className="text-[11px] text-muted-foreground/40">{t("assistant.input.enterToSend")}</span>
                   )}
                   {isRunning ? (
                     <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={cancelRun}>
                       <StopCircle className="h-3 w-3" />
-                      Cancel
+                      {t("common.buttons.cancel")}
                     </Button>
                   ) : (
                     <Button
@@ -335,7 +349,7 @@ export function AIChatEditor() {
                       className="h-7 gap-1.5 text-xs"
                     >
                       <Send className="h-3.5 w-3.5" />
-                      Send
+                      {t("assistant.input.send")}
                     </Button>
                   )}
                 </div>

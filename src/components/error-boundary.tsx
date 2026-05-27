@@ -1,12 +1,15 @@
 
 import { Component, ReactNode } from "react";
+import { withTranslation, type WithTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
-interface Props {
+interface OwnProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
+
+type Props = OwnProps & WithTranslation;
 
 interface State {
   hasError: boolean;
@@ -17,7 +20,7 @@ interface State {
  * Error boundary component that catches React errors and displays a fallback UI.
  * Prevents the entire app from crashing when a single component fails.
  */
-export class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundaryInner extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -47,6 +50,8 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const { t } = this.props;
+
       return (
         <div className="h-screen flex items-center justify-center bg-background">
           <div className="max-w-md text-center px-6">
@@ -56,10 +61,10 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
             </div>
 
-            <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
+            <h1 className="text-xl font-semibold mb-2">{t("errors.generic.unexpected.title")}</h1>
 
             <p className="text-muted-foreground mb-6">
-              An unexpected error occurred. You can try again or reload the page.
+              {t("errors.generic.unexpected.description")}
             </p>
 
             {this.state.error && (
@@ -72,11 +77,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={this.handleReset}>
-                Try Again
+                {t("common.buttons.tryAgain")}
               </Button>
               <Button onClick={this.handleReload}>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Reload Page
+                {t("common.buttons.reloadPage")}
               </Button>
             </div>
           </div>
@@ -87,3 +92,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export const ErrorBoundary = withTranslation()(ErrorBoundaryInner);

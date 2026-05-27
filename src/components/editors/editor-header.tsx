@@ -1,4 +1,5 @@
 
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SaveStatusIndicator, type SaveStatus } from "@/components/ui/save-status";
@@ -26,7 +27,7 @@ interface EditorHeaderProps {
 export function EditorHeader({
   title,
   onTitleChange,
-  placeholder = "Untitled",
+  placeholder,
   saveStatus,
   onSave,
   isDirty,
@@ -36,18 +37,21 @@ export function EditorHeader({
   isInExcludedFolder,
   excludedFolderPath,
 }: EditorHeaderProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("editors.shared.untitled");
+
   // Determine if toggle should be disabled
   const isToggleDisabled = isInExcludedFolder;
 
   // Build tooltip text
   const getTooltipText = () => {
     if (isInExcludedFolder && excludedFolderPath) {
-      return `Excluded by folder: ${excludedFolderPath}`;
+      return t("editors.shared.aiExcludedByFolder", { path: excludedFolderPath });
     }
     if (aiIncluded) {
-      return "Included in AI context (click to exclude)";
+      return t("editors.shared.aiIncludedToggle");
     }
-    return "Excluded from AI context (click to include)";
+    return t("editors.shared.aiExcludedToggle");
   };
 
   return (
@@ -56,7 +60,7 @@ export function EditorHeader({
         <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent flex-1"
         />
         <SaveStatusIndicator status={saveStatus} />
@@ -66,7 +70,7 @@ export function EditorHeader({
             size="icon"
             onClick={onSave}
             disabled={!isDirty || saveStatus === "saving"}
-            title={isDirty ? "Save (⌘S)" : "No changes to save"}
+            title={isDirty ? t("editors.shared.saveTooltip") : t("editors.shared.noChangesTooltip")}
             className={cn(
               "h-7 w-7 shrink-0",
               isDirty
