@@ -1,16 +1,14 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="desk.md, project and task management in plain Markdown" width="100%">
+    <img src="assets/banner-light.png" alt="desk.md, project and task management in plain Markdown" width="75%">
   </picture>
 </p>
 
 <p align="center">
   <a href="./LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg"></a>
   <img alt="Built with Tauri" src="https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg?logo=tauri&logoColor=white">
-  <img alt="macOS: stable" src="https://img.shields.io/badge/macOS-stable-3fb950.svg?logo=apple&logoColor=white">
-  <img alt="Windows: beta" src="https://img.shields.io/badge/Windows-beta-f59e0b.svg?logo=windows&logoColor=white">
-  <img alt="Linux: beta" src="https://img.shields.io/badge/Linux-beta-f59e0b.svg?logo=linux&logoColor=white">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=white">
 </p>
 
 <p align="center">
@@ -24,40 +22,40 @@ desk.md is a local-first desktop app for running your projects (tasks, docs,
 and meetings) as plain Markdown files. Think of Obsidian's local vault, but
 with project management built in from the first launch.
 
-- **Own your data.** Plain Markdown with YAML frontmatter in an ordinary
-  folder. No database, no lock-in. Open it in any editor, like Obsidian.
-- **Built in, not bolted on.** Project management works on first launch:
-  Workspace → Project → Tasks/Docs/Meetings with statuses, priorities, due
-  dates, Kanban/list views, and a quick-capture inbox. No plugins to assemble.
-- **Agent-ready.** Every doc you write is potential context for an AI agent,
-  and nobody's going to re-explain their work every session. desk.md
+- **Plain Markdown.** YAML frontmatter in an ordinary folder. No database,
+  no lock-in.
+- **Project management.** Workspaces, projects, tasks, docs, and meetings,
+  with statuses, priorities, due dates, Kanban or list views, and a
+  quick-capture inbox in the home workspace.
+- **AI agents.** Every doc is potential context for an AI agent, and
+  nobody wants to re-explain their work every session. desk.md
   auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
-  catalog in the background. No plugins, no MCP server, just files.
-- **Local-first.** Works fully offline. No account, no mandatory cloud.
-- **Organized by workspace.** One workspace per client, side project, or area of
-  life, each with its own projects, tasks, docs, and meetings.
+  catalog, so any agent you point at the folder already knows your work.
+- **Offline.** Works fully offline. No account, no mandatory cloud.
+- **Workspaces.** One per client, side project, or area of life, each with
+  its own projects, tasks, docs, and meetings.
 
-## A look around
+## Screenshots
 
 <table>
   <tr>
     <td width="50%">
       <a href="assets/dashboard-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png"><img src="assets/dashboard-light.png" alt="Dashboard"></picture></a>
-      <p align="center"><sub><b>Dashboard</b>: capture, focus, and workspace progress</sub></p>
+      <p align="center"><sub><b>Dashboard</b></sub></p>
     </td>
     <td width="50%">
       <a href="assets/projects-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.png"><img src="assets/projects-light.png" alt="Projects"></picture></a>
-      <p align="center"><sub><b>Projects</b>: an overview with task stats and quick links</sub></p>
+      <p align="center"><sub><b>Projects</b></sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
       <a href="assets/docs-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/docs-dark.png"><img src="assets/docs-light.png" alt="Docs"></picture></a>
-      <p align="center"><sub><b>Docs</b>: a WYSIWYG Markdown editor with a file tree</sub></p>
+      <p align="center"><sub><b>Docs</b></sub></p>
     </td>
     <td width="50%">
       <a href="assets/meetings-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/meetings-dark.png"><img src="assets/meetings-light.png" alt="Meetings"></picture></a>
-      <p align="center"><sub><b>Meetings</b>: notes and action items, per project</sub></p>
+      <p align="center"><sub><b>Meetings</b></sub></p>
     </td>
   </tr>
 </table>
@@ -96,8 +94,8 @@ AppImage, `chmod +x Desk_*.AppImage` and run it. Storing AI API keys needs a
 desktop secret service (GNOME Keyring or KWallet), present on most desktop
 installs.
 
-desk.md keeps itself up to date automatically after install. Prefer to build it
-yourself? See [Quick Start](#quick-start).
+desk.md keeps itself up to date automatically after install. To build from
+source, see [Run from source](#run-from-source) below.
 
 ## Tech Stack
 
@@ -113,7 +111,7 @@ desk.md stores user content under `workspaces/` and app metadata under `.desk/`,
 inside the data folder you pick at setup (default `~/Desk/`). One workspace is
 the **home workspace**, which holds the quick-capture inbox and is created the
 first time you set up desk.md. Everything is plain Markdown: back it up, sync it,
-or edit it in another app whenever you like.
+or edit it in another app.
 
 ## AI & agents
 
@@ -123,9 +121,7 @@ work-management app that uses AI in two specific ways.
 **Sparring partner.** A built-in chat assistant for the thinking work:
 brainstorming, sparring on decisions, working through technical problems,
 drafting emails. Uses your own Anthropic or OpenAI API key
-(**Settings → AI**); without a key, it's off. Content goes directly to the
-provider you chose; a one-time disclosure runs before the first request,
-reviewable under **Settings → AI → Data & Privacy**.
+(**Settings → AI**); without a key, it's off.
 
 **Bring your own agent.** Because your data is just a folder of Markdown,
 external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
