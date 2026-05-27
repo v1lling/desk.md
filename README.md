@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="desk.md — project & task management in plain Markdown" width="100%">
+    <img src="assets/banner-light.png" alt="desk.md, project and task management in plain Markdown" width="100%">
   </picture>
 </p>
 
@@ -20,18 +20,19 @@
   </picture>
 </p>
 
-desk.md is a local-first desktop app for running your projects — tasks, docs,
-and meetings — as plain Markdown files. Think of Obsidian's local vault,
-but with project management built in from the first launch. And because it's just a folder of Markdown, any local AI agent picks up your full context with zero setup.
+desk.md is a local-first desktop app for running your projects (tasks, docs,
+and meetings) as plain Markdown files. Think of Obsidian's local vault, but
+with project management built in from the first launch.
 
 - **Own your data.** Plain Markdown with YAML frontmatter in an ordinary
   folder. No database, no lock-in. Open it in any editor, like Obsidian.
 - **Built in, not bolted on.** Project management works on first launch:
   Workspace → Project → Tasks/Docs/Meetings with statuses, priorities, due
-  dates, Kanban/list views, and a quick-capture inbox — no plugins to assemble.
-- **Agent-ready.** desk.md auto-generates `CLAUDE.md`, `AGENTS.md`, and
-  `GEMINI.md`, plus a summarized per-workspace catalog — so any AI agent
-  understands your work with no plugins and no MCP server, just files.
+  dates, Kanban/list views, and a quick-capture inbox. No plugins to assemble.
+- **Agent-ready.** Every doc you write is potential context for an AI agent,
+  and nobody's going to re-explain their work every session. desk.md
+  auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
+  catalog in the background. No plugins, no MCP server, just files.
 - **Local-first.** Works fully offline. No account, no mandatory cloud.
 - **Organized by workspace.** One workspace per client, side project, or area of
   life, each with its own projects, tasks, docs, and meetings.
@@ -64,13 +65,13 @@ but with project management built in from the first launch. And because it's jus
 
 ## Install
 
-> Windows and Linux builds are **beta** — desk.md is developed and tested on macOS. Please
+> Windows and Linux builds are **beta**. desk.md is developed and tested on macOS. Please
 > [report anything broken](https://github.com/v1lling/desk.md/issues).
 
 ### macOS
 
 1. Download `Desk_*.dmg` from the
-   [latest release](https://github.com/v1lling/desk.md/releases/latest) — one
+   [latest release](https://github.com/v1lling/desk.md/releases/latest). One
    universal build runs on both Apple Silicon and Intel Macs.
 2. Open the DMG and drag **Desk** into Applications.
 3. The app isn't notarized by Apple yet, so macOS reports it as "damaged" on the
@@ -84,7 +85,7 @@ but with project management built in from the first launch. And because it's jus
 
 Download and run the `.exe` installer from the
 [latest release](https://github.com/v1lling/desk.md/releases/latest). The app
-isn't code-signed yet, so SmartScreen shows a warning — click **More info → Run
+isn't code-signed yet, so SmartScreen shows a warning. Click **More info → Run
 anyway**.
 
 ### Linux (beta)
@@ -116,27 +117,23 @@ or edit it in another app whenever you like.
 
 ## AI & agents
 
-desk.md is not an AI agent framework. It's a project, task and doc manager you
-run yourself; it just happens to be friendly to agents too. It comes in
-two forms.
+desk.md isn't an AI dev tool or an autonomous agent platform. It's a
+work-management app that uses AI in two specific ways.
 
-**Bring your own agent.** desk.md keeps your data folder agent-ready. Alongside
-your Markdown it auto-generates `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md` — so
-Claude Code, Codex, and Gemini CLI all understand your workspaces with zero
-setup — plus a per-workspace `WORKSPACE_CONTEXT.md` that catalogs and summarizes
-every file. These spell out the folder layout, the frontmatter schemas, and the
-`ai-docs/` area an agent writes to so it never clutters your own notes. No MCP
-server, no plugins, just files.
+**Sparring partner.** A built-in chat assistant for the thinking work:
+brainstorming, sparring on decisions, working through technical problems,
+drafting emails. Uses your own Anthropic or OpenAI API key
+(**Settings → AI**); without a key, it's off. Content goes directly to the
+provider you chose; a one-time disclosure runs before the first request,
+reviewable under **Settings → AI → Data & Privacy**.
 
-**In-app assistant.** There's also a built-in assistant for chat and drafting. It
-uses your own Anthropic or OpenAI API key (**Settings → AI**). With no key, it
-is simply off. When you use it, content goes directly to the provider you chose;
-desk.md shows a one-time disclosure before the first request, reviewable anytime
-under **Settings → AI → Data & Privacy**.
+**Bring your own agent.** Because your data is just a folder of Markdown,
+external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
+auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
+`WORKSPACE_CONTEXT.md` catalog so they understand your workspaces with zero
+setup. No MCP server, no plugins.
 
 ## Run from source
-
-```bash
 
 desk.md is a Tauri desktop app. To run it from source:
 
@@ -148,7 +145,7 @@ npm run tauri:dev    # Desktop app with the real file system
 
 > Use Node 22. Newer versions currently break Rollup's native dependency.
 > See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full setup.
-> 
+
 ## Contributing
 
 Bug reports, feature ideas, and pull requests are welcome. See

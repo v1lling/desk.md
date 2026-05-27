@@ -29,7 +29,6 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         // Read from filesystem
         if (await exists(filePath)) {
           const content = await readTextFile(filePath);
-          console.log(`[file-storage] Read from ${subdirectory}/${filename}`);
           return content ? JSON.parse(content) : null;
         }
 
@@ -54,12 +53,10 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         // Ensure directory exists
         if (!(await exists(dirPath))) {
           await mkdir(dirPath);
-          console.log(`[file-storage] Created directory: ${dirPath}`);
         }
 
         const filePath = await joinPath(dirPath, filename);
         await writeTextFile(filePath, JSON.stringify(value, null, 2));
-        console.log(`[file-storage] Wrote to ${subdirectory}/${filename}`);
       } catch (error) {
         console.error(`[file-storage] Failed to write ${subdirectory}/${filename}:`, error);
         throw error; // Re-throw so we know if writes are failing

@@ -46,9 +46,6 @@ export function useSearchIndex() {
     if (isBuilding.current) return;
     isBuilding.current = true;
 
-    console.log("[search-index] Building full index...");
-    const startTime = performance.now();
-
     try {
       const searchItems: SearchItem[] = [];
 
@@ -98,11 +95,6 @@ export function useSearchIndex() {
 
       // Build the index
       rebuildIndex(searchItems);
-
-      const elapsed = performance.now() - startTime;
-      console.log(
-        `[search-index] Index built in ${elapsed.toFixed(0)}ms (${searchItems.length} items)`
-      );
     } catch (err) {
       console.error("[search-index] Failed to build index:", err);
     } finally {

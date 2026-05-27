@@ -125,7 +125,6 @@ export async function expandFsScope(dataPath?: string): Promise<void> {
  */
 export async function exists(path: string): Promise<boolean> {
   if (!isTauri()) {
-    console.log("[mock] exists:", path);
     return true; // Mock for browser
   }
 
@@ -139,7 +138,6 @@ export async function exists(path: string): Promise<boolean> {
  */
 export async function readTextFile(path: string): Promise<string> {
   if (!isTauri()) {
-    console.log("[mock] readTextFile:", path);
     throw new Error("File system not available in browser mode");
   }
 
@@ -153,7 +151,6 @@ export async function readTextFile(path: string): Promise<string> {
  */
 export async function writeTextFile(path: string, content: string): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] writeTextFile:", path, content.substring(0, 100) + "...");
     return;
   }
 
@@ -167,7 +164,6 @@ export async function writeTextFile(path: string, content: string): Promise<void
  */
 export async function writeFile(path: string, bytes: Uint8Array): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] writeFile:", path, `${bytes.byteLength} bytes`);
     return;
   }
 
@@ -181,7 +177,6 @@ export async function writeFile(path: string, bytes: Uint8Array): Promise<void> 
  */
 export async function mkdir(path: string): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] mkdir:", path);
     return;
   }
 
@@ -195,7 +190,6 @@ export async function mkdir(path: string): Promise<void> {
  */
 export async function removeFile(path: string): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] removeFile:", path);
     return;
   }
 
@@ -209,7 +203,6 @@ export async function removeFile(path: string): Promise<void> {
  */
 export async function removeDir(path: string): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] removeDir:", path);
     return;
   }
 
@@ -223,7 +216,6 @@ export async function removeDir(path: string): Promise<void> {
  */
 export async function rename(oldPath: string, newPath: string): Promise<void> {
   if (!isTauri()) {
-    console.log("[mock] rename:", oldPath, "->", newPath);
     return;
   }
 
@@ -244,7 +236,6 @@ export interface DirEntry {
  */
 export async function readDir(path: string): Promise<DirEntry[]> {
   if (!isTauri()) {
-    console.log("[mock] readDir:", path);
     return [];
   }
 
