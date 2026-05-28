@@ -18,9 +18,7 @@
   </picture>
 </p>
 
-desk.md is a local-first desktop app for running your projects (tasks, docs,
-and meetings) as plain Markdown files. Think of Obsidian's local vault, but
-with project management built in from the first launch.
+desk.md is a local-first desktop app for running your projects (tasks, docs, and meetings) as plain Markdown files. Think of Obsidian's local vault, but with lightweight project and task management built in.
 
 - **Plain Markdown.** YAML frontmatter in an ordinary folder. No database,
   no lock-in.
@@ -128,6 +126,17 @@ external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
 auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
 `WORKSPACE_CONTEXT.md` catalog so they understand your workspaces with zero
 setup. No MCP server, no plugins.
+
+## Roadmap
+
+Ideas I'm exploring:
+
+- More project-management depth, still lightweight: timelines, milestones,
+  task dependencies
+- Ollama support for the assistant, so AI can run fully local
+- Mobile companion: a read-only viewer and quick capture, synced through the
+  filesystem
+- Time tracking: log time on tasks with simple per-project reports
 
 ## Run from source
 
