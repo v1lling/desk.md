@@ -353,8 +353,8 @@
         "intro": "AI features send content to the provider selected above (Anthropic or OpenAI) over their API. Desk has no AI server of its own, and nothing is sent until you configure an API key.",
         "assistantLabel": "Assistant chat & drafting",
         "assistantBody": ": your messages, the conversation history, and the contents of files the assistant reads to answer you.",
-        "smartIndexLabel": "Smart Index",
-        "smartIndexBody": ": short previews and summaries of your files, sent when you rebuild the catalog or, if Auto-summarize on save is enabled, automatically after a save.",
+        "smartIndexLabel": "File index",
+        "smartIndexBody": ": short previews and summaries of your files, sent when you rebuild the index or, if Auto-summarize on save is enabled, automatically after a save.",
         "retention": "Retention is governed by your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
         "acknowledgement": {
           "title": "Privacy acknowledgement",
@@ -496,20 +496,20 @@
       "ai": "AI Provider",
       "assistant": "Assistant",
       "agents": "Agents",
-      "context": "Catalog",
+      "context": "File Index",
       "data": "Data",
       "about": "About"
     },
     "smartIndex": {
       "status": {
-        "title": "Catalog Status",
-        "description": "Index stats, errors, and build controls",
+        "title": "File Index Status",
+        "description": "File index stats, errors, and build controls",
         "filesIndexed": "Files indexed",
         "lastBuilt": "Last built"
       },
       "actions": {
-        "rebuild": "Rebuild Catalog",
-        "clear": "Clear Catalog"
+        "rebuild": "Rebuild Index",
+        "clear": "Clear Index"
       },
       "progress": {
         "summarizing": "Summarizing {{workspace}}... {{processed}}/{{total}} files",
@@ -524,16 +524,16 @@
         "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded"
       },
       "info": {
-        "oneCatalog": "One catalog, two readers: the in-app assistant queries this index directly. When any agent file is enabled (Settings → Agents) the same catalog is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
+        "oneCatalog": "One index, two readers: the in-app assistant queries this file index directly. When any agent file is enabled (Settings → Agents) the same index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
         "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries."
       },
       "config": {
-        "title": "Catalog Settings",
+        "title": "File Index Settings",
         "description": "When summaries refresh and how much of each file is sent for summarization."
       },
       "autoSummarize": {
         "label": "Auto-summarize on save",
-        "description": "Keep summaries fresh as you edit, and add new files to the catalog on first save.",
+        "description": "Keep summaries fresh as you edit, and add new files to the index on first save.",
         "activeWarning": "~5 seconds after your last save, each file whose body actually changed is re-summarized (one API call per file). Metadata-only saves don't trigger a call."
       },
       "detail": {
@@ -546,9 +546,9 @@
         }
       },
       "clearDialog": {
-        "title": "Clear Catalog",
+        "title": "Clear Index",
         "description": "This empties the file index used by the in-app assistant and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone.",
-        "confirmLabel": "Clear Catalog"
+        "confirmLabel": "Clear Index"
       },
       "relativeTime": {
         "never": "Never",
@@ -806,7 +806,7 @@
       "agentFileEnabled": "{{file}} enabled",
       "agentFileRemoved": "{{file}} removed",
       "indexBuilt": "Index built: {{files}} files across {{workspaces}} workspaces",
-      "catalogCleared": "Catalog cleared",
+      "catalogCleared": "File index cleared",
       "autoSummarizeEnabled": "Auto-summarize enabled",
       "autoSummarizeDisabled": "Auto-summarize disabled",
       "settingsReset": "Settings reset to defaults",
@@ -993,7 +993,7 @@
     },
     "tools": {
       "deskTree": "Browse workspace",
-      "deskCatalog": "Browse catalog",
+      "deskCatalog": "Browse index",
       "deskRead": "Read file",
       "deskSearch": "Search files",
       "deskWorkspaceInfo": "Get workspace info",
@@ -1017,7 +1017,7 @@
       "whatHeading": "What gets sent",
       "whatItems": {
         "messages": "Messages you type to the assistant, plus the conversation history.",
-        "previews": "Short previews and summaries of your files for the Smart Index catalog.",
+        "previews": "Short previews and summaries of your files for the file index.",
         "fileContents": "The contents of files the assistant reads to answer you."
       },
       "whenHeading": "When",

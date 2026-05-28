@@ -28,7 +28,8 @@ desk.md is a local-first desktop app for running your projects (tasks, docs, and
 - **AI agents.** Every doc is potential context for an AI agent, and
   nobody wants to re-explain their work every session. desk.md
   auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
-  catalog, so any agent you point at the folder already knows your work.
+  file index with summaries, so any agent you point at the folder already
+  knows your work.
 - **Offline.** Works fully offline. No account, no mandatory cloud.
 - **Workspaces.** One per client, side project, or area of life, each with
   its own projects, tasks, docs, and meetings.
@@ -124,8 +125,8 @@ drafting emails. Uses your own Anthropic or OpenAI API key
 **Bring your own agent.** Because your data is just a folder of Markdown,
 external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
 auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
-`WORKSPACE_CONTEXT.md` catalog so they understand your workspaces with zero
-setup. No MCP server, no plugins.
+`WORKSPACE_CONTEXT.md` that indexes and summarizes your files, so they
+understand your workspaces with zero setup. No MCP server, no plugins.
 
 ## Roadmap
 
@@ -154,9 +155,7 @@ npm run tauri:dev    # Desktop app with the real file system
 ## Contributing
 
 Bug reports, feature ideas, and pull requests are welcome. See
-[CONTRIBUTING.md](./CONTRIBUTING.md) for setup and guidelines. This project
-follows a [Code of Conduct](./CODE_OF_CONDUCT.md), and security issues have their
-own [policy](./SECURITY.md).
+[CONTRIBUTING.md](./CONTRIBUTING.md) for setup and guidelines.
 
 To regenerate the screenshots above after a UI change: `npm run screenshots`.
 
