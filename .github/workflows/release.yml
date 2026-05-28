@@ -58,7 +58,6 @@ jobs:
       - name: Security audit
         run: |
           npm audit --audit-level=high
-          cd outlook-addin && npm ci && npm audit --audit-level=high
 
       - name: Verify version matches tag
         shell: bash

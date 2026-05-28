@@ -45,11 +45,7 @@ yarn-error.log*
 # Playwright MCP screenshots
 .playwright-mcp/
 
-# Tauri MCP plugin (local path dependency, not committed)
-/tauri-plugin-mcp
-
-# Outlook add-in
-outlook-addin/node_modules
+# Agent worktrees
 .agtx/
 
 # Claude local data

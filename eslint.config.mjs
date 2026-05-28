@@ -56,8 +56,6 @@ export default tseslint.config(
       "dist/**",
       "build/**",
       "src-tauri/**",
-      "tauri-plugin-mcp/**",
-      "outlook-addin/**",
       "scripts/**",
       // LLM-facing strings: prompts, agent files, tool descriptions. These are
       // intentionally English in source because the model reads them.
