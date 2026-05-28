@@ -371,12 +371,6 @@
       "toolDetails": {
         "label": "Tool-Details in Assistent-Antworten anzeigen",
         "description": "Tool-Argumente, Ergebnisse und Details abgerufener Dateien inline anzeigen."
-      },
-      "customInstructions": {
-        "label": "Eigene Anweisungen",
-        "description": "Werden bei der Prompt-Generierung immer einbezogen, sowohl für den Assistenten als auch für Drafting.",
-        "placeholder": "z. B. mit knappen Stichpunkten antworten.",
-        "helperText": "Für Anweisungen an externe CLI-Agenten (Claude Code, Codex, Gemini CLI), die deinen Datenordner lesen, siehe Einstellungen → Agenten."
       }
     },
     "agents": {
@@ -561,21 +555,24 @@
         "daysAgo_other": "vor {{count}} Tagen"
       }
     },
-    "systemPrompts": {
-      "title": "System-Prompts",
-      "description": "Standardprompts, die die KI erhält, plus deine eigenen Ergänzungen pro Typ.",
+    "customInstructions": {
+      "title": "Eigene Anweisungen",
+      "description": "Deine Ergänzungen zu den eingebauten Standardprompts der KI. Die Standardprompts werden immer gesendet; dein Text wird danach angehängt.",
+      "global": {
+        "label": "Gilt für alles (Chat + E-Mail)",
+        "placeholder": "z. B. mit knappen Stichpunkten antworten.",
+        "helperText": "Für Anweisungen an externe CLI-Agenten (Claude Code, Codex, Gemini CLI), die deinen Datenordner lesen, siehe Einstellungen → Agenten."
+      },
+      "perTypePlaceholder": "z. B. spezifische Anweisungen für {{label}}...",
       "viewBaseContext": "Basiskontext anzeigen (in allen Prompts enthalten)",
       "viewDefaultPrompt": "Standard-Prompt anzeigen",
-      "additionalInstructions": "Zusätzliche Anweisungen für {{label}}",
-      "placeholder": "z. B. spezifische Anweisungen für {{label}}...",
-      "footer": "Anweisungen pro Typ werden mit deinen globalen eigenen Anweisungen oben kombiniert.",
       "purposes": {
         "chat": {
-          "label": "Assistent",
+          "label": "Nur Assistent-Chat",
           "description": "Allgemeine Assistent-Interaktionen im Assistenten-Tab"
         },
         "draft-email": {
-          "label": "E-Mail-Draft",
+          "label": "Nur E-Mail-Drafts",
           "description": "Verfassen von E-Mail-Antworten über den Assistenten"
         }
       }

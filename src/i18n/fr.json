@@ -371,12 +371,6 @@
       "toolDetails": {
         "label": "Afficher les détails des outils dans les réponses",
         "description": "Affiche les arguments, résultats et détails des fichiers récupérés en ligne."
-      },
-      "customInstructions": {
-        "label": "Instructions personnalisées",
-        "description": "Toujours incluses dans la génération du prompt, pour l'assistant comme pour la rédaction.",
-        "placeholder": "ex. répondez avec des listes à puces concises.",
-        "helperText": "Pour les instructions aux agents CLI externes (Claude Code, Codex, Gemini CLI) lisant votre dossier de données, voir Paramètres → Agents."
       }
     },
     "agents": {
@@ -561,21 +555,24 @@
         "daysAgo_other": "il y a {{count}} jours"
       }
     },
-    "systemPrompts": {
-      "title": "Prompts système",
-      "description": "Prompts par défaut envoyés à l'IA, plus vos ajouts par type.",
+    "customInstructions": {
+      "title": "Instructions personnalisées",
+      "description": "Vos ajouts aux prompts par défaut intégrés de l'IA. Les prompts par défaut sont toujours envoyés ; votre texte est ajouté ensuite.",
+      "global": {
+        "label": "S'applique à tout (chat + e-mail)",
+        "placeholder": "ex. répondez avec des listes à puces concises.",
+        "helperText": "Pour les instructions aux agents CLI externes (Claude Code, Codex, Gemini CLI) lisant votre dossier de données, voir Paramètres → Agents."
+      },
+      "perTypePlaceholder": "ex. instructions spécifiques pour {{label}}...",
       "viewBaseContext": "Voir le contexte de base (inclus dans tous les prompts)",
       "viewDefaultPrompt": "Voir le prompt par défaut",
-      "additionalInstructions": "Instructions supplémentaires pour {{label}}",
-      "placeholder": "ex. instructions spécifiques pour {{label}}...",
-      "footer": "Les instructions par type sont combinées avec vos instructions globales ci-dessus.",
       "purposes": {
         "chat": {
-          "label": "Assistant",
+          "label": "Chat de l'assistant uniquement",
           "description": "Interactions générales dans l'onglet Assistant"
         },
         "draft-email": {
-          "label": "Brouillon e-mail",
+          "label": "Brouillons d'e-mail uniquement",
           "description": "Rédaction de réponses e-mail via l'assistant"
         }
       }

@@ -327,7 +327,7 @@ export const useAssistantStore = create<AssistantState>()(
         const titleBase = email.subject?.trim()
           ? i18next.t("entities.assistant.defaults.emailDraftWithSubject", { subject: email.subject.trim() })
           : i18next.t("entities.assistant.defaults.emailDraft");
-        const prompt = buildAssistantTurnUserMessage("draft-email", {
+        const prompt = buildAssistantTurnUserMessage({
           emailContext: {
             from: formatEmailAddress(email.from),
             to: email.to?.map(formatEmailAddress).join(", ") || "",

@@ -29,30 +29,44 @@ function CollapsiblePrompt({ label, content }: { label: string; content: string 
   );
 }
 
-export function SystemPromptsCard() {
+export function CustomInstructionsCard() {
   const { t } = useTranslation();
-  const { perTypeInstructions, setPerTypeInstructions } = useAISettingsStore();
-
-  // Translate the purpose label/description via i18n by purpose id. The source
-  // constant in `src/lib/ai/prompts.ts` provides defaults for non-UI usage.
-  const promptMeta = (purpose: string) => ({
-    label: t(`settings.systemPrompts.purposes.${purpose}.label`),
-    description: t(`settings.systemPrompts.purposes.${purpose}.description`),
-  });
+  const { customInstructions, setCustomInstructions, perTypeInstructions, setPerTypeInstructions } =
+    useAISettingsStore();
 
   return (
     <SettingsSection
       icon={<ScrollText className="h-4 w-4" />}
-      title={t("settings.systemPrompts.title")}
-      description={t("settings.systemPrompts.description")}
+      title={t("settings.customInstructions.title")}
+      description={t("settings.customInstructions.description")}
     >
       <div className="divide-y divide-border/40">
         <div className="pb-4">
-          <CollapsiblePrompt label={t("settings.systemPrompts.viewBaseContext")} content={BASE_CONTEXT} />
+          <CollapsiblePrompt
+            label={t("settings.customInstructions.viewBaseContext")}
+            content={BASE_CONTEXT}
+          />
+        </div>
+
+        <div className="space-y-2 py-4">
+          <Label htmlFor="custom-instructions-global">
+            {t("settings.customInstructions.global.label")}
+          </Label>
+          <Textarea
+            id="custom-instructions-global"
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            placeholder={t("settings.customInstructions.global.placeholder")}
+            className="min-h-[100px]"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("settings.customInstructions.global.helperText")}
+          </p>
         </div>
 
         {USER_FACING_PROMPTS.map(({ purpose, defaultPrompt }) => {
-          const { label, description } = promptMeta(purpose);
+          const label = t(`settings.customInstructions.purposes.${purpose}.label`);
+          const description = t(`settings.customInstructions.purposes.${purpose}.description`);
           return (
             <div key={purpose} className="py-4">
               <div className="space-y-3">
@@ -62,31 +76,22 @@ export function SystemPromptsCard() {
                 </div>
 
                 <CollapsiblePrompt
-                  label={t("settings.systemPrompts.viewDefaultPrompt")}
+                  label={t("settings.customInstructions.viewDefaultPrompt")}
                   content={defaultPrompt}
                 />
 
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-normal text-muted-foreground">
-                    {t("settings.systemPrompts.additionalInstructions", { label: label.toLowerCase() })}
-                  </Label>
-                  <Textarea
-                    value={perTypeInstructions[purpose] ?? ""}
-                    onChange={(e) => setPerTypeInstructions(purpose, e.target.value)}
-                    placeholder={t("settings.systemPrompts.placeholder", { label: label.toLowerCase() })}
-                    className="min-h-[80px]"
-                  />
-                </div>
+                <Textarea
+                  value={perTypeInstructions[purpose] ?? ""}
+                  onChange={(e) => setPerTypeInstructions(purpose, e.target.value)}
+                  placeholder={t("settings.customInstructions.perTypePlaceholder", {
+                    label: label.toLowerCase(),
+                  })}
+                  className="min-h-[80px]"
+                />
               </div>
             </div>
           );
         })}
-
-        <div className="pt-4">
-          <p className="text-xs text-muted-foreground">
-            {t("settings.systemPrompts.footer")}
-          </p>
-        </div>
       </div>
     </SettingsSection>
   );

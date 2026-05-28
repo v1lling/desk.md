@@ -45,37 +45,34 @@ Constraints:
   "draft-email": `Draft a professional email reply.
 
 - Match the language, tone, greeting, and closing of the original email.
-- Be clear and concise. Output ONLY the email body — no subject line, no headers.
+- Be clear and concise. Output ONLY the email body, with no subject line and no headers.
 - Plain text only: no markdown bold/italic/headers. Bullet lists and numbered lists are fine.
 - If the original email or reply intent is missing, ask one short follow-up before drafting.
 - Don't invent sender/recipient names or metadata.
+
+Write like a person, not an AI. Avoid the tells that make text read as machine-generated:
+- NEVER use em dashes (—) or en dashes (–). Use commas, periods, parentheses, or just two sentences instead. This is the most important rule.
+- No filler openers ("I hope this email finds you well", "I wanted to reach out", "I hope you're doing well").
+- No corporate/AI buzzwords: delve, leverage, robust, seamless, streamline, navigate, underscore, utilize, facilitate, furthermore, moreover, additionally, that said.
+- No rule-of-three triads ("clear, concise, and effective") or restating what the sender already said back to them.
+- No padded enthusiasm, no exclamation-mark filler, no "Hope this helps!" / "Feel free to reach out!" closers unless the original email's tone warrants it.
+- Don't over-explain or hedge. Say what's needed and stop. Vary sentence length so it doesn't read as uniform AI prose.
 
 ${TOOL_GUIDE}
 Use tools when the user asks for workspace context or when referencing docs, tasks, or meetings would genuinely improve the reply.`,
 };
 
 /**
- * User-facing AI purposes with display info and default prompts.
- * Used by the Settings UI to show what the AI receives.
+ * User-facing AI purposes and their default prompts.
+ * The Settings UI iterates this to show each mode's read-only default prompt;
+ * labels/descriptions live in i18n (settings.customInstructions.purposes.*).
  */
 export const USER_FACING_PROMPTS: Array<{
   purpose: AIPurpose;
-  label: string;
-  description: string;
   defaultPrompt: string;
 }> = [
-  {
-    purpose: "chat",
-    label: "Assistant",
-    description: "General assistant interactions in the Assistant tab",
-    defaultPrompt: PURPOSE_PROMPTS.chat,
-  },
-  {
-    purpose: "draft-email",
-    label: "Email Draft",
-    description: "Drafting email replies via Assistant",
-    defaultPrompt: PURPOSE_PROMPTS["draft-email"],
-  },
+  { purpose: "chat", defaultPrompt: PURPOSE_PROMPTS.chat },
+  { purpose: "draft-email", defaultPrompt: PURPOSE_PROMPTS["draft-email"] },
 ];
 
 export function getPurposePrompt(purpose: Exclude<AIPurpose, "custom">): string {
@@ -209,13 +206,8 @@ interface BuildAssistantTurnUserMessageOptions {
 }
 
 export function buildAssistantTurnUserMessage(
-  mode: AssistantPromptMode,
   options?: BuildAssistantTurnUserMessageOptions
 ): string {
-  if (mode === "chat") {
-    return "Hello!";
-  }
-
   return buildDraftEmailUserMessage(options?.emailContext);
 }
 

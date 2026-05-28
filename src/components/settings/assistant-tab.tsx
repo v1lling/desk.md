@@ -1,17 +1,14 @@
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Bot, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useAISettingsStore } from "@/stores/ai";
 import { useContextStore } from "@/stores/context";
-import { SystemPromptsCard } from "./system-prompts-card";
+import { CustomInstructionsCard } from "./custom-instructions-card";
 
 export function AssistantTab() {
   const { t } = useTranslation();
-  const { customInstructions, setCustomInstructions } = useAISettingsStore();
   const { showToolDetails, setShowToolDetails } = useContextStore();
 
   return (
@@ -48,27 +45,10 @@ export function AssistantTab() {
               }}
             />
           </div>
-
-          <div className="space-y-2 py-3 border-t border-border/40">
-            <Label htmlFor="custom-instructions">{t("settings.assistant.customInstructions.label")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.assistant.customInstructions.description")}
-            </p>
-            <Textarea
-              id="custom-instructions"
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder={t("settings.assistant.customInstructions.placeholder")}
-              className="min-h-[100px]"
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("settings.assistant.customInstructions.helperText")}
-            </p>
-          </div>
         </div>
       </SettingsSection>
 
-      <SystemPromptsCard />
+      <CustomInstructionsCard />
     </div>
   );
 }

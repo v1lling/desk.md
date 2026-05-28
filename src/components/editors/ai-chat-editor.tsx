@@ -225,7 +225,7 @@ export function AIChatEditor() {
     if (isRunning || !isConfigured) return;
     if (!activeConversationId) createConversation({ mode: action.mode });
     setInput("");
-    await sendMessage(buildAssistantTurnUserMessage(action.mode), { mode: action.mode });
+    await sendMessage(buildAssistantTurnUserMessage(), { mode: action.mode });
   };
 
   return (

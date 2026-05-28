@@ -371,12 +371,6 @@
       "toolDetails": {
         "label": "Show tool details in assistant responses",
         "description": "Display tool arguments, results, and retrieved file details inline."
-      },
-      "customInstructions": {
-        "label": "Custom Instructions",
-        "description": "Always included in prompt generation, for both the assistant and drafting.",
-        "placeholder": "e.g., respond with concise bullet points.",
-        "helperText": "For instructions to external CLI agents (Claude Code, Codex, Gemini CLI) reading your data folder, see Settings → Agents."
       }
     },
     "agents": {
@@ -561,21 +555,24 @@
         "daysAgo_other": "{{count}} days ago"
       }
     },
-    "systemPrompts": {
-      "title": "System Prompts",
-      "description": "Default prompts the AI receives, plus your own per-type additions.",
+    "customInstructions": {
+      "title": "Custom Instructions",
+      "description": "Your additions to the AI's built-in default prompts. The defaults are always sent; your text is appended after them.",
+      "global": {
+        "label": "Applies to everything (chat + email)",
+        "placeholder": "e.g., respond with concise bullet points.",
+        "helperText": "For instructions to external CLI agents (Claude Code, Codex, Gemini CLI) reading your data folder, see Settings → Agents."
+      },
+      "perTypePlaceholder": "e.g., specific instructions for {{label}}...",
       "viewBaseContext": "View base context (included in all prompts)",
       "viewDefaultPrompt": "View default prompt",
-      "additionalInstructions": "Additional instructions for {{label}}",
-      "placeholder": "e.g., specific instructions for {{label}}...",
-      "footer": "Per-type instructions are combined with your global custom instructions above.",
       "purposes": {
         "chat": {
-          "label": "Assistant",
+          "label": "Assistant chat only",
           "description": "General assistant interactions in the Assistant tab"
         },
         "draft-email": {
-          "label": "Email Draft",
+          "label": "Email drafts only",
           "description": "Drafting email replies via Assistant"
         }
       }
