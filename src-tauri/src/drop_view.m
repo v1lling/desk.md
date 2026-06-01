@@ -1,12 +1,20 @@
-// Email drop view (macOS)
-// -----------------------
+// Email + generic file drop view (macOS)
+// ---------------------------------------
 // A native Cocoa view attached above the WKWebView in Desk's main window.
-// Claims drags that carry a file promise (Apple Mail, Outlook for Mac),
-// materializes them into a temp dir, and reports the resulting path back to
-// Rust via a C callback. Direct file-URL drops (Thunderbird, Finder) bypass
-// this view and route through Tauri's built-in `onDragDropEvent`.
+// Two responsibilities, dispatched per-drop:
 //
-// Two promise APIs coexist:
+//   1. Email file promises — Apple Mail (legacy `NSFilesPromisePboardType`)
+//      and Outlook for Mac (modern `NSFilePromiseReceiver`). Materializes
+//      the message into a temp dir and reports the resulting .eml path via
+//      `onDrop`. See the file-promise notes below.
+//
+//   2. Plain file URLs — anything dragged from Finder, Thunderbird, etc.
+//      Extracts the file:// URLs from the pasteboard and reports them as
+//      a batch via `onFilesDrop`. WKWebView never sees these drops because
+//      this overlay sits above it; if we don't claim them here, nothing
+//      else in the window will.
+//
+// Two promise APIs coexist for email:
 //   - Modern (`NSFilePromiseReceiver`) — Outlook for Mac. Clean completion
 //     callback with the resolved file URL.
 //   - Legacy (`namesOfPromisedFilesDroppedAtDestination:`) — Apple Mail.
@@ -25,6 +33,9 @@
 
 typedef void (*desk_drop_state_cb)(void* user_data);
 typedef void (*desk_drop_path_cb)(const char* path, void* user_data);
+typedef void (*desk_drop_files_cb)(const char* const* paths, size_t count,
+                                   double x, double y, void* user_data);
+typedef void (*desk_drop_pos_cb)(double x, double y, void* user_data);
 
 static const NSTimeInterval kDropResolveTimeoutSeconds = 15.0;
 
@@ -38,6 +49,14 @@ static BOOL DeskPasteboardHasLegacyPromise(NSArray<NSString*>* types) {
     return [types containsObject:kLegacyFilesPromisePboardType]
         || [types containsObject:kPromiseUrlPboardType]
         || [types containsObject:kPromiseContentPboardType];
+}
+
+// Extract plain file:// URLs from a pasteboard. Returns nil if none.
+static NSArray<NSURL*>* DeskPasteboardFileUrls(NSPasteboard* pb) {
+    NSArray<NSURL*>* urls = [pb readObjectsForClasses:@[ NSURL.class ]
+                                              options:@{ NSPasteboardURLReadingFileURLsOnlyKey: @YES }];
+    if (urls.count == 0) return nil;
+    return urls;
 }
 
 // FSEvents callback (a C function — FSEventStreamCallback can't be a block).
@@ -72,12 +91,23 @@ static void DeskFSEventsCallback(
     }
 }
 
+typedef NS_ENUM(NSInteger, DeskDragKind) {
+    DeskDragKindNone = 0,
+    DeskDragKindEmail,
+    DeskDragKindFiles,
+};
+
 @interface DeskEmailDropView : NSView
 @property (nonatomic, copy) NSURL* destDir;
 @property (nonatomic, assign) void* userData;
 @property (nonatomic, assign) desk_drop_state_cb onEnter;
 @property (nonatomic, assign) desk_drop_state_cb onLeave;
 @property (nonatomic, assign) desk_drop_path_cb onDrop;
+@property (nonatomic, assign) desk_drop_state_cb onFilesEnter;
+@property (nonatomic, assign) desk_drop_state_cb onFilesLeave;
+@property (nonatomic, assign) desk_drop_pos_cb onFilesOver;
+@property (nonatomic, assign) desk_drop_files_cb onFilesDrop;
+@property (nonatomic, assign) DeskDragKind currentKind;
 @end
 
 @implementation DeskEmailDropView
@@ -91,6 +121,20 @@ static void DeskFSEventsCallback(
     return NO;
 }
 
+// Use flipped coordinates so converted drag points line up with DOM (origin
+// top-left) and we can forward x,y straight to elementFromPoint() in JS.
+- (BOOL)isFlipped {
+    return YES;
+}
+
+// Returns the drag cursor position converted to flipped view-local coords
+// (which match WKWebView/DOM CSS pixel coords). Caller passes by ref.
+- (void)pointForDrag:(id<NSDraggingInfo>)sender x:(double*)outX y:(double*)outY {
+    NSPoint loc = [self convertPoint:[sender draggingLocation] fromView:nil];
+    if (outX) *outX = (double)loc.x;
+    if (outY) *outY = (double)loc.y;
+}
+
 // --- NSDraggingDestination ---
 
 - (BOOL)pasteboardHasEmail:(NSPasteboard*)pb {
@@ -101,24 +145,95 @@ static void DeskFSEventsCallback(
     return NO;
 }
 
+- (DeskDragKind)kindForPasteboard:(NSPasteboard*)pb {
+    if ([self pasteboardHasEmail:pb]) return DeskDragKindEmail;
+    if (DeskPasteboardFileUrls(pb) != nil) return DeskDragKindFiles;
+    return DeskDragKindNone;
+}
+
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
-    if (![self pasteboardHasEmail:[sender draggingPasteboard]]) {
-        return NSDragOperationNone;
+    DeskDragKind kind = [self kindForPasteboard:[sender draggingPasteboard]];
+    self.currentKind = kind;
+    if (kind == DeskDragKindEmail) {
+        if (self.onEnter) self.onEnter(self.userData);
+        return NSDragOperationCopy;
     }
-    if (self.onEnter) self.onEnter(self.userData);
-    return NSDragOperationCopy;
+    if (kind == DeskDragKindFiles) {
+        if (self.onFilesEnter) self.onFilesEnter(self.userData);
+        if (self.onFilesOver) {
+            double x = 0, y = 0;
+            [self pointForDrag:sender x:&x y:&y];
+            self.onFilesOver(x, y, self.userData);
+        }
+        return NSDragOperationCopy;
+    }
+    return NSDragOperationNone;
+}
+
+// Forward cursor position during file drags so the frontend can highlight the
+// target tree row under the cursor. Email drags don't need position since they
+// always open in a new tab regardless of where they land.
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+    if (self.currentKind == DeskDragKindFiles) {
+        if (self.onFilesOver) {
+            double x = 0, y = 0;
+            [self pointForDrag:sender x:&x y:&y];
+            self.onFilesOver(x, y, self.userData);
+        }
+        return NSDragOperationCopy;
+    }
+    if (self.currentKind == DeskDragKindEmail) {
+        return NSDragOperationCopy;
+    }
+    return NSDragOperationNone;
 }
 
 - (void)draggingExited:(id<NSDraggingInfo>)sender {
-    if (self.onLeave) self.onLeave(self.userData);
+    if (self.currentKind == DeskDragKindEmail && self.onLeave) self.onLeave(self.userData);
+    if (self.currentKind == DeskDragKindFiles && self.onFilesLeave) self.onFilesLeave(self.userData);
+    self.currentKind = DeskDragKindNone;
 }
 
 - (BOOL)prepareForDragOperation:(id<NSDraggingInfo>)sender {
-    return [self pasteboardHasEmail:[sender draggingPasteboard]];
+    return [self kindForPasteboard:[sender draggingPasteboard]] != DeskDragKindNone;
 }
 
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
     NSPasteboard* pb = [sender draggingPasteboard];
+
+    // --- Generic file URL path (Finder, Thunderbird, anywhere else) ---
+    if (![self pasteboardHasEmail:pb]) {
+        NSArray<NSURL*>* urls = DeskPasteboardFileUrls(pb);
+        if (urls == nil) return NO;
+
+        double dropX = 0, dropY = 0;
+        [self pointForDrag:sender x:&dropX y:&dropY];
+
+        if (self.onFilesLeave) self.onFilesLeave(self.userData);
+        self.currentKind = DeskDragKindNone;
+
+        if (!self.onFilesDrop) return YES;
+
+        // Flatten to a C array of UTF8 strings. The Rust callback copies these
+        // into owned Strings synchronously, so a per-string autorelease is fine.
+        NSMutableArray<NSData*>* utf8s = [NSMutableArray arrayWithCapacity:urls.count];
+        for (NSURL* u in urls) {
+            NSString* p = [u path];
+            if (!p) continue;
+            const char* bytes = [p UTF8String];
+            if (!bytes) continue;
+            [utf8s addObject:[NSData dataWithBytes:bytes length:strlen(bytes) + 1]];
+        }
+        size_t count = utf8s.count;
+        const char** ptrs = (const char**)malloc(sizeof(const char*) * count);
+        for (size_t i = 0; i < count; i++) {
+            ptrs[i] = (const char*)[utf8s[i] bytes];
+        }
+        self.onFilesDrop(ptrs, count, dropX, dropY, self.userData);
+        free(ptrs);
+        return YES;
+    }
+
     NSArray<NSFilePromiseReceiver*>* receivers =
         [pb readObjectsForClasses:@[ NSFilePromiseReceiver.class ] options:nil];
     BOOL hasLegacy = DeskPasteboardHasLegacyPromise([pb types]);
@@ -131,6 +246,7 @@ static void DeskFSEventsCallback(
     desk_drop_path_cb onDrop = self.onDrop;
     desk_drop_state_cb onLeave = self.onLeave;
     if (onLeave) onLeave(userData);
+    self.currentKind = DeskDragKindNone;
 
     // Pick exactly ONE API per drop. Outlook for Mac advertises BOTH the
     // modern receiver and the legacy pasteboard types. Calling both leaves
@@ -227,6 +343,10 @@ void desk_install_drop_view(
     desk_drop_state_cb on_enter,
     desk_drop_state_cb on_leave,
     desk_drop_path_cb on_drop,
+    desk_drop_state_cb on_files_enter,
+    desk_drop_state_cb on_files_leave,
+    desk_drop_pos_cb on_files_over,
+    desk_drop_files_cb on_files_drop,
     void* user_data
 ) {
     if (!ns_window) return;
@@ -241,6 +361,10 @@ void desk_install_drop_view(
             existing.onEnter = on_enter;
             existing.onLeave = on_leave;
             existing.onDrop = on_drop;
+            existing.onFilesEnter = on_files_enter;
+            existing.onFilesLeave = on_files_leave;
+            existing.onFilesOver = on_files_over;
+            existing.onFilesDrop = on_files_drop;
             existing.userData = user_data;
             return;
         }
@@ -251,7 +375,12 @@ void desk_install_drop_view(
     view.onEnter = on_enter;
     view.onLeave = on_leave;
     view.onDrop = on_drop;
+    view.onFilesEnter = on_files_enter;
+    view.onFilesLeave = on_files_leave;
+    view.onFilesOver = on_files_over;
+    view.onFilesDrop = on_files_drop;
     view.userData = user_data;
+    view.currentKind = DeskDragKindNone;
 
     // Wipe the temp drop dir on each install so we never see " 2"-suffixed
     // filenames from a name collision against a stale `.eml` left behind by
@@ -267,8 +396,9 @@ void desk_install_drop_view(
     // Critical: register for `public.url` (NSPasteboardTypeURL). Apple Mail
     // puts a `message:` URL on the drag pasteboard and none of the file-promise
     // types directly, so without this the drag would bypass us and go to
-    // WKWebView (which can't extract a file). pasteboardHasEmail: then filters
-    // to only accept drags that also carry a promise.
+    // WKWebView (which can't extract a file). Generic file URL drops (Finder,
+    // Thunderbird) also come through this same type and are dispatched to the
+    // file-URL branch of performDragOperation:.
     NSMutableArray<NSString*>* draggedTypes =
         [NSMutableArray arrayWithArray:[NSFilePromiseReceiver readableDraggedTypes]];
     [draggedTypes addObject:kLegacyFilesPromisePboardType];

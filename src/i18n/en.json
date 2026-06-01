@@ -103,6 +103,18 @@
         "title": "Drop files to import",
         "subtitle": "Any file type supported"
       },
+      "convertDialog": {
+        "title": "Import office files",
+        "description_one": "{{count}} file can be converted to a Markdown doc. How should we handle it?",
+        "description_other": "{{count}} files can be converted to Markdown docs. How should we handle them?",
+        "moreFiles_one": "and {{count}} more",
+        "moreFiles_other": "and {{count}} more",
+        "buttons": {
+          "convert": "Convert to docs",
+          "keep": "Keep as files",
+          "both": "Do both"
+        }
+      },
       "tree": {
         "searchPlaceholder": "Search docs…",
         "fileCount_one": "{{count}} file",
@@ -852,7 +864,9 @@
       "importDocs_other": "Imported {{count}} docs",
       "importFiles_one": "Imported {{count}} file",
       "importFiles_other": "Imported {{count}} files",
-      "importMixed": "Imported {{docs}} docs and {{files}} files"
+      "importMixed": "Imported {{docs}} docs and {{files}} files",
+      "convertFailed_one": "Could not convert {{name}}",
+      "convertFailed_other": "Could not convert {{count}} files"
     },
     "meeting": {
       "created": "Meeting created",

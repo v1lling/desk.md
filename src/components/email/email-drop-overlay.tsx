@@ -10,11 +10,15 @@ import { useTabStore } from "@/stores/tabs";
 
 // Listens for two parallel drop sources and funnels both into the same import:
 //
-//   1. Tauri's `onDragDropEvent` — fires for direct file-URL drops
-//      (Thunderbird, Finder).
-//   2. Tauri events `email-drag-{enter,leave,drop}` — emitted by our native
-//      Cocoa drop view (drop_view.m) when an NSFilePromiseReceiver-based
+//   1. Tauri events `email-drag-{enter,leave,drop}` — emitted by drop_view.m
+//      when an NSFilePromiseReceiver / namesOfPromisedFilesDroppedAtDestination
 //      drop lands (Apple Mail, Outlook for Mac Legacy + New).
+//   2. `getCurrentWebview().onDragDropEvent` — defensive fallback for any
+//      direct file-URL drop that bypasses the native overlay. In practice
+//      drop_view.m claims every URL pasteboard today and routes Finder /
+//      Thunderbird drops through `desk-files-drag-*` into the docs tree, so
+//      this branch is rarely hit. Kept in case macOS or Tauri behavior
+//      shifts later.
 export function EmailDropOverlay() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);

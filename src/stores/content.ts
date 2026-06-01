@@ -583,6 +583,7 @@ export function useImportFiles() {
       workspaceId,
       projectId,
       kind = "human",
+      convertibleAction = "keep",
     }: {
       files: Array<{ name: string; content: string | Uint8Array }>;
       scope: ContentScope;
@@ -590,7 +591,17 @@ export function useImportFiles() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.importFiles(files, scope, folderPath, workspaceId, projectId, kind),
+      convertibleAction?: contentLib.ConvertibleAction;
+    }) =>
+      contentLib.importFiles(
+        files,
+        scope,
+        folderPath,
+        workspaceId,
+        projectId,
+        kind,
+        convertibleAction,
+      ),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(

@@ -55,6 +55,8 @@ import { revealInFinder, type DocSortBy } from "./tree-item-utils";
 import { ContentDropZone } from "./content-drop-zone";
 import { NewDocModal } from "./new-doc-modal";
 import { DocsTree } from "./tree/docs-tree";
+import { ConvertFilesDialog, type ConvertChoice } from "./convert-files-dialog";
+import { isConvertibleFile } from "@/lib/desk/file-utils";
 
 interface DocsTreePaneProps {
   workspaceId: string;
@@ -92,6 +94,11 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const [newFolderParent, setNewFolderParent] = useState<string>("");
   const [newFolderName, setNewFolderName] = useState<string>("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+
+  // ── Convert-files dialog state ──────────────────────────────────────────────
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertDialogFiles, setConvertDialogFiles] = useState<string[]>([]);
+  const convertChoiceResolverRef = useRef<((choice: ConvertChoice | null) => void) | null>(null);
 
   // ── File count ──────────────────────────────────────────────────────────────
   const totalFiles = useMemo(() => {
@@ -185,9 +192,44 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
 
   // ── Imports (OS drag-drop + button) ─────────────────────────────────────────
 
+  const askConvertChoice = useCallback(
+    (filenames: string[]): Promise<ConvertChoice | null> => {
+      return new Promise((resolve) => {
+        convertChoiceResolverRef.current = resolve;
+        setConvertDialogFiles(filenames);
+        setConvertDialogOpen(true);
+      });
+    },
+    [],
+  );
+
+  const resolveConvertChoice = useCallback((choice: ConvertChoice | null) => {
+    const resolver = convertChoiceResolverRef.current;
+    convertChoiceResolverRef.current = null;
+    setConvertDialogOpen(false);
+    setConvertDialogFiles([]);
+    resolver?.(choice);
+  }, []);
+
   const handleFilesDropped = useCallback(
-    async (files: File[]) => {
+    async (files: File[], targetTreePath: string | null) => {
       try {
+        const convertibles = files.filter(
+          (f) => !isMarkdownFile(f.name) && isConvertibleFile(f.name),
+        );
+
+        let convertibleAction: ConvertChoice = "keep";
+        if (convertibles.length > 0) {
+          const choice = await askConvertChoice(convertibles.map((f) => f.name));
+          if (choice === null) return;
+          convertibleAction = choice;
+        }
+
+        // Resolve the drop target to scope/project/folder. Dropping on empty
+        // space (null) or the workspace root targets the workspace docs root.
+        const resolved = resolveTreePath(targetTreePath ?? "");
+        const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
+
         const fileContents = await Promise.all(
           files.map(async (file) => ({
             name: file.name,
@@ -198,23 +240,45 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         );
         const result = await importFiles.mutateAsync({
           files: fileContents,
-          scope: "workspace",
+          scope: resolved.scope,
+          folderPath: subPath || undefined,
           workspaceId,
-          // Default to human docs root; OS imports never target ai-docs implicitly.
-          kind: "human",
+          projectId: resolved.projectId,
+          kind,
+          convertibleAction,
         });
+
         const importedDocs = result.docs.length;
+        const convertedDocs = result.converted.length;
+        const docTotal = importedDocs + convertedDocs;
         const importedAssets = result.assets.length;
-        if (importedDocs > 0 && importedAssets > 0) {
-          toast.success(t("toasts.doc.importMixed", { docs: importedDocs, files: importedAssets }));
-        } else if (importedDocs > 0) toast.success(t("toasts.doc.importDocs", { count: importedDocs }));
-        else if (importedAssets > 0) toast.success(t("toasts.doc.importFiles", { count: importedAssets }));
+        const failedCount = result.failures.length;
+
+        if (docTotal > 0 && importedAssets > 0) {
+          toast.success(
+            t("toasts.doc.importMixed", { docs: docTotal, files: importedAssets }),
+          );
+        } else if (docTotal > 0) {
+          toast.success(t("toasts.doc.importDocs", { count: docTotal }));
+        } else if (importedAssets > 0) {
+          toast.success(t("toasts.doc.importFiles", { count: importedAssets }));
+        }
+
+        if (failedCount > 0) {
+          const firstFailure = result.failures[0];
+          toast.error(
+            t("toasts.doc.convertFailed", {
+              count: failedCount,
+              name: firstFailure.name,
+            }),
+          );
+        }
       } catch (err) {
         console.error("Failed to import files:", err);
         toast.error(t("errors.doc.importFailed"));
       }
     },
-    [importFiles, workspaceId, t],
+    [importFiles, workspaceId, t, askConvertChoice],
   );
 
   const handleImportClick = useCallback(() => {
@@ -224,7 +288,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        await handleFilesDropped(Array.from(files));
+        await handleFilesDropped(Array.from(files), null);
       }
     };
     input.click();
@@ -403,6 +467,14 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         defaultWorkspaceId={workspaceId}
         defaultProjectId={newDocProjectId}
         defaultFolderPath={newDocFolderPath}
+      />
+
+      {/* Convert files dialog */}
+      <ConvertFilesDialog
+        open={convertDialogOpen}
+        filenames={convertDialogFiles}
+        onChoice={(choice) => resolveConvertChoice(choice)}
+        onCancel={() => resolveConvertChoice(null)}
       />
 
       {/* New folder dialog */}

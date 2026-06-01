@@ -40,6 +40,7 @@ export {
 export { createFolder, renameFolder, deleteFolder, moveFolder } from "./content-folders";
 export { moveDocToProject, moveDoc } from "./content-move";
 export { createDocInFolder, importFiles } from "./content-import";
+export type { ConvertibleAction, ImportFilesResult } from "./content-import";
 
 // ============================================================================
 // Doc CRUD Operations

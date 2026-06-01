@@ -30,6 +30,18 @@ fn read_eml_file(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
+/// Read a user-dropped file as bytes. Paths come from a drag-drop event in the
+/// native Cocoa overlay, which the OS already gated by the user's drop gesture.
+/// Bypasses the fs plugin's scope so Finder-dropped files anywhere on disk work.
+/// Returns `tauri::ipc::Response` so the bytes cross the IPC boundary as a
+/// binary ArrayBuffer rather than a JSON number-array (matters for PDFs etc.).
+#[tauri::command]
+fn read_dropped_file(path: String) -> Result<tauri::ipc::Response, String> {
+    std::fs::read(&path)
+        .map(tauri::ipc::Response::new)
+        .map_err(|e| format!("Failed to read file: {}", e))
+}
+
 /// Delete a temp file that was created from a file-promise drop, after the
 /// frontend has parsed it. Paths originate from our own drop_view code under
 /// `NSTemporaryDirectory()/desk-drops/`, so missing-file is non-fatal.
@@ -257,6 +269,7 @@ pub fn run() {
             expand_fs_scope,
             allow_data_path,
             read_eml_file,
+            read_dropped_file,
             delete_dropped_file,
             open_file_with_default_app,
             reveal_in_finder,

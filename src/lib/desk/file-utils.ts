@@ -39,6 +39,29 @@ export function isMarkdownFile(filename: string): boolean {
   return ext ? (MARKDOWN_EXTENSIONS as readonly string[]).includes(ext) : false;
 }
 
+// Extensions that file-conversion can turn into a Markdown doc.
+// Kept here (not in FILE_CATEGORIES) because convertibility is a separate concern
+// from icon/category classification.
+export const CONVERTIBLE_EXTENSIONS = [
+  "docx",
+  "pdf",
+  "html",
+  "htm",
+  "csv",
+  "xlsx",
+  "xls",
+  "rtf",
+  "txt",
+] as const;
+
+/**
+ * Check if a file can be converted to Markdown via the file-conversion lib.
+ */
+export function isConvertibleFile(filename: string): boolean {
+  const ext = getExtension(filename);
+  return ext ? (CONVERTIBLE_EXTENSIONS as readonly string[]).includes(ext) : false;
+}
+
 /**
  * Get the category of a file based on its extension
  */

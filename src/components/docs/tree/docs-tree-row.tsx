@@ -165,11 +165,14 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
       <div
         ref={dragHandle}
         style={style}
+        data-drop-tree-path={data.treePath}
+        data-drop-target-kind="folder"
         className={cn(
           "group flex items-center gap-1 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
           node.isSelected && "bg-accent",
           node.willReceiveDrop && "bg-primary/10 ring-1 ring-primary/40",
+          "data-[desk-drop-target=true]:bg-primary/10 data-[desk-drop-target=true]:ring-1 data-[desk-drop-target=true]:ring-primary/40",
         )}
         onClick={handleClick}
         onDoubleClick={(e) => e.preventDefault()}
@@ -263,6 +266,8 @@ function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
       <div
         ref={dragHandle}
         style={style}
+        data-drop-tree-path={data.parentTreePath}
+        data-drop-target-kind="sibling"
         className={cn(
           "group flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
@@ -315,6 +320,8 @@ function AssetRow({ node, style, dragHandle }: DocsTreeRowProps) {
       <div
         ref={dragHandle}
         style={style}
+        data-drop-tree-path={data.parentTreePath}
+        data-drop-target-kind="sibling"
         className={cn(
           "group flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",

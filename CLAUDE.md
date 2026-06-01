@@ -83,8 +83,10 @@ Key features:
 
 Two parallel drop paths feed the same import pipeline:
 
-- **Direct file URLs** (Thunderbird, Finder) — handled by Tauri's built-in `onDragDropEvent` in [src/components/email/email-drop-overlay.tsx](src/components/email/email-drop-overlay.tsx).
-- **File promises** (Apple Mail, Outlook) — handled by a native Cocoa `NSView` overlay in [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m). Apple Mail / Outlook drag emails as `NSFilePromiseReceiver`, which Tauri's WKWebView drop handler ignores. The overlay accepts the promise, materializes it into `$TMPDIR/desk-drops/`, and emits `email-drag-{enter,leave,drop}` Tauri events.
+Both drop paths are handled by the native Cocoa `NSView` overlay in [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m), which sits above the WKWebView and claims every URL-bearing pasteboard:
+
+- **File promises** (Apple Mail, Outlook) — Apple Mail / Outlook drag emails as `NSFilePromiseReceiver` (or the legacy `NSFilesPromisePboardType`), which Tauri's WKWebView drop handler ignores. The overlay accepts the promise, materializes it into `$TMPDIR/desk-drops/`, and emits `email-drag-{enter,leave,drop}` Tauri events. [src/components/email/email-drop-overlay.tsx](src/components/email/email-drop-overlay.tsx) opens the resulting `.eml` in an email tab.
+- **Plain file URLs** (Thunderbird, Finder, anywhere else) — the same overlay extracts the file URLs and emits `desk-files-drag-{enter,leave,over,drop}` (drop payload includes cursor x/y in flipped/DOM coords). [src/components/docs/content-drop-zone.tsx](src/components/docs/content-drop-zone.tsx) routes these into the docs tree at the cursor row. Direct file URLs no longer reach Tauri's `getCurrentWebview().onDragDropEvent`; the listener in `email-drop-overlay.tsx` is kept as a defensive fallback only.
 
 The Cocoa file carries an inline comment block explaining the Apple Mail 60-second callback hang and the FSEvents workaround that makes drops feel instant for that client. Read [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m) before touching this code.
 

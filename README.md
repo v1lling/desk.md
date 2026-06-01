@@ -21,7 +21,7 @@
 desk.md is a local-first desktop app for running your projects (tasks, docs, and meetings) as plain Markdown files. Think of Obsidian's local vault, but with lightweight project and task management built in.
 
 - **Plain Markdown.** YAML frontmatter in an ordinary folder. No database,
-  no lock-in.
+  no lock-in. Drag in Word, PDF, Excel, CSV, or HTML files and they convert to Markdown docs.
 - **Project management.** Workspaces, projects, tasks, docs, and meetings,
   with statuses, priorities, due dates, Kanban or list views, and a
   quick-capture inbox in the home workspace.
