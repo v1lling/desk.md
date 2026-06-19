@@ -2,7 +2,7 @@
  * Content Move - Move docs between projects and folders
  */
 import type { Doc, DocKind, ContentScope } from "@/types";
-import { normalizeDate, generatePreview } from "./parser";
+import { normalizeDate, generatePreview, filenameToId } from "./parser";
 import { isTauri, joinPath } from "./tauri-fs";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
@@ -38,7 +38,8 @@ export async function moveDocToProject(
   }
 
   const fromDocsPath = await getDocsPath("project", workspaceId, fromProjectId);
-  const sourceFilePath = await findFileById(fromDocsPath, docId);
+  const baseId = docId.split("/").pop()!;
+  const sourceFilePath = await findFileById(fromDocsPath, baseId);
   if (!sourceFilePath) return null;
 
   const parsed = await readMarkdownFile<DocFrontmatter>(sourceFilePath);
@@ -52,7 +53,8 @@ export async function moveDocToProject(
   await moveMarkdownFile(sourceFilePath, targetFilePath);
 
   return {
-    id: docId,
+    // Lands at the target project's docs root, so ID is just the filename.
+    id: filenameToId(sourceFilename),
     projectId: toProjectId,
     workspaceId,
     filePath: targetFilePath,
@@ -91,7 +93,10 @@ export async function moveDoc(
   if (!isTauri()) {
     const doc = mockDocs.find((d) => d.id === docId);
     if (doc) {
-      doc.path = toPath ? `${toPath}/${doc.id}.md` : `${doc.id}.md`;
+      // docId is a scope-relative path; the filename is its last segment.
+      const baseFilename = `${docId.split("/").pop()!}.md`;
+      doc.path = toPath ? `${toPath}/${baseFilename}` : baseFilename;
+      doc.id = filenameToId(doc.path);
       // Reflect cross-kind moves in the mock filePath so subsequent path-based
       // kind derivation picks up the new directory.
       if (fromKind !== toKind) {
@@ -109,7 +114,10 @@ export async function moveDoc(
     ? await joinPath(fromBasePath, fromPath)
     : fromBasePath;
 
-  const sourceFilePath = await findFileById(fromDir, docId);
+  // docId is the scope-relative path; findFileById scans a single dir by
+  // basename, so strip the folder portion before matching.
+  const baseId = docId.split("/").pop()!;
+  const sourceFilePath = await findFileById(fromDir, baseId);
   if (!sourceFilePath) return null;
 
   const parsed = await readMarkdownFile<DocFrontmatter>(sourceFilePath);
@@ -128,7 +136,8 @@ export async function moveDoc(
 
   const homeWorkspaceId = await getHomeWorkspaceId();
   return {
-    id: docId,
+    // ID follows the doc's new location.
+    id: filenameToId(newRelPath),
     path: newRelPath,
     projectId: projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
     workspaceId: workspaceId || homeWorkspaceId,

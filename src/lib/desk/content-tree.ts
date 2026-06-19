@@ -125,7 +125,10 @@ async function buildContentTreeRecursive(
       nodes.push({
         type: "doc",
         doc: {
-          id: filenameToId(file.name),
+          // ID is the scope-relative path (minus .md), NOT the bare filename —
+          // docs nest in arbitrary folders, so two "Ideen.md" in different
+          // folders must get distinct IDs or they collide in lookup/tabs.
+          id: filenameToId(docRelPath),
           path: docRelPath,
           projectId,
           workspaceId,
@@ -160,6 +163,9 @@ async function buildContentTreeRecursive(
     nodes.push({
       type: "asset",
       asset: {
+        // Bare filename — assets are never looked up by id globally, and the
+        // arborist adapter qualifies them by parentTreePath, so the basename
+        // suffices (and is what the tree row displays). Uniqueness lives in `path`.
         id: file.name,
         path: assetRelPath,
         projectId,
@@ -412,7 +418,8 @@ export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKi
  *
  * Asymmetry: only folder `path` fields are rewritten here. Doc/asset `path` stays as the
  * on-disk relative path (those leaves are addressed via `filePath`, and the arborist adapter
- * derives a leaf's tree-id by joining the already-prefixed parent treePath with the leaf id).
+ * derives a leaf's tree-id by joining the already-prefixed parent treePath with the leaf's
+ * basename — a doc id is a full scope-relative path, an asset id is the bare filename).
  */
 export function prefixSubtreePaths(nodes: FileTreeNode[], prefix: string): FileTreeNode[] {
   if (!prefix) return nodes;

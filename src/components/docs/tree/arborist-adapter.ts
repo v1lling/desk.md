@@ -1,8 +1,9 @@
 /**
  * Adapter between our `FileTreeNode[]` shape and react-arborist's expected data.
  *
- * Arborist requires unique `id` per node. Our raw node keys (doc.id, asset.path)
- * can collide between docs/ and ai-docs/ trees, so we qualify them by tree path.
+ * Arborist requires unique `id` per node. Leaf names (a doc's basename, an asset's
+ * filename) can collide between docs/ and ai-docs/ trees, so we qualify each node
+ * by its tree path (parent treePath joined with the leaf basename).
  */
 
 import i18next from "i18next";
@@ -61,8 +62,11 @@ export function nodesToArborist(
       };
     }
     if (node.type === "doc") {
+      // doc.id is a full scope-relative path (e.g. "MyFolder/doc1"); join the
+      // parent treePath (which already carries the folder path + AI prefix) with
+      // just the basename so the folder segment isn't duplicated.
       const treePath = parentTreePath
-        ? `${parentTreePath}/${node.doc.id}`
+        ? `${parentTreePath}/${node.doc.id.split("/").pop()}`
         : node.doc.id;
       return {
         id: buildId("doc", treePath),

@@ -34,7 +34,6 @@ export async function createDocInFolder(data: {
 }): Promise<Doc> {
   const kind = data.kind || "human";
   const filename = generateFilename(data.title);
-  const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const homeWorkspaceId = await getHomeWorkspaceId();
   const wsId = data.workspaceId || homeWorkspaceId;
@@ -43,6 +42,9 @@ export async function createDocInFolder(data: {
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`
     : filename;
+  // ID is the scope-relative path (minus .md) so it matches what the tree
+  // derives in content-tree.ts and stays unique across nested folders.
+  const id = filenameToId(relPath);
 
   const doc: Doc = {
     id,

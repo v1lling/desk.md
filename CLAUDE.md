@@ -7,8 +7,12 @@
 ```bash
 npm run dev          # Browser with mock data (port 3001)
 npm run tauri:dev    # Desktop with real file system
-npm run tauri:build  # Production build
+npm run build        # Type-check (tsc -b) + production web build — run before committing
+npm run lint         # ESLint (flat config in eslint.config.mjs)
+npm run tauri:build  # Production desktop build
 ```
+
+> Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. There is no test runner — `tests/` is empty and there is no `test` script; verify changes via `npm run build` + manual run.
 
 ## Core Concept
 
@@ -63,7 +67,9 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `src/pages/` | Page components (one per route) |
 | `src/app/` | App shell, providers, globals.css |
 
-## Current State: v0.7
+## Current State: v0.9
+
+> The source of truth for the version is `package.json` / `src-tauri/tauri.conf.json`. Keep this heading in sync when bumping.
 
 Key features:
 - Dashboard with Focus and Workspaces widgets
@@ -72,8 +78,11 @@ Key features:
 - Workspaces with color coding (home workspace defaults to indigo)
 - Projects Hub at `/projects`: secondary-sidebar project list + an overview dashboard
   (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
-- **Docs**: Tree structure with folders, drag-drop import
+- **Docs**: Tree structure with folders; drag-drop import converts Word/PDF/Excel/CSV/HTML
+  to Markdown (mammoth, pdfjs-dist, read-excel-file, papaparse, turndown), targeting the drop folder
 - **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index)
+- **i18n**: all UI copy via i18next/react-i18next from [src/i18n/en.json](src/i18n/en.json)
+- Cross-platform: macOS, Windows, and Linux (email drag-drop overlay is macOS-only)
 - Global search (Cmd+K)
 - Manual save with Cmd+S, unsaved changes protection
 
