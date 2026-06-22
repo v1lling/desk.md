@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sidebar, SecondarySidebar } from "@/components/layout";
@@ -18,6 +18,13 @@ import { Search } from "lucide-react";
 interface AppShellProps {
   children: React.ReactNode;
 }
+
+// Hosted mode only: the auth gate (and better-auth) is lazy-loaded behind the
+// build flag, so the Tauri / browser-mock bundles never include it. When the flag
+// is unset this constant-folds to null and Rollup drops the dynamic import.
+const HostedAuthGate = import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("@/components/auth/hosted-auth-gate"))
+  : null;
 
 export function AppShell({ children }: AppShellProps) {
   const { t } = useTranslation();
@@ -59,18 +66,16 @@ export function AppShell({ children }: AppShellProps) {
     setHasMacTrafficLights(needsTrafficLightPadding());
   }, []);
 
+  // Shown while hydrating and while the hosted auth gate resolves the session.
+  const loadingView = (
+    <div className="flex h-screen bg-background items-center justify-center">
+      <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
+    </div>
+  );
+
   // Show nothing until hydrated (prevents flash)
   if (!hydrated) {
-    return (
-      <div className="flex h-screen bg-background items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
-      </div>
-    );
-  }
-
-  // Show setup wizard if not completed
-  if (!setupCompleted) {
-    return <SetupWizard />;
+    return loadingView;
   }
 
   const bodyGridTemplate = hasSecondary
@@ -84,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
     : sidebarWidth;
   const titleBarGridTemplate = `${titleBarFirstCol}px ${RESIZE_HANDLE_WIDTH}px minmax(0,1fr)`;
 
-  return (
+  const shell = (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <div
         className="h-10 shrink-0 border-b border-border/80 bg-muted/15 grid"
@@ -153,4 +158,20 @@ export function AppShell({ children }: AppShellProps) {
       <AIConsentDialog />
     </div>
   );
+
+  // Hosted mode: gate the shell behind Better Auth; the local setup wizard is
+  // skipped (the data root is server-side, not user-chosen on web).
+  if (HostedAuthGate) {
+    return (
+      <Suspense fallback={loadingView}>
+        <HostedAuthGate>{shell}</HostedAuthGate>
+      </Suspense>
+    );
+  }
+
+  // Local mode (Tauri / browser-mock): onboarding gate, then the shell.
+  if (!setupCompleted) {
+    return <SetupWizard />;
+  }
+  return shell;
 }

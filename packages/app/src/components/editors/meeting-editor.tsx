@@ -73,6 +73,27 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     [meeting, workspaceId, title]
   );
 
+  // Hosted/web body save: persist through the update mutation (server merges
+  // frontmatter). Ignored in Tauri, which writes to disk directly.
+  const persistBody = useCallback(
+    async (body: string): Promise<boolean> => {
+      if (!meeting) return false;
+      try {
+        await updateMeeting.mutateAsync({
+          meetingId: meeting.id,
+          workspaceId: meeting.workspaceId,
+          projectId: meeting.projectId,
+          updates: { content: body },
+        });
+        return true;
+      } catch (error) {
+        console.error("[meeting-editor] Failed to persist body:", error);
+        return false;
+      }
+    },
+    [meeting, updateMeeting]
+  );
+
   const {
     content,
     setContent,
@@ -97,6 +118,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     initialContent: meeting?.content ?? "",
     enabled: !!meeting,
     onSaveComplete: handleSaveComplete,
+    persistBody,
   });
 
   // Shared save hooks

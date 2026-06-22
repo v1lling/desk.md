@@ -73,6 +73,22 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     [doc, workspaceId, title]
   );
 
+  // Hosted/web body save: persist through the update mutation (server merges
+  // frontmatter). Ignored in Tauri, which writes to disk directly.
+  const persistBody = useCallback(
+    async (body: string): Promise<boolean> => {
+      if (!doc) return false;
+      try {
+        await updateDoc.mutateAsync({ doc, updates: { content: body } });
+        return true;
+      } catch (error) {
+        console.error("[doc-editor] Failed to persist body:", error);
+        return false;
+      }
+    },
+    [doc, updateDoc]
+  );
+
   const {
     content,
     setContent,
@@ -97,6 +113,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     initialContent: doc?.content ?? "",
     enabled: !!doc,
     onSaveComplete: handleSaveComplete,
+    persistBody,
   });
 
   // Shared save hooks

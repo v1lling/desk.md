@@ -16,6 +16,7 @@ import * as workspacesApi from "../workspaces";
 import * as meetingsApi from "../meetings";
 import * as personalApi from "../personal";
 import * as contentApi from "../content";
+import * as dashboardApi from "../dashboard";
 import type { DeskService } from "./deskservice";
 
 export const localDeskService: DeskService = {
@@ -89,4 +90,10 @@ export const localDeskService: DeskService = {
   importFiles: contentApi.importFiles,
   moveDocToProject: contentApi.moveDocToProject,
   moveDoc: contentApi.moveDoc,
+
+  // Dashboard / planner aggregators
+  getFocusTasks: dashboardApi.getFocusTasks,
+  getWorkspaceSummaries: dashboardApi.getWorkspaceSummaries,
+  getAllWorkspaceTasks: dashboardApi.getAllWorkspaceTasks,
+  getAllWorkspaceTasksAllStatuses: dashboardApi.getAllWorkspaceTasksAllStatuses,
 };

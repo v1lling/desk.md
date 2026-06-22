@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import * as dashboardLib from "@desk/core";
+import { getDeskService } from "@desk/core";
 
 // Query keys
 export const dashboardKeys = {
@@ -14,7 +14,7 @@ export const dashboardKeys = {
 export function useFocusTasks() {
   return useQuery({
     queryKey: dashboardKeys.focusTasks(),
-    queryFn: () => dashboardLib.getFocusTasks(),
+    queryFn: () => getDeskService().getFocusTasks(),
   });
 }
 
@@ -24,7 +24,7 @@ export function useFocusTasks() {
 export function useWorkspaceSummaries() {
   return useQuery({
     queryKey: dashboardKeys.workspaceSummaries(),
-    queryFn: () => dashboardLib.getWorkspaceSummaries(),
+    queryFn: () => getDeskService().getWorkspaceSummaries(),
   });
 }
 

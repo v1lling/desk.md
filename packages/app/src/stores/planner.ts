@@ -7,10 +7,7 @@ import { persist } from "zustand/middleware";
 import { useQuery } from "@tanstack/react-query";
 import type { WeekPlan, WorkspaceBlock } from "@desk/core/types";
 import { createFileStorage } from "./file-storage";
-import {
-  getAllWorkspaceTasks,
-  getAllWorkspaceTasksAllStatuses,
-} from "@desk/core";
+import { getDeskService } from "@desk/core";
 
 // ── Zustand store for week plans ────────────────────────────────────
 
@@ -319,7 +316,7 @@ export const plannerKeys = {
 export function useAllWorkspaceTasks() {
   return useQuery({
     queryKey: plannerKeys.allTasks(),
-    queryFn: () => getAllWorkspaceTasks(),
+    queryFn: () => getDeskService().getAllWorkspaceTasks(),
     staleTime: 30_000,
   });
 }
@@ -330,7 +327,7 @@ export function useAllWorkspaceTasks() {
 export function useAllWorkspaceTasksAllStatuses() {
   return useQuery({
     queryKey: plannerKeys.allTasksAllStatuses(),
-    queryFn: () => getAllWorkspaceTasksAllStatuses(),
+    queryFn: () => getDeskService().getAllWorkspaceTasksAllStatuses(),
     staleTime: 30_000,
   });
 }

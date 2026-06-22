@@ -63,6 +63,14 @@ interface UseEditorSessionOptions {
   enabled: boolean;
   /** Called after successful save with the path and content that was saved */
   onSaveComplete?: (path: string, content: string) => void;
+  /**
+   * Hosted/web mode persistence. In Tauri the body is written straight to disk
+   * via getStorage(); on the web client getStorage() is the mock BrowserProvider,
+   * so the body must be persisted through the DeskService update mutation
+   * instead (the server merges frontmatter). When set and not running in Tauri,
+   * save() calls this with the body and expects true on success.
+   */
+  persistBody?: (content: string) => Promise<boolean>;
 }
 
 interface UseEditorSessionReturn {
@@ -102,6 +110,7 @@ export function useEditorSession({
   initialContent,
   enabled,
   onSaveComplete,
+  persistBody,
 }: UseEditorSessionOptions): UseEditorSessionReturn {
   // Use getState() for imperative operations to avoid re-render loops
   const getRegistry = useCallback(() => useOpenEditorRegistry.getState(), []);
@@ -264,6 +273,28 @@ export function useEditorSession({
     savingRef.current = true;
     setSaveStatus("saving");
     try {
+      // Hosted/web mode: the domain runs on the server. Persist the body through
+      // the DeskService update mutation (server merges frontmatter), since
+      // getStorage() here is the mock BrowserProvider.
+      //
+      // Asymmetry vs the Tauri branch below: this path intentionally skips the
+      // fileDeleted/pathChanged recovery the desktop save has. That's acceptable on
+      // web — the file isn't on a user-visible disk that an external tool can delete
+      // or rename out from under the editor; the server owns it.
+      if (!isTauri() && persistBody) {
+        const ok = await persistBody(contentToSave);
+        if (!ok) {
+          setSaveStatus("error");
+          return false;
+        }
+        lastSavedRef.current = contentToSave;
+        getRegistry().updateLastSaved(path, contentToSave);
+        setIsDirty(false);
+        setSaveStatus("idle");
+        onSaveComplete?.(path, contentToSave);
+        return true;
+      }
+
       // Preserve frontmatter by reading existing file, updating body, and rewriting
       let fullContent = contentToSave;
       if (isTauri()) {
@@ -295,7 +326,7 @@ export function useEditorSession({
     } finally {
       savingRef.current = false;
     }
-  }, [getRegistry, fileDeleted, pathChanged, onSaveComplete]);
+  }, [getRegistry, fileDeleted, pathChanged, onSaveComplete, persistBody]);
 
   // Recover: file was deleted externally but we still have unsaved edits.
   // Re-create the file at the original path with the last-known frontmatter

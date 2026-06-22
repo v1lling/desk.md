@@ -1114,6 +1114,32 @@
       "finish": "Finish"
     }
   },
+  "auth": {
+    "create": {
+      "title": "Create your account",
+      "subtitle": "Set up the account that secures this desk.",
+      "submit": "Create account"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your desk.",
+      "submit": "Sign in"
+    },
+    "fields": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "signOut": "Sign out",
+    "account": {
+      "title": "Account",
+      "description": "You are signed in to this hosted desk.",
+      "signOutLabel": "Sign out",
+      "signOutDescription": "End your session on this device."
+    }
+  },
   "tooltips": {
     "priorityIcon": "{{label}} priority",
     "appShell": {

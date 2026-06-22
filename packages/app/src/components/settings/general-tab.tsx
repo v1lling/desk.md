@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -17,6 +18,12 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   type Language,
 } from "@/stores/preferences";
+
+// Hosted mode only: the account/sign-out section (and better-auth) is lazy-loaded
+// behind the build flag, so the desktop bundle never includes it.
+const HostedAccountSection = import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./hosted-account-section"))
+  : null;
 
 export function GeneralTab() {
   const { t } = useTranslation();
@@ -138,6 +145,12 @@ export function GeneralTab() {
           </div>
         </div>
       </SettingsSection>
+
+      {HostedAccountSection && (
+        <Suspense fallback={null}>
+          <HostedAccountSection />
+        </Suspense>
+      )}
     </div>
   );
 }

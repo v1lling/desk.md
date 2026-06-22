@@ -16,6 +16,7 @@ import type { DeskService } from "./deskservice";
 import { localDeskService } from "./local-deskservice";
 
 export type { DeskService } from "./deskservice";
+export { encode, decode } from "./rpc-codec";
 
 let activeService: DeskService = localDeskService;
 

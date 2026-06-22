@@ -57,6 +57,18 @@ async function bootstrap() {
     writeTopLevel: writeTopLevelAgentFiles,
   });
 
+  // Hosted mode (step 3a): when this bundle is built for the server
+  // (VITE_DESK_HOSTED=1, via `npm run build:hosted`), the domain runs on the
+  // server — inject a RemoteDeskService so every getDeskService() call goes over
+  // HTTP instead of the in-process LocalDeskService. The default builds (Tauri
+  // desktop, browser mock) leave the flag unset and keep running the domain
+  // locally. Same-origin → no CORS.
+  if (import.meta.env.VITE_DESK_HOSTED) {
+    const { setDeskService } = await import("@desk/core");
+    const { createRemoteDeskService } = await import("./lib/remote-desk-service");
+    setDeskService(createRemoteDeskService(window.location.origin));
+  }
+
   // Dynamic import: the App module graph (and every store with persist) is
   // only evaluated now, after the FS scope is in place.
   const { App } = await import("./app");

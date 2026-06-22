@@ -26,6 +26,7 @@ import type * as workspacesApi from "../workspaces";
 import type * as meetingsApi from "../meetings";
 import type * as personalApi from "../personal";
 import type * as contentApi from "../content";
+import type * as dashboardApi from "../dashboard";
 
 export interface DeskService {
   // ── Tasks ───────────────────────────────────────────────────────────
@@ -98,4 +99,12 @@ export interface DeskService {
   importFiles: typeof contentApi.importFiles;
   moveDocToProject: typeof contentApi.moveDocToProject;
   moveDoc: typeof contentApi.moveDoc;
+
+  // ── Dashboard / planner aggregators (cross-workspace reads) ─────────
+  // Promoted to service methods so they run server-side in hosted mode (one
+  // round-trip), instead of fanning out N+1 domain calls from the client.
+  getFocusTasks: typeof dashboardApi.getFocusTasks;
+  getWorkspaceSummaries: typeof dashboardApi.getWorkspaceSummaries;
+  getAllWorkspaceTasks: typeof dashboardApi.getAllWorkspaceTasks;
+  getAllWorkspaceTasksAllStatuses: typeof dashboardApi.getAllWorkspaceTasksAllStatuses;
 }

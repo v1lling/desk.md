@@ -80,6 +80,27 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     [task, workspaceId, title]
   );
 
+  // Hosted/web body save: persist through the update mutation (server merges
+  // frontmatter). Ignored in Tauri, which writes to disk directly.
+  const persistBody = useCallback(
+    async (body: string): Promise<boolean> => {
+      if (!task) return false;
+      try {
+        await updateTask.mutateAsync({
+          taskId: task.id,
+          workspaceId: task.workspaceId,
+          projectId: task.projectId,
+          updates: { content: body },
+        });
+        return true;
+      } catch (error) {
+        console.error("[task-editor] Failed to persist body:", error);
+        return false;
+      }
+    },
+    [task, updateTask]
+  );
+
   const {
     content,
     setContent,
@@ -99,9 +120,12 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     type: "task",
     entityId: taskId,
     filePath: task?.filePath,
-    initialContent: "",
+    // In Tauri the body is loaded fresh from disk; this fallback is what the
+    // editor shows in browser/hosted mode (from getTask()).
+    initialContent: task?.content ?? "",
     enabled: !!task,
     onSaveComplete: handleSaveComplete,
+    persistBody,
   });
 
   // Shared save hooks
