@@ -38,6 +38,8 @@ export function useEditorProjectMove<TArgs>({
       setCurrentProjectId(entity.projectId);
       setOriginalProjectId(entity.projectId);
     }
+    // Re-init only when the entity identity changes, not on every field edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity?.id, entity?.workspaceId]);
 
   const handleProjectChange = useCallback(

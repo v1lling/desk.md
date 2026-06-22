@@ -7,7 +7,7 @@ import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./p
 import { isTauri, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
+import { SPECIAL_DIRS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getHomeWorkspaceId } from "./workspaces";
 import { getDocsPath, getAIDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";

@@ -5,7 +5,11 @@
  * for the desk.md data model.
  */
 
-// ── CRUD operations ─────────────────────────────────────────────────
+// ── Domain operations (SEAM 2) ──────────────────────────────────────
+// External callers reach domain CRUD via getDeskService() from ./service.
+// The module-level functions below stay exported for use *inside* lib/desk
+// (LocalDeskService binds them; aggregators like dashboard.ts call them directly).
+export * from "./service";
 export * from "./workspaces";
 export * from "./projects";
 export * from "./tasks";

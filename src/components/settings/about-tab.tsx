@@ -109,6 +109,7 @@ export function AboutTab() {
         description={t("settings.about.license.description")}
       >
         <div className="flex items-center justify-between py-1 text-sm">
+          {/* eslint-disable-next-line i18next/no-literal-string -- SPDX license identifier, not translatable */}
           <span className="font-mono text-foreground/80">GPL-3.0-or-later</span>
           <Button
             variant="outline"

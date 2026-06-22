@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Meeting } from "@/types";
-import * as meetingLib from "@/lib/desk/meetings";
+import { getDeskService } from "@/lib/desk/service";
 
 // Query keys
 export const meetingKeys = {
@@ -20,7 +20,7 @@ export function useMeetings(workspaceId: string | null) {
     queryKey: meetingKeys.byWorkspace(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return meetingLib.getMeetings(workspaceId);
+      return getDeskService().getMeetings(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -34,7 +34,7 @@ export function useProjectMeetings(workspaceId: string | null, projectId: string
     queryKey: meetingKeys.byProject(workspaceId || "", projectId || ""),
     queryFn: async () => {
       if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return meetingLib.getMeetingsByProject(workspaceId, projectId);
+      return getDeskService().getMeetingsByProject(workspaceId, projectId);
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -48,7 +48,7 @@ export function useMeeting(workspaceId: string | null, meetingId: string | null)
     queryKey: meetingKeys.detail(workspaceId || "", meetingId || ""),
     queryFn: async () => {
       if (!workspaceId || !meetingId) throw new Error("workspaceId and meetingId are required");
-      return meetingLib.getMeeting(workspaceId, meetingId);
+      return getDeskService().getMeeting(workspaceId, meetingId);
     },
     enabled: !!workspaceId && !!meetingId,
   });
@@ -68,7 +68,7 @@ export function useCreateMeeting() {
       date?: string;
       content?: string;
       templateBody?: string;
-    }) => meetingLib.createMeeting(data),
+    }) => getDeskService().createMeeting(data),
     onSuccess: (newMeeting) => {
       queryClient.invalidateQueries({
         queryKey: meetingKeys.byWorkspace(newMeeting.workspaceId),
@@ -94,7 +94,7 @@ export function useUpdateMeeting() {
       workspaceId: string;
       projectId: string;
       updates: Partial<Pick<Meeting, "title" | "date" | "content">>;
-    }) => meetingLib.updateMeeting(meetingId, updates, workspaceId, projectId),
+    }) => getDeskService().updateMeeting(meetingId, updates, workspaceId, projectId),
     onSuccess: (updatedMeeting) => {
       if (updatedMeeting) {
         // Directly update meeting in all cached list queries (avoids stale file-tree cache race).
@@ -132,7 +132,7 @@ export function useMoveMeetingToProject() {
       workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => meetingLib.moveMeetingToProject(meetingId, workspaceId, fromProjectId, toProjectId),
+    }) => getDeskService().moveMeetingToProject(meetingId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: meetingKeys.byWorkspace(variables.workspaceId),
@@ -152,7 +152,7 @@ export function useDeleteMeeting() {
 
   return useMutation({
     mutationFn: ({ meetingId, workspaceId, projectId }: { meetingId: string; workspaceId: string; projectId: string }) =>
-      meetingLib.deleteMeeting(meetingId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
+      getDeskService().deleteMeeting(meetingId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({

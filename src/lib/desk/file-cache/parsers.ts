@@ -5,7 +5,7 @@
  * Each parser transforms raw file content into a typed structure.
  */
 
-import { parseMarkdown, generatePreview, normalizeDate, filenameToId } from "../parser";
+import { parseMarkdown, generatePreview, normalizeDate } from "../parser";
 import type { ContentParser } from "./types";
 
 /**

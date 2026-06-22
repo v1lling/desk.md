@@ -36,7 +36,7 @@ import {
   writeTopLevelAgentFiles,
   deleteGeneratedAgentFiles,
 } from "@/lib/context-index/agent-context";
-import { getProjects } from "@/lib/desk/projects";
+import { getDeskService } from "@/lib/desk/service";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
 
@@ -91,7 +91,7 @@ export function SmartIndexSection() {
         setIndex(workspace.id, index);
         await writeWorkspaceContextArtifact(index);
         // Refresh per-workspace agent files (project list may have changed)
-        getProjects(workspace.id).then((projects) =>
+        getDeskService().getProjects(workspace.id).then((projects) =>
           writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
         ).catch(() => {});
 

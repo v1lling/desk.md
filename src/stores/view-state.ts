@@ -229,6 +229,9 @@ export function useExpandedFolders(
   // Memoize the setExpandedFolders callback to prevent recreating on every render
   const setExpandedFolders = useCallback(
     (folders: string[]) => mutation.mutate(folders),
+    // mutation.mutate is a stable ref; depending on the whole mutation would
+    // recreate this callback every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [mutation.mutate]
   );
 
@@ -306,6 +309,9 @@ export function useHighlightedTasks(
 
   const toggleHighlight = useCallback(
     (taskId: string) => toggleMutation.mutate(taskId),
+    // toggleMutation.mutate is a stable ref; depending on the whole mutation would
+    // recreate this callback every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [toggleMutation.mutate]
   );
 
@@ -389,6 +395,9 @@ export function useHiddenStatuses(
       }
       mutation.mutate([...next]);
     },
+    // mutation.mutate is a stable ref; depending on the whole mutation would
+    // recreate this callback every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [hiddenStatuses, mutation.mutate]
   );
 

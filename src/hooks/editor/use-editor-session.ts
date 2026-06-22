@@ -189,7 +189,10 @@ export function useEditorSession({
     return () => {
       cancelled = true;
     };
-  }, [enabled, filePath, entityId]); // Note: intentionally not depending on initialContent
+    // Loads from disk keyed on file identity; initialContent/getRegistry are
+    // intentionally excluded (would re-load on every prop change; getRegistry is stable).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, filePath, entityId]);
 
   // Register session on mount and subscribe to external changes
   useEffect(() => {

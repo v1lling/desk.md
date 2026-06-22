@@ -213,7 +213,9 @@ export function AITab() {
                     <p className="font-medium">{t("settings.ai.browserMode.title")}</p>
                     <p className="text-muted-foreground text-xs">
                       {t("settings.ai.browserMode.descriptionStart")}{" "}
+                      {/* eslint-disable-next-line i18next/no-literal-string -- shell command, not translatable */}
                       <code className="font-mono">npm run dev</code>{t("settings.ai.browserMode.descriptionMiddle")}{" "}
+                      {/* eslint-disable-next-line i18next/no-literal-string -- shell command, not translatable */}
                       <code className="font-mono">npm run tauri:dev</code>{t("settings.ai.browserMode.descriptionEnd")}
                     </p>
                   </div>

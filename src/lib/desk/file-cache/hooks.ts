@@ -7,7 +7,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useCallback, useRef } from "react";
-import type { TreeNode, TraversalOptions, CacheStats, ContentParser } from "./types";
+import type { TraversalOptions, CacheStats, ContentParser } from "./types";
 import { getFileTreeService } from "./service";
 import { connectToWatcher, disconnectFromWatcher } from "./cache-invalidator";
 
@@ -182,7 +182,7 @@ export function useFileTreeSubscription(relativePath: string = "") {
   useEffect(() => {
     const service = getFileTreeService();
 
-    const unsubscribe = service.subscribe(relativePath, (event) => {
+    const unsubscribe = service.subscribe(relativePath, () => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({
         queryKey: fileTreeKeys.all,

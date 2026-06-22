@@ -28,7 +28,8 @@ export const useContextIndexStore = create<ContextIndexState>()(
 
       removeIndex: (workspaceId) =>
         set((state) => {
-          const { [workspaceId]: _, ...rest } = state.indexes;
+          const rest = { ...state.indexes };
+          delete rest[workspaceId];
           return { indexes: rest };
         }),
 

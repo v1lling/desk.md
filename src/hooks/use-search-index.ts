@@ -7,11 +7,8 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   rebuildIndex,
-  upsertItem,
-  removeItem,
   taskToSearchItem,
   docToSearchItem,
   meetingToSearchItem,
@@ -20,24 +17,17 @@ import {
 } from "@/lib/desk/search-index";
 import {
   onFileChange,
-  getItemTypeFromPath,
   getWorkspaceIdFromPath,
-  getProjectIdFromPath,
   type WatchEvent,
 } from "@/lib/desk/watcher";
 import { isTauri } from "@/lib/desk/env";
-import * as taskLib from "@/lib/desk/tasks";
-import * as contentLib from "@/lib/desk/content";
-import * as meetingLib from "@/lib/desk/meetings";
-import * as projectLib from "@/lib/desk/projects";
-import * as workspaceLib from "@/lib/desk/workspaces";
+import { getDeskService } from "@/lib/desk/service";
 
 /**
  * Hook to initialize and maintain the search index
  * Call this once at app root level
  */
 export function useSearchIndex() {
-  const queryClient = useQueryClient();
   const isBuilding = useRef(false);
   const isInitialized = useRef(false);
 
@@ -50,13 +40,12 @@ export function useSearchIndex() {
       const searchItems: SearchItem[] = [];
 
       // Get all workspaces
-      const workspaces = await workspaceLib.getWorkspaces();
-      const workspaceMap = new Map(workspaces.map((a) => [a.id, a.name]));
+      const workspaces = await getDeskService().getWorkspaces();
 
       // For each workspace, get all projects, tasks, notes, meetings
       for (const workspace of workspaces) {
         // Get projects
-        const projects = await projectLib.getProjects(workspace.id);
+        const projects = await getDeskService().getProjects(workspace.id);
         const projectMap = new Map(projects.map((p) => [p.id, p.name]));
 
         // Add projects to index
@@ -65,7 +54,7 @@ export function useSearchIndex() {
         }
 
         // Get tasks for the workspace
-        const tasks = await taskLib.getTasks(workspace.id);
+        const tasks = await getDeskService().getTasks(workspace.id);
         for (const task of tasks) {
           searchItems.push(
             taskToSearchItem(task, workspace.name, projectMap.get(task.projectId))
@@ -73,7 +62,7 @@ export function useSearchIndex() {
         }
 
         // Get docs for the workspace
-        const docs = await contentLib.getDocs(workspace.id);
+        const docs = await getDeskService().getDocs(workspace.id);
         for (const doc of docs) {
           searchItems.push(
             docToSearchItem(doc, workspace.name, projectMap.get(doc.projectId))
@@ -81,7 +70,7 @@ export function useSearchIndex() {
         }
 
         // Get meetings for the workspace
-        const meetings = await meetingLib.getMeetings(workspace.id);
+        const meetings = await getDeskService().getMeetings(workspace.id);
         for (const meeting of meetings) {
           searchItems.push(
             meetingToSearchItem(

@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Project, ProjectStatus } from "@/types";
-import * as projectLib from "@/lib/desk/projects";
+import { getDeskService } from "@/lib/desk/service";
 import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
-import { getWorkspace } from "@/lib/desk/workspaces";
 import { contentKeys } from "./content";
 
 /** Regenerate per-workspace agent files when projects change */
 function regenerateWorkspaceAgentFiles(workspaceId: string) {
-  Promise.all([getWorkspace(workspaceId), projectLib.getProjects(workspaceId)])
+  Promise.all([getDeskService().getWorkspace(workspaceId), getDeskService().getProjects(workspaceId)])
     .then(([ws, projects]) => {
       if (ws) writePerWorkspaceAgentFiles(workspaceId, ws, projects);
     })
@@ -31,7 +30,7 @@ export function useProjects(workspaceId: string | null) {
     queryKey: projectKeys.byWorkspace(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return projectLib.getProjects(workspaceId);
+      return getDeskService().getProjects(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -45,7 +44,7 @@ export function useProject(workspaceId: string | null, projectId: string | null)
     queryKey: projectKeys.detail(workspaceId || "", projectId || ""),
     queryFn: async () => {
       if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return projectLib.getProject(workspaceId, projectId);
+      return getDeskService().getProject(workspaceId, projectId);
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -59,7 +58,7 @@ export function useProjectStats(workspaceId: string | null) {
     queryKey: projectKeys.stats(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return projectLib.getProjectStats(workspaceId);
+      return getDeskService().getProjectStats(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -77,7 +76,7 @@ export function useCreateProject() {
       name: string;
       description?: string;
       status?: ProjectStatus;
-    }) => projectLib.createProject(data),
+    }) => getDeskService().createProject(data),
     onSuccess: (newProject) => {
       queryClient.invalidateQueries({
         queryKey: projectKeys.byWorkspace(newProject.workspaceId),
@@ -105,7 +104,7 @@ export function useUpdateProject() {
       projectId: string;
       workspaceId: string;
       updates: Partial<Pick<Project, "name" | "status" | "description">>;
-    }) => projectLib.updateProject(projectId, updates, workspaceId),
+    }) => getDeskService().updateProject(projectId, updates, workspaceId),
     onSuccess: (updatedProject, variables) => {
       if (updatedProject) {
         queryClient.invalidateQueries({
@@ -128,7 +127,7 @@ export function useDeleteProject() {
 
   return useMutation({
     mutationFn: ({ projectId, workspaceId }: { projectId: string; workspaceId: string }) =>
-      projectLib.deleteProject(projectId, workspaceId).then((success) => ({ success, workspaceId })),
+      getDeskService().deleteProject(projectId, workspaceId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({

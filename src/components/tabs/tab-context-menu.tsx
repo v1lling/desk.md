@@ -42,6 +42,7 @@ export function TabContextMenu({
         {!tab.isPinned && (
           <ContextMenuItem onClick={handleClose}>
             {t("menus.tabContextMenu.close")}
+            {/* eslint-disable-next-line i18next/no-literal-string -- keyboard shortcut label, not translatable */}
             <ContextMenuShortcut>Cmd+W</ContextMenuShortcut>
           </ContextMenuItem>
         )}

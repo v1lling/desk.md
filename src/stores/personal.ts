@@ -7,7 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskPriority } from "@/types";
-import * as captureLib from "@/lib/desk/personal";
+import { getDeskService } from "@/lib/desk/service";
 import { taskKeys } from "./tasks";
 
 // Query keys for capture tasks (triage inbox)
@@ -26,7 +26,7 @@ export const captureKeys = {
 export function useCaptureTasks() {
   return useQuery({
     queryKey: captureKeys.tasks(),
-    queryFn: () => captureLib.getCaptureTasks(),
+    queryFn: () => getDeskService().getCaptureTasks(),
   });
 }
 
@@ -42,7 +42,7 @@ export function useCreateCaptureTask() {
       priority?: TaskPriority;
       due?: string;
       content?: string;
-    }) => captureLib.createCaptureTask(data),
+    }) => getDeskService().createCaptureTask(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: captureKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -63,7 +63,7 @@ export function useUpdateCaptureTask() {
     }: {
       taskId: string;
       updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content">>;
-    }) => captureLib.updateCaptureTask(taskId, updates),
+    }) => getDeskService().updateCaptureTask(taskId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: captureKeys.all });
     },
@@ -77,7 +77,7 @@ export function useDeleteCaptureTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => captureLib.deleteCaptureTask(taskId),
+    mutationFn: (taskId: string) => getDeskService().deleteCaptureTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: captureKeys.all });
     },
@@ -91,7 +91,7 @@ export function useMoveCaptureToPersonal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => captureLib.moveCaptureToPersonal(taskId),
+    mutationFn: (taskId: string) => getDeskService().moveCaptureToPersonal(taskId),
     onSuccess: (movedTask) => {
       queryClient.invalidateQueries({ queryKey: captureKeys.tasks() });
       if (movedTask) {
@@ -117,7 +117,7 @@ export function useMoveCaptureToWorkspace() {
       taskId: string;
       workspaceId: string;
       projectId: string;
-    }) => captureLib.moveCaptureToWorkspace(taskId, workspaceId, projectId),
+    }) => getDeskService().moveCaptureToWorkspace(taskId, workspaceId, projectId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: captureKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: taskKeys.byWorkspace(variables.workspaceId) });

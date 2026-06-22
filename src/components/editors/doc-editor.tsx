@@ -53,6 +53,8 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       setTitle(doc.title);
       setIsEditorReady(false);
     }
+    // Re-init only when the doc identity changes, not on every metadata edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id, workspaceId]);
 
   const handleSaveComplete = useCallback(

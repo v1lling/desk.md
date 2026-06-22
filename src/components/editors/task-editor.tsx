@@ -60,6 +60,8 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
       setDue(task.due || "");
       setIsEditorReady(false);
     }
+    // Re-init only when the task identity changes, not on every metadata edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id, workspaceId]);
 
   const handleSaveComplete = useCallback(

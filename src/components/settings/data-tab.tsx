@@ -18,7 +18,8 @@ import { useBootStore } from "@/stores/boot";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { getWorkspaces, isTauri, expandFsScope } from "@/lib/desk";
+import { isTauri, expandFsScope } from "@/lib/desk";
+import { getDeskService } from "@/lib/desk/service";
 import type { Workspace } from "@/types";
 
 export function DataTab() {
@@ -58,7 +59,7 @@ export function DataTab() {
       setDataPath(pendingPath);
 
       if (isTauri()) {
-        const existingWorkspaces = await getWorkspaces();
+        const existingWorkspaces = await getDeskService().getWorkspaces();
         setFoundWorkspaces(existingWorkspaces);
         setPathDialogOpen(true);
       } else {

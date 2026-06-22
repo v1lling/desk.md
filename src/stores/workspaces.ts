@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Workspace } from "@/types";
-import * as workspaceLib from "@/lib/desk/workspaces";
+import { getDeskService } from "@/lib/desk/service";
 import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
 import { useAgentInstructionsStore } from "./agent-instructions";
 import { useNavigationStore } from "./navigation";
@@ -17,7 +17,7 @@ export const workspaceKeys = {
 export function useWorkspaces() {
   return useQuery({
     queryKey: workspaceKeys.all,
-    queryFn: () => workspaceLib.getWorkspaces(),
+    queryFn: () => getDeskService().getWorkspaces(),
   });
 }
 
@@ -27,7 +27,7 @@ export function useWorkspaces() {
 export function useWorkspace(workspaceId: string | null) {
   return useQuery({
     queryKey: workspaceKeys.detail(workspaceId || ""),
-    queryFn: () => workspaceLib.getWorkspace(workspaceId!),
+    queryFn: () => getDeskService().getWorkspace(workspaceId!),
     enabled: !!workspaceId,
   });
 }
@@ -45,11 +45,11 @@ export function useCreateWorkspace() {
       description?: string;
       color?: string;
       home?: boolean;
-    }) => workspaceLib.createWorkspace(data),
+    }) => getDeskService().createWorkspace(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate top-level agent files (workspace list changed)
-      workspaceLib.getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
+      getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
     },
   });
 }
@@ -67,16 +67,14 @@ export function useUpdateWorkspace() {
     }: {
       workspaceId: string;
       updates: Partial<Pick<Workspace, "name" | "description" | "color">>;
-    }) => workspaceLib.updateWorkspace(workspaceId, updates),
+    }) => getDeskService().updateWorkspace(workspaceId, updates),
     onSuccess: (updatedWorkspace, { workspaceId }) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate agent files (name/description may have changed)
-      workspaceLib.getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
+      getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
       if (updatedWorkspace) {
-        import("@/lib/desk/projects").then(({ getProjects }) =>
-          getProjects(workspaceId).then((projects) =>
-            writePerWorkspaceAgentFiles(workspaceId, updatedWorkspace, projects)
-          )
+        getDeskService().getProjects(workspaceId).then((projects) =>
+          writePerWorkspaceAgentFiles(workspaceId, updatedWorkspace, projects)
         ).catch(() => {});
       }
     },
@@ -90,13 +88,13 @@ export function useDeleteWorkspace() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (workspaceId: string) => workspaceLib.deleteWorkspace(workspaceId),
+    mutationFn: (workspaceId: string) => getDeskService().deleteWorkspace(workspaceId),
     onSuccess: (_data, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Drop any per-workspace agent instructions for the deleted workspace.
       useAgentInstructionsStore.getState().clearForWorkspace(workspaceId);
       // Regenerate top-level agent files (workspace removed)
-      workspaceLib.getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
+      getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
     },
   });
 }

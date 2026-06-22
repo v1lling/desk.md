@@ -18,7 +18,7 @@ import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
 } from "@/lib/context-index/agent-context";
-import { getProjects } from "@/lib/desk/projects";
+import { getDeskService } from "@/lib/desk/service";
 import { AgentInstructionsCard } from "./agent-instructions-card";
 import { AgentFilePreviewCard } from "./agent-file-preview-card";
 
@@ -41,7 +41,7 @@ export function AgentsTab() {
   const refreshAgentFiles = async () => {
     try {
       for (const ws of workspaces) {
-        const projects = await getProjects(ws.id);
+        const projects = await getDeskService().getProjects(ws.id);
         await writePerWorkspaceAgentFiles(ws.id, ws, projects);
       }
       await writeTopLevelAgentFiles(workspaces);

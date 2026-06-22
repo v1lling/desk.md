@@ -24,7 +24,8 @@ import {
   useUpdateDoc,
   useFolderAIStates,
 } from "@/stores";
-import * as contentLib from "@/lib/desk/content";
+import { prefixSubtreePaths } from "@/lib/desk/content";
+import { getDeskService } from "@/lib/desk/service";
 import {
   PROJECT_TREE_PATH_PREFIX,
   isAITreePath,
@@ -150,7 +151,7 @@ export function DocsTree({
   const projectQueries = useQueries({
     queries: expandedProjectIdList.map((projectId) => ({
       queryKey: contentKeys.mergedTree("project", workspaceId, projectId),
-      queryFn: () => contentLib.getMergedContentTree("project", workspaceId, projectId),
+      queryFn: () => getDeskService().getMergedContentTree("project", workspaceId, projectId),
     })),
   });
   const projectSubtrees = useMemo(() => {
@@ -158,7 +159,7 @@ export function DocsTree({
     expandedProjectIdList.forEach((projectId, idx) => {
       const data = projectQueries[idx]?.data;
       if (data) {
-        map.set(projectId, contentLib.prefixSubtreePaths(data, `${PROJECT_TREE_PATH_PREFIX}${projectId}`));
+        map.set(projectId, prefixSubtreePaths(data, `${PROJECT_TREE_PATH_PREFIX}${projectId}`));
       }
     });
     return map;

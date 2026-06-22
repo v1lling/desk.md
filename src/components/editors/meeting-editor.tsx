@@ -53,6 +53,8 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
       setDate(meeting.date);
       setIsEditorReady(false);
     }
+    // Re-init only when the meeting identity changes, not on every metadata edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meeting?.id, workspaceId]);
 
   const handleSaveComplete = useCallback(

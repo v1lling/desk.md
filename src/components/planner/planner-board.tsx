@@ -270,7 +270,6 @@ function BoardListView({
         {statuses.map((status) => {
           const statusTasks = tasks[status] || [];
           if (statusTasks.length === 0) return null;
-          const Icon = statusIcons[status];
           const isCollapsed = collapsedSections.has(status);
 
           return (

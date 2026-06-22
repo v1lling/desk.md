@@ -26,7 +26,7 @@ import {
   useWorkspaces,
   useProjects,
 } from "@/stores";
-import type { Task, Workspace, Project } from "@/types";
+import type { Task, Workspace } from "@/types";
 import { cn } from "@/lib/utils";
 import { SPECIAL_DIRS } from "@/lib/desk/constants";
 

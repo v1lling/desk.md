@@ -5,7 +5,7 @@
  * Invalidates on file modification (mtime change).
  */
 
-import type { CachedContent, CacheStats, ContentParser } from "./types";
+import type { CachedContent, CacheStats } from "./types";
 
 /**
  * Default cache configuration

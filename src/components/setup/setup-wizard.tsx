@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useBootStore } from "@/stores/boot";
 import { useNavigationStore } from "@/stores/navigation";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { initDeskDirectory, slugify, getWorkspaces, isTauri, needsTrafficLightPadding, expandFsScope } from "@/lib/desk";
+import { initDeskDirectory, slugify, isTauri, needsTrafficLightPadding, expandFsScope } from "@/lib/desk";
+import { getDeskService } from "@/lib/desk/service";
 import { Loader2, FolderSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Workspace } from "@/types";
@@ -62,7 +63,7 @@ export function SetupWizard() {
       await expandFsScope(dataPath);
 
       if (isTauri()) {
-        const workspaces = await getWorkspaces();
+        const workspaces = await getDeskService().getWorkspaces();
         if (workspaces.length > 0) {
           setExistingWorkspaces(workspaces);
           setStep("existing-detected");

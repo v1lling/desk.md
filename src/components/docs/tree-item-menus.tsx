@@ -27,22 +27,15 @@ import type { MenuItem } from "./tree-item-utils";
 interface TreeItemMenusProps {
   items: MenuItem[];
   children: ReactNode;
-  showDropdown?: boolean;
-  dropdownOpen?: boolean;
-  onDropdownOpenChange?: (open: boolean) => void;
 }
 
 /**
- * Wraps a tree item with both a right-click ContextMenu and a hover DropdownMenu,
- * rendering the same set of menu items in both. Eliminates duplication between
- * the two menu types.
+ * Wraps a tree item with a right-click ContextMenu. The hover "..." dropdown is
+ * a separate component (TreeItemDropdown) rendered inside the row.
  */
 export function TreeItemMenus({
   items,
   children,
-  showDropdown = true,
-  dropdownOpen,
-  onDropdownOpenChange,
 }: TreeItemMenusProps) {
   return (
     <ContextMenu>

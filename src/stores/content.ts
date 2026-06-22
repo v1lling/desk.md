@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Doc, DocKind, ContentScope, Asset } from "@/types";
-import * as contentLib from "@/lib/desk/content";
+import { getDeskService } from "@/lib/desk/service";
+import type { ConvertibleAction } from "@/lib/desk/content";
 
 // Query keys for content (docs, assets, folders)
 export const contentKeys = {
@@ -32,7 +33,7 @@ export function useDocs(workspaceId: string | null) {
     queryKey: contentKeys.byWorkspace(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return contentLib.getDocs(workspaceId);
+      return getDeskService().getDocs(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -46,7 +47,7 @@ export function useProjectDocs(workspaceId: string | null, projectId: string | n
     queryKey: contentKeys.byProject(workspaceId || "", projectId || ""),
     queryFn: async () => {
       if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return contentLib.getDocsByProject(workspaceId, projectId);
+      return getDeskService().getDocsByProject(workspaceId, projectId);
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -60,7 +61,7 @@ export function useDoc(workspaceId: string | null, docId: string | null) {
     queryKey: contentKeys.detail(workspaceId || "", docId || ""),
     queryFn: async () => {
       if (!workspaceId || !docId) throw new Error("workspaceId and docId are required");
-      return contentLib.getDoc(workspaceId, docId);
+      return getDeskService().getDoc(workspaceId, docId);
     },
     enabled: !!workspaceId && !!docId,
   });
@@ -80,7 +81,7 @@ export function useCreateDoc() {
       content?: string;
       templateBody?: string;
       kind?: DocKind;
-    }) => contentLib.createDoc(data),
+    }) => getDeskService().createDoc(data),
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.byWorkspace(newDoc.workspaceId),
@@ -103,7 +104,7 @@ export function useUpdateDoc() {
     }: {
       doc: Doc;
       updates: Partial<Pick<Doc, "title" | "content">>;
-    }) => contentLib.updateDoc(doc, updates),
+    }) => getDeskService().updateDoc(doc, updates),
     onSuccess: (updatedDoc) => {
       if (updatedDoc) {
         // Directly update doc in all cached list queries (avoids stale file-tree cache race).
@@ -134,7 +135,7 @@ export function useDeleteDoc() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (doc: Doc) => contentLib.deleteDoc(doc),
+    mutationFn: (doc: Doc) => getDeskService().deleteDoc(doc),
     onSuccess: (success, doc) => {
       if (success) {
         // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
@@ -169,7 +170,7 @@ export function useDeleteAsset() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (asset: Asset) => contentLib.deleteAsset(asset),
+    mutationFn: (asset: Asset) => getDeskService().deleteAsset(asset),
     onSuccess: (success, asset) => {
       if (success) {
         // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
@@ -213,7 +214,7 @@ export function useMoveDocToProject() {
       workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => contentLib.moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
+    }) => getDeskService().moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
       // Invalidate workspace docs to refresh lists
       queryClient.invalidateQueries({
@@ -236,7 +237,7 @@ export function useAllWorkspaceDocs(workspaceId: string | null) {
     queryKey: [...contentKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return contentLib.getAllDocsForWorkspace(workspaceId);
+      return getDeskService().getAllDocsForWorkspace(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -263,7 +264,7 @@ export function useContentTree(
   return useQuery({
     queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined, kind),
     queryFn: () =>
-      contentLib.getContentTree(
+      getDeskService().getContentTree(
         scope,
         workspaceId || undefined,
         projectId || undefined,
@@ -280,7 +281,7 @@ export function useContentTree(
 export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: DocKind = "human") {
   return useQuery({
     queryKey: contentKeys.overview(workspaceId || "", kind),
-    queryFn: () => contentLib.getWorkspaceOverviewShell(workspaceId!, kind),
+    queryFn: () => getDeskService().getWorkspaceOverviewShell(workspaceId!, kind),
     enabled: !!workspaceId,
   });
 }
@@ -293,7 +294,7 @@ export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: Doc
 export function useMergedWorkspaceOverviewShell(workspaceId?: string | null) {
   return useQuery({
     queryKey: contentKeys.mergedOverview(workspaceId || ""),
-    queryFn: () => contentLib.getMergedWorkspaceOverviewShell(workspaceId!),
+    queryFn: () => getDeskService().getMergedWorkspaceOverviewShell(workspaceId!),
     enabled: !!workspaceId,
   });
 }
@@ -317,7 +318,7 @@ export function useCreateFolder() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.createFolder(scope, folderPath, workspaceId, projectId, kind),
+    }) => getDeskService().createFolder(scope, folderPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
@@ -358,7 +359,7 @@ export function useRenameFolder() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.renameFolder(scope, oldPath, newName, workspaceId, projectId, kind),
+    }) => getDeskService().renameFolder(scope, oldPath, newName, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
@@ -397,7 +398,7 @@ export function useDeleteFolder() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.deleteFolder(scope, folderPath, workspaceId, projectId, kind),
+    }) => getDeskService().deleteFolder(scope, folderPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
@@ -438,7 +439,7 @@ export function useMoveFolder() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.moveFolder(scope, fromPath, toParentPath, workspaceId, projectId, kind),
+    }) => getDeskService().moveFolder(scope, fromPath, toParentPath, workspaceId, projectId, kind),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
@@ -484,7 +485,7 @@ export function useMoveDoc() {
       fromKind?: DocKind;
       toKind?: DocKind;
     }) =>
-      contentLib.moveDoc(
+      getDeskService().moveDoc(
         scope,
         docId,
         fromPath,
@@ -541,7 +542,7 @@ export function useCreateDocInFolder() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-    }) => contentLib.createDocInFolder(data),
+    }) => getDeskService().createDocInFolder(data),
     onSuccess: (_newDoc, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
@@ -591,9 +592,9 @@ export function useImportFiles() {
       workspaceId?: string;
       projectId?: string;
       kind?: DocKind;
-      convertibleAction?: contentLib.ConvertibleAction;
+      convertibleAction?: ConvertibleAction;
     }) =>
-      contentLib.importFiles(
+      getDeskService().importFiles(
         files,
         scope,
         folderPath,

@@ -101,6 +101,9 @@ export function useFolderAIStates(
     return () => {
       cancelled = true;
     };
+    // Keyed on the joined paths (stable primitive) rather than the array ref,
+    // which changes identity every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderPaths.join(","), effectiveWorkspaceId, scope, projectId]);
 
   const toggleFolderAI = useCallback(

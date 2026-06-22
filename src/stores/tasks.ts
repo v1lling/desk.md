@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
-import * as taskLib from "@/lib/desk/tasks";
+import { getDeskService } from "@/lib/desk/service";
 
 // Query keys
 export const taskKeys = {
@@ -20,7 +20,7 @@ export function useTasks(workspaceId: string | null) {
     queryKey: taskKeys.byWorkspace(workspaceId || ""),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return taskLib.getTasks(workspaceId);
+      return getDeskService().getTasks(workspaceId);
     },
     enabled: !!workspaceId,
   });
@@ -34,7 +34,7 @@ export function useProjectTasks(workspaceId: string | null, projectId: string | 
     queryKey: taskKeys.byProject(workspaceId || "", projectId || ""),
     queryFn: async () => {
       if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return taskLib.getTasksByProject(workspaceId, projectId);
+      return getDeskService().getTasksByProject(workspaceId, projectId);
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -49,7 +49,7 @@ export function useTask(workspaceId: string | null, taskId: string | null) {
     queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
     queryFn: async () => {
       if (!workspaceId || !taskId) throw new Error("workspaceId and taskId are required");
-      return taskLib.getTask(workspaceId, taskId);
+      return getDeskService().getTask(workspaceId, taskId);
     },
     enabled: !!workspaceId && !!taskId,
   });
@@ -70,7 +70,7 @@ export function useCreateTask() {
       due?: string;
       content?: string;
       templateBody?: string;
-    }) => taskLib.createTask(data),
+    }) => getDeskService().createTask(data),
     onSuccess: (newTask) => {
       // Invalidate and refetch tasks for the workspace
       queryClient.invalidateQueries({
@@ -97,7 +97,7 @@ export function useUpdateTask() {
       workspaceId: string;
       projectId: string;
       updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content" | "projectId">>;
-    }) => taskLib.updateTask(taskId, updates, workspaceId, projectId),
+    }) => getDeskService().updateTask(taskId, updates, workspaceId, projectId),
     onSuccess: (updatedTask) => {
       if (updatedTask) {
         // Directly update task in all cached list queries (avoids stale file-tree cache race).
@@ -128,7 +128,7 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: ({ taskId, workspaceId, projectId }: { taskId: string; workspaceId: string; projectId: string }) =>
-      taskLib.deleteTask(taskId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
+      getDeskService().deleteTask(taskId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({
@@ -147,7 +147,7 @@ export function useMoveTask() {
 
   return useMutation({
     mutationFn: ({ taskId, newStatus, workspaceId, projectId }: { taskId: string; newStatus: TaskStatus; workspaceId?: string; projectId?: string }) =>
-      taskLib.moveTask(taskId, newStatus, workspaceId, projectId),
+      getDeskService().moveTask(taskId, newStatus, workspaceId, projectId),
     onMutate: async ({ taskId, newStatus }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.all });
@@ -198,7 +198,7 @@ export function useMoveTaskToProject() {
       workspaceId: string;
       fromProjectId: string;
       toProjectId: string;
-    }) => taskLib.moveTaskToProject(taskId, workspaceId, fromProjectId, toProjectId),
+    }) => getDeskService().moveTaskToProject(taskId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
       // Invalidate workspace tasks to refresh lists (kanban, task list)
       queryClient.invalidateQueries({

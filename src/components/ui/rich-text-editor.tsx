@@ -11,6 +11,15 @@ import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { Markdown } from "tiptap-markdown";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+
+// Minimal shape of tiptap-markdown's serializer state for the methods we call.
+// (tiptap-markdown does not export a public type for this.)
+interface MarkdownSerializerState {
+  write(content: string): void;
+  renderInline(node: ProseMirrorNode): void;
+  closeBlock(node: ProseMirrorNode): void;
+}
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -32,7 +41,7 @@ const CustomParagraph = Paragraph.extend({
   addStorage() {
     return {
       markdown: {
-        serialize(state: any, node: any) {
+        serialize(state: MarkdownSerializerState, node: ProseMirrorNode) {
           if (node.content.size === 0) {
             state.write(EMPTY_PARA_MARKER);
           } else {
