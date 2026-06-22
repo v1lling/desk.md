@@ -6,7 +6,8 @@
  */
 
 import { toast } from "sonner";
-import { isTauri, getDeskPath, exists } from "./tauri-fs";
+import { isTauri, getDeskPath } from "./env";
+import { getStorage } from "./storage";
 
 // Event types we care about
 export type WatchEventKind = "create" | "modify" | "remove" | "any";
@@ -157,7 +158,7 @@ export async function startWatching(): Promise<boolean> {
   // On very first launch the Desk directory may not exist yet — retrying
   // won't help, and toasting "watcher stopped" would just be noise.
   const deskPath = await getDeskPath();
-  if (!(await exists(deskPath))) {
+  if (!(await getStorage().exists(deskPath))) {
     return false;
   }
 

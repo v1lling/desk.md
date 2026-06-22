@@ -12,7 +12,8 @@
  */
 import type { Doc, DocKind, Asset } from "@/types";
 import { generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
-import { isTauri, removeFile, joinPath, exists } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   updateMarkdownFile,
@@ -193,11 +194,11 @@ export async function deleteDoc(doc: Doc): Promise<boolean> {
 export async function deleteAsset(asset: Asset): Promise<boolean> {
   if (!isTauri()) return true;
 
-  if (!(await exists(asset.filePath))) {
+  if (!(await getStorage().exists(asset.filePath))) {
     console.error(`File not found: ${asset.filePath}`);
     return false;
   }
 
-  await removeFile(asset.filePath);
+  await getStorage().removeFile(asset.filePath);
   return true;
 }

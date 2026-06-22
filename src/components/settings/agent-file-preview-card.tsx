@@ -4,13 +4,8 @@ import { open as openShell } from "@tauri-apps/plugin-shell";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  getDeskPath,
-  joinPath,
-  readTextFile,
-  exists,
-  isTauri,
-} from "@/lib/desk/tauri-fs";
+import { getDeskPath, joinPath, isTauri } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { getWorkspacePath } from "@/lib/desk/paths";
 import { FILE_NAMES } from "@/lib/desk/constants";
 
@@ -37,12 +32,12 @@ export function AgentFilePreviewCard({ scope }: Props) {
     try {
       const parent = isGlobal ? await getDeskPath() : await getWorkspacePath(scope);
       const filePath = await joinPath(parent, FILE_NAMES.CLAUDE_MD);
-      if (!(await exists(filePath))) {
+      if (!(await getStorage().exists(filePath))) {
         setContent(null);
         setError(t("settings.agents.preview.errorFileMissing"));
         return;
       }
-      setContent(await readTextFile(filePath));
+      setContent(await getStorage().readTextFile(filePath));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

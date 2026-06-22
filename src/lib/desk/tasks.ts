@@ -6,7 +6,8 @@
  */
 import type { Task, TaskStatus, TaskPriority } from "@/types";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
-import { isTauri, readDir, joinPath, exists } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   findFileById,
@@ -85,11 +86,11 @@ async function readProjectTasks(
 ): Promise<Task[]> {
   const tasksPath = await joinPath(projectPath, PATH_SEGMENTS.TASKS);
 
-  if (!(await exists(tasksPath))) {
+  if (!(await getStorage().exists(tasksPath))) {
     return [];
   }
 
-  const entries = await readDir(tasksPath);
+  const entries = await getStorage().readDir(tasksPath);
   const tasks: Task[] = [];
   const fileTreeService = getFileTreeService();
 
@@ -129,11 +130,11 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
 
   const projectsPath = await getProjectsPath(workspaceId);
 
-  if (!(await exists(projectsPath))) {
+  if (!(await getStorage().exists(projectsPath))) {
     return [];
   }
 
-  const projectEntries = await readDir(projectsPath);
+  const projectEntries = await getStorage().readDir(projectsPath);
   const allTasks: Task[] = [];
 
   for (const entry of projectEntries) {
@@ -146,7 +147,7 @@ export async function getTasks(workspaceId: string): Promise<Task[]> {
 
   // Also read unassigned tasks
   const unassignedPath = await getUnassignedPath(workspaceId);
-  if (await exists(unassignedPath)) {
+  if (await getStorage().exists(unassignedPath)) {
     const unassignedTasks = await readProjectTasks(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allTasks.push(...unassignedTasks);
   }

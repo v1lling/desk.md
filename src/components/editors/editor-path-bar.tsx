@@ -1,6 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { revealInFinder } from "@/components/docs/tree-item-utils";
 import { PATH_SEGMENTS } from "@/lib/desk/constants";
 

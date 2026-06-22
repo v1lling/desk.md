@@ -32,7 +32,7 @@ import {
   splitTreePathToKind,
 } from "@/lib/desk/tree-path";
 import { getDocsPath, getAIDocsPath } from "@/lib/desk/paths";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { sortNodes, type DocSortBy } from "../tree-item-utils";
 import {
   canDropInto,

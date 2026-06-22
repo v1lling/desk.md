@@ -3,7 +3,8 @@
  * Used for Smart Index to enable cross-device sync and backups
  */
 
-import { getDeskPath, joinPath, readTextFile, writeTextFile, exists, mkdir } from "@/lib/desk/tauri-fs";
+import { getDeskPath, joinPath } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { isTauri } from "@/lib/desk";
 import type { PersistStorage } from "zustand/middleware";
 
@@ -27,8 +28,8 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         const filePath = await joinPath(dirPath, filename);
 
         // Read from filesystem
-        if (await exists(filePath)) {
-          const content = await readTextFile(filePath);
+        if (await getStorage().exists(filePath)) {
+          const content = await getStorage().readTextFile(filePath);
           return content ? JSON.parse(content) : null;
         }
 
@@ -51,12 +52,12 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
         const dirPath = await joinPath(deskPath, ".desk", subdirectory);
 
         // Ensure directory exists
-        if (!(await exists(dirPath))) {
-          await mkdir(dirPath);
+        if (!(await getStorage().exists(dirPath))) {
+          await getStorage().mkdir(dirPath);
         }
 
         const filePath = await joinPath(dirPath, filename);
-        await writeTextFile(filePath, JSON.stringify(value, null, 2));
+        await getStorage().writeTextFile(filePath, JSON.stringify(value, null, 2));
       } catch (error) {
         console.error(`[file-storage] Failed to write ${subdirectory}/${filename}:`, error);
         throw error; // Re-throw so we know if writes are failing

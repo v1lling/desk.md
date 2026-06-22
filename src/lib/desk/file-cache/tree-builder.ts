@@ -6,13 +6,8 @@
  */
 
 import type { TreeNode, TraversalOptions } from "./types";
-import {
-  isTauri,
-  getDeskPath,
-  readDir,
-  joinPath,
-  exists,
-} from "../tauri-fs";
+import { isTauri, getDeskPath, joinPath } from "../env";
+import { getStorage } from "../storage";
 
 /**
  * Default traversal options
@@ -134,12 +129,12 @@ export async function buildTree(
     : basePath;
 
   // Check if path exists
-  if (!(await exists(currentPath))) {
+  if (!(await getStorage().exists(currentPath))) {
     return [];
   }
 
   // Read directory entries
-  const entries = await readDir(currentPath);
+  const entries = await getStorage().readDir(currentPath);
   const nodes: TreeNode[] = [];
 
   // Separate and sort directories and files
@@ -188,7 +183,7 @@ export async function buildNode(
 
   const absolutePath = await joinPath(basePath, relativePath);
 
-  if (!(await exists(absolutePath))) {
+  if (!(await getStorage().exists(absolutePath))) {
     return null;
   }
 
@@ -196,7 +191,7 @@ export async function buildNode(
 
   // Check if it's a directory by trying to read it
   try {
-    await readDir(absolutePath);
+    await getStorage().readDir(absolutePath);
     // It's a directory
     return buildDirectoryNode(absolutePath, relativePath, name, undefined);
   } catch {

@@ -8,17 +8,8 @@
  */
 import type { Workspace } from "@/types";
 import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate } from "./parser";
-import {
-  isTauri,
-  getDeskPath,
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeDir,
-  joinPath,
-  exists,
-} from "./tauri-fs";
+import { isTauri, getDeskPath, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 import { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } from "@/lib/context-index/agent-context";
@@ -96,18 +87,18 @@ export async function getWorkspaces(): Promise<Workspace[]> {
   const deskPath = await getDeskPath();
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
 
-  if (!(await exists(workspacesPath))) {
+  if (!(await getStorage().exists(workspacesPath))) {
     return [];
   }
 
-  const entries = await readDir(workspacesPath);
+  const entries = await getStorage().readDir(workspacesPath);
   const workspaces: Workspace[] = [];
 
   for (const entry of entries) {
     if (entry.isDirectory && !entry.name.startsWith(".")) {
       try {
         const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
-        const content = await readTextFile(workspacePath);
+        const content = await getStorage().readTextFile(workspacePath);
         const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
 
         workspaces.push({
@@ -139,7 +130,7 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
-    const content = await readTextFile(workspacePath);
+    const content = await getStorage().readTextFile(workspacePath);
     const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
 
     return {
@@ -198,18 +189,18 @@ export async function createWorkspace(data: {
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.id);
 
   // Create workspace directory structure
-  await mkdir(workspacePath);
-  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
-  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.DOCS));
-  await mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
-  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
-  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
+  await getStorage().mkdir(workspacePath);
+  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
+  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.DOCS));
+  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
+  await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
+  await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
+  await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
 
   // The home workspace owns the quick-capture inbox
   if (workspace.isHome) {
-    await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE));
-    await mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
+    await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE));
+    await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.CAPTURE, PATH_SEGMENTS.TASKS));
   }
 
   // Create workspace.md
@@ -227,7 +218,7 @@ ${workspace.description || ""}
 `;
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
-  await writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
+  await getStorage().writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
 
   clearHomeWorkspaceCache();
 
@@ -257,7 +248,7 @@ export async function updateWorkspace(
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
   try {
-    const content = await readTextFile(workspacePath);
+    const content = await getStorage().readTextFile(workspacePath);
     const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
 
     const updatedData: WorkspaceFrontmatter = {
@@ -268,7 +259,7 @@ export async function updateWorkspace(
     };
 
     const fileContent = serializeMarkdown(updatedData, body);
-    await writeTextFile(workspacePath, fileContent);
+    await getStorage().writeTextFile(workspacePath, fileContent);
 
     return {
       id: workspaceId,
@@ -305,7 +296,7 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId);
 
   try {
-    await removeDir(workspacePath);
+    await getStorage().removeDir(workspacePath);
     clearHomeWorkspaceCache();
     return true;
   } catch {

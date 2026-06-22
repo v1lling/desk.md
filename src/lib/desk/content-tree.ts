@@ -4,7 +4,8 @@
 import type { Doc, DocKind, FileTreeNode, ContentScope, Asset } from "@/types";
 import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./parser";
-import { isTauri, readDir, mkdir, joinPath, exists, fileStat } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getHomeWorkspaceId } from "./workspaces";
@@ -54,11 +55,11 @@ async function buildContentTreeRecursive(
     ? await joinPath(basePath, relativePath)
     : basePath;
 
-  if (!(await exists(currentPath))) {
+  if (!(await getStorage().exists(currentPath))) {
     return [];
   }
 
-  const entries = await readDir(currentPath);
+  const entries = await getStorage().readDir(currentPath);
   const nodes: FileTreeNode[] = [];
 
   const folders = entries.filter(
@@ -118,7 +119,7 @@ async function buildContentTreeRecursive(
         : file.name;
 
       // Get OS file dates
-      const stats = await fileStat(filePath);
+      const stats = await getStorage().fileStat(filePath);
       const fileCreated = stats?.birthtime?.toISOString();
       const fileModified = stats?.mtime?.toISOString();
 
@@ -156,7 +157,7 @@ async function buildContentTreeRecursive(
       : file.name;
 
     // Get OS file dates
-    const stats = await fileStat(filePath);
+    const stats = await getStorage().fileStat(filePath);
     const fileCreated = stats?.birthtime?.toISOString();
     const fileModified = stats?.mtime?.toISOString();
 
@@ -210,7 +211,7 @@ export async function getContentTree(
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
 
   // Skip directories that haven't been created yet — first write will create them.
-  if (!(await exists(basePath))) {
+  if (!(await getStorage().exists(basePath))) {
     return [];
   }
 
@@ -319,8 +320,8 @@ export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind 
   // 2. Get all project docs
   const projectsPath = await getProjectsPath(workspaceId);
 
-  if (await exists(projectsPath)) {
-    const projectEntries = await readDir(projectsPath);
+  if (await getStorage().exists(projectsPath)) {
+    const projectEntries = await getStorage().readDir(projectsPath);
 
     for (const entry of projectEntries) {
       if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {

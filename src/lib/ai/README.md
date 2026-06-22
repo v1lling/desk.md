@@ -47,12 +47,24 @@ File:
 
 ## Assistant
 
-The in-app chat assistant is a read-only advisor with 5 tools:
+The in-app chat assistant can read and write workspace data.
+
+Read tools:
 - `desk_workspace_info` — list workspaces and projects
 - `desk_tree` — browse file tree
 - `desk_catalog` — query Smart Index summaries
 - `desk_read` — read file content
 - `desk_search` — full-text search
+
+Write tools:
+- `desk_create_task` / `desk_update_task`
+- `desk_create_doc` / `desk_update_doc`
+- `desk_create_meeting` / `desk_update_meeting`
+
+All tools run on the TypeScript domain layer (`src/lib/desk`) via the
+`StorageProvider` seam — read queries live in `src/lib/desk/agent-queries.ts`,
+writes reuse the same CRUD functions the UI calls. There are no Rust `desk_*`
+commands.
 
 Files:
 

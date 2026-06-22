@@ -43,7 +43,7 @@ import {
 } from "@/stores";
 import { extractDocs, extractAssets } from "@/lib/desk/content";
 import { isMarkdownFile } from "@/lib/desk/file-utils";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { getDocsPath } from "@/lib/desk/paths";
 import {
   displayTreePath,

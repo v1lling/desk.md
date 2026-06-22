@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/context-index/aiignore";
 import { useHomeWorkspace } from "@/stores/workspaces";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { splitTreePathToKind } from "@/lib/desk/tree-path";
 import type { ContentScope } from "@/types";
 

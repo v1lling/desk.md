@@ -9,16 +9,8 @@
  * - Notify open editors via the registry (prevents false "external change" detection)
  */
 
-import {
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeFile,
-  rename,
-  exists,
-  joinPath,
-} from "./tauri-fs";
+import { joinPath } from "./env";
+import { getStorage } from "./storage";
 import { parseMarkdown, serializeMarkdown, filenameToId } from "./parser";
 import { publishPathChange, publishDeleted } from "@/stores/editor-event-bus";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
@@ -74,11 +66,11 @@ export async function readMarkdownFiles<T>(
 ): Promise<ParsedFile<T>[]> {
   const { extension = ".md", useCache = true } = options;
 
-  if (!(await exists(dirPath))) {
+  if (!(await getStorage().exists(dirPath))) {
     return [];
   }
 
-  const entries = await readDir(dirPath);
+  const entries = await getStorage().readDir(dirPath);
   const results: ParsedFile<T>[] = [];
   const fileTreeService = useCache ? getFileTreeService() : null;
 
@@ -103,7 +95,7 @@ export async function readMarkdownFiles<T>(
         }
         rawContent = cached;
       } else {
-        rawContent = await readTextFile(filePath);
+        rawContent = await getStorage().readTextFile(filePath);
       }
 
       const { data, content } = parseMarkdown<T>(rawContent);
@@ -131,12 +123,12 @@ export async function readMarkdownFiles<T>(
 export async function readMarkdownFile<T>(
   filePath: string
 ): Promise<ParsedFile<T> | null> {
-  if (!(await exists(filePath))) {
+  if (!(await getStorage().exists(filePath))) {
     return null;
   }
 
   try {
-    const content = await readTextFile(filePath);
+    const content = await getStorage().readTextFile(filePath);
     const { data, content: body } = parseMarkdown<T>(content);
     const filename = filePath.split("/").pop() || "";
 
@@ -184,11 +176,11 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
     const parts = filePath.split("/");
     parts.pop();
     const dirPath = parts.join("/");
-    await mkdir(dirPath);
+    await getStorage().mkdir(dirPath);
   }
 
   const fileContent = serializeMarkdown(frontmatter, content);
-  await writeTextFile(filePath, fileContent);
+  await getStorage().writeTextFile(filePath, fileContent);
   getContentCache().invalidate(filePath);
 }
 
@@ -231,17 +223,17 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
 ): Promise<UpdateResult<T> | null> {
   const { notifyEditors = true } = options;
 
-  if (!(await exists(filePath))) {
+  if (!(await getStorage().exists(filePath))) {
     return null;
   }
 
   try {
-    const rawContent = await readTextFile(filePath);
+    const rawContent = await getStorage().readTextFile(filePath);
     const { data, content } = parseMarkdown<T>(rawContent);
 
     const updated = updater(data, content);
     const fileContent = serializeMarkdown(updated.frontmatter, updated.content);
-    await writeTextFile(filePath, fileContent);
+    await getStorage().writeTextFile(filePath, fileContent);
 
     getContentCache().invalidate(filePath);
 
@@ -290,11 +282,11 @@ export async function deleteMarkdownFile(
 ): Promise<boolean> {
   const { notifyEditors = true } = options;
 
-  if (!(await exists(filePath))) {
+  if (!(await getStorage().exists(filePath))) {
     return false;
   }
 
-  await removeFile(filePath);
+  await getStorage().removeFile(filePath);
   getContentCache().invalidate(filePath);
 
   if (notifyEditors) {
@@ -339,7 +331,7 @@ export async function moveMarkdownFile(
 ): Promise<boolean> {
   const { createDir = true, notifyEditors = true } = options;
 
-  if (!(await exists(sourcePath))) {
+  if (!(await getStorage().exists(sourcePath))) {
     return false;
   }
 
@@ -347,10 +339,10 @@ export async function moveMarkdownFile(
     const parts = targetPath.split("/");
     parts.pop();
     const dirPath = parts.join("/");
-    await mkdir(dirPath);
+    await getStorage().mkdir(dirPath);
   }
 
-  await rename(sourcePath, targetPath);
+  await getStorage().rename(sourcePath, targetPath);
 
   getContentCache().invalidate(sourcePath);
   getContentCache().invalidate(targetPath);
@@ -376,7 +368,7 @@ export async function moveMarkdownFile(
  * @param dirPath - Absolute path to directory
  */
 export async function ensureDir(dirPath: string): Promise<void> {
-  await mkdir(dirPath);
+  await getStorage().mkdir(dirPath);
 }
 
 /**
@@ -389,11 +381,11 @@ export async function hasMarkdownFiles(
   dirPath: string,
   extension: string = ".md"
 ): Promise<boolean> {
-  if (!(await exists(dirPath))) {
+  if (!(await getStorage().exists(dirPath))) {
     return false;
   }
 
-  const entries = await readDir(dirPath);
+  const entries = await getStorage().readDir(dirPath);
   return entries.some((e) => e.isFile && e.name.endsWith(extension));
 }
 
@@ -405,11 +397,11 @@ export async function hasMarkdownFiles(
  * @returns Array of directory names
  */
 export async function listSubdirectories(dirPath: string): Promise<string[]> {
-  if (!(await exists(dirPath))) {
+  if (!(await getStorage().exists(dirPath))) {
     return [];
   }
 
-  const entries = await readDir(dirPath);
+  const entries = await getStorage().readDir(dirPath);
   return entries
     .filter((e) => e.isDirectory && !e.name.startsWith("."))
     .map((e) => e.name);
@@ -432,11 +424,11 @@ export async function findFileById(
   id: string,
   extension: string = ".md"
 ): Promise<string | null> {
-  if (!(await exists(dirPath))) {
+  if (!(await getStorage().exists(dirPath))) {
     return null;
   }
 
-  const entries = await readDir(dirPath);
+  const entries = await getStorage().readDir(dirPath);
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(extension)) {
       if (filenameToId(entry.name) === id) {

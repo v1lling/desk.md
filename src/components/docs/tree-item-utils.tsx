@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileCategory } from "@/lib/desk/file-utils";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { toast } from "sonner";
 import type { FileTreeNode } from "@/types";
 

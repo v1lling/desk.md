@@ -12,7 +12,8 @@
  * - An explicit file path relative to workspace root (e.g., projects/website/docs/draft.md)
  */
 
-import { readTextFile, writeTextFile, isTauri, exists, joinPath } from "@/lib/desk/tauri-fs";
+import { isTauri, joinPath } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { getWorkspacePath } from "@/lib/desk/paths";
 
 const AIIGNORE_FILENAME = ".aiignore";
@@ -32,11 +33,11 @@ async function getAIIgnorePath(workspaceId: string): Promise<string> {
 async function readAIIgnoreEntries(workspaceId: string): Promise<string[]> {
   const aiignorePath = await getAIIgnorePath(workspaceId);
 
-  if (!(await exists(aiignorePath))) {
+  if (!(await getStorage().exists(aiignorePath))) {
     return [];
   }
 
-  const content = await readTextFile(aiignorePath);
+  const content = await getStorage().readTextFile(aiignorePath);
   return content
     .split("\n")
     .map((line) => line.trim())
@@ -61,7 +62,7 @@ async function writeAIIgnoreEntries(
       ? `# AI Exclusions - files and patterns excluded from AI indexing\n${uniqueEntries.join("\n")}\n`
       : "";
 
-  await writeTextFile(aiignorePath, content);
+  await getStorage().writeTextFile(aiignorePath, content);
 }
 
 /**

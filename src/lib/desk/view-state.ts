@@ -11,14 +11,8 @@
  * If .view.json is missing or corrupted, the app falls back to default ordering.
  */
 
-import {
-  getDeskPath,
-  readTextFile,
-  writeTextFile,
-  joinPath,
-  exists,
-  isTauri,
-} from "./tauri-fs";
+import { getDeskPath, joinPath, isTauri } from "./env";
+import { getStorage } from "./storage";
 import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
 import { mockViewState } from "./mock-data";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@/types";
@@ -81,11 +75,11 @@ export async function getViewState(
   try {
     const path = await getViewStatePath(workspaceId, projectId);
 
-    if (!(await exists(path))) {
+    if (!(await getStorage().exists(path))) {
       return {};
     }
 
-    const content = await readTextFile(path);
+    const content = await getStorage().readTextFile(path);
     const parsed = JSON.parse(content);
 
     // Validate structure
@@ -111,7 +105,7 @@ export async function saveViewState(
   state: ProjectViewState
 ): Promise<void> {
   const path = await getViewStatePath(workspaceId, projectId);
-  await writeTextFile(path, JSON.stringify(state, null, 2));
+  await getStorage().writeTextFile(path, JSON.stringify(state, null, 2));
 }
 
 /**

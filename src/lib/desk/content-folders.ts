@@ -2,7 +2,8 @@
  * Content Folders - Folder CRUD operations within the content tree
  */
 import type { ContentFolder, ContentScope, DocKind } from "@/types";
-import { isTauri, removeDir, rename, mkdir, joinPath, exists } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
@@ -28,7 +29,7 @@ export async function createFolder(
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
-  await mkdir(fullPath);
+  await getStorage().mkdir(fullPath);
 
   const name = folderPath.includes("/")
     ? folderPath.split("/").pop()!
@@ -64,7 +65,7 @@ export async function renameFolder(
     return { name: newName, path: newPath, children: [] };
   }
 
-  await rename(oldFullPath, newFullPath);
+  await getStorage().rename(oldFullPath, newFullPath);
 
   // Rebuild children by fetching the tree for the renamed folder's scope
   // We get the full tree and extract the renamed folder's children
@@ -134,12 +135,12 @@ export async function moveFolder(
   // Ensure target parent exists
   if (toParentPath) {
     const parentFullPath = await joinPath(basePath, toParentPath);
-    if (!(await exists(parentFullPath))) {
-      await mkdir(parentFullPath);
+    if (!(await getStorage().exists(parentFullPath))) {
+      await getStorage().mkdir(parentFullPath);
     }
   }
 
-  await rename(oldFullPath, newFullPath);
+  await getStorage().rename(oldFullPath, newFullPath);
   return true;
 }
 
@@ -160,10 +161,10 @@ export async function deleteFolder(
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
-  if (!(await exists(fullPath))) {
+  if (!(await getStorage().exists(fullPath))) {
     return false;
   }
 
-  await removeDir(fullPath);
+  await getStorage().removeDir(fullPath);
   return true;
 }

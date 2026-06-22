@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 
 interface ContentDropZoneProps {
   onFilesDropped: (files: File[], targetTreePath: string | null) => void;

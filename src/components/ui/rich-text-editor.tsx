@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteLinkPicker } from "@/components/ui/note-link-picker";
 import { SlashCommands } from "@/components/ui/slash-commands";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { parseNoteLinkHref, createNoteLinkHref, type NoteLink, type NoteLinkType } from "@/lib/desk/note-link";
 import type { SearchItemType } from "@/lib/desk/search-index";

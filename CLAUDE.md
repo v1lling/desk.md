@@ -54,10 +54,14 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | Directory | Purpose |
 |-----------|---------|
 | `src/lib/desk/` | Core CRUD operations |
+| `src/lib/desk/storage/` | `StorageProvider` — the single filesystem seam (Tauri / browser / future server) |
+| `src/lib/desk/env.ts` | Data-root resolution, path joining, bootstrap (not I/O) |
+| `src/lib/desk/platform.ts` | Pure runtime checks (`isTauri`/`isMacOS`), dependency-free to avoid import cycles |
+| `src/lib/desk/agent-queries.ts` | Read-side queries for the assistant (tree/read/search), backed by `StorageProvider` |
 | `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
 | `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
 | `src/lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
-| `src/lib/assistant/` | Multi-turn agent orchestrator with read-only tools (browse/search/read) |
+| `src/lib/assistant/` | Multi-turn agent orchestrator with read tools (browse/search/read) and write tools (create/update tasks, docs, meetings) |
 | `src/stores/` | TanStack Query hooks + Zustand stores |
 | `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
 | `src/components/patterns/` | Page-level layout patterns |
@@ -129,7 +133,7 @@ interface IncomingEmail {
 
 ## AI Context
 
-The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_read). External agents use the generated `CLAUDE.md` and `WORKSPACE_CONTEXT.md` files.
+The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_tree, desk_read, desk_search) and can write back via desk_create_*/desk_update_* tools. All assistant tools run on the TypeScript domain layer (`src/lib/desk` via the `StorageProvider` seam) — there are no Rust `desk_*` commands anymore. External agents use the generated `CLAUDE.md` and `WORKSPACE_CONTEXT.md` files.
 
 **Key files:**
 | Directory | Purpose |

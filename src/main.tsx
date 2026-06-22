@@ -22,7 +22,7 @@ async function bootstrap() {
   // hydration at module-eval time — that must happen after the scope is set,
   // otherwise the narrowed capability denies the read and the store hydrates
   // empty. expandFsScope() is a no-op in browser mode (isTauri() guard inside).
-  const { expandFsScope } = await import("./lib/desk/tauri-fs");
+  const { expandFsScope } = await import("./lib/desk/env");
   try {
     await expandFsScope(); // no arg → getDeskPath() → useBootStore.dataPath || "~/Desk"
   } catch (error) {

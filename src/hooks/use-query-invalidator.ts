@@ -42,7 +42,7 @@ import {
   type EditorSession,
 } from "@/stores/open-editor-registry";
 import { publishContentUpdate, publishDeleted } from "@/stores/editor-event-bus";
-import { exists, readTextFile } from "@/lib/desk/tauri-fs";
+import { getStorage } from "@/lib/desk/storage";
 import { parseMarkdown } from "@/lib/desk/parser";
 
 /**
@@ -193,7 +193,7 @@ async function handleOpenFileChange(
   // For "any" events (batched), check if file still exists
   // This handles cases where remove got merged with other events
   if (eventKind === "any") {
-    const fileExists = await exists(path);
+    const fileExists = await getStorage().exists(path);
     if (!fileExists) {
       useOpenEditorRegistry.getState().handlePathDeleted(path);
       publishDeleted(path);
@@ -202,7 +202,7 @@ async function handleOpenFileChange(
   }
 
   try {
-    const fileContent = await readTextFile(path);
+    const fileContent = await getStorage().readTextFile(path);
 
     // Parse to extract body for comparison (registry stores body only, not full file with frontmatter)
     const { content: fileBody } = parseMarkdown<Record<string, unknown>>(fileContent);

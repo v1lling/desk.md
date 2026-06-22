@@ -25,7 +25,7 @@ import {
   getProjectIdFromPath,
   type WatchEvent,
 } from "@/lib/desk/watcher";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import * as taskLib from "@/lib/desk/tasks";
 import * as contentLib from "@/lib/desk/content";
 import * as meetingLib from "@/lib/desk/meetings";

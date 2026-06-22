@@ -1,4 +1,5 @@
-import { joinPath, writeTextFile } from "@/lib/desk/tauri-fs";
+import { joinPath } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { getWorkspacePath } from "@/lib/desk/paths";
 import type { WorkspaceIndex } from "./types";
 import { FILE_NAMES } from "@/lib/desk/constants";
@@ -73,5 +74,5 @@ export async function writeWorkspaceContextArtifact(index: WorkspaceIndex): Prom
 
   const workspacePath = await getWorkspacePath(index.workspaceId);
   const filePath = await joinPath(workspacePath, FILE_NAMES.WORKSPACE_CONTEXT_MD);
-  await writeTextFile(filePath, buildWorkspaceContext(index));
+  await getStorage().writeTextFile(filePath, buildWorkspaceContext(index));
 }

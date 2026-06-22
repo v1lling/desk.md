@@ -4,7 +4,8 @@
 import type { Doc, DocKind, ContentScope } from "@/types";
 import { isMarkdownFile, isConvertibleFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
-import { isTauri, joinPath, mkdir, writeTextFile, writeFile } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { writeMarkdownFile } from "./file-operations";
 import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
@@ -71,7 +72,7 @@ export async function createDocInFolder(data: {
   const folderPath = data.folderPath
     ? await joinPath(basePath, data.folderPath)
     : basePath;
-  await mkdir(folderPath);
+  await getStorage().mkdir(folderPath);
 
   const filePath = await joinPath(folderPath, filename);
   doc.filePath = filePath;
@@ -125,7 +126,7 @@ export async function importFiles(
     ? await getAIDocsPath(scope, workspaceId, projectId)
     : await getDocsPath(scope, workspaceId, projectId);
   const targetDir = folderPath ? await joinPath(basePath, folderPath) : basePath;
-  await mkdir(targetDir);
+  await getStorage().mkdir(targetDir);
 
   for (const file of files) {
     if (isMarkdownFile(file.name)) {
@@ -169,9 +170,9 @@ export async function importFiles(
       try {
         const targetPath = await joinPath(targetDir, file.name);
         if (typeof file.content === "string") {
-          await writeTextFile(targetPath, file.content);
+          await getStorage().writeTextFile(targetPath, file.content);
         } else {
-          await writeFile(targetPath, file.content);
+          await getStorage().writeFile(targetPath, file.content);
         }
         getContentCache().invalidate(targetPath);
         importedAssets.push(file.name);

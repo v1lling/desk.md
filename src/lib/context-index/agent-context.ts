@@ -1,11 +1,5 @@
-import {
-  getDeskPath,
-  joinPath,
-  writeTextFile,
-  removeFile,
-  exists,
-  isTauri,
-} from "@/lib/desk/tauri-fs";
+import { getDeskPath, joinPath, isTauri } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { getWorkspacePath } from "@/lib/desk/paths";
 import { FILE_NAMES } from "@/lib/desk/constants";
 import { useContextStore } from "@/stores/context";
@@ -327,7 +321,7 @@ function disabledAgentFilenames(): string[] {
 
 /** Remove a file if it's present; a missing file is not an error. */
 async function removeIfExists(path: string): Promise<void> {
-  if (await exists(path)) await removeFile(path);
+  if (await getStorage().exists(path)) await getStorage().removeFile(path);
 }
 
 export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<void> {
@@ -340,7 +334,7 @@ export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<
   if (enabled.length > 0) {
     const content = buildTopLevelContext(workspaces, deskPath);
     for (const name of enabled) {
-      await writeTextFile(await joinPath(deskPath, name), content);
+      await getStorage().writeTextFile(await joinPath(deskPath, name), content);
     }
   }
 
@@ -364,7 +358,7 @@ export async function writePerWorkspaceAgentFiles(
   if (enabled.length > 0) {
     const content = buildPerWorkspaceContext(workspace, projects);
     for (const name of enabled) {
-      await writeTextFile(await joinPath(workspacePath, name), content);
+      await getStorage().writeTextFile(await joinPath(workspacePath, name), content);
     }
   }
 

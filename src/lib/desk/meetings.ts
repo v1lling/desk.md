@@ -6,7 +6,8 @@
  */
 import type { Meeting } from "@/types";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
-import { isTauri, readDir, joinPath, exists } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   findAndUpdateFile,
@@ -83,11 +84,11 @@ async function readProjectMeetings(
 ): Promise<Meeting[]> {
   const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
 
-  if (!(await exists(meetingsPath))) {
+  if (!(await getStorage().exists(meetingsPath))) {
     return [];
   }
 
-  const entries = await readDir(meetingsPath);
+  const entries = await getStorage().readDir(meetingsPath);
   const meetings: Meeting[] = [];
   const fileTreeService = getFileTreeService();
 
@@ -128,11 +129,11 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
 
   const projectsPath = await getProjectsPath(workspaceId);
 
-  if (!(await exists(projectsPath))) {
+  if (!(await getStorage().exists(projectsPath))) {
     return [];
   }
 
-  const projectEntries = await readDir(projectsPath);
+  const projectEntries = await getStorage().readDir(projectsPath);
   const allMeetings: Meeting[] = [];
 
   for (const entry of projectEntries) {
@@ -144,7 +145,7 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
   }
 
   const unassignedPath = await getUnassignedPath(workspaceId);
-  if (await exists(unassignedPath)) {
+  if (await getStorage().exists(unassignedPath)) {
     const unassignedMeetings = await readProjectMeetings(workspaceId, SPECIAL_DIRS.UNASSIGNED, unassignedPath);
     allMeetings.push(...unassignedMeetings);
   }

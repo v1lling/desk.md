@@ -1,8 +1,23 @@
-import { invoke } from "@tauri-apps/api/core";
 import { jsonSchema, tool, type ToolSet } from "ai";
 import { z } from "zod/v4";
 import { useContextIndexStore } from "@/stores/context-index";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
+import {
+  deskWorkspaceInfo,
+  deskTree,
+  deskReadFile,
+  deskFullTextSearch,
+} from "@/lib/desk/agent-queries";
+import {
+  createTask,
+  updateTask,
+  createMeeting,
+  updateMeeting,
+  createDoc,
+  createDocInFolder,
+  updateDoc,
+  getDoc,
+} from "@/lib/desk";
 import { formatError } from "@/lib/utils";
 
 export interface ToolCallEvent {
@@ -25,6 +40,7 @@ interface ToolContext {
   callbacks: ToolCallbacks;
 }
 
+/** Build a data-root-relative path under a workspace, sanitizing the input. */
 function workspacePath(workspaceId: string, path?: string): string {
   const trimmed = (path || ".").trim();
   if (!trimmed || trimmed === ".") {
@@ -64,12 +80,13 @@ async function runTool(
 
 export function createAssistantTools(ctx: ToolContext): ToolSet {
   return {
+    // ── Read tools ────────────────────────────────────────────────────────
     desk_workspace_info: tool({
       description: "List all workspaces with their names, IDs, and project listings. Call this first to orient yourself.",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {} }),
       execute: async () => {
         return runTool(ctx, "desk_workspace_info", {}, async () => {
-          return invoke("desk_workspace_info", {});
+          return deskWorkspaceInfo();
         });
       },
     }),
@@ -83,10 +100,15 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_tree", args as Record<string, unknown>, async () => {
-          return invoke("desk_tree", {
-            workspaceId: args.workspace_id,
-            path: args.path,
-          });
+          const result = await deskTree(args.workspace_id, args.path);
+          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
+          if (aiignoreEntries.length > 0) {
+            result.entries = result.entries.filter(
+              (e) => !isPathExcludedByAIIgnore(e.path, aiignoreEntries)
+            );
+            result.total = result.entries.length;
+          }
+          return result;
         });
       },
     }),
@@ -155,8 +177,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
           if (isPathExcludedByAIIgnore(args.path, aiignoreEntries)) {
             return { ok: false, error: "excluded", message: "This file is excluded from AI access." };
           }
-          const path = workspacePath(args.workspace_id, args.path);
-          return invoke("desk_read", { path });
+          return deskReadFile(workspacePath(args.workspace_id, args.path));
         });
       },
     }),
@@ -170,12 +191,12 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_search", args as Record<string, unknown>, async () => {
-          const path = workspacePath(args.workspace_id, args.path);
-          const result = await invoke("desk_search", { query: args.query, path }) as {
-            matches?: Array<{ path: string }>;
-          };
+          const result = await deskFullTextSearch(
+            args.query,
+            workspacePath(args.workspace_id, args.path)
+          );
           const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
-          if (aiignoreEntries.length > 0 && Array.isArray(result.matches)) {
+          if (aiignoreEntries.length > 0) {
             const wsPrefix = `workspaces/${args.workspace_id}/`;
             result.matches = result.matches.filter(
               (m) => !isPathExcludedByAIIgnore(
@@ -185,6 +206,173 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
             );
           }
           return result;
+        });
+      },
+    }),
+
+    // ── Write tools ───────────────────────────────────────────────────────
+    desk_create_task: tool({
+      description: "Create a task in a project. Returns the new task's id and file path.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        project_id: z.string().min(1),
+        title: z.string().min(1),
+        status: z.enum(["todo", "doing", "waiting", "done"]).optional(),
+        priority: z.enum(["low", "medium", "high"]).optional(),
+        due: z.string().optional(),
+        content: z.string().optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_create_task", args as Record<string, unknown>, async () => {
+          const task = await createTask({
+            workspaceId: args.workspace_id,
+            projectId: args.project_id,
+            title: args.title,
+            priority: args.priority,
+            due: args.due,
+            content: args.content,
+          });
+          if (args.status && args.status !== "todo") {
+            await updateTask(task.id, { status: args.status }, args.workspace_id, args.project_id);
+          }
+          return { ok: true, id: task.id, path: task.filePath, message: `Created task "${args.title}"` };
+        });
+      },
+    }),
+
+    desk_update_task: tool({
+      description: "Update an existing task's fields. Provide only the fields to change.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        task_id: z.string().min(1),
+        project_id: z.string().optional(),
+        title: z.string().optional(),
+        status: z.enum(["todo", "doing", "waiting", "done"]).optional(),
+        priority: z.enum(["low", "medium", "high"]).optional(),
+        due: z.string().optional(),
+        content: z.string().optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_update_task", args as Record<string, unknown>, async () => {
+          const updated = await updateTask(
+            args.task_id,
+            {
+              title: args.title,
+              status: args.status,
+              priority: args.priority,
+              due: args.due,
+              content: args.content,
+            },
+            args.workspace_id,
+            args.project_id
+          );
+          if (!updated) {
+            return { ok: false, error: "not_found", message: `Task '${args.task_id}' not found` };
+          }
+          return { ok: true, id: updated.id, path: updated.filePath, message: `Updated task "${updated.title}"` };
+        });
+      },
+    }),
+
+    desk_create_meeting: tool({
+      description: "Create a meeting note in a project. Returns the new meeting's id and file path.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        project_id: z.string().min(1),
+        title: z.string().min(1),
+        date: z.string().optional(),
+        content: z.string().optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_create_meeting", args as Record<string, unknown>, async () => {
+          const meeting = await createMeeting({
+            workspaceId: args.workspace_id,
+            projectId: args.project_id,
+            title: args.title,
+            date: args.date,
+            content: args.content,
+          });
+          return { ok: true, id: meeting.id, path: meeting.filePath, message: `Created meeting "${args.title}"` };
+        });
+      },
+    }),
+
+    desk_update_meeting: tool({
+      description: "Update an existing meeting note. Provide only the fields to change.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        meeting_id: z.string().min(1),
+        project_id: z.string().optional(),
+        title: z.string().optional(),
+        date: z.string().optional(),
+        content: z.string().optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_update_meeting", args as Record<string, unknown>, async () => {
+          const updated = await updateMeeting(
+            args.meeting_id,
+            { title: args.title, date: args.date, content: args.content },
+            args.workspace_id,
+            args.project_id
+          );
+          if (!updated) {
+            return { ok: false, error: "not_found", message: `Meeting '${args.meeting_id}' not found` };
+          }
+          return { ok: true, id: updated.id, path: updated.filePath, message: `Updated meeting "${updated.title}"` };
+        });
+      },
+    }),
+
+    desk_create_doc: tool({
+      description: "Create a document. Provide project_id for a project doc, or omit it for a workspace-level doc. Set kind to 'ai' for an ai-docs/ document.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        project_id: z.string().optional(),
+        title: z.string().min(1),
+        content: z.string().optional(),
+        kind: z.enum(["human", "ai"]).optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_create_doc", args as Record<string, unknown>, async () => {
+          const doc = args.project_id
+            ? await createDoc({
+                workspaceId: args.workspace_id,
+                projectId: args.project_id,
+                title: args.title,
+                content: args.content,
+                kind: args.kind,
+              })
+            : await createDocInFolder({
+                scope: "workspace",
+                workspaceId: args.workspace_id,
+                title: args.title,
+                content: args.content,
+                kind: args.kind,
+              });
+          return { ok: true, id: doc.id, path: doc.filePath, message: `Created document "${args.title}"` };
+        });
+      },
+    }),
+
+    desk_update_doc: tool({
+      description: "Update an existing document's title and/or content.",
+      inputSchema: z.object({
+        workspace_id: z.string().min(1),
+        doc_id: z.string().min(1),
+        title: z.string().optional(),
+        content: z.string().optional(),
+      }),
+      execute: async (args) => {
+        return runTool(ctx, "desk_update_doc", args as Record<string, unknown>, async () => {
+          const doc = await getDoc(args.workspace_id, args.doc_id);
+          if (!doc) {
+            return { ok: false, error: "not_found", message: `Document '${args.doc_id}' not found` };
+          }
+          const updated = await updateDoc(doc, { title: args.title, content: args.content });
+          if (!updated) {
+            return { ok: false, error: "update_failed", message: `Failed to update document '${args.doc_id}'` };
+          }
+          return { ok: true, id: updated.id, path: updated.filePath, message: `Updated document "${updated.title}"` };
         });
       },
     }),

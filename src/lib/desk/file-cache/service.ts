@@ -16,16 +16,8 @@ import type {
 } from "./types";
 import { buildTree, buildNode, getDeskRoot, isFileSystemAvailable } from "./tree-builder";
 import { ContentCache, getContentCache } from "./content-cache";
-import {
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeFile,
-  removeDir,
-  rename,
-  joinPath,
-  exists,
-} from "../tauri-fs";
+import { joinPath } from "../env";
+import { getStorage } from "../storage";
 
 /**
  * File Tree Service implementation
@@ -97,7 +89,7 @@ class FileTreeService implements IFileTreeService {
       ? await joinPath(this.deskRoot, relativePath)
       : this.deskRoot;
 
-    if (!(await exists(absolutePath))) {
+    if (!(await getStorage().exists(absolutePath))) {
       return null;
     }
 
@@ -164,7 +156,7 @@ class FileTreeService implements IFileTreeService {
 
     const absolutePath = await joinPath(this.deskRoot, relativePath);
 
-    if (!(await exists(absolutePath))) {
+    if (!(await getStorage().exists(absolutePath))) {
       return null;
     }
 
@@ -182,7 +174,7 @@ class FileTreeService implements IFileTreeService {
 
     const readPromise = (async (): Promise<T | null> => {
       try {
-        const raw = await readTextFile(absolutePath);
+        const raw = await getStorage().readTextFile(absolutePath);
         const parsed = parser ? parser(raw, relativePath) : (raw as unknown as T);
         this.cache.set(absolutePath, raw, parsed, Date.now());
         return parsed;
@@ -221,7 +213,7 @@ class FileTreeService implements IFileTreeService {
       return null;
     }
 
-    if (!(await exists(absolutePath))) {
+    if (!(await getStorage().exists(absolutePath))) {
       return null;
     }
 
@@ -239,7 +231,7 @@ class FileTreeService implements IFileTreeService {
 
     const readPromise = (async (): Promise<T | null> => {
       try {
-        const raw = await readTextFile(absolutePath);
+        const raw = await getStorage().readTextFile(absolutePath);
         const parsed = parser ? parser(raw, absolutePath) : (raw as unknown as T);
         this.cache.set(absolutePath, raw, parsed, Date.now());
         return parsed;
@@ -340,7 +332,7 @@ class FileTreeService implements IFileTreeService {
     }
 
     const absolutePath = await joinPath(this.deskRoot, relativePath);
-    await writeTextFile(absolutePath, content);
+    await getStorage().writeTextFile(absolutePath, content);
 
     // Invalidate cache
     this.cache.invalidate(absolutePath);
@@ -364,7 +356,7 @@ class FileTreeService implements IFileTreeService {
     }
 
     const absolutePath = await joinPath(this.deskRoot, relativePath);
-    await mkdir(absolutePath);
+    await getStorage().mkdir(absolutePath);
 
     // Invalidate tree cache
     this.treeCache = null;
@@ -394,9 +386,9 @@ class FileTreeService implements IFileTreeService {
     }
 
     if (node.type === "directory") {
-      await removeDir(absolutePath);
+      await getStorage().removeDir(absolutePath);
     } else {
-      await removeFile(absolutePath);
+      await getStorage().removeFile(absolutePath);
     }
 
     // Invalidate caches
@@ -424,7 +416,7 @@ class FileTreeService implements IFileTreeService {
     const oldAbsolutePath = await joinPath(this.deskRoot, oldRelativePath);
     const newAbsolutePath = await joinPath(this.deskRoot, newRelativePath);
 
-    await rename(oldAbsolutePath, newAbsolutePath);
+    await getStorage().rename(oldAbsolutePath, newAbsolutePath);
 
     // Invalidate caches
     this.cache.invalidate(oldAbsolutePath);

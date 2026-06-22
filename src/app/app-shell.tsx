@@ -10,7 +10,7 @@ import { useBootStore } from "@/stores/boot";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize";
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
-import { needsTrafficLightPadding } from "@/lib/desk/tauri-fs";
+import { needsTrafficLightPadding } from "@/lib/desk/env";
 import { openGlobalSearch } from "@/components/global-search";
 import { AIConsentDialog } from "@/components/ai/ai-consent-dialog";
 import { Search } from "lucide-react";

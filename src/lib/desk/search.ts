@@ -5,11 +5,8 @@
  * These eliminate duplicated "slow path" fallback logic in tasks, notes, and meetings.
  */
 
-import {
-  getDeskPath,
-  readDir,
-  joinPath,
-} from "./tauri-fs";
+import { getDeskPath, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { PATH_SEGMENTS } from "./constants";
 
 /**
@@ -35,7 +32,7 @@ export async function findItemInAllWorkspaces<T extends SearchableItem>(
 ): Promise<T | null> {
   const deskPath = await getDeskPath();
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
-  const workspaceEntries = await readDir(workspacesPath);
+  const workspaceEntries = await getStorage().readDir(workspacesPath);
 
   for (const workspaceEntry of workspaceEntries) {
     if (!workspaceEntry.isDirectory || workspaceEntry.name.startsWith(".")) continue;

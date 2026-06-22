@@ -23,13 +23,8 @@ import {
   todayISO,
   normalizeDate,
 } from "./parser";
-import {
-  isTauri,
-  readDir,
-  readTextFile,
-  exists,
-  joinPath,
-} from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
+import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   updateMarkdownFile,
@@ -84,19 +79,19 @@ export async function getCaptureTasks(): Promise<Task[]> {
 
   const capturePath = await getCapturePath();
 
-  if (!(await exists(capturePath))) {
+  if (!(await getStorage().exists(capturePath))) {
     return [];
   }
 
   const homeWorkspaceId = await getHomeWorkspaceId();
-  const entries = await readDir(capturePath);
+  const entries = await getStorage().readDir(capturePath);
   const tasks: Task[] = [];
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
       try {
         const taskPath = await joinPath(capturePath, entry.name);
-        const content = await readTextFile(taskPath);
+        const content = await getStorage().readTextFile(taskPath);
         const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
 
         tasks.push({

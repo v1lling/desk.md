@@ -14,7 +14,9 @@ export * from "./meetings";
 export * from "./personal";
 
 // ── File system & parsing ───────────────────────────────────────────
-export * from "./tauri-fs";
+// env re-exports the platform checks (isTauri/isMacOS/needsTrafficLightPadding)
+export * from "./env";
+export * from "./storage";
 export * from "./parser";
 export * from "./constants";
 

@@ -11,7 +11,7 @@ import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
 import type { AIProviderType } from "@/lib/ai/types";
 import { BrowserModeError, getSecret, setSecret } from "@/lib/ai/secrets";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 
 function linuxKeyringHint(message: string, t: (key: string) => string): string | null {
   const lower = message.toLowerCase();

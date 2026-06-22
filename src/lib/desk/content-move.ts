@@ -3,7 +3,7 @@
  */
 import type { Doc, DocKind, ContentScope } from "@/types";
 import { normalizeDate, generatePreview, filenameToId } from "./parser";
-import { isTauri, joinPath } from "./tauri-fs";
+import { isTauri, joinPath } from "./env";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";

@@ -16,7 +16,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@/stores/editor-event-bus";
-import { writeTextFile, readTextFile, isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
+import { getStorage } from "@/lib/desk/storage";
 import { writeMarkdownFile } from "@/lib/desk/file-operations";
 import { parseMarkdown, serializeMarkdown } from "@/lib/desk/parser";
 import type { EditorType } from "@/stores/open-editor-registry";
@@ -159,7 +160,7 @@ export function useEditorSession({
 
     async function loadContent() {
       try {
-        const fileContent = await readTextFile(filePath!);
+        const fileContent = await getStorage().readTextFile(filePath!);
         const { data: frontmatter, content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
         if (!cancelled) {
           const processedBody = preserveEmptyParagraphs(body);
@@ -264,7 +265,7 @@ export function useEditorSession({
       let fullContent = contentToSave;
       if (isTauri()) {
         try {
-          const existingContent = await readTextFile(path);
+          const existingContent = await getStorage().readTextFile(path);
           const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
           lastFrontmatterRef.current = frontmatter;
           fullContent = serializeMarkdown(frontmatter, contentToSave);
@@ -274,7 +275,7 @@ export function useEditorSession({
         }
       }
 
-      await writeTextFile(path, fullContent);
+      await getStorage().writeTextFile(path, fullContent);
       lastSavedRef.current = contentToSave;
       // Update registry so file watcher knows this was our save
       getRegistry().updateLastSaved(path, contentToSave);

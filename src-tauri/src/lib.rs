@@ -5,8 +5,7 @@ use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_fs::FsExt;
 
 pub mod app_config;
-pub mod desk_commands;
-mod desk_tools;
+pub mod data_root;
 #[cfg(target_os = "macos")]
 mod drop_view;
 mod secrets;
@@ -172,7 +171,7 @@ fn open_in_terminal(path: String) -> Result<(), String> {
 #[tauri::command]
 fn expand_fs_scope(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
     let p = std::path::PathBuf::from(&path);
-    desk_commands::set_data_root(p.clone());
+    data_root::set_data_root(p.clone());
     app_config::store_data_path(&path)?;
     app_handle
         .fs_scope()
@@ -238,7 +237,7 @@ fn allow_data_path(app_handle: tauri::AppHandle, path: String) -> Result<(), Str
 
     // The target may not exist yet (first write of `.view.json`, `.desk/index/...`).
     let target = lenient_canonicalize(&requested)?;
-    let root_canon = lenient_canonicalize(&desk_commands::get_data_root())?;
+    let root_canon = lenient_canonicalize(&data_root::get_data_root())?;
 
     if !target.starts_with(&root_canon) {
         return Err(format!(
@@ -274,10 +273,6 @@ pub fn run() {
             open_file_with_default_app,
             reveal_in_finder,
             open_in_terminal,
-            desk_tools::desk_tree,
-            desk_tools::desk_read,
-            desk_tools::desk_search,
-            desk_tools::desk_workspace_info,
             secrets::secret_get,
             secrets::secret_set,
             secrets::secret_delete,
@@ -285,8 +280,8 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            let initial_root = desk_commands::resolve_data_root(None);
-            desk_commands::set_data_root(initial_root);
+            let initial_root = data_root::resolve_data_root(None);
+            data_root::set_data_root(initial_root);
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(

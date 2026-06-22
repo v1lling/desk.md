@@ -26,7 +26,7 @@
  */
 
 import type { ContentScope } from "@/types";
-import { getDeskPath, joinPath } from "./tauri-fs";
+import { getDeskPath, joinPath } from "./env";
 import { PATH_SEGMENTS, SPECIAL_DIRS, isUnassigned, isCapture } from "./constants";
 import { getHomeWorkspaceId } from "./workspaces";
 

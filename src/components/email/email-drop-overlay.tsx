@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
-import { isTauri } from "@/lib/desk/tauri-fs";
+import { isTauri } from "@/lib/desk/env";
 import { importEmlFromPath, isEmlPath } from "@/lib/email";
 import { useTabStore } from "@/stores/tabs";
 

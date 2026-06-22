@@ -3,17 +3,8 @@
  */
 import type { Project, ProjectStatus } from "@/types";
 import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate } from "./parser";
-import {
-  isTauri,
-  getDeskPath,
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  removeDir,
-  joinPath,
-  exists,
-} from "./tauri-fs";
+import { isTauri, getDeskPath, joinPath } from "./env";
+import { getStorage } from "./storage";
 import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 
@@ -33,18 +24,18 @@ async function countProjectTasks(projectPath: string): Promise<{
 }> {
   const tasksPath = await joinPath(projectPath, PATH_SEGMENTS.TASKS);
 
-  if (!(await exists(tasksPath))) {
+  if (!(await getStorage().exists(tasksPath))) {
     return { total: 0, byStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 } };
   }
 
-  const entries = await readDir(tasksPath);
+  const entries = await getStorage().readDir(tasksPath);
   const byStatus = { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 };
 
   for (const entry of entries) {
     if (entry.isFile && entry.name.endsWith(".md")) {
       try {
         const taskPath = await joinPath(tasksPath, entry.name);
-        const content = await readTextFile(taskPath);
+        const content = await getStorage().readTextFile(taskPath);
         const { data } = parseMarkdown<{ status?: string }>(content);
         const status = data.status as keyof typeof byStatus;
         if (status in byStatus) {
@@ -67,11 +58,11 @@ async function countProjectTasks(projectPath: string): Promise<{
  * Supports optional recursive traversal for nested docs folders.
  */
 async function countMarkdownFiles(dirPath: string, recursive = false): Promise<number> {
-  if (!(await exists(dirPath))) {
+  if (!(await getStorage().exists(dirPath))) {
     return 0;
   }
 
-  const entries = await readDir(dirPath);
+  const entries = await getStorage().readDir(dirPath);
   let count = 0;
 
   for (const entry of entries) {
@@ -97,11 +88,11 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
   const deskPath = await getDeskPath();
   const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
-  if (!(await exists(projectsPath))) {
+  if (!(await getStorage().exists(projectsPath))) {
     return [];
   }
 
-  const entries = await readDir(projectsPath);
+  const entries = await getStorage().readDir(projectsPath);
   const projects: Project[] = [];
 
   for (const entry of entries) {
@@ -109,7 +100,7 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
       try {
         const projectPath = await joinPath(projectsPath, entry.name);
         const projectMdPath = await joinPath(projectPath, "project.md");
-        const content = await readTextFile(projectMdPath);
+        const content = await getStorage().readTextFile(projectMdPath);
         const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
         // Count project content (docs/ + ai-docs/ together — both surface in the tree)
@@ -165,7 +156,7 @@ export async function getProject(
   const projectMdPath = await joinPath(projectPath, "project.md");
 
   try {
-    const content = await readTextFile(projectMdPath);
+    const content = await getStorage().readTextFile(projectMdPath);
     const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
     // Count project content (docs/ + ai-docs/ together — both surface in the tree)
@@ -230,10 +221,10 @@ export async function createProject(data: {
   const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, id);
 
   // Create project directory structure
-  await mkdir(projectPath);
-  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
-  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
-  await mkdir(await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS));
+  await getStorage().mkdir(projectPath);
+  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
+  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
+  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS));
 
   // Create project.md
   const frontmatter: ProjectFrontmatter = {
@@ -249,7 +240,7 @@ ${project.description || ""}
 `;
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
-  await writeTextFile(await joinPath(projectPath, "project.md"), fileContent);
+  await getStorage().writeTextFile(await joinPath(projectPath, "project.md"), fileContent);
 
   return project;
 }
@@ -286,7 +277,7 @@ export async function updateProject(
   );
 
   try {
-    const content = await readTextFile(projectMdPath);
+    const content = await getStorage().readTextFile(projectMdPath);
     const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
 
     const updatedData: ProjectFrontmatter = {
@@ -297,7 +288,7 @@ export async function updateProject(
     };
 
     const fileContent = serializeMarkdown(updatedData, body);
-    await writeTextFile(projectMdPath, fileContent);
+    await getStorage().writeTextFile(projectMdPath, fileContent);
 
     return {
       id: projectId,
@@ -336,7 +327,7 @@ export async function deleteProject(projectId: string, workspaceId?: string): Pr
   const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   try {
-    await removeDir(projectPath);
+    await getStorage().removeDir(projectPath);
     return true;
   } catch {
     return false;
