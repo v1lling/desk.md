@@ -1,0 +1,51 @@
+{
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Desk",
+  "version": "0.9.1",
+  "identifier": "de.svilling.deskmd",
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/v1lling/desk.md/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJGMjBCNzgyN0Q1ODRGQTEKUldTaFQxaDlncmNnTDNDMHc1SWFrLzFqQlFaL2x0UGJyY29IcktYZFZWd1dYTURUUUhua2R0NW8K"
+    }
+  },
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:3001",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Desk",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://api.anthropic.com https://api.openai.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://api.anthropic.com https://api.openai.com ws://localhost:* http://localhost:*; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app", "nsis", "deb", "rpm", "appimage"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

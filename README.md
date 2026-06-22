@@ -141,7 +141,9 @@ Ideas I'm exploring:
 
 ## Run from source
 
-desk.md is a Tauri desktop app. To run it from source:
+desk.md is a Tauri desktop app, organized as an npm-workspaces monorepo under
+`packages/` (`@desk/core` domain layer, `@desk/app` Tauri+React UI, `@desk/server`
+WIP Node backend). All commands run from the repo root:
 
 ```bash
 npm install
