@@ -17,6 +17,11 @@ import * as meetingsApi from "../meetings";
 import * as personalApi from "../personal";
 import * as contentApi from "../content";
 import * as dashboardApi from "../dashboard";
+import * as viewStateApi from "../view-state";
+import * as settingsApi from "../settings";
+import * as agentQueriesApi from "../agent-queries";
+import * as indexCacheApi from "../index-cache";
+import * as aiignoreApi from "../aiignore";
 import type { DeskService } from "./deskservice";
 
 export const localDeskService: DeskService = {
@@ -96,4 +101,35 @@ export const localDeskService: DeskService = {
   getWorkspaceSummaries: dashboardApi.getWorkspaceSummaries,
   getAllWorkspaceTasks: dashboardApi.getAllWorkspaceTasks,
   getAllWorkspaceTasksAllStatuses: dashboardApi.getAllWorkspaceTasksAllStatuses,
+
+  // View state (.view.json)
+  getViewState: viewStateApi.getViewState,
+  updateTaskOrder: viewStateApi.updateTaskOrder,
+  removeTaskFromOrder: viewStateApi.removeTaskFromOrder,
+  setViewMode: viewStateApi.setViewMode,
+  setExpandedFolders: viewStateApi.setExpandedFolders,
+  toggleTaskHighlight: viewStateApi.toggleTaskHighlight,
+  setHiddenStatuses: viewStateApi.setHiddenStatuses,
+
+  // Shared settings KV (.desk/settings/*.json)
+  getSetting: settingsApi.getSetting,
+  setSetting: settingsApi.setSetting,
+
+  // Assistant read tools (agent-queries)
+  deskWorkspaceInfo: agentQueriesApi.deskWorkspaceInfo,
+  deskTree: agentQueriesApi.deskTree,
+  deskReadFile: agentQueriesApi.deskReadFile,
+  deskFullTextSearch: agentQueriesApi.deskFullTextSearch,
+
+  // Smart Index cache (.desk/index/indexes.json)
+  getIndexCache: indexCacheApi.getIndexCache,
+  setIndexCache: indexCacheApi.setIndexCache,
+
+  // .aiignore management (per-workspace AI exclusions)
+  loadAIIgnoreEntries: aiignoreApi.loadAIIgnoreEntries,
+  getAIInclusion: aiignoreApi.getAIInclusion,
+  setAIInclusion: aiignoreApi.setAIInclusion,
+  getAiExclusionState: aiignoreApi.getAiExclusionState,
+  getFolderAIInclusion: aiignoreApi.getFolderAIInclusion,
+  setFolderAIInclusion: aiignoreApi.setFolderAIInclusion,
 };

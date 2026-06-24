@@ -7,7 +7,7 @@
  */
 
 import { isTauri } from "@desk/core";
-import * as desk from "@desk/core";
+import { getDeskService } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { extractBody } from "@/lib/context-index/content-utils";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
@@ -159,18 +159,20 @@ export async function buildWorkspaceIndex(
     return isPathExcludedByAIIgnore(relativePath, aiignoreEntries);
   };
 
-  // Resolve project names
-  const projects = await desk.getProjects(workspaceId);
+  // Resolve project names. Route reads through the DeskService so a native-remote
+  // build indexes the *server's* files, not the local disk.
+  const deskService = getDeskService();
+  const projects = await deskService.getProjects(workspaceId);
   const projectNameMap = new Map(projects.map((p) => [p.id, p.name]));
 
   // Collect all files
   onProgress?.({ phase: "collecting", total: 0, processed: 0, newOrChanged: 0, currentWorkspace: workspaceName });
 
   const [docs, aiDocs, tasks, meetings] = await Promise.all([
-    desk.getAllDocsForWorkspace(workspaceId, "human"),
-    desk.getAllDocsForWorkspace(workspaceId, "ai"),
-    desk.getTasks(workspaceId),
-    desk.getMeetings(workspaceId),
+    deskService.getAllDocsForWorkspace(workspaceId, "human"),
+    deskService.getAllDocsForWorkspace(workspaceId, "ai"),
+    deskService.getTasks(workspaceId),
+    deskService.getMeetings(workspaceId),
   ]);
 
   const allEntries: IndexEntry[] = [];

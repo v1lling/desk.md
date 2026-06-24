@@ -9,15 +9,30 @@
  *   - deskReadFile      → { path, content, total_chars, truncated }
  *   - deskFullTextSearch→ { query, path, total_files_scanned, truncated, matches[] }
  *
- * WARNING: these return UNFILTERED results. `.aiignore` exclusion is applied by
- * the tool layer (tool-core.ts), the only caller — any new caller that reaches
- * for these directly must apply the filter itself or it will leak excluded files.
+ * `.aiignore` enforcement is built in here (deskTree / deskReadFile /
+ * deskFullTextSearch honour each workspace's exclusions), so it applies to EVERY
+ * front door — the in-app assistant via DeskService and a future MCP server alike,
+ * against whichever disk the domain runs on. Callers no longer need to re-filter.
  */
 import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { PATH_SEGMENTS } from "./constants";
 import { getWorkspaces } from "./workspaces";
 import { getProjects } from "./projects";
+import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "./aiignore";
+
+/**
+ * Split a data-root-relative path (e.g. `workspaces/<id>/docs/x.md`) into its
+ * workspace id and the workspace-relative remainder, or null if it isn't under a
+ * workspace. Used to apply the right workspace's `.aiignore` to a path.
+ */
+function splitWorkspacePath(relPath: string): { workspaceId: string; relative: string } | null {
+  const parts = relPath.split("/").filter(Boolean);
+  if (parts[0] === PATH_SEGMENTS.WORKSPACES && parts.length >= 2) {
+    return { workspaceId: parts[1], relative: parts.slice(2).join("/") };
+  }
+  return null;
+}
 
 const MAX_READ_CHARS = 20_000;
 const MAX_SEARCH_RESULTS = 100;
@@ -192,12 +207,20 @@ export async function deskTree(
 
   await walk(startRel);
 
+  const truncated = entries.length >= MAX_TREE_ENTRIES;
+
+  // Drop entries excluded by this workspace's .aiignore (paths are workspace-relative).
+  const aiignoreEntries = await loadAIIgnoreEntries(workspaceId);
+  const visible = aiignoreEntries.length
+    ? entries.filter((e) => !isPathExcludedByAIIgnore(e.path, aiignoreEntries))
+    : entries;
+
   return {
     workspace_id: workspaceId,
     projects,
-    total: entries.length,
-    truncated: entries.length >= MAX_TREE_ENTRIES,
-    entries,
+    total: visible.length,
+    truncated,
+    entries: visible,
   };
 }
 
@@ -207,8 +230,17 @@ export async function deskTree(
 export async function deskReadFile(relPath: string): Promise<DeskReadResult> {
   const deskPath = await getDeskPath();
   const normalized = normalizeRelative(relPath);
-  const abs = await joinPath(deskPath, normalized);
 
+  // Block files the workspace's .aiignore excludes — before any read.
+  const split = splitWorkspacePath(normalized);
+  if (split && split.relative) {
+    const aiignoreEntries = await loadAIIgnoreEntries(split.workspaceId);
+    if (isPathExcludedByAIIgnore(split.relative, aiignoreEntries)) {
+      throw new Error("This file is excluded from AI access (.aiignore)");
+    }
+  }
+
+  const abs = await joinPath(deskPath, normalized);
   const content = await getStorage().readTextFile(abs);
   const totalChars = content.length;
   const truncated = totalChars > MAX_READ_CHARS;
@@ -241,6 +273,19 @@ export async function deskFullTextSearch(
   const matches: SearchMatch[] = [];
   let filesScanned = 0;
 
+  // .aiignore entries per workspace, loaded lazily and cached for this search.
+  const aiignoreCache = new Map<string, string[]>();
+  const isExcluded = async (relPath: string): Promise<boolean> => {
+    const split = splitWorkspacePath(relPath);
+    if (!split || !split.relative) return false;
+    let entries = aiignoreCache.get(split.workspaceId);
+    if (!entries) {
+      entries = await loadAIIgnoreEntries(split.workspaceId);
+      aiignoreCache.set(split.workspaceId, entries);
+    }
+    return isPathExcludedByAIIgnore(split.relative, entries);
+  };
+
   const walk = async (relPrefix: string, depth: number): Promise<void> => {
     if (depth > MAX_SEARCH_DEPTH || matches.length >= MAX_SEARCH_RESULTS) return;
     const absDir = relPrefix ? await joinPath(deskPath, relPrefix) : deskPath;
@@ -258,6 +303,7 @@ export async function deskFullTextSearch(
       }
 
       if (!SEARCHABLE_EXTENSIONS.has(getExtension(entry.name))) continue;
+      if (await isExcluded(relPath)) continue;
 
       filesScanned += 1;
       let content: string;

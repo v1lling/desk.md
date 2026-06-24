@@ -30,6 +30,10 @@ tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Rust-side HTTP (reqwest) for the native hosted-mode client (step 3b-native): native
+# RPC/auth calls run here, not as webview fetches, so they bypass the webview CSP
+# connect-src and browser CORS. The reachable origins are scoped in capabilities/default.json.
+tauri-plugin-http = "2"
 
 chrono = { version = "0.4", features = ["serde"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }

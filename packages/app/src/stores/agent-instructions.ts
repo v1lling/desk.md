@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { createRemoteSettingStorage } from "./remote-setting-storage";
 
 interface AgentInstructionsState {
   /** Inlined into the top-level CLAUDE.md / AGENTS.md / GEMINI.md marker block. */
@@ -34,6 +35,10 @@ export const useAgentInstructionsStore = create<AgentInstructionsState>()(
     }),
     {
       name: "desk-agent-instructions",
+      // User-level → shared across devices in hosted mode (.desk/settings/agent-instructions.json).
+      storage: createRemoteSettingStorage<Pick<AgentInstructionsState, "global" | "perWorkspace">>(
+        "agent-instructions"
+      ),
       partialize: (state) => ({
         global: state.global,
         perWorkspace: state.perWorkspace,

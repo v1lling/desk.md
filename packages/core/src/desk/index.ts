@@ -42,6 +42,9 @@ export * from "./search-index";
 export * from "./calculations";
 export * from "./dashboard";
 export * from "./view-state";
+export * from "./settings";
+export * from "./index-cache";
+export * from "./aiignore";
 
 // ── Injectable host seams (wired by app/server at boot) ─────────────
 export * from "./data-root";

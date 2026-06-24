@@ -12,6 +12,7 @@ import {
 import { Palette, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { isTauri } from "@desk/core";
 import {
   usePreferencesStore,
   SIDEBAR_COLLAPSED_WIDTH,
@@ -23,6 +24,13 @@ import {
 // behind the build flag, so the desktop bundle never includes it.
 const HostedAccountSection = import.meta.env.VITE_DESK_HOSTED
   ? lazy(() => import("./hosted-account-section"))
+  : null;
+
+// Native hosted mode: the local/remote backend toggle. Bundled in every non-hosted
+// build (constant `!VITE_DESK_HOSTED`, so the lean web build tree-shakes it out) and
+// shown only inside a Tauri webview (isTauri(), checked at render).
+const ConnectionSection = !import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./connection-section"))
   : null;
 
 export function GeneralTab() {
@@ -145,6 +153,12 @@ export function GeneralTab() {
           </div>
         </div>
       </SettingsSection>
+
+      {ConnectionSection && isTauri() && (
+        <Suspense fallback={null}>
+          <ConnectionSection />
+        </Suspense>
+      )}
 
       {HostedAccountSection && (
         <Suspense fallback={null}>

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WorkspaceIndex, IndexEntry } from "@/lib/context-index/types";
-import { createContextIndexStorage } from "./file-storage";
+import { createRemoteIndexStorage } from "./remote-setting-storage";
 
 interface ContextIndexState {
   indexes: Record<string, WorkspaceIndex>;
@@ -82,7 +82,10 @@ export const useContextIndexStore = create<ContextIndexState>()(
     }),
     {
       name: "desk-context-index",
-      storage: createContextIndexStorage(),
+      // DERIVED cache, but routed through DeskService so it follows the domain
+      // (server-side `.desk/index/indexes.json` in hosted mode, where the catalog
+      // tool / MCP read it; local disk in Tauri local mode).
+      storage: createRemoteIndexStorage(),
     }
   )
 );

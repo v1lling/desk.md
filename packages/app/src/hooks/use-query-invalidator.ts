@@ -40,6 +40,8 @@ import {
 import { publishContentUpdate, publishDeleted } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { parseMarkdown } from "@desk/core";
+import { registerQueryClient } from "@/lib/query-client-registry";
+import { isLocalDisk } from "@/lib/connection";
 
 /**
  * Hook to initialize file watching and route events
@@ -49,7 +51,18 @@ export function useQueryInvalidator() {
   const queryClient = useQueryClient();
   const isInitialized = useRef(false);
 
+  // Expose the single QueryClient to non-React callers (e.g. the assistant's
+  // remote-write refresh, which runs outside any component).
+  registerQueryClient(queryClient);
+
   useEffect(() => {
+    // The file watcher + tree-service cache are a LOCAL-disk subsystem: they read
+    // the filesystem directly. In remote mode the domain is on the server (and the
+    // guard provider blocks getStorage()), so the whole watcher is skipped — list
+    // refresh after writes is driven by query invalidation instead. registerQueryClient
+    // above still runs in every mode.
+    if (!isLocalDisk()) return;
+
     // Prevent double initialization in strict mode
     if (isInitialized.current) return;
     isInitialized.current = true;
@@ -88,56 +101,54 @@ async function handleFileChange(
   queryClient: ReturnType<typeof useQueryClient>
 ) {
   const registry = useOpenEditorRegistry.getState();
+
+  // First pass: sync any open editors for the changed paths (reads the file and
+  // pushes external edits into the editor / handles deletes).
+  for (const path of event.paths) {
+    const session = registry.getSession(path);
+    if (session) {
+      await handleOpenFileChange(path, session, event.kind);
+    }
+  }
+
+  // Then clear file caches and invalidate queries for the changed paths so closed
+  // views refetch. (Editor-handled paths are synced above; the extra background
+  // list refetch here is harmless and keeps list views consistent.)
+  invalidateQueriesForPaths(event.paths, queryClient);
+}
+
+/**
+ * Clear the file caches for the given paths and invalidate every TanStack query
+ * affected by them. Shared by the file-watcher path (handleFileChange) and any
+ * non-watcher caller that knows which files changed but gets no watcher event —
+ * notably the assistant's remote writes (the watcher is off in hosted mode).
+ *
+ * The cache clear always runs BEFORE the query invalidation so refetches can't
+ * serve stale cached content.
+ */
+export function invalidateQueriesForPaths(
+  paths: string[],
+  queryClient: ReturnType<typeof useQueryClient>
+): void {
+  const contentCache = getContentCache();
+  const fileTreeService = getFileTreeService();
+  for (const path of paths) {
+    contentCache.invalidate(path);
+    contentCache.invalidatePrefix(path + "/");
+  }
+  fileTreeService.clearCache();
+
   const affectedWorkspaces = new Set<string>();
   const affectedProjects = new Map<string, Set<string>>(); // workspaceId -> Set<projectId>
   const affectedTypes = new Set<string>();
   let hasCaptureChanges = false;
 
-  // Track which paths were handled by editors (to skip query invalidation)
-  const handledByEditor = new Set<string>();
-
-  // CRITICAL: Invalidate FileTreeService cache FIRST, before any TanStack Query refetch
-  // This prevents race condition where query refetches stale cached content
-  // (cache-invalidator.ts also invalidates, but runs as separate subscriber - timing not guaranteed)
-  const contentCache = getContentCache();
-  const fileTreeService = getFileTreeService();
-  for (const path of event.paths) {
-    contentCache.invalidate(path);
-    // Also invalidate prefix for directory-level changes
-    contentCache.invalidatePrefix(path + "/");
-  }
-  // Clear the tree cache as well to force fresh directory listings
-  fileTreeService.clearCache();
-
-  // First pass: check each path for open editors
-  for (const path of event.paths) {
-    const session = registry.getSession(path);
-
-    if (session) {
-      // ═══════════════════════════════════════════════════════════════════
-      // File is OPEN in editor - check for external changes
-      // ═══════════════════════════════════════════════════════════════════
-      const handled = await handleOpenFileChange(path, session, event.kind);
-      if (handled) {
-        handledByEditor.add(path);
-      }
-    }
-  }
-
-  // Second pass: analyze paths for query invalidation (skipping editor-handled paths)
-  for (const path of event.paths) {
-    // Skip if this path was handled by an editor
-    if (handledByEditor.has(path)) {
-      continue;
-    }
-
+  for (const path of paths) {
     const itemType = getItemTypeFromPath(path);
     const workspaceId = getWorkspaceIdFromPath(path);
     const projectId = getProjectIdFromPath(path);
 
     affectedTypes.add(itemType);
-
-    // Add workspace to affected set
     if (workspaceId) {
       affectedWorkspaces.add(workspaceId);
       if (projectId) {
@@ -147,14 +158,11 @@ async function handleFileChange(
         affectedProjects.get(workspaceId)!.add(projectId);
       }
     }
-
-    // Check for capture tasks (separate invalidation)
     if (isCapturePath(path)) {
       hasCaptureChanges = true;
     }
   }
 
-  // Invalidate caches based on what changed (for non-editor paths)
   invalidateQueriesForChanges(
     affectedTypes,
     affectedWorkspaces,
@@ -163,8 +171,7 @@ async function handleFileChange(
     queryClient
   );
 
-  // Also invalidate file-tree queries for any file change
-  // The file-tree service handles its own internal cache invalidation via watcher-integration
+  // Also invalidate file-tree queries for any file change.
   queryClient.invalidateQueries({
     queryKey: fileTreeKeys.all,
   });

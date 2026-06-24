@@ -176,7 +176,11 @@ interface IncomingEmail {
 
 ## AI Context
 
-The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_tree, desk_read, desk_search) and can write back via desk_create_*/desk_update_* tools. All assistant tools run on the `@desk/core` domain layer (via the `StorageProvider` seam) — there are no Rust `desk_*` commands anymore. External agents use the generated `CLAUDE.md` and `WORKSPACE_CONTEXT.md` files.
+The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_tree, desk_read, desk_search) and can write back via desk_create_*/desk_update_* tools. There are no Rust `desk_*` commands anymore.
+
+**Tool layer routes through `DeskService`, not bare `getStorage()`.** The assistant's read tools (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) and write tools (`getDeskService().createTask/...`), plus the Smart Index build reads and its cache (`getIndexCache`/`setIndexCache` → `.desk/index/indexes.json`), all go through `getDeskService()`. So in hosted mode they run on the **server** (the assistant reads/writes server data; the catalog lives server-side for MCP), not the client's local disk. After a remote assistant write the client invalidates its own TanStack caches (`lib/assistant/remote-write-refresh.ts`), since the local file watcher is off in remote mode.
+
+**AI compute + AI-rendered markdown run where the domain runs.** The model runs client-side on the local Keychain key (so native-remote works; web-hosted has no key → assistant/index off until a future server-side-AI step). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`) are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the external-agent interface, not generated markdown.
 
 **Key files:**
 | Directory | Purpose |
@@ -260,49 +264,75 @@ Editors use a dual-layer system:
 
 Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
 
-### Metadata File Conventions
+### Where state lives (the storage model)
 
-All app metadata lives in `~/Desk/.desk/` for organization and consistency:
+Decide by **scope**; the home follows mechanically. The key rule once hosted mode exists:
+**"it's a file" ≠ "it syncs" — only `DeskService`-backed paths reach the server.** So anything
+that should follow the user across devices must go through `getDeskService()`, not a bare
+`getStorage()` / `localStorage`.
+
+| Scope | Meaning | Home | Syncs in hosted? |
+|-------|---------|------|------------------|
+| **USER** | follows the person across devices | a file in the data tree via **`DeskService`** (markdown or `.desk/*.json`) | ✅ yes |
+| **DEVICE** | this machine / window / session | `localStorage` · Rust OS-config · Keychain (secrets) | no (correct) |
+| **DERIVED** | rebuildable cache | `.desk/*` local (server-side later) | n/a |
+| **AUTH/SESSION** | identity, server-side | **SQLite** (`@desk/server`) | server-only |
+
+Headline: *Follows you → `DeskService`-backed file. About this device → localStorage. Secrets →
+Keychain. Auth → SQLite. Caches → `.desk/`.* Do **not** put user settings in SQLite — files keep
+"own your files" and get sync free through the seam.
+
+**Remote mode makes local disk off-limits, structurally.** When the domain runs on a server
+(native app pointed at a server, or the hosted web build), `main.tsx` installs a
+`GuardStorageProvider` so every `getStorage()` call **throws** — domain data must go through
+`getDeskService()` (the RPC client). The one predicate that gates legitimate local-disk access is
+**`isLocalDisk()` = `isTauri() && !isDomainRemote()`** ([connection.ts](packages/app/src/lib/connection.ts));
+never branch storage decisions on bare `isTauri()` (that misses the native-remote case). Local-file
+needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri commands, not the
+`StorageProvider` seam.
 
 **Directory Structure:**
 ```
-~/Desk/
-├── .desk/                   ← All app metadata
-│   ├── index/
-│   │   └── indexes.json     ← Smart Index (all workspaces in one file)
-│   ├── usage/
-│   │   └── ai-usage.json   ← AI usage records (90-day rolling)
-│   └── planner/
-│       └── weeks.json      ← Week planner data
+~/DeskMD/
+├── .desk/                    ← App metadata
+│   ├── settings/             ← USER settings, shared via DeskService (getSetting/setSetting)
+│   │   ├── templates.json
+│   │   ├── agent-instructions.json
+│   │   └── planner.json
+│   ├── index/indexes.json    ← Smart Index (DERIVED cache, local)
+│   └── usage/ai-usage.json   ← AI usage records (DERIVED/telemetry, local)
 └── workspaces/
     └── {workspaceId}/
-        ├── .aiignore        ← Per-workspace AI exclusions (.gitignore syntax)
-        └── .view.json       ← Per-workspace view state (UI preferences)
+        ├── .aiignore         ← Per-workspace AI exclusions (.gitignore syntax)
+        └── .view.json        ← View state — USER, shared via DeskService (getViewState/…)
 ```
 
+**Classification (current):**
+| State | Scope | Home | Reached via |
+|-------|-------|------|-------------|
+| Tasks / docs / meetings / projects / workspaces | USER | markdown files | `getDeskService()` |
+| View state (`.view.json`: task order, view mode, expanded folders, highlights, hidden statuses) | USER | `.view.json` | `getDeskService().getViewState/…` |
+| Templates, agent-instructions, week planner | USER | `.desk/settings/*.json` | `getDeskService().getSetting/setSetting` (via `createRemoteSettingStorage`) |
+| Smart/context index, AI usage | DERIVED | `.desk/index`, `.desk/usage` | `createFileStorage` (local) |
+| Preferences (theme, language, sidebar widths, workday hours, dismissedUpdate) | DEVICE | localStorage `desk-preferences` | zustand persist |
+| Navigation (current workspace), tabs, assistant chat history | DEVICE | localStorage | zustand persist |
+| Boot (dataPath, setupCompleted, connectionMode, serverUrl) | DEVICE | localStorage `desk-boot` + Rust `config.json` | boot store / Rust |
+| AI provider/model selection + consent | DEVICE | localStorage `desk-ai-settings-v2` | zustand persist |
+| AI keys, remote session token | DEVICE | OS Keychain | `secret_*` Tauri commands |
+| Auth (users, sessions) | AUTH | SQLite (hosted only) | Better Auth |
+
+> Known not-yet-moved: `ai.ts` custom/per-type instructions and `context.ts` emit-flags are
+> conceptually USER but live in stores that also hold DEVICE fields; splitting them is a follow-up.
+
 **Rules:**
-- **App-level metadata** → `.desk/` subdirectories (indexes, usage, planner)
-- **Workspace-specific config** → Root of workspace directory (`.aiignore`, `.view.json`)
-- **User content** → Regular `.md` files with YAML frontmatter
-- **Naming**: Use `.desk/` for app metadata, dot-prefix (`.aiignore`) for hidden config
-- **Format**: JSON for structured data, plain text for lists/exclusions
+- A new **user-level** setting → a `.desk/settings/<key>.json` via `createRemoteSettingStorage(key)`
+  (app store) which routes through `DeskService.getSetting/setSetting`. Never bare `localStorage`.
+- A new **device-level** UI preference → `localStorage` (plain zustand persist). Never a file.
+- A **derived cache** → `createFileStorage` (`.desk/`); do not sync large caches over RPC.
+- **Format**: JSON for structured data, plain text for lists (`.aiignore`).
 
-**Storage Strategy:**
-| Data Type | Storage | Reason |
-|-----------|---------|--------|
-| User Content | Filesystem | Must backup, sync, persist |
-| Derived Indexes | Filesystem (`.desk/`) | Expensive to rebuild, should sync |
-| Growing Data | Filesystem (`.desk/`) | AI usage, planner — too large for localStorage |
-| Boot Config | localStorage (`desk-boot`) | Sync read at startup, duplicated to Rust config |
-| User Preferences | localStorage (`desk-preferences`) | Sync read, reactive UI |
-| Navigation State | localStorage (`desk-navigation`) | Current workspace selection |
-| AI Settings | localStorage (`desk-ai-settings-v2`) | Provider config, custom instructions |
-| Session State | localStorage (`desk-tabs`, `desk-assistant`) | UI-only, OK to lose |
-| Rust Boot Config | OS config dir (`config.json`) | Rust needs `data_path` before WebView |
-| Secrets | OS Keychain | API keys (macOS) |
-| View Preferences | Filesystem (`.view.json`) | Per-workspace/project UI state |
-
-**No Backwards Compatibility:** Single user, no migration code needed. Just delete and rebuild.
+**No Backwards Compatibility:** Single user, no migration code. Moving a setting's home just
+abandons the old location and re-creates it empty.
 
 ### Form Components
 

@@ -4,10 +4,11 @@ import { open as openShell } from "@tauri-apps/plugin-shell";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { getDeskPath, joinPath, isTauri } from "@desk/core";
+import { getDeskPath, joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
+import { isLocalDisk } from "@/lib/connection";
 
 interface Props {
   scope: "global" | string;
@@ -23,7 +24,8 @@ export function AgentFilePreviewCard({ scope }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const loadFile = async () => {
-    if (!isTauri()) {
+    if (!isLocalDisk()) {
+      // Generated agent files are a local-mode artifact (not written to the server tree).
       setError(t("settings.agents.preview.errorBrowserMode"));
       return;
     }
@@ -51,7 +53,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
   }, [open]);
 
   const handleReveal = async () => {
-    if (!isTauri()) return;
+    if (!isLocalDisk()) return;
     try {
       const parent = isGlobal ? await getDeskPath() : await getWorkspacePath(scope);
       await openShell(parent);

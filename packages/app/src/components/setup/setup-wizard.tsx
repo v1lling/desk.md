@@ -8,11 +8,17 @@ import { useNavigationStore } from "@/stores/navigation";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { initDeskDirectory, slugify, isTauri, needsTrafficLightPadding, expandFsScope } from "@desk/core";
 import { getDeskService } from "@desk/core";
-import { Loader2, FolderSearch } from "lucide-react";
+import { Loader2, FolderSearch, HardDrive, Server } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeServerUrl } from "@/lib/server-url";
 import type { Workspace } from "@desk/core/types";
 
-type Step = "welcome" | "data-folder" | "existing-detected" | "workspace";
+type Step = "welcome" | "location" | "server-url" | "data-folder" | "existing-detected" | "workspace";
+
+// Connecting to a remote server is a native-desktop capability: bundled in every
+// non-hosted build (`!VITE_DESK_HOSTED`) but only offered inside a Tauri webview
+// (isTauri()) — the browser-mock dev build stays local-only.
+const SUPPORTS_REMOTE = !import.meta.env.VITE_DESK_HOSTED && isTauri();
 
 const HOME_WORKSPACE_COLOR = "#6366f1";
 
@@ -21,6 +27,7 @@ export function SetupWizard() {
   const [step, setStep] = useState<Step>("welcome");
   const [dataPath, setDataPath] = useState("~/Desk");
   const [workspaceName, setWorkspaceName] = useState("Personal");
+  const [serverUrlInput, setServerUrlInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [existingWorkspaces, setExistingWorkspaces] = useState<Workspace[]>([]);
   const [hasTitleBarPadding, setHasTitleBarPadding] = useState(false);
@@ -32,6 +39,7 @@ export function SetupWizard() {
 
   const setSettingsDataPath = useBootStore((state) => state.setDataPath);
   const setSetupCompleted = useBootStore((state) => state.setSetupCompleted);
+  const setConnection = useBootStore((state) => state.setConnection);
   const setCurrentWorkspaceId = useNavigationStore((state) => state.setCurrentWorkspaceId);
   const createWorkspace = useCreateWorkspace();
 
@@ -82,6 +90,22 @@ export function SetupWizard() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConnectServer = () => {
+    const normalized = normalizeServerUrl(serverUrlInput);
+    if (!normalized) {
+      setError(
+        /^http:\/\//i.test(serverUrlInput.trim())
+          ? t("setup.server.httpsRequired")
+          : t("setup.server.invalidUrl")
+      );
+      return;
+    }
+    // Switch to remote mode and reload: main.tsx wires RemoteDeskService and the
+    // native auth gate takes over for login / first-run account creation.
+    setConnection("remote", normalized);
+    window.location.reload();
   };
 
   const handleUseExisting = () => {
@@ -143,9 +167,83 @@ export function SetupWizard() {
                   {t("setup.welcome.subtitle")}
                 </p>
               </div>
-              <Button className="w-full" onClick={() => setStep("data-folder")}>
+              <Button
+                className="w-full"
+                onClick={() => setStep(SUPPORTS_REMOTE ? "location" : "data-folder")}
+              >
                 {t("common.buttons.continue")}
               </Button>
+            </div>
+          )}
+
+          {step === "location" && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.location.title")}</h1>
+                <p className="text-sm text-muted-foreground">{t("setup.location.subtitle")}</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep("data-folder")}
+                  className="flex items-start gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 text-left hover:border-foreground/30 hover:bg-muted/40 transition-colors"
+                >
+                  <HardDrive className="h-5 w-5 shrink-0 mt-0.5 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{t("setup.location.localTitle")}</p>
+                    <p className="text-sm text-muted-foreground">{t("setup.location.localDescription")}</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("server-url")}
+                  className="flex items-start gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 text-left hover:border-foreground/30 hover:bg-muted/40 transition-colors"
+                >
+                  <Server className="h-5 w-5 shrink-0 mt-0.5 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{t("setup.location.remoteTitle")}</p>
+                    <p className="text-sm text-muted-foreground">{t("setup.location.remoteDescription")}</p>
+                  </div>
+                </button>
+              </div>
+              <Button variant="outline" onClick={() => setStep("welcome")}>
+                {t("common.buttons.back")}
+              </Button>
+            </div>
+          )}
+
+          {step === "server-url" && (
+            <div className="w-full flex flex-col gap-6">
+              <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-base font-semibold tracking-tight">{t("setup.server.title")}</h1>
+                <p className="text-sm text-muted-foreground">{t("setup.server.subtitle")}</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="serverUrl">{t("setup.server.label")}</Label>
+                <Input
+                  id="serverUrl"
+                  value={serverUrlInput}
+                  onChange={(e) => {
+                    setServerUrlInput(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="https://nas.example"
+                />
+                <p className="text-xs text-muted-foreground">{t("setup.server.hint")}</p>
+              </div>
+              {error && (
+                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep("location")} disabled={isLoading}>
+                  {t("common.buttons.back")}
+                </Button>
+                <Button className="flex-1" onClick={handleConnectServer} disabled={!serverUrlInput.trim()}>
+                  {t("setup.server.connect")}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -189,7 +287,11 @@ export function SetupWizard() {
                 </p>
               )}
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep("welcome")} disabled={isLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(SUPPORTS_REMOTE ? "location" : "welcome")}
+                  disabled={isLoading}
+                >
                   {t("common.buttons.back")}
                 </Button>
                 <Button className="flex-1" onClick={handleCheckDataFolder} disabled={isLoading}>

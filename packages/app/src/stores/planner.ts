@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useQuery } from "@tanstack/react-query";
 import type { WeekPlan, WorkspaceBlock } from "@desk/core/types";
-import { createFileStorage } from "./file-storage";
+import { createRemoteSettingStorage } from "./remote-setting-storage";
 import { getDeskService } from "@desk/core";
 
 // ── Zustand store for week plans ────────────────────────────────────
@@ -286,7 +286,8 @@ export const usePlannerStore = create<PlannerState>()(
     }),
     {
       name: "planner-store",
-      storage: createFileStorage<PlannerState>("planner", "weeks.json"),
+      // User-level → shared across devices in hosted mode (.desk/settings/planner.json).
+      storage: createRemoteSettingStorage<PlannerState>("planner"),
       partialize: (state) => ({ weekPlans: state.weekPlans }) as PlannerState,
       onRehydrateStorage: () => (state) => {
         if (!state) return;

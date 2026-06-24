@@ -4,20 +4,35 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn as webSignIn, signUp as webSignUp } from "@/lib/auth-client";
+
+/**
+ * The minimal email-auth surface AuthScreen needs. Both the same-origin web client
+ * (`@/lib/auth-client`) and the native bearer client (`@/lib/native-auth-client`)
+ * satisfy it, so the same screen drives web (cookie) and native (Keychain token) login.
+ */
+export interface AuthActions {
+  signIn: { email: (args: { email: string; password: string }) => Promise<{ error?: { message?: string } | null }> };
+  signUp: {
+    email: (args: { email: string; password: string; name: string }) => Promise<{ error?: { message?: string } | null }>;
+  };
+}
 
 interface AuthScreenProps {
   /** "create" on a fresh deployment (no users yet), "login" once an account exists. */
   mode: "create" | "login";
+  /** Auth client to use; defaults to the same-origin web client (cookie session). */
+  auth?: AuthActions;
 }
 
 /**
  * Hosted-mode login + first-run account creation (step 3b). Rendered by the
- * app-shell gate when running hosted (VITE_DESK_HOSTED) and unauthenticated. On
- * success Better Auth sets the session cookie and useSession() flips, so the
- * gate re-renders into the app.
+ * app-shell gate when running hosted (web VITE_DESK_HOSTED, or native remote mode)
+ * and unauthenticated. On success the session is established (cookie on web, Keychain
+ * bearer token on native) and the screen reloads so the app boots authenticated.
  */
-export function AuthScreen({ mode }: AuthScreenProps) {
+export function AuthScreen({ mode, auth }: AuthScreenProps) {
+  const { signIn, signUp } = auth ?? { signIn: webSignIn, signUp: webSignUp };
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

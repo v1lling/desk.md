@@ -51,7 +51,8 @@ import {
   splitTreePathToKind,
 } from "@desk/core";
 import { isAllowedNewFolderName } from "./tree/arborist-adapter";
-import { revealInFinder, type DocSortBy } from "./tree-item-utils";
+import { revealInFinder, openWithDefaultApp, type DocSortBy } from "./tree-item-utils";
+import { isRemoteMode } from "@/lib/connection";
 import { ContentDropZone } from "./content-drop-zone";
 import { NewDocModal } from "./new-doc-modal";
 import { DocsTree } from "./tree/docs-tree";
@@ -139,11 +140,10 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   );
 
   const handleOpenAsset = useCallback((asset: Asset) => {
-    // Open with default app — same behavior as the old tree.
-    import("@tauri-apps/api/core")
-      .then(({ invoke }) => invoke("open_file_with_default_app", { path: asset.filePath }))
-      .catch(() => toast.error(t("errors.doc.openFailed")));
-  }, [t]);
+    // Open with default app — same behavior as the old tree. Routes through the shared
+    // helper so it's guarded in remote mode (the file lives on the server, not this Mac).
+    void openWithDefaultApp(asset.filePath);
+  }, []);
 
   const openNewDocForTreePath = useCallback(
     (treePath: string) => {
@@ -419,7 +419,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               <Upload className="size-4 mr-2" />
               {t("pages.docs.tree.actions.importFiles")}
             </DropdownMenuItem>
-            {workspaceBasePath && (
+            {workspaceBasePath && !isRemoteMode() && (
               <DropdownMenuItem onClick={() => revealInFinder(workspaceBasePath)}>
                 <FolderOpen className="size-4 mr-2" />
                 {t("pages.docs.tree.actions.openInFinder")}

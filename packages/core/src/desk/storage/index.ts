@@ -12,6 +12,7 @@ import type { StorageProvider } from "./provider";
 import { TauriProvider } from "./tauri-provider";
 
 export type { DirEntry, FileStat, StorageProvider } from "./provider";
+export { GuardStorageProvider } from "./guard-provider";
 
 let activeProvider: StorageProvider | null = null;
 

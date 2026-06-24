@@ -20,6 +20,7 @@ import Database from "better-sqlite3";
 import { betterAuth } from "better-auth";
 import type { BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { bearer } from "better-auth/plugins/bearer";
 import { getMigrations } from "better-auth/db/migration";
 import { resolveDataRoot } from "./boot";
 
@@ -99,6 +100,14 @@ const authOptions = {
   emailAndPassword: {
     enabled: true,
   },
+  // Bearer-token sessions for the cross-origin native client (step 3b-native). The
+  // Tauri webview (origin tauri://localhost) can't carry the same-origin SameSite=Lax
+  // cookie, so the native app reads the session token from the `set-auth-token`
+  // response header at sign-in, stores it in the macOS Keychain, and sends it as
+  // `Authorization: Bearer <token>`. `getSession()` then resolves it exactly like the
+  // cookie — the existing /api/desk session gate works unchanged. The web/PWA tier
+  // keeps using the cookie; this is purely additive.
+  plugins: [bearer()],
   // Pin the cookie posture explicitly so an upstream default change can't silently
   // widen it. SameSite=Lax also neutralizes CSRF on the same-origin /api/desk POSTs;
   // httpOnly keeps the session token out of reach of any JS (XSS can't read it).

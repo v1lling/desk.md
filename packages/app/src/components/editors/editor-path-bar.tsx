@@ -2,6 +2,7 @@ import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { isTauri } from "@desk/core";
 import { revealInFinder } from "@/components/docs/tree-item-utils";
+import { isRemoteMode } from "@/lib/connection";
 import { PATH_SEGMENTS } from "@desk/core";
 
 interface EditorPathBarProps {
@@ -31,9 +32,12 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
   if (!filePath) return null;
 
   const segments = getDisplaySegments(filePath);
+  // Reveal-in-Finder targets a local file; in remote mode the breadcrumb stays as a
+  // read-only path display (no folder icon, no click, path-as-tooltip).
+  const canReveal = isTauri() && !isRemoteMode();
 
   const handleClick = () => {
-    if (isTauri()) {
+    if (canReveal) {
       revealInFinder(filePath);
     }
   };
@@ -45,7 +49,7 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
           type="button"
           onClick={handleClick}
           className="group flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default"
-          title={isTauri() ? t("editors.shared.revealInFinder") : filePath}
+          title={canReveal ? t("editors.shared.revealInFinder") : filePath}
         >
           {segments.map((segment, i) => (
             <span key={i} className="flex items-center gap-1.5">
@@ -55,7 +59,7 @@ export function EditorPathBar({ filePath }: EditorPathBarProps) {
               </span>
             </span>
           ))}
-          {isTauri() && (
+          {canReveal && (
             <FolderOpen className="size-3 ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
           )}
         </button>

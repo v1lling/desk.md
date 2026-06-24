@@ -60,13 +60,41 @@ async function bootstrap() {
   // Hosted mode (step 3a): when this bundle is built for the server
   // (VITE_DESK_HOSTED=1, via `npm run build:hosted`), the domain runs on the
   // server — inject a RemoteDeskService so every getDeskService() call goes over
-  // HTTP instead of the in-process LocalDeskService. The default builds (Tauri
-  // desktop, browser mock) leave the flag unset and keep running the domain
-  // locally. Same-origin → no CORS.
+  // HTTP instead of the in-process LocalDeskService. Same-origin → cookie auth, no CORS.
   if (import.meta.env.VITE_DESK_HOSTED) {
-    const { setDeskService } = await import("@desk/core");
+    const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core");
     const { createRemoteDeskService } = await import("./lib/remote-desk-service");
+    // Domain runs on the server: make the local filesystem structurally off-limits so a
+    // stray getStorage() throws instead of silently hitting the wrong disk.
+    setStorage(new GuardStorageProvider());
     setDeskService(createRemoteDeskService(window.location.origin));
+  } else {
+    // Native hosted mode (step 3b-native): the same Tauri app can point at a remote
+    // desk.md server instead of local disk. "Native" is detected at runtime via
+    // isTauri() — true on every Tauri desktop platform (macOS/Windows/Linux) — so no
+    // build flag is needed; the DMG/MSI/AppImage is always native. This whole branch is
+    // the `else` of the constant `VITE_DESK_HOSTED`, so it's tree-shaken from the lean
+    // web/PWA build. The choice is a runtime boot-store setting, so flipping it +
+    // reloading re-wires the service; requests go through the Tauri HTTP plugin (Rust
+    // reqwest, bypasses CSP/CORS) with a Keychain-backed Bearer token. Local mode (and
+    // the browser-mock dev build, where isTauri() is false) keeps LocalDeskService.
+    const { isTauri } = await import("@desk/core");
+    const boot = useBootStore.getState();
+    if (isTauri() && boot.connectionMode === "remote" && boot.serverUrl) {
+      const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core");
+      const { createRemoteDeskService } = await import("./lib/remote-desk-service");
+      const { nativeFetch } = await import("./lib/native-http");
+      const { loadSessionToken, getTokenHeaderSync } = await import("./lib/session-token");
+      await loadSessionToken(); // populate the in-memory mirror before any RPC
+      // Domain runs on the server: guard the local filesystem (see hosted branch above).
+      setStorage(new GuardStorageProvider());
+      setDeskService(
+        createRemoteDeskService(boot.serverUrl, {
+          fetchImpl: nativeFetch,
+          authHeader: getTokenHeaderSync,
+        })
+      );
+    }
   }
 
   // Dynamic import: the App module graph (and every store with persist) is

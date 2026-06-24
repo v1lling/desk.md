@@ -20,11 +20,15 @@ import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { isTauri, expandFsScope } from "@desk/core";
 import { getDeskService } from "@desk/core";
+import { isRemoteMode } from "@/lib/connection";
 import type { Workspace } from "@desk/core/types";
 
 export function DataTab() {
   const { t } = useTranslation();
   const { dataPath, setDataPath, setSetupCompleted, reset: resetBoot } = useBootStore();
+  // The local data folder is meaningless when connected to a remote server. Non-reactive
+  // is fine: switching connection always reloads the app, so this component remounts.
+  const remote = isRemoteMode();
   const { reset: resetPreferences } = usePreferencesStore();
   const { setCurrentWorkspaceId, reset: resetNavigation } = useNavigationStore();
 
@@ -113,36 +117,38 @@ export function DataTab() {
 
   return (
     <div className="space-y-6">
-      {/* Data Storage */}
-      <SettingsSection
-        icon={<FolderOpen className="h-4 w-4" />}
-        title={t("settings.data.storage.title")}
-        description={t("settings.data.storage.description")}
-      >
-        <div className="space-y-2">
-          <Label htmlFor="data-path">{t("settings.data.storage.pathLabel")}</Label>
-          <div className="flex gap-2">
-            <Input
-              id="data-path"
-              value={pendingPath || dataPath}
-              onChange={(e) => setPendingPath(e.target.value)}
-              placeholder={t("settings.data.storage.pathPlaceholder")}
-              className="font-mono text-sm"
-            />
-            <Button
-              variant="outline"
-              onClick={handleCheckDataPath}
-              disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
-            >
-              {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("settings.data.storage.change")}
-            </Button>
+      {/* Data Storage — local mode only (a remote backend owns the data root). */}
+      {!remote && (
+        <SettingsSection
+          icon={<FolderOpen className="h-4 w-4" />}
+          title={t("settings.data.storage.title")}
+          description={t("settings.data.storage.description")}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="data-path">{t("settings.data.storage.pathLabel")}</Label>
+            <div className="flex gap-2">
+              <Input
+                id="data-path"
+                value={pendingPath || dataPath}
+                onChange={(e) => setPendingPath(e.target.value)}
+                placeholder={t("settings.data.storage.pathPlaceholder")}
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                onClick={handleCheckDataPath}
+                disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
+              >
+                {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("settings.data.storage.change")}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.data.storage.helperText")}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("settings.data.storage.helperText")}
-          </p>
-        </div>
-      </SettingsSection>
+        </SettingsSection>
+      )}
 
       {/* Reset Settings */}
       <SettingsSection

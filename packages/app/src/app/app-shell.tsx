@@ -10,7 +10,7 @@ import { useBootStore } from "@/stores/boot";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize";
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
-import { needsTrafficLightPadding } from "@desk/core";
+import { needsTrafficLightPadding, isTauri } from "@desk/core";
 import { openGlobalSearch } from "@/components/global-search";
 import { AIConsentDialog } from "@/components/ai/ai-consent-dialog";
 import { Search } from "lucide-react";
@@ -26,11 +26,21 @@ const HostedAuthGate = import.meta.env.VITE_DESK_HOSTED
   ? lazy(() => import("@/components/auth/hosted-auth-gate"))
   : null;
 
+// Native hosted mode (step 3b-native): the same lazy gate for the desktop build.
+// Bundling is gated on the constant `!VITE_DESK_HOSTED` (so the lean web/PWA build
+// tree-shakes it out); whether it's actually shown is a runtime decision — only in a
+// Tauri webview (isTauri(), true on macOS/Windows/Linux) and only when the user has
+// switched to a remote backend. No build flag: the native app is self-identifying.
+const NativeAuthGate = !import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("@/components/auth/native-auth-gate"))
+  : null;
+
 export function AppShell({ children }: AppShellProps) {
   const { t } = useTranslation();
   const [hydrated, setHydrated] = useState(false);
   const [hasMacTrafficLights, setHasMacTrafficLights] = useState(false);
   const setupCompleted = useBootStore((state) => state.setupCompleted);
+  const connectionMode = useBootStore((state) => state.connectionMode);
   const { pathname } = useLocation();
 
   const {
@@ -165,6 +175,18 @@ export function AppShell({ children }: AppShellProps) {
     return (
       <Suspense fallback={loadingView}>
         <HostedAuthGate>{shell}</HostedAuthGate>
+      </Suspense>
+    );
+  }
+
+  // Native remote mode: the desktop app points at a server → gate behind the native
+  // (bearer) auth gate. Guarded by isTauri() so the browser-mock dev build (which now
+  // bundles the gate too) never shows it. Local mode falls through to the normal
+  // setup-wizard path, so switching back to "This Mac" never traps the user behind a login.
+  if (NativeAuthGate && isTauri() && connectionMode === "remote") {
+    return (
+      <Suspense fallback={loadingView}>
+        <NativeAuthGate>{shell}</NativeAuthGate>
       </Suspense>
     );
   }

@@ -2,9 +2,18 @@ import { getDeskPath, joinPath, isTauri } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
+import { isRemoteMode } from "@/lib/connection";
 import { useContextStore } from "@/stores/context";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 import type { Workspace, Project } from "@desk/core/types";
+
+// Generated agent markdown (CLAUDE.md/AGENTS.md/GEMINI.md/WORKSPACE_CONTEXT.md) is a
+// LOCAL-mode feature: it teaches a local CLI agent the on-disk tree. In hosted mode the
+// data lives on the server and MCP is the external-agent interface, so we don't write
+// these into the server tree. Skip whenever the domain is remote (or non-Tauri).
+function skipAgentFileWrite(): boolean {
+  return !isTauri() || isRemoteMode();
+}
 
 /** HTML comment marking a file as generated — invisible when rendered, still read by agents. */
 function generatedHeader(): string {
@@ -325,7 +334,7 @@ async function removeIfExists(path: string): Promise<void> {
 }
 
 export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<void> {
-  if (!isTauri()) return;
+  if (skipAgentFileWrite()) return;
 
   const deskPath = await getDeskPath();
   const enabled = enabledAgentFilenames();
@@ -349,7 +358,7 @@ export async function writePerWorkspaceAgentFiles(
   workspace: Workspace,
   projects: Project[]
 ): Promise<void> {
-  if (!isTauri()) return;
+  if (skipAgentFileWrite()) return;
 
   const workspacePath = await getWorkspacePath(workspaceId);
   const enabled = enabledAgentFilenames();
@@ -369,7 +378,7 @@ export async function writePerWorkspaceAgentFiles(
 
 // Delete every generated agent file from the data folder; used when the catalog is cleared.
 export async function deleteGeneratedAgentFiles(workspaces: Workspace[]): Promise<void> {
-  if (!isTauri()) return;
+  if (skipAgentFileWrite()) return;
 
   const deskPath = await getDeskPath();
   for (const name of [FILE_NAMES.CLAUDE_MD, FILE_NAMES.AGENTS_MD, FILE_NAMES.GEMINI_MD]) {

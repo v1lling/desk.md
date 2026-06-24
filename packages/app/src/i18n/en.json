@@ -268,6 +268,21 @@
       "compactSidebar": {
         "label": "Compact sidebar",
         "description": "Show only icons in the sidebar (or drag the edge to resize)"
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "Where Desk keeps your work",
+        "localLabel": "This Mac",
+        "remoteLabel": "Connected to server",
+        "connectToServer": "Connect to a server",
+        "serverUrlLabel": "Server address",
+        "connect": "Connect",
+        "connectHint": "Defaults to https:// if you omit it. The address must use https.",
+        "invalidUrl": "Enter a valid server address.",
+        "httpsRequired": "Server must use https. An http address would send your sign-in token unencrypted.",
+        "switchToLocalLabel": "Use this Mac instead",
+        "switchToLocalDescription": "Switch back to local files. Your local data is untouched.",
+        "switchToLocal": "Switch to this Mac"
       }
     },
     "planner": {
@@ -904,6 +919,9 @@
       "description": "Desk failed to set up its data folder. Your files are safe. This is a startup problem, not data loss.",
       "hint": "Make sure the data folder exists and is readable, then retry."
     },
+    "connection": {
+      "notAvailableRemote": "Not available when connected to a server."
+    },
     "generic": {
       "unexpected": {
         "title": "Something went wrong",
@@ -1091,6 +1109,23 @@
     "welcome": {
       "title": "Welcome to Desk.",
       "subtitle": "Your projects, tasks, docs, and meetings, as plain Markdown files you own."
+    },
+    "location": {
+      "title": "Where should Desk keep your work?",
+      "subtitle": "You can change this anytime in Settings.",
+      "localTitle": "This Mac",
+      "localDescription": "Store your files locally on this computer.",
+      "remoteTitle": "A desk.md server",
+      "remoteDescription": "Connect to a deployed desk.md server (e.g. on your NAS) for access from your phone and other devices."
+    },
+    "server": {
+      "title": "Connect to your server",
+      "subtitle": "Enter the address of your desk.md server. You'll sign in on the next screen.",
+      "label": "Server address",
+      "hint": "Defaults to https:// if you omit it. The address must use https.",
+      "connect": "Continue",
+      "invalidUrl": "Enter a valid server address.",
+      "httpsRequired": "Server must use https. An http address would send your sign-in token unencrypted."
     },
     "dataFolder": {
       "title": "Where should we store your files?",

@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getFileCategory } from "@desk/core";
 import { isTauri } from "@desk/core";
+import { isRemoteMode } from "@/lib/connection";
 import { toast } from "sonner";
 import type { FileTreeNode } from "@desk/core/types";
 
@@ -118,6 +119,10 @@ export function sortNodes(
 // ── Helpers ─────────────────────────────────────────────────────────
 
 export async function revealInFinder(path: string) {
+  if (isRemoteMode()) {
+    toast.error(i18next.t("errors.connection.notAvailableRemote"));
+    return;
+  }
   try {
     if (isTauri()) {
       const { invoke } = await import("@tauri-apps/api/core");
@@ -142,6 +147,10 @@ export async function copyPath(path: string) {
 }
 
 export async function openWithDefaultApp(filePath: string) {
+  if (isRemoteMode()) {
+    toast.error(i18next.t("errors.connection.notAvailableRemote"));
+    return;
+  }
   try {
     if (isTauri()) {
       const { invoke } = await import("@tauri-apps/api/core");
@@ -246,7 +255,8 @@ export function buildFolderMenuItems(opts: {
   if (opts.onNewDocInFolder || opts.onNewSubfolder) {
     items.push("separator");
   }
-  if (opts.hasBasePath) {
+  // Reveal/copy act on a local-disk path; meaningless when the data lives on a server.
+  if (opts.hasBasePath && !isRemoteMode()) {
     items.push(
       { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.fullFolderPath) },
       { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.fullFolderPath) },
@@ -288,13 +298,21 @@ export function buildAssetMenuItems(opts: {
   onOpenExternal: () => void;
   onDeleteAsset?: () => void;
 }): MenuItem[] {
-  const items: MenuItem[] = [
-    { icon: <ExternalLink className="size-4 mr-2" />, label: i18next.t("menus.assetContextMenu.openInDefaultApp"), onClick: opts.onOpenExternal },
-    { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
-    { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
-  ];
+  const items: MenuItem[] = [];
+  // Open-in-app / reveal / copy-path all target a local-disk file; omit in remote mode.
+  if (!isRemoteMode()) {
+    items.push(
+      { icon: <ExternalLink className="size-4 mr-2" />, label: i18next.t("menus.assetContextMenu.openInDefaultApp"), onClick: opts.onOpenExternal },
+      { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
+      { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
+    );
+  }
   if (opts.onDeleteAsset) {
-    items.push("separator", {
+    // Avoid a leading separator when the local-disk items above were omitted (remote mode).
+    if (items.length > 0) {
+      items.push("separator");
+    }
+    items.push({
       icon: <Trash2 className="size-4 mr-2" />,
       label: i18next.t("common.buttons.delete"),
       onClick: opts.onDeleteAsset,
@@ -348,10 +366,13 @@ export function buildDocMenuItems(opts: {
     });
   }
 
-  items.push(
-    { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
-    { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
-  );
+  // Reveal/copy act on a local-disk path; meaningless when the data lives on a server.
+  if (!isRemoteMode()) {
+    items.push(
+      { icon: <FolderSearch className="size-4 mr-2" />, label: i18next.t("menus.common.revealInFinder"), onClick: () => revealInFinder(opts.filePath) },
+      { icon: <Copy className="size-4 mr-2" />, label: i18next.t("menus.common.copyPath"), onClick: () => copyPath(opts.filePath) },
+    );
+  }
 
   if (opts.onDeleteDoc) {
     items.push("separator", {

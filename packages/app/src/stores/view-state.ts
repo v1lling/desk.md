@@ -1,8 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "@desk/core/types";
-import * as viewStateLib from "@desk/core";
-import { WORKSPACE_LEVEL_PROJECT_ID } from "@desk/core";
+import { getDeskService, WORKSPACE_LEVEL_PROJECT_ID } from "@desk/core";
 import { dashboardKeys } from "./dashboard";
 
 // Query keys
@@ -23,7 +22,7 @@ export function useViewState(workspaceId: string | null, projectId: string | nul
     queryKey: viewStateKeys.byScope(workspaceId || "", projectId),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.getViewState(workspaceId, projectId);
+      return getDeskService().getViewState(workspaceId, projectId);
     },
     enabled: !!workspaceId, // Only need workspaceId, projectId can be null
     staleTime: 30000, // Trust cached value for 30s to prevent flicker on view switch
@@ -45,7 +44,7 @@ export function useUpdateTaskOrder() {
       workspaceId: string;
       projectId: string | null;
       taskOrder: Record<TaskStatus, string[]>;
-    }) => viewStateLib.updateTaskOrder(workspaceId, projectId, taskOrder),
+    }) => getDeskService().updateTaskOrder(workspaceId, projectId, taskOrder),
     onMutate: async ({ workspaceId, projectId, taskOrder }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
@@ -97,7 +96,7 @@ export function useRemoveTaskFromOrder() {
       workspaceId: string;
       projectId: string | null;
       taskId: string;
-    }) => viewStateLib.removeTaskFromOrder(workspaceId, projectId, taskId),
+    }) => getDeskService().removeTaskFromOrder(workspaceId, projectId, taskId),
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: viewStateKeys.byScope(variables.workspaceId, variables.projectId),
@@ -127,7 +126,7 @@ export function useViewMode(
   const setViewMode = useMutation({
     mutationFn: async (newMode: TaskViewMode) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.setViewMode(workspaceId, projectId, newMode);
+      return getDeskService().setViewMode(workspaceId, projectId, newMode);
     },
     onMutate: async (newMode) => {
       if (!workspaceId) return;
@@ -193,7 +192,7 @@ export function useExpandedFolders(
   const mutation = useMutation({
     mutationFn: async (folders: string[]) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.setExpandedFolders(workspaceId, projectId, folders);
+      return getDeskService().setExpandedFolders(workspaceId, projectId, folders);
     },
     onMutate: async (folders) => {
       if (!workspaceId) return;
@@ -264,7 +263,7 @@ export function useHighlightedTasks(
   const toggleMutation = useMutation({
     mutationFn: async (taskId: string) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.toggleTaskHighlight(workspaceId, projectId, taskId);
+      return getDeskService().toggleTaskHighlight(workspaceId, projectId, taskId);
     },
     onMutate: async (taskId) => {
       if (!workspaceId) return;
@@ -352,7 +351,7 @@ export function useHiddenStatuses(
   const mutation = useMutation({
     mutationFn: async (statuses: TaskStatus[]) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return viewStateLib.setHiddenStatuses(workspaceId, projectId, statuses);
+      return getDeskService().setHiddenStatuses(workspaceId, projectId, statuses);
     },
     onMutate: async (statuses) => {
       if (!workspaceId) return;

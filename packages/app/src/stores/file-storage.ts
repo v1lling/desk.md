@@ -1,11 +1,13 @@
 /**
- * Custom Zustand storage that persists to filesystem instead of localStorage
- * Used for Smart Index to enable cross-device sync and backups
+ * Custom Zustand storage that persists to the local filesystem (.desk/), for
+ * DERIVED/telemetry data that stays per-machine (e.g. AI usage). In any non-local
+ * posture (remote or browser-mock) it falls back to localStorage — the local disk
+ * is either the wrong disk (remote, guarded) or absent (mock).
  */
 
 import { getDeskPath, joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
-import { isTauri } from "@desk/core";
+import { isLocalDisk } from "@/lib/connection";
 import type { PersistStorage } from "zustand/middleware";
 
 /**
@@ -16,7 +18,7 @@ import type { PersistStorage } from "zustand/middleware";
 export function createFileStorage<T>(subdirectory: string, filename: string): PersistStorage<T> {
   return {
     getItem: async (name: string) => {
-      if (!isTauri()) {
+      if (!isLocalDisk()) {
         // Fallback to localStorage in browser mode
         const str = localStorage.getItem(name);
         return str ? JSON.parse(str) : null;
@@ -41,7 +43,7 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
     },
 
     setItem: async (name: string, value) => {
-      if (!isTauri()) {
+      if (!isLocalDisk()) {
         // Fallback to localStorage in browser mode
         localStorage.setItem(name, JSON.stringify(value));
         return;
@@ -65,7 +67,7 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
     },
 
     removeItem: async (name: string) => {
-      if (!isTauri()) {
+      if (!isLocalDisk()) {
         localStorage.removeItem(name);
         return;
       }
@@ -74,12 +76,4 @@ export function createFileStorage<T>(subdirectory: string, filename: string): Pe
       // Could implement file deletion here if needed
     },
   };
-}
-
-/**
- * Create filesystem storage for context indexes
- * Stores all workspace indexes in a single file: .desk/index/indexes.json
- */
-export function createContextIndexStorage<T>(): PersistStorage<T> {
-  return createFileStorage<T>("index", "indexes.json");
 }

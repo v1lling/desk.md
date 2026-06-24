@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DEFAULT_TEMPLATES, type TemplateType, type TemplatesConfig } from "@/lib/templates";
+import { createRemoteSettingStorage } from "./remote-setting-storage";
 
 interface TemplatesState {
   /** Global default templates (apply to all workspaces unless overridden) */
@@ -64,6 +65,8 @@ export const useTemplatesStore = create<TemplatesState>()(
     }),
     {
       name: "desk-templates",
+      // User-level → shared across devices in hosted mode (.desk/settings/templates.json).
+      storage: createRemoteSettingStorage<Pick<TemplatesState, "global" | "workspaces">>("templates"),
       partialize: (state) => ({
         global: state.global,
         workspaces: state.workspaces,

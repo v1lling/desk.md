@@ -2,22 +2,9 @@ import { jsonSchema, tool, type ToolSet } from "ai";
 import { z } from "zod/v4";
 import { useContextIndexStore } from "@/stores/context-index";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
-import {
-  deskWorkspaceInfo,
-  deskTree,
-  deskReadFile,
-  deskFullTextSearch,
-} from "@desk/core";
-import {
-  createTask,
-  updateTask,
-  createMeeting,
-  updateMeeting,
-  createDoc,
-  createDocInFolder,
-  updateDoc,
-  getDoc,
-} from "@desk/core";
+import { getDeskService } from "@desk/core";
+import { isRemoteMode } from "@/lib/connection";
+import { invalidateAfterRemoteWrite } from "@/lib/assistant/remote-write-refresh";
 import { formatError } from "@/lib/utils";
 
 export interface ToolCallEvent {
@@ -66,6 +53,14 @@ async function runTool(
       "ok" in payload &&
       (payload as { ok?: unknown }).ok === false;
     ctx.callbacks.onToolResult({ callId, toolName, ok: !failed, payload });
+    // In remote mode the write ran on the server, so the local file watcher never
+    // sees it. Refresh the client's TanStack caches off the returned file path so
+    // list / board / tree views reflect the assistant's write. (No-op locally —
+    // the watcher already handles it.)
+    if (!failed && isRemoteMode()) {
+      const path = (payload as { path?: unknown })?.path;
+      if (typeof path === "string" && path) invalidateAfterRemoteWrite(path);
+    }
     return payload;
   } catch (error) {
     const payload = {
@@ -86,7 +81,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {} }),
       execute: async () => {
         return runTool(ctx, "desk_workspace_info", {}, async () => {
-          return deskWorkspaceInfo();
+          return getDeskService().deskWorkspaceInfo();
         });
       },
     }),
@@ -100,15 +95,9 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_tree", args as Record<string, unknown>, async () => {
-          const result = await deskTree(args.workspace_id, args.path);
-          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
-          if (aiignoreEntries.length > 0) {
-            result.entries = result.entries.filter(
-              (e) => !isPathExcludedByAIIgnore(e.path, aiignoreEntries)
-            );
-            result.total = result.entries.length;
-          }
-          return result;
+          // .aiignore is enforced inside the domain (agent-queries), so the result
+          // is already filtered.
+          return getDeskService().deskTree(args.workspace_id, args.path);
         });
       },
     }),
@@ -173,11 +162,9 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_read", args as Record<string, unknown>, async () => {
-          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
-          if (isPathExcludedByAIIgnore(args.path, aiignoreEntries)) {
-            return { ok: false, error: "excluded", message: "This file is excluded from AI access." };
-          }
-          return deskReadFile(workspacePath(args.workspace_id, args.path));
+          // .aiignore exclusion is enforced inside the domain (deskReadFile throws
+          // for an excluded path).
+          return getDeskService().deskReadFile(workspacePath(args.workspace_id, args.path));
         });
       },
     }),
@@ -191,21 +178,11 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_search", args as Record<string, unknown>, async () => {
-          const result = await deskFullTextSearch(
+          // .aiignore-excluded files are skipped inside the domain (deskFullTextSearch).
+          return getDeskService().deskFullTextSearch(
             args.query,
             workspacePath(args.workspace_id, args.path)
           );
-          const aiignoreEntries = await loadAIIgnoreEntries(args.workspace_id);
-          if (aiignoreEntries.length > 0) {
-            const wsPrefix = `workspaces/${args.workspace_id}/`;
-            result.matches = result.matches.filter(
-              (m) => !isPathExcludedByAIIgnore(
-                m.path.startsWith(wsPrefix) ? m.path.slice(wsPrefix.length) : m.path,
-                aiignoreEntries
-              )
-            );
-          }
-          return result;
         });
       },
     }),
@@ -224,7 +201,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_create_task", args as Record<string, unknown>, async () => {
-          const task = await createTask({
+          const task = await getDeskService().createTask({
             workspaceId: args.workspace_id,
             projectId: args.project_id,
             title: args.title,
@@ -233,7 +210,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
             content: args.content,
           });
           if (args.status && args.status !== "todo") {
-            await updateTask(task.id, { status: args.status }, args.workspace_id, args.project_id);
+            await getDeskService().updateTask(task.id, { status: args.status }, args.workspace_id, args.project_id);
           }
           return { ok: true, id: task.id, path: task.filePath, message: `Created task "${args.title}"` };
         });
@@ -254,7 +231,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_update_task", args as Record<string, unknown>, async () => {
-          const updated = await updateTask(
+          const updated = await getDeskService().updateTask(
             args.task_id,
             {
               title: args.title,
@@ -285,7 +262,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_create_meeting", args as Record<string, unknown>, async () => {
-          const meeting = await createMeeting({
+          const meeting = await getDeskService().createMeeting({
             workspaceId: args.workspace_id,
             projectId: args.project_id,
             title: args.title,
@@ -309,7 +286,7 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_update_meeting", args as Record<string, unknown>, async () => {
-          const updated = await updateMeeting(
+          const updated = await getDeskService().updateMeeting(
             args.meeting_id,
             { title: args.title, date: args.date, content: args.content },
             args.workspace_id,
@@ -335,14 +312,14 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       execute: async (args) => {
         return runTool(ctx, "desk_create_doc", args as Record<string, unknown>, async () => {
           const doc = args.project_id
-            ? await createDoc({
+            ? await getDeskService().createDoc({
                 workspaceId: args.workspace_id,
                 projectId: args.project_id,
                 title: args.title,
                 content: args.content,
                 kind: args.kind,
               })
-            : await createDocInFolder({
+            : await getDeskService().createDocInFolder({
                 scope: "workspace",
                 workspaceId: args.workspace_id,
                 title: args.title,
@@ -364,11 +341,11 @@ export function createAssistantTools(ctx: ToolContext): ToolSet {
       }),
       execute: async (args) => {
         return runTool(ctx, "desk_update_doc", args as Record<string, unknown>, async () => {
-          const doc = await getDoc(args.workspace_id, args.doc_id);
+          const doc = await getDeskService().getDoc(args.workspace_id, args.doc_id);
           if (!doc) {
             return { ok: false, error: "not_found", message: `Document '${args.doc_id}' not found` };
           }
-          const updated = await updateDoc(doc, { title: args.title, content: args.content });
+          const updated = await getDeskService().updateDoc(doc, { title: args.title, content: args.content });
           if (!updated) {
             return { ok: false, error: "update_failed", message: `Failed to update document '${args.doc_id}'` };
           }

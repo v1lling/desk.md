@@ -16,8 +16,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@desk/core";
-import { isTauri } from "@desk/core";
 import { getStorage } from "@desk/core";
+import { isLocalDisk, isDomainRemote } from "@/lib/connection";
 import { writeMarkdownFile } from "@desk/core";
 import { parseMarkdown, serializeMarkdown } from "@desk/core";
 import type { EditorType } from "@/stores/open-editor-registry";
@@ -154,8 +154,10 @@ export function useEditorSession({
     setNewPath(null);
     setFileDeleted(false);
 
-    if (!isTauri()) {
-      // Mock/browser mode: use initialContent as fallback
+    if (!isLocalDisk()) {
+      // Not local disk (remote or browser-mock): the content already came from the
+      // domain (useDoc/useTask/useMeeting → getDeskService()), so use initialContent
+      // instead of reading the local filesystem (which the guard blocks in remote).
       setContentState(initialContent);
       lastSavedRef.current = initialContent;
       contentRef.current = initialContent;
@@ -163,7 +165,7 @@ export function useEditorSession({
       return;
     }
 
-    // Tauri mode: load content fresh from disk
+    // Local-disk mode: load content fresh from disk
     let cancelled = false;
     setIsLoading(true);
 
@@ -273,15 +275,15 @@ export function useEditorSession({
     savingRef.current = true;
     setSaveStatus("saving");
     try {
-      // Hosted/web mode: the domain runs on the server. Persist the body through
-      // the DeskService update mutation (server merges frontmatter), since
-      // getStorage() here is the mock BrowserProvider.
+      // Not local disk (remote or web): the domain runs on the server (or is mocked).
+      // Persist the body through the DeskService update mutation (server merges
+      // frontmatter); getStorage() here is the guard/mock and must not be touched.
       //
-      // Asymmetry vs the Tauri branch below: this path intentionally skips the
-      // fileDeleted/pathChanged recovery the desktop save has. That's acceptable on
-      // web — the file isn't on a user-visible disk that an external tool can delete
-      // or rename out from under the editor; the server owns it.
-      if (!isTauri() && persistBody) {
+      // Asymmetry vs the local-disk branch below: this path intentionally skips the
+      // fileDeleted/pathChanged recovery the desktop save has. That's acceptable —
+      // the file isn't on a user-visible disk that an external tool can delete or
+      // rename out from under the editor; the server owns it.
+      if (!isLocalDisk() && persistBody) {
         const ok = await persistBody(contentToSave);
         if (!ok) {
           setSaveStatus("error");
@@ -297,7 +299,7 @@ export function useEditorSession({
 
       // Preserve frontmatter by reading existing file, updating body, and rewriting
       let fullContent = contentToSave;
-      if (isTauri()) {
+      if (isLocalDisk()) {
         try {
           const existingContent = await getStorage().readTextFile(path);
           const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
@@ -307,6 +309,16 @@ export function useEditorSession({
           // File might not exist yet or read failed - just save body
           fullContent = contentToSave;
         }
+      }
+
+      if (isDomainRemote()) {
+        // Remote/hosted domain but no persistBody was supplied for this editor. Writing here
+        // would hit the GuardStorageProvider and throw; fail the save cleanly instead. Every
+        // remote-capable editor must pass persistBody (task/doc/meeting editors do) — reaching
+        // here is a wiring bug. (Browser-mock keeps writing to its mock provider below.)
+        console.error("[editor-session] No persistBody in remote mode; refusing local write:", path);
+        setSaveStatus("error");
+        return false;
       }
 
       await getStorage().writeTextFile(path, fullContent);

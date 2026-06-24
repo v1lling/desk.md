@@ -27,6 +27,11 @@ import type * as meetingsApi from "../meetings";
 import type * as personalApi from "../personal";
 import type * as contentApi from "../content";
 import type * as dashboardApi from "../dashboard";
+import type * as viewStateApi from "../view-state";
+import type * as settingsApi from "../settings";
+import type * as agentQueriesApi from "../agent-queries";
+import type * as indexCacheApi from "../index-cache";
+import type * as aiignoreApi from "../aiignore";
 
 export interface DeskService {
   // ── Tasks ───────────────────────────────────────────────────────────
@@ -107,4 +112,46 @@ export interface DeskService {
   getWorkspaceSummaries: typeof dashboardApi.getWorkspaceSummaries;
   getAllWorkspaceTasks: typeof dashboardApi.getAllWorkspaceTasks;
   getAllWorkspaceTasksAllStatuses: typeof dashboardApi.getAllWorkspaceTasksAllStatuses;
+
+  // ── View state (.view.json) — user-level, so it must route server-side in
+  // hosted mode. Only the read + the read-modify-write mutators the stores use
+  // are exposed (the read-modify-write happens in one round-trip server-side).
+  getViewState: typeof viewStateApi.getViewState;
+  updateTaskOrder: typeof viewStateApi.updateTaskOrder;
+  removeTaskFromOrder: typeof viewStateApi.removeTaskFromOrder;
+  setViewMode: typeof viewStateApi.setViewMode;
+  setExpandedFolders: typeof viewStateApi.setExpandedFolders;
+  toggleTaskHighlight: typeof viewStateApi.toggleTaskHighlight;
+  setHiddenStatuses: typeof viewStateApi.setHiddenStatuses;
+
+  // ── Shared settings KV (.desk/settings/*.json) — user-level settings that
+  // follow the user across devices (templates, agent instructions, planner).
+  getSetting: typeof settingsApi.getSetting;
+  setSetting: typeof settingsApi.setSetting;
+
+  // ── Assistant read tools (agent-queries) — the AI assistant's tree/read/search
+  // layer. Promoted to the service so it runs server-side in hosted mode (one
+  // round-trip; the server does the local-disk sweep) instead of hitting the
+  // client's local disk. This is also the tool layer MCP wraps server-side.
+  deskWorkspaceInfo: typeof agentQueriesApi.deskWorkspaceInfo;
+  deskTree: typeof agentQueriesApi.deskTree;
+  deskReadFile: typeof agentQueriesApi.deskReadFile;
+  deskFullTextSearch: typeof agentQueriesApi.deskFullTextSearch;
+
+  // ── Smart Index cache (.desk/index/indexes.json) — DERIVED, but routed through
+  // the service so the catalog follows the domain (server-side in hosted mode,
+  // where the catalog tool / MCP read it).
+  getIndexCache: typeof indexCacheApi.getIndexCache;
+  setIndexCache: typeof indexCacheApi.setIndexCache;
+
+  // ── .aiignore management (per-workspace AI exclusions) — routed through the
+  // service so the UI toggles + index reads operate on the *server's* .aiignore in
+  // hosted mode. Enforcement itself lives in agent-queries (read side); these are
+  // the read/write management ops. (isPathExcludedByAIIgnore stays a pure import.)
+  loadAIIgnoreEntries: typeof aiignoreApi.loadAIIgnoreEntries;
+  getAIInclusion: typeof aiignoreApi.getAIInclusion;
+  setAIInclusion: typeof aiignoreApi.setAIInclusion;
+  getAiExclusionState: typeof aiignoreApi.getAiExclusionState;
+  getFolderAIInclusion: typeof aiignoreApi.getFolderAIInclusion;
+  setFolderAIInclusion: typeof aiignoreApi.setFolderAIInclusion;
 }

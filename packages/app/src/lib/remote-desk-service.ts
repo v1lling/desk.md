@@ -27,15 +27,36 @@ const _allDeskServiceMethodsAreAsync: NonAsyncMethods<DeskService> extends never
   : never = true;
 void _allDeskServiceMethodsAreAsync;
 
-export function createRemoteDeskService(baseUrl: string): DeskService {
+/**
+ * Transport options. Defaults (web/PWA, same-origin) use the browser `fetch` with
+ * `credentials: "include"` to carry the session cookie. The native client (step
+ * 3b-native) is cross-origin and cookie-less: it passes `fetchImpl` from
+ * `@tauri-apps/plugin-http` (Rust reqwest — bypasses webview CSP + CORS) and
+ * `authHeader` returning `Bearer <token>` from the Keychain.
+ */
+export interface RemoteDeskServiceOptions {
+  fetchImpl?: typeof fetch;
+  authHeader?: () => string | null;
+}
+
+export function createRemoteDeskService(
+  baseUrl: string,
+  opts: RemoteDeskServiceOptions = {}
+): DeskService {
   const base = baseUrl.replace(/\/$/, "");
+  const doFetch = opts.fetchImpl ?? fetch;
 
   async function call(op: string, args: unknown[]): Promise<unknown> {
-    const res = await fetch(`${base}/api/desk/${op}`, {
+    const authHeader = opts.authHeader?.() ?? null;
+    const res = await doFetch(`${base}/api/desk/${op}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(authHeader ? { authorization: authHeader } : {}),
+      },
       body: encode({ args }),
-      // Ready for the 3b single-password session cookie; harmless while 3a is open.
+      // Same-origin web/PWA carries the session cookie; the native client sends a
+      // Bearer header instead (cross-origin, cookie-less) so this is a harmless no-op there.
       credentials: "include",
     });
 

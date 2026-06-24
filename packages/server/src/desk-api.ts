@@ -43,6 +43,9 @@ export function registerDeskApi(app: Hono): void {
     // else. SameSite=Lax already blocks the cookie cross-site, but this makes the
     // posture explicit and content-type-independent. A present Origin must be in
     // the allowlist; an absent Origin (curl, server-to-server) is allowed through.
+    // The native client (step 3b-native) reaches us via Rust reqwest with no browser
+    // Origin header and a Bearer token, so it lands in the absent-Origin branch and
+    // is gated by the session check below, not by this allowlist.
     const origin = c.req.header("origin");
     if (origin && !ALLOWED_ORIGINS.has(origin)) {
       return c.json({ error: { message: "Forbidden" } }, 403);
