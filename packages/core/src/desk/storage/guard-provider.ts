@@ -21,6 +21,9 @@ function blocked(): never {
 
 export class GuardStorageProvider implements StorageProvider {
   readonly isMock = false;
+  // Signals "no local disk to persist to" so local-only setup ops (initDeskDirectory)
+  // self-skip instead of hitting blocked() and bricking boot. Data ops still throw.
+  readonly canPersist = false;
 
   exists(_path: string): Promise<boolean> {
     return blocked();

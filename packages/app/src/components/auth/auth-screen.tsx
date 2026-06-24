@@ -23,6 +23,12 @@ interface AuthScreenProps {
   mode: "create" | "login";
   /** Auth client to use; defaults to the same-origin web client (cookie session). */
   auth?: AuthActions;
+  /**
+   * What to do once the session is established. Defaults to a full reload (the gate
+   * use-case). The OAuth sign-in page passes its own handler to resume the authorize
+   * flow instead. Throwing/rejecting here surfaces as the generic error.
+   */
+  onSuccess?: () => void | Promise<void>;
 }
 
 /**
@@ -31,7 +37,7 @@ interface AuthScreenProps {
  * and unauthenticated. On success the session is established (cookie on web, Keychain
  * bearer token on native) and the screen reloads so the app boots authenticated.
  */
-export function AuthScreen({ mode, auth }: AuthScreenProps) {
+export function AuthScreen({ mode, auth, onSuccess }: AuthScreenProps) {
   const { signIn, signUp } = auth ?? { signIn: webSignIn, signUp: webSignUp };
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -56,11 +62,16 @@ export function AuthScreen({ mode, auth }: AuthScreenProps) {
         setIsLoading(false);
         return;
       }
-      // Reload so the whole app boots fresh WITH the session cookie. This is not
-      // just to re-run the gate (useSession would flip reactively) — the
-      // background bootstrap hooks in providers.tsx (search index, context-index
+      // A caller can override what "success" does (the OAuth sign-in page resumes the
+      // authorize flow). Default: reload so the whole app boots fresh WITH the session
+      // cookie. This is not just to re-run the gate (useSession would flip reactively) —
+      // the background bootstrap hooks in providers.tsx (search index, context-index
       // sync) build once on mount, above the gate; reloading lets them build
       // authenticated instead of being stuck with their pre-login 401 result.
+      if (onSuccess) {
+        await onSuccess();
+        return;
+      }
       window.location.reload();
     } catch {
       setError(t("auth.errors.generic"));

@@ -21,6 +21,8 @@ import { betterAuth } from "better-auth";
 import type { BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins/bearer";
+import { jwt } from "better-auth/plugins/jwt";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { getMigrations } from "better-auth/db/migration";
 import { resolveDataRoot } from "./boot";
 
@@ -68,7 +70,12 @@ if (process.env.NODE_ENV === "production" && !process.env.DESK_PUBLIC_URL) {
   );
 }
 
-const baseURL = process.env.DESK_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 8787}`;
+export const baseURL = process.env.DESK_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 8787}`;
+
+// The OAuth issuer + JWKS URL (Better Auth serves the AS under its /api/auth base path).
+// Exported so the MCP resource server can verify access tokens against this issuer/keys.
+export const OAUTH_ISSUER = `${baseURL}/api/auth`;
+export const OAUTH_JWKS_URL = `${baseURL}/api/auth/jwks`;
 
 // Fail fast in production rather than silently signing sessions with Better Auth's
 // generated dev secret (which rotates on every restart → everyone logged out, and
@@ -89,6 +96,30 @@ if (!secret) {
 // is silently dropped. Driven off the public URL so prod (behind Caddy, https) opts in.
 const isHttps = baseURL.startsWith("https:");
 
+// Canonical URI of the MCP resource server (RFC 8707). The OAuth AS only mints access
+// tokens whose audience is in `validAudiences` (below), and the MCP route verifies the
+// token's audience equals this — so a token minted for the web app can't be replayed at
+// /mcp and vice-versa. Exported so the MCP route + protected-resource metadata reuse it.
+export const MCP_RESOURCE = `${baseURL}/mcp`;
+
+// The shipped desktop app's fixed Tauri origins. Always trusted: a browser can't forge these
+// and no cookie is scoped to them, so this doesn't widen the web tier's CSRF surface — and it
+// lets the distributed app reach any deployment with no config. (macOS/Linux use
+// tauri://localhost; Windows uses http(s)://tauri.localhost.)
+const DESKTOP_APP_ORIGINS = ["tauri://localhost", "http://tauri.localhost", "https://tauri.localhost"];
+
+// Extra origins the operator opts into (comma-separated DESK_TRUSTED_ORIGINS). Main use:
+// http://localhost:3001 so `npm run tauri:dev` (the Vite dev port) can log in against a live
+// server. Empty in normal production, keeping the deployment locked to its own origin + the app.
+const EXTRA_TRUSTED_ORIGINS = (process.env.DESK_TRUSTED_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Origins trusted beyond baseURL (which Better Auth trusts implicitly). Shared by the Better
+// Auth origin/CSRF check (trustedOrigins below) AND the /api/desk RPC allowlist (desk-api.ts).
+export const TRUSTED_ORIGINS = [...DESKTOP_APP_ORIGINS, ...EXTRA_TRUSTED_ORIGINS];
+
 /**
  * The Better Auth options, named so `betterAuth()` and `getMigrations()` share one
  * source of truth (the migration runner derives the schema from the same config).
@@ -97,6 +128,9 @@ const authOptions = {
   database: db,
   baseURL,
   secret,
+  // Trusted beyond baseURL (auto-trusted): the desktop app's Tauri origins + any
+  // DESK_TRUSTED_ORIGINS. Without this, a native sign-in POST is rejected "Invalid origin".
+  trustedOrigins: TRUSTED_ORIGINS,
   emailAndPassword: {
     enabled: true,
   },
@@ -107,7 +141,29 @@ const authOptions = {
   // `Authorization: Bearer <token>`. `getSession()` then resolves it exactly like the
   // cookie — the existing /api/desk session gate works unchanged. The web/PWA tier
   // keeps using the cookie; this is purely additive.
-  plugins: [bearer()],
+  plugins: [
+    bearer(),
+    // JWKS-backed signing keys for the OAuth AS (publishes /jwks; signs ID + JWT access
+    // tokens). Required by the oauthProvider plugin below.
+    jwt(),
+    // OAuth 2.1 Authorization Server (Better Auth's newer, non-deprecating plugin). This is
+    // the "direct OAuth" front door the Claude.ai / ChatGPT custom-connector UIs require:
+    // it serves the discovery metadata, Dynamic Client Registration, auth-code + PKCE(S256),
+    // consent, and the token endpoint. Step 4+5 (MCP front door) sits behind it.
+    oauthProvider({
+      loginPage: "/sign-in",
+      consentPage: "/oauth/consent",
+      // Claude/ChatGPT are unknown clients, so they MUST self-register (RFC 7591).
+      // Unauthenticated DCR mints PKCE-protected public clients; the human still
+      // authenticates at the authorize step, so an open /register isn't an auth bypass.
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      // Only mint tokens whose audience is the MCP resource (RFC 8707). baseURL stays valid
+      // for the AS's own userinfo. Without this the token request fails "requested resource
+      // invalid" the moment a client sends the spec-required `resource` parameter.
+      validAudiences: [baseURL, MCP_RESOURCE],
+    }),
+  ],
   // Pin the cookie posture explicitly so an upstream default change can't silently
   // widen it. SameSite=Lax also neutralizes CSRF on the same-origin /api/desk POSTs;
   // httpOnly keeps the session token out of reach of any JS (XSS can't read it).
@@ -129,6 +185,18 @@ const authOptions = {
         throw new APIError("FORBIDDEN", {
           message: "Registration is closed: an account already exists.",
         });
+      }
+      // Default the RFC 8707 `resource` at the token endpoint. Better Auth only mints an
+      // audience-bound JWT access token when the request carries a `resource` (otherwise it
+      // issues an OPAQUE token, verifiable only by introspection). The MCP spec says clients
+      // MUST send `resource`, but real clients don't always (MCP Inspector omits it), so their
+      // token comes back opaque and the /mcp JWKS verifier rejects it ("no token payload").
+      // This AS exists solely to guard the one MCP resource, so when no resource is supplied we
+      // bind the token to MCP_RESOURCE — making every access token a JWT the resource server can
+      // verify locally via JWKS, no introspection credentials needed. A client that DOES send a
+      // (valid) resource is left untouched.
+      if (ctx.path === "/oauth2/token" && ctx.body && !ctx.body.resource) {
+        return { context: { body: { ...ctx.body, resource: MCP_RESOURCE } } };
       }
     }),
   },

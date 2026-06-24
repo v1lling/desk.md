@@ -30,7 +30,12 @@ try {
 const buildTime = new Date().toISOString();
 
 export default defineConfig({
-  base: "./",
+  // Tauri loads the SPA from the filesystem root, so relative asset URLs ("./assets/…")
+  // are correct there. The hosted server, though, serves this same index.html for deep
+  // client routes (e.g. /oauth/consent); a relative "./assets/x.js" then resolves against
+  // /oauth/ → /oauth/assets/x.js → SPA-fallback HTML → MIME error → blank page. So the
+  // hosted build must emit ABSOLUTE asset URLs ("/assets/…") that work at any route depth.
+  base: process.env.VITE_DESK_HOSTED ? "/" : "./",
   plugins: [react(), tsconfigPaths()],
   resolve: {
     alias: {

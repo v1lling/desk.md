@@ -9,13 +9,40 @@ import { relative } from "node:path";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { boot } from "./boot";
 import { registerDeskApi } from "./desk-api";
+import { registerMcp } from "./mcp";
 import { auth, hasUsers, migrateAuth } from "./auth";
 
 boot();
 
 const app = new Hono();
+
+// CORS for browser-based MCP clients (MCP Inspector, web connectors). The MCP
+// authorization spec assumes the client runs in a browser: it fetches discovery
+// metadata, registers (DCR), and exchanges the auth code for a token via cross-origin
+// `fetch()` from its own origin. Without these headers the browser blocks every one of
+// those reads ("Failed to fetch"), discovery silently fails, and the client falls back
+// to guessing endpoint paths at the origin root (/token, /authorize) — which is the real
+// cause of the downstream `invalid_client` / `missing bearer token` failures.
+//
+// Scope: the OAuth/MCP surface only. Credentials are intentionally OFF — the token
+// exchange is a public-client + PKCE flow that carries no cookie, and the /mcp resource
+// authenticates with a Bearer header, not the session cookie. Reflecting the origin
+// without `Allow-Credentials` therefore adds no CSRF surface (a cross-site page still
+// can't attach or read the session cookie). The authorize endpoint is reached by a
+// top-level browser NAVIGATION, not fetch, so it neither needs nor gets CORS here.
+const mcpCors = cors({
+  origin: (origin) => origin ?? "*",
+  allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization", "mcp-session-id", "mcp-protocol-version"],
+  exposeHeaders: ["mcp-session-id", "WWW-Authenticate"],
+  maxAge: 600,
+});
+app.use("/mcp", mcpCors);
+app.use("/.well-known/*", mcpCors);
+app.use("/api/auth/*", mcpCors);
 
 // SPA dist dir, resolved relative to this file (not the cwd) so the server works
 // regardless of launch directory (matters for Docker). @hono/node-server's
@@ -34,6 +61,10 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // First-run gate signal (open — leaks only a boolean): lets the client choose the
 // create-account vs login screen before anyone is authenticated.
 app.get("/api/auth-status", async (c) => c.json({ hasUsers: await hasUsers() }));
+
+// MCP front door (step 4, read-only) + its protected-resource metadata. OAuth-gated
+// (RFC 8707 audience-bound tokens from the Better Auth AS). Before the static catch-all.
+registerMcp(app);
 
 // Domain API (RPC, session-gated) — must be registered before the static
 // catch-all below.

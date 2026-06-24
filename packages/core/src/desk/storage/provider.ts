@@ -30,6 +30,14 @@ export interface StorageProvider {
    * in ../env). Tauri and Node providers leave it unset/false.
    */
   readonly isMock?: boolean;
+  /**
+   * False ONLY on the GuardStorageProvider (remote mode — the local disk is the
+   * wrong disk). Lets LOCAL-ONLY setup operations (e.g. initDeskDirectory) no-op
+   * instead of throwing, so a forgetful caller can't brick boot. Data operations
+   * ignore this and call through, so a stray data read/write still throws loudly.
+   * Real providers (Tauri/Node/Browser) leave it unset → treated as persistable.
+   */
+  readonly canPersist?: boolean;
   /** Check if a file or directory exists. */
   exists(path: string): Promise<boolean>;
   /** Read a UTF-8 text file. */

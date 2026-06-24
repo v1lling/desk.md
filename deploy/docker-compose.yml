@@ -1,0 +1,37 @@
+# desk.md self-host — one container that serves the web/PWA app, the domain API, the
+# OAuth 2.1 Authorization Server, and the read-only MCP endpoint, against your Markdown
+# files on disk.
+#
+#   cp .env.example .env   # then set BETTER_AUTH_SECRET (and DESK_PUBLIC_URL for prod)
+#   docker compose up -d
+#
+# This builds the image from the repo's root Dockerfile. For a real (internet-facing)
+# deployment put a TLS-terminating reverse proxy in front and set DESK_PUBLIC_URL to the
+# public https URL — see README.md. (Host-specific setups live in ./local, gitignored.)
+
+services:
+  desk:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: deskmd:latest
+    container_name: deskmd
+    restart: unless-stopped
+    environment:
+      # Public URL the app is reached at. Drives Better Auth's baseURL, Secure cookies,
+      # the OAuth issuer, and the MCP resource audience. http://localhost:8787 is fine to
+      # try it locally; production needs a real https URL (behind your reverse proxy).
+      DESK_PUBLIC_URL: "${DESK_PUBLIC_URL:-http://localhost:8787}"
+      # Required. Stable secret that signs sessions — `openssl rand -base64 33`.
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET}"
+      DESK_DATA_ROOT: "/data"
+      PORT: "8787"
+      # Optional extra trusted origins (comma-separated), e.g. to log in from a native
+      # `npm run tauri:dev` client. Blank in normal use.
+      DESK_TRUSTED_ORIGINS: "${DESK_TRUSTED_ORIGINS:-}"
+    ports:
+      - "${DESK_PORT:-8787}:8787"
+    volumes:
+      # Your Markdown + the derived .desk/ (auth.sqlite, index). Browse and back it up
+      # directly — "own your files" stays true.
+      - "${DESK_DATA_DIR:-./data}:/data"

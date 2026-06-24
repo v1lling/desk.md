@@ -126,7 +126,9 @@ drafting emails. Uses your own Anthropic or OpenAI API key
 external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
 auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
 `WORKSPACE_CONTEXT.md` that indexes and summarizes your files, so they
-understand your workspaces with zero setup. No MCP server, no plugins.
+understand your workspaces with zero setup — locally, just files, no server or
+plugins. Self-hosted (below), the server also exposes an **MCP** endpoint that
+Claude.ai and ChatGPT can connect to over the network.
 
 ## Running it: local or self-hosted
 
@@ -151,6 +153,9 @@ Markdown you own; the difference is where it lives and who can reach it.
 > The native desktop app can also point at a self-hosted server instead of local
 > disk, giving you the desktop UI on top of server-side data.
 
+Self-hosting is one container (`docker compose up`) that serves the web/PWA app, the
+API, the OAuth server, and the MCP endpoint. See [deploy/README.md](./deploy/README.md).
+
 ## Roadmap
 
 Ideas I'm exploring:
@@ -166,7 +171,8 @@ Ideas I'm exploring:
 
 desk.md is a Tauri desktop app, organized as an npm-workspaces monorepo under
 `packages/` (`@desk/core` domain layer, `@desk/app` Tauri+React UI, `@desk/server`
-WIP Node backend). All commands run from the repo root:
+the Node/Hono self-host server — domain API, web/PWA, OAuth, and MCP). All commands
+run from the repo root:
 
 ```bash
 npm install

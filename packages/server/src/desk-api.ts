@@ -16,19 +16,20 @@
  */
 import type { Hono } from "hono";
 import { getDeskService, encode, decode } from "@desk/core";
-import { auth } from "./auth";
+import { auth, TRUSTED_ORIGINS } from "./auth";
 
 type AnyFn = (...args: unknown[]) => Promise<unknown>;
 
-// Allowed browser origins for the state-changing RPC. Same-origin only for now
-// (the server serves the SPA), so the allowlist is just the server's own public
-// origin plus localhost for dev. When 3b-native lands (a cross-origin native
-// client), this becomes configurable (e.g. a DESK_ALLOWED_ORIGINS env list).
+// Allowed origins for the state-changing RPC: the server's own public origin (it serves the
+// SPA) plus localhost for dev, plus TRUSTED_ORIGINS — the shipped desktop app's Tauri origins
+// and any DESK_TRUSTED_ORIGINS (e.g. the `npm run tauri:dev` port). The native client may send
+// such an Origin (the same one Better Auth's trustedOrigins gates), so the two stay in lockstep.
 const ALLOWED_ORIGINS = new Set<string>(
   [
     process.env.DESK_PUBLIC_URL && new URL(process.env.DESK_PUBLIC_URL).origin,
     "http://localhost:8787",
     process.env.PORT && `http://localhost:${process.env.PORT}`,
+    ...TRUSTED_ORIGINS,
   ].filter((o): o is string => Boolean(o))
 );
 
@@ -43,9 +44,10 @@ export function registerDeskApi(app: Hono): void {
     // else. SameSite=Lax already blocks the cookie cross-site, but this makes the
     // posture explicit and content-type-independent. A present Origin must be in
     // the allowlist; an absent Origin (curl, server-to-server) is allowed through.
-    // The native client (step 3b-native) reaches us via Rust reqwest with no browser
-    // Origin header and a Bearer token, so it lands in the absent-Origin branch and
-    // is gated by the session check below, not by this allowlist.
+    // The native client (step 3b-native) authenticates with a Bearer token, but may
+    // still carry a Tauri/dev Origin (tauri://localhost, or the dev port) — that's in
+    // ALLOWED_ORIGINS via TRUSTED_ORIGINS, so it passes here and is gated by the session
+    // check below. (Bearer auth is CSRF-immune regardless, not being an ambient credential.)
     const origin = c.req.header("origin");
     if (origin && !ALLOWED_ORIGINS.has(origin)) {
       return c.json({ error: { message: "Forbidden" } }, 403);

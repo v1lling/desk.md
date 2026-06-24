@@ -103,6 +103,13 @@ export async function joinPath(...segments: string[]): Promise<string> {
  */
 export async function initDeskDirectory(): Promise<void> {
   const storage = getStorage();
+
+  // Local-only setup: there is nothing to create when the domain runs on a server
+  // (GuardStorageProvider, canPersist=false) — the data folder lives there, reached via
+  // DeskService. Self-guard so a caller that forgets the isLocalDisk() gate no-ops here
+  // instead of throwing the guard error at boot. Data ops deliberately don't do this.
+  if (storage.canPersist === false) return;
+
   const deskPath = await getDeskPath();
 
   // Create base directory
