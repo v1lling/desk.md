@@ -18,20 +18,11 @@ export function createAnthropicProvider(apiKey: string, model?: string): AIProvi
     name: 'Anthropic',
 
     async chat(request: AIRequest): Promise<AIResponse> {
-      // Build messages from history
-      const messages = request.history?.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })) || [];
-
-      // Add current message
-      messages.push({ role: 'user', content: request.message });
-
       try {
         const { text, usage } = await generateText({
           model: anthropic(modelId),
           system: request.systemPrompt, // Already built by service layer
-          messages,
+          messages: [{ role: 'user', content: request.message }],
         });
 
         return {

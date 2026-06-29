@@ -63,3 +63,18 @@ export function formatEmailDate(dateStr?: string): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Render an incoming email as a plain-text block (headers + body) suitable for pasting
+ * into the `draft-email-reply` MCP prompt's `email_text` argument.
+ */
+export function buildEmailPlainText(email: IncomingEmail): string {
+  const lines: string[] = [];
+  if (email.subject) lines.push(`Subject: ${email.subject}`);
+  lines.push(`From: ${formatEmailAddress(email.from)}`);
+  if (email.to?.length) lines.push(`To: ${email.to.map(formatEmailAddress).join(', ')}`);
+  if (email.cc?.length) lines.push(`Cc: ${email.cc.map(formatEmailAddress).join(', ')}`);
+  if (email.date) lines.push(`Date: ${formatEmailDate(email.date)}`);
+  lines.push('', email.body ?? '');
+  return lines.join('\n');
+}

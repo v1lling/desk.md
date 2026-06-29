@@ -1,10 +1,9 @@
 import { joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
-import { isTauri } from "@desk/core";
 import type { WorkspaceIndex } from "./types";
 import { FILE_NAMES } from "@desk/core";
-import { isRemoteMode } from "@/lib/connection";
+import { isLocalDisk } from "@/lib/connection";
 import { anyAgentFileEnabled } from "@/stores/context";
 
 /** Collapse whitespace so a value is safe to place on a single catalog line. */
@@ -73,8 +72,8 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
 export async function writeWorkspaceContextArtifact(index: WorkspaceIndex): Promise<void> {
   // WORKSPACE_CONTEXT.md is a local-mode artifact (paired with the agent files that
   // point at it); in hosted mode MCP is the external-agent interface, so we don't
-  // write it into the server tree. Skip when the domain is remote (or non-Tauri).
-  if (!isTauri() || isRemoteMode()) return;
+  // write it into the server tree. It only belongs on a real local disk — isLocalDisk().
+  if (!isLocalDisk()) return;
   // The catalog only makes sense alongside the agent files that point at it.
   if (!anyAgentFileEnabled()) return;
 

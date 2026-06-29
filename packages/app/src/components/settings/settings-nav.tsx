@@ -1,4 +1,4 @@
-import { Settings, Bot, Brain, Calendar, FolderOpen, FileText, Sparkles, Info, Users } from "lucide-react";
+import { Settings, Brain, Calendar, FolderOpen, FileText, Sparkles, Info, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,6 @@ export type SettingsCategory =
   | "planner"
   | "templates"
   | "ai"
-  | "assistant"
   | "agents"
   | "context"
   | "data"
@@ -28,7 +27,6 @@ const CATEGORY_META: Record<
   planner: { labelKey: "settings.nav.planner", icon: Calendar },
   templates: { labelKey: "settings.nav.templates", icon: FileText },
   ai: { labelKey: "settings.nav.ai", icon: Sparkles },
-  assistant: { labelKey: "settings.nav.assistant", icon: Bot },
   agents: { labelKey: "settings.nav.agents", icon: Users },
   context: { labelKey: "settings.nav.context", icon: Brain },
   data: { labelKey: "settings.nav.data", icon: FolderOpen },

@@ -11,18 +11,11 @@ export function createOpenAIProvider(apiKey: string, model?: string): AIProvider
     name: "OpenAI",
 
     async chat(request: AIRequest): Promise<AIResponse> {
-      const messages = request.history?.map((msg) => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      })) || [];
-
-      messages.push({ role: "user", content: request.message });
-
       try {
         const { text, usage } = await generateText({
           model: openai(modelId),
           system: request.systemPrompt,
-          messages,
+          messages: [{ role: "user", content: request.message }],
         });
 
         return {

@@ -10,16 +10,12 @@ import { createFileStorage } from "./file-storage";
 interface AISettingsState {
   providerType: AIProviderType;
   providerConfigured: Record<AIProviderType, boolean>;
-  customInstructions: string;
-  perTypeInstructions: Record<string, string>;
   /** Model ID per provider (empty = use provider default model) */
   modelByProvider: Record<string, string>;
   /** True once the user has acknowledged the AI privacy disclosure. */
   aiConsentGiven: boolean;
   setProviderType: (type: AIProviderType) => void;
   setProviderConfigured: (provider: AIProviderType, configured: boolean) => void;
-  setCustomInstructions: (instructions: string) => void;
-  setPerTypeInstructions: (purpose: string, instructions: string) => void;
   setModelForProvider: (provider: AIProviderType, model: string) => void;
   setAIConsentGiven: (given: boolean) => void;
 }
@@ -32,19 +28,12 @@ export const useAISettingsStore = create<AISettingsState>()(
         openai: false,
         anthropic: false,
       },
-      customInstructions: "",
-      perTypeInstructions: {},
       modelByProvider: {},
       aiConsentGiven: false,
       setProviderType: (type) => set({ providerType: type }),
       setProviderConfigured: (provider, configured) =>
         set((state) => ({
           providerConfigured: { ...state.providerConfigured, [provider]: configured },
-        })),
-      setCustomInstructions: (instructions) => set({ customInstructions: instructions }),
-      setPerTypeInstructions: (purpose, instructions) =>
-        set((state) => ({
-          perTypeInstructions: { ...state.perTypeInstructions, [purpose]: instructions },
         })),
       setModelForProvider: (provider, model) =>
         set((state) => ({

@@ -1,8 +1,8 @@
 /**
  * App-side `.aiignore` shim.
  *
- * The logic now lives in `@desk/core` (so the in-app assistant and a future MCP
- * server enforce the same rules against the right disk). These wrappers route the
+ * The logic now lives in `@desk/core` (so the Smart Index and the MCP server
+ * enforce the same rules against the right disk). These wrappers route the
  * management ops through `getDeskService()`, so in hosted mode the UI toggles and
  * index reads operate on the **server's** `.aiignore`, not the local machine.
  *

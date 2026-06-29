@@ -29,42 +29,40 @@ export function AIConsentDialog() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-            {t("assistant.consent.title")}
+            {t("ai.consent.title")}
           </DialogTitle>
           <DialogDescription>
-            {t("assistant.consent.description")}
+            {t("ai.consent.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm text-muted-foreground">
           <div>
             <p className="font-medium text-foreground">
-              {t("assistant.consent.whatHeading")}
+              {t("ai.consent.whatHeading")}
             </p>
             <ul className="mt-1 list-disc space-y-1 pl-5">
-              <li>{t("assistant.consent.whatItems.messages")}</li>
-              <li>{t("assistant.consent.whatItems.previews")}</li>
-              <li>{t("assistant.consent.whatItems.fileContents")}</li>
+              <li>{t("ai.consent.whatItems.previews")}</li>
             </ul>
           </div>
           <div>
             <p className="font-medium text-foreground">
-              {t("assistant.consent.whenHeading")}
+              {t("ai.consent.whenHeading")}
             </p>
             <p className="mt-1">
               <Trans
-                i18nKey="assistant.consent.whenBody"
+                i18nKey="ai.consent.whenBody"
                 components={{ strong: <span className="font-medium text-foreground" /> }}
               />
             </p>
           </div>
           <div>
             <p className="font-medium text-foreground">
-              {t("assistant.consent.retentionHeading")}
+              {t("ai.consent.retentionHeading")}
             </p>
-            <p className="mt-1">{t("assistant.consent.retentionBody")}</p>
+            <p className="mt-1">{t("ai.consent.retentionBody")}</p>
           </div>
-          <p>{t("assistant.consent.footer")}</p>
+          <p>{t("ai.consent.footer")}</p>
         </div>
 
         <DialogFooter>
@@ -72,7 +70,7 @@ export function AIConsentDialog() {
             {t("common.buttons.cancel")}
           </Button>
           <Button onClick={() => resolve(true)}>
-            {t("assistant.consent.accept")}
+            {t("ai.consent.accept")}
           </Button>
         </DialogFooter>
       </DialogContent>

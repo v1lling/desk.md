@@ -1,8 +1,8 @@
-import { getDeskPath, joinPath, isTauri } from "@desk/core";
+import { getDeskPath, joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
-import { isRemoteMode } from "@/lib/connection";
+import { isLocalDisk } from "@/lib/connection";
 import { useContextStore } from "@/stores/context";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 import type { Workspace, Project } from "@desk/core/types";
@@ -10,9 +10,9 @@ import type { Workspace, Project } from "@desk/core/types";
 // Generated agent markdown (CLAUDE.md/AGENTS.md/GEMINI.md/WORKSPACE_CONTEXT.md) is a
 // LOCAL-mode feature: it teaches a local CLI agent the on-disk tree. In hosted mode the
 // data lives on the server and MCP is the external-agent interface, so we don't write
-// these into the server tree. Skip whenever the domain is remote (or non-Tauri).
+// these into the server tree. They only belong on a real local disk — exactly isLocalDisk().
 function skipAgentFileWrite(): boolean {
-  return !isTauri() || isRemoteMode();
+  return !isLocalDisk();
 }
 
 /** HTML comment marking a file as generated — invisible when rendered, still read by agents. */
@@ -70,7 +70,7 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   );
   lines.push("");
   lines.push(
-    "**`.aiignore`** at each workspace root lists files the user has flagged as sensitive (gitignore-style patterns). Honor it. The in-app assistant enforces these exclusions automatically; external agents are asked to do the same."
+    "**`.aiignore`** at each workspace root lists files the user has flagged as sensitive (gitignore-style patterns). Honor it. The Smart Index enforces these exclusions automatically; external agents are asked to do the same."
   );
   lines.push("");
 

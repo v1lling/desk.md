@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useSession } from "@/lib/auth-client";
+import { signIn, signUp, useSession } from "@/lib/auth-client";
 import { AuthScreen } from "./auth-screen";
 
 /**
@@ -43,7 +43,7 @@ export default function HostedAuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!session) {
-    return <AuthScreen mode={hasUsers ? "login" : "create"} />;
+    return <AuthScreen mode={hasUsers ? "login" : "create"} auth={{ signIn, signUp }} />;
   }
 
   return <>{children}</>;

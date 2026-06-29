@@ -1,11 +1,13 @@
 /**
  * MCP front door (step 4) — read-only.
  *
- * Exposes the desk domain's read tools (the same tree/read/search/catalog/workspace-info
- * the in-app assistant has) over the Model Context Protocol so external agents — Claude.ai
- * / ChatGPT custom connectors, Claude Code via mcp-remote — can browse a self-hosted desk.
- * Tools run through `getDeskService()`, so on the server they read the server's files and
- * honour each workspace's `.aiignore` (enforcement lives in the domain's agent-queries).
+ * Exposes the desk domain's read tools (tree/read/search/catalog/workspace-info) over the
+ * Model Context Protocol so external agents — Claude.ai / ChatGPT custom connectors, Claude
+ * Code via mcp-remote — can browse a self-hosted desk. Tools run through `getDeskService()`,
+ * so on the server they read the server's files and honour each workspace's `.aiignore`
+ * (enforcement lives in the domain's agent-queries). Also exposes one MCP *prompt*,
+ * `draft-email-reply`, which turns a pasted email into a reply-drafting request (the desktop
+ * email tab is now just a viewer that copies the email text for this prompt).
  *
  * Auth: every request is gated by an OAuth 2.1 access token minted by the Better Auth AS
  * (see auth.ts) and bound to this MCP resource's audience (RFC 8707). An unauthenticated
@@ -42,6 +44,29 @@ function workspacePath(workspaceId: string, path?: string): string {
 function json(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
 }
+
+/**
+ * Drafting guidance for the `draft-email-reply` prompt. Ported from the (now-removed) in-app
+ * assistant's draft-email mode so the email-reply habit survives via MCP. Kept server-local
+ * because @desk/server can't import from @desk/app.
+ */
+const DRAFT_EMAIL_GUIDANCE = `Draft a professional email reply to the email below.
+
+- Match the language, tone, greeting, and closing of the original email.
+- Be clear and concise. Output ONLY the email body, with no subject line and no headers.
+- Plain text only: no markdown bold/italic/headers. Bullet and numbered lists are fine.
+- If the reply intent is unclear, ask one short follow-up before drafting.
+- Don't invent sender/recipient names or metadata.
+
+Write like a person, not an AI. Avoid the tells that make text read as machine-generated:
+- NEVER use em dashes or en dashes. Use commas, periods, parentheses, or two sentences instead. This is the most important rule.
+- No filler openers ("I hope this email finds you well", "I wanted to reach out").
+- No corporate/AI buzzwords: delve, leverage, robust, seamless, streamline, navigate, underscore, utilize, facilitate, furthermore, moreover, additionally, that said.
+- No rule-of-three triads or restating what the sender already said back to them.
+- No padded enthusiasm or "Hope this helps!" / "Feel free to reach out!" closers unless the original tone warrants it.
+- Don't over-explain or hedge. Say what's needed and stop. Vary sentence length so it doesn't read as uniform AI prose.
+
+If drafting the reply would benefit from workspace context (a referenced doc, task, or meeting), use this connector's desk_workspace_info / desk_tree / desk_search / desk_read tools to pull it before writing.`;
 
 /**
  * Build a fresh MCP server with the read-only tool set. Created per request (stateless
@@ -104,6 +129,37 @@ function buildServer(): McpServer {
       inputSchema: { workspace_id: z.string().min(1) },
     },
     async ({ workspace_id }) => json(await readCatalog(workspace_id))
+  );
+
+  // Prompt: draft-email-reply. Paste the original email (copied from desk's email tab) and
+  // optional instructions; the connector composes a reply-drafting request. The read tools
+  // above are available to the same conversation for pulling workspace context.
+  server.registerPrompt(
+    "draft-email-reply",
+    {
+      title: "Draft an email reply",
+      description:
+        "Draft a reply to an email. Paste the original email text (copied from desk's email tab) plus optional instructions; the model writes a ready-to-send reply and can pull workspace context via the desk tools.",
+      argsSchema: {
+        email_text: z
+          .string()
+          .min(1)
+          .describe("The original email to reply to (headers + body), e.g. copied from desk's email tab."),
+        instructions: z
+          .string()
+          .optional()
+          .describe("Optional guidance for the reply: tone, key points, a decision to convey."),
+      },
+    },
+    ({ email_text, instructions }) => {
+      const parts = [DRAFT_EMAIL_GUIDANCE, "", "Original email:", email_text.trim()];
+      if (instructions && instructions.trim()) {
+        parts.push("", "Additional instructions:", instructions.trim());
+      }
+      return {
+        messages: [{ role: "user", content: { type: "text", text: parts.join("\n") } }],
+      };
+    }
   );
 
   return server;

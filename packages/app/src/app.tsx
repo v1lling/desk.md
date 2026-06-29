@@ -12,13 +12,17 @@ import MeetingsPage from "./pages/meetings";
 import SettingsPage from "./pages/settings";
 import ProjectsPage from "./pages/projects";
 import PlannerPage from "./pages/planner";
-import AssistantPage from "./pages/assistant";
 
 // Hosted-web only: the OAuth AS's login + consent pages (the redirect targets that let a
-// Claude/ChatGPT custom connector complete its grant). Lazy + flag-gated so the Tauri /
-// browser-mock bundles never pull in better-auth through here.
-const OAuthSignIn = lazy(() => import("./pages/oauth-sign-in"));
-const OAuthConsent = lazy(() => import("./pages/oauth-consent"));
+// Claude/ChatGPT custom connector complete its grant). Gated on the constant
+// `VITE_DESK_HOSTED` (null in native), so Rollup drops the dynamic import and the Tauri /
+// browser-mock bundles never pull in better-auth (or auth-client) through here.
+const OAuthSignIn = import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./pages/oauth-sign-in"))
+  : null;
+const OAuthConsent = import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./pages/oauth-consent"))
+  : null;
 
 /** The normal app: shell (with its auth gate) + global search. */
 function AppTree() {
@@ -33,7 +37,6 @@ function AppTree() {
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/assistant" element={<AssistantPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>
@@ -47,7 +50,7 @@ export function App() {
     <BrowserRouter>
       <Providers>
         <ErrorBoundary>
-          {import.meta.env.VITE_DESK_HOSTED ? (
+          {OAuthSignIn && OAuthConsent ? (
             // The OAuth pages must render OUTSIDE the app shell's auth gate (the AS lands
             // here pre-session). Everything else falls through to the normal app.
             <Suspense fallback={null}>

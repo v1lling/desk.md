@@ -26,7 +26,7 @@ The codebase is an npm-workspaces monorepo under `packages/`:
 | Package | Path | Role |
 |---------|------|------|
 | `@desk/core` | `packages/core` | **Pure domain layer** — parser, CRUD, file-cache, search, storage. No React / Zustand / Tauri-static imports. Tauri is reached only through guarded dynamic imports declared as optional `peerDependencies`. Runs in the Tauri webview, the browser, or on Node. |
-| `@desk/app` | `packages/app` | **Tauri + React UI.** Owns everything UI-coupled: components, pages, stores, hooks, and the React-bound libs (`lib/ai`, `lib/assistant`, `lib/context-index`, `lib/email`, `lib/i18n`, file-cache React hooks, `desk-watcher`). Consumes `@desk/core` and wires its host seams at boot. |
+| `@desk/app` | `packages/app` | **Tauri + React UI.** Owns everything UI-coupled: components, pages, stores, hooks, and the React-bound libs (`lib/ai`, `lib/context-index`, `lib/email`, `lib/i18n`, file-cache React hooks, `desk-watcher`). Consumes `@desk/core` and wires its host seams at boot. |
 | `@desk/server` | `packages/server` | **Node 22 + Hono skeleton** that boots the same `@desk/core` domain on a `NodeFsProvider`. WIP — no auth / MCP / remote service yet. |
 
 `@desk/app` resolves `@desk/core` straight to its TypeScript source (no build step):
@@ -91,7 +91,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `desk/service/` | `DeskService` interface + `LocalDeskService` binding the domain functions |
 | `desk/env.ts` | Data-root resolution, path joining, bootstrap (not I/O) |
 | `desk/platform.ts` | Pure runtime checks (`isTauri`/`isMacOS`), dependency-free to avoid import cycles |
-| `desk/agent-queries.ts` | Read-side queries for the assistant (tree/read/search), backed by `StorageProvider` |
+| `desk/agent-queries.ts` | Read-side queries (tree/read/search) for MCP + the Smart Index, backed by `StorageProvider` |
 | `desk/file-cache/` | File tree cache for list views (LRU cache) — pure logic only |
 | `desk/{data-root,editor-notifier,agent-context-writer}.ts` | The injectable host seams (see Monorepo Layout) |
 
@@ -101,7 +101,6 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 |-----------|---------|
 | `lib/ai/` | AI integration (see [README](packages/app/src/lib/ai/README.md)) |
 | `lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
-| `lib/assistant/` | Multi-turn agent orchestrator with read tools (browse/search/read) and write tools (create/update tasks, docs, meetings) |
 | `lib/email/` | `.eml` parsing + email tab data shapes |
 | `lib/{file-tree-hooks,cache-invalidator,desk-watcher}.ts` | React/query-coupled file-cache glue |
 | `stores/` | TanStack Query hooks + Zustand stores |
@@ -127,7 +126,7 @@ Key features:
   (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
 - **Docs**: Tree structure with folders; drag-drop import converts Word/PDF/Excel/CSV/HTML
   to Markdown (mammoth, pdfjs-dist, read-excel-file, papaparse, turndown), targeting the drop folder
-- **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index)
+- **Smart Index (AI catalog)**: AI-summarized file catalog (Anthropic/OpenAI key in the OS Keychain) for context retrieval; external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local). No in-app chat assistant.
 - **i18n**: all UI copy via i18next/react-i18next from [packages/app/src/i18n/en.json](packages/app/src/i18n/en.json)
 - Cross-platform: macOS, Windows, and Linux (email drag-drop overlay is macOS-only)
 - Global search (Cmd+K)
@@ -135,7 +134,7 @@ Key features:
 
 ## Email Integration
 
-**Drag any message onto the Desk window** — works for Apple Mail, Outlook for Mac (Legacy and New Outlook), Thunderbird, and Finder. The dropped message is parsed and opened in a session-only email tab; the user runs "Draft Reply → Open Draft in Assistant" and copies the reply back to their mail client.
+**Drag any message onto the Desk window** — works for Apple Mail, Outlook for Mac (Legacy and New Outlook), Thunderbird, and Finder. The dropped message is parsed and opened in a session-only email tab. The tab is a viewer with a **Copy email** button; to draft a reply the user pastes that text into the `draft-email-reply` **MCP prompt** in their AI connector (Claude/ChatGPT) and copies the result back to their mail client.
 
 Two parallel drop paths feed the same import pipeline:
 
@@ -176,11 +175,11 @@ interface IncomingEmail {
 
 ## AI Context
 
-The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_tree, desk_read, desk_search) and can write back via desk_create_*/desk_update_* tools. There are no Rust `desk_*` commands anymore.
+The Smart Index builds an AI-summarized file catalog per workspace. There is no in-app chat assistant — external agents reach desk over **MCP** (`@desk/server`, read-only tools `desk_workspace_info`/`desk_tree`/`desk_read`/`desk_search`/`desk_catalog`, plus the `draft-email-reply` prompt) in hosted mode, and over generated `CLAUDE.md`/`AGENTS.md` in local mode. There are no Rust `desk_*` commands.
 
-**Tool layer routes through `DeskService`, not bare `getStorage()`.** The assistant's read tools (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) and write tools (`getDeskService().createTask/...`), plus the Smart Index build reads and its cache (`getIndexCache`/`setIndexCache` → `.desk/index/indexes.json`), all go through `getDeskService()`. So in hosted mode they run on the **server** (the assistant reads/writes server data; the catalog lives server-side for MCP), not the client's local disk. After a remote assistant write the client invalidates its own TanStack caches (`lib/assistant/remote-write-refresh.ts`), since the local file watcher is off in remote mode.
+**Read layer routes through `DeskService`, not bare `getStorage()`.** The read queries (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) plus the Smart Index build reads and its cache (`getIndexCache`/`setIndexCache` → `.desk/index/indexes.json`) all go through `getDeskService()`. So in hosted mode they run on the **server** (the catalog lives server-side for MCP), not the client's local disk. The MCP tools on the server read through the same `DeskService`.
 
-**AI compute + AI-rendered markdown run where the domain runs.** The model runs client-side on the local Keychain key (so native-remote works; web-hosted has no key → assistant/index off until a future server-side-AI step). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`) are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the external-agent interface, not generated markdown.
+**AI compute runs where the local key is.** The Smart Index model runs client-side on the local Keychain key (so native-remote indexes the server's files using the locally-typed key; web-hosted has no key → index off until a future server-side-AI step). Catalog/indexer AI calls log token usage to the AI settings **Usage** panel (`purpose: 'index'`). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`) are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the external-agent interface, not generated markdown.
 
 **Key files:**
 | Directory | Purpose |
@@ -207,9 +206,9 @@ import i18next from "i18next";
 toast.success(i18next.t("toasts.workspace.create.success"));
 ```
 
-Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `assistant`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
+Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
 
-**Out of scope for translation** — these stay English in source: AI system prompts ([packages/app/src/lib/ai/prompts.ts](packages/app/src/lib/ai/prompts.ts)), assistant tool descriptions ([packages/app/src/lib/assistant/](packages/app/src/lib/assistant/)), generated agent files ([packages/app/src/lib/context-index/agent-context.ts](packages/app/src/lib/context-index/agent-context.ts), [packages/app/src/lib/context-index/artifacts.ts](packages/app/src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` (within `@desk/app`) only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
+**Out of scope for translation** — these stay English in source: AI system prompts ([packages/app/src/lib/ai/prompts.ts](packages/app/src/lib/ai/prompts.ts)), MCP tool/prompt descriptions ([packages/server/src/mcp.ts](packages/server/src/mcp.ts)), generated agent files ([packages/app/src/lib/context-index/agent-context.ts](packages/app/src/lib/context-index/agent-context.ts), [packages/app/src/lib/context-index/artifacts.ts](packages/app/src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` (within `@desk/app`) only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
 
 ### Scrolling
 Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).
@@ -237,7 +236,6 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 
 **Core UI Components**:
 - `RichTextEditor` - Tiptap WYSIWYG markdown editor
-- `AIChatEditor` - AI Chat tab (⌘⇧A to open)
 - `DocExplorer` - Doc tree browser with scope dropdown
 
 ### Reusable Hooks (`packages/app/src/hooks/`)
@@ -315,7 +313,7 @@ needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri
 | Templates, agent-instructions, week planner | USER | `.desk/settings/*.json` | `getDeskService().getSetting/setSetting` (via `createRemoteSettingStorage`) |
 | Smart/context index, AI usage | DERIVED | `.desk/index`, `.desk/usage` | `createFileStorage` (local) |
 | Preferences (theme, language, sidebar widths, workday hours, dismissedUpdate) | DEVICE | localStorage `desk-preferences` | zustand persist |
-| Navigation (current workspace), tabs, assistant chat history | DEVICE | localStorage | zustand persist |
+| Navigation (current workspace), tabs | DEVICE | localStorage | zustand persist |
 | Boot (dataPath, setupCompleted, connectionMode, serverUrl) | DEVICE | localStorage `desk-boot` + Rust `config.json` | boot store / Rust |
 | AI provider/model selection + consent | DEVICE | localStorage `desk-ai-settings-v2` | zustand persist |
 | AI keys, remote session token | DEVICE | OS Keychain | `secret_*` Tauri commands |

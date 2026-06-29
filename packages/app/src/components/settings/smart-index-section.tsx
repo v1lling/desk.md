@@ -36,7 +36,7 @@ import {
   writeTopLevelAgentFiles,
   deleteGeneratedAgentFiles,
 } from "@/lib/context-index/agent-context";
-import { getDeskService } from "@desk/core";
+import { getDeskService, isTauri } from "@desk/core";
 import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
 import { formatRelativeTime } from "./context-tab-utils";
 
@@ -54,6 +54,12 @@ export function SmartIndexSection() {
   const aiKeyConfigured = useAISettingsStore(
     (s) => s.providerConfigured[s.providerType]
   );
+
+  // The Smart Index is built client-side using the locally stored AI key (OS Keychain),
+  // so it only runs in the desktop app — including native-remote, which indexes the
+  // server's files with the local key. In the browser (hosted web) there's no Keychain,
+  // so building would silently no-op; disable the controls and explain instead.
+  const canBuild = isTauri();
 
   const { indexes, setIndex, isBuilding, setIsBuilding } = useContextIndexStore();
   const { data: workspaces = [] } = useWorkspaces();
@@ -128,7 +134,7 @@ export function SmartIndexSection() {
     }
   };
 
-  // Wipe everything: empty the assistant index and delete the generated
+  // Wipe everything: empty the Smart Index and delete the generated
   // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_CONTEXT.md files from disk.
   const handleClearCatalog = async () => {
     for (const workspace of workspaces) {
@@ -177,7 +183,7 @@ export function SmartIndexSection() {
               <Button
                 variant="outline"
                 onClick={handleBuildIndex}
-                disabled={isBuilding}
+                disabled={isBuilding || !canBuild}
               >
                 {isBuilding ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -189,7 +195,7 @@ export function SmartIndexSection() {
               <Button
                 variant="outline"
                 onClick={() => setShowClearConfirm(true)}
-                disabled={isBuilding}
+                disabled={isBuilding || !canBuild}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t("settings.smartIndex.actions.clear")}
@@ -246,8 +252,10 @@ export function SmartIndexSection() {
 
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>{t("settings.smartIndex.info.oneCatalog")}</p>
-              {!aiKeyConfigured && (
-                <p>{t("settings.smartIndex.info.noProvider")}</p>
+              {!canBuild ? (
+                <p>{t("settings.smartIndex.info.desktopOnly")}</p>
+              ) : (
+                !aiKeyConfigured && <p>{t("settings.smartIndex.info.noProvider")}</p>
               )}
             </div>
           </div>

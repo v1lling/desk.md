@@ -40,7 +40,6 @@ import {
 import { publishContentUpdate, publishDeleted } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { parseMarkdown } from "@desk/core";
-import { registerQueryClient } from "@/lib/query-client-registry";
 import { isLocalDisk } from "@/lib/connection";
 
 /**
@@ -51,16 +50,11 @@ export function useQueryInvalidator() {
   const queryClient = useQueryClient();
   const isInitialized = useRef(false);
 
-  // Expose the single QueryClient to non-React callers (e.g. the assistant's
-  // remote-write refresh, which runs outside any component).
-  registerQueryClient(queryClient);
-
   useEffect(() => {
     // The file watcher + tree-service cache are a LOCAL-disk subsystem: they read
     // the filesystem directly. In remote mode the domain is on the server (and the
     // guard provider blocks getStorage()), so the whole watcher is skipped — list
-    // refresh after writes is driven by query invalidation instead. registerQueryClient
-    // above still runs in every mode.
+    // refresh after writes is driven by query invalidation instead.
     if (!isLocalDisk()) return;
 
     // Prevent double initialization in strict mode
@@ -119,9 +113,7 @@ async function handleFileChange(
 
 /**
  * Clear the file caches for the given paths and invalidate every TanStack query
- * affected by them. Shared by the file-watcher path (handleFileChange) and any
- * non-watcher caller that knows which files changed but gets no watcher event —
- * notably the assistant's remote writes (the watcher is off in hosted mode).
+ * affected by them. Driven by the file-watcher path (handleFileChange).
  *
  * The cache clear always runs BEFORE the query invalidation so refetches can't
  * serve stale cached content.

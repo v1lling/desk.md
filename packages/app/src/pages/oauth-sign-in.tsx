@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { signIn, signUp } from "@/lib/auth-client";
 
 /**
  * OAuth login page (hosted-web only) — the `loginPage` the OAuth AS redirects an
@@ -56,5 +57,11 @@ export default function OAuthSignIn() {
     );
   }
 
-  return <AuthScreen mode={hasUsers ? "login" : "create"} onSuccess={resume} />;
+  return (
+    <AuthScreen
+      mode={hasUsers ? "login" : "create"}
+      auth={{ signIn, signUp }}
+      onSuccess={resume}
+    />
+  );
 }

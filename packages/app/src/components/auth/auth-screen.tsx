@@ -4,12 +4,14 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn as webSignIn, signUp as webSignUp } from "@/lib/auth-client";
 
 /**
  * The minimal email-auth surface AuthScreen needs. Both the same-origin web client
  * (`@/lib/auth-client`) and the native bearer client (`@/lib/native-auth-client`)
  * satisfy it, so the same screen drives web (cookie) and native (Keychain token) login.
+ * The caller supplies the client — AuthScreen never imports one itself, so the
+ * hosted-web-only `auth-client` (which reads `window.location.origin` at module load)
+ * stays out of the native bundle.
  */
 export interface AuthActions {
   signIn: { email: (args: { email: string; password: string }) => Promise<{ error?: { message?: string } | null }> };
@@ -21,8 +23,8 @@ export interface AuthActions {
 interface AuthScreenProps {
   /** "create" on a fresh deployment (no users yet), "login" once an account exists. */
   mode: "create" | "login";
-  /** Auth client to use; defaults to the same-origin web client (cookie session). */
-  auth?: AuthActions;
+  /** Auth client to use — the same-origin web client (cookie) or the native bearer client. */
+  auth: AuthActions;
   /**
    * What to do once the session is established. Defaults to a full reload (the gate
    * use-case). The OAuth sign-in page passes its own handler to resume the authorize
@@ -38,7 +40,7 @@ interface AuthScreenProps {
  * bearer token on native) and the screen reloads so the app boots authenticated.
  */
 export function AuthScreen({ mode, auth, onSuccess }: AuthScreenProps) {
-  const { signIn, signUp } = auth ?? { signIn: webSignIn, signUp: webSignUp };
+  const { signIn, signUp } = auth;
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

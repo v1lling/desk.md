@@ -13,7 +13,7 @@ import { extractBody } from "@/lib/context-index/content-utils";
 import { loadAIIgnoreEntries, isPathExcludedByAIIgnore } from "@/lib/context-index/aiignore";
 import { generatePreview } from "@desk/core";
 import { createAIService } from "@/lib/ai/service";
-import { useAISettingsStore } from "@/stores/ai";
+import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
 import { useContextStore } from "@/stores/context";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 import { buildBaseEntry } from "./entry-factory";
@@ -82,7 +82,11 @@ async function summarizeBatch(
     return;
   }
 
-  const service = createAIService({ providerType });
+  const service = createAIService({
+    providerType,
+    onUsage: (usage) =>
+      useAIUsageStore.getState().addRecord({ purpose: "index", provider: providerType, usage }),
+  });
 
   // Build prompt
   const previewLength = getSummaryPreviewLength(useContextStore.getState().summaryDetail);
@@ -131,6 +135,10 @@ export async function buildWorkspaceIndex(
     errors: [],
   };
 
+  // Gate on isTauri(), NOT isLocalDisk(): native-remote (isLocalDisk false) must still
+  // build — it reads the server's files via DeskService and summarizes with the locally
+  // stored key. The real requirement is a desktop runtime with Keychain access, i.e.
+  // isTauri(). Hosted web (no Keychain) has no key client-side, so it returns empty.
   if (!isTauri()) {
     return {
       index: { workspaceId, workspaceName, entries: [], builtAt: new Date().toISOString(), fileCount: 0 },

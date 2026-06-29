@@ -1,4 +1,20 @@
 {
+  "ai": {
+    "consent": {
+      "title": "Before you use AI features",
+      "description": "Desk's AI features send content to the provider you chose (Anthropic or OpenAI) over their API. Desk runs no AI server of its own.",
+      "whatHeading": "What gets sent",
+      "whatItems": {
+        "previews": "Short previews and summaries of your files, used to build the Smart Index catalog."
+      },
+      "whenHeading": "When",
+      "whenBody": "Only when you use an AI feature. With <strong>Auto-summarize on save</strong> enabled, short file previews are also sent automatically after you edit a file.",
+      "retentionHeading": "Retention",
+      "retentionBody": "Handled under your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
+      "footer": "Nothing is sent if you have not configured an API key. You can review this anytime in Settings → AI.",
+      "accept": "I Understand & Continue"
+    }
+  },
   "common": {
     "buttons": {
       "save": "Save",
@@ -34,7 +50,6 @@
       "docs": "Docs",
       "meetings": "Meetings",
       "projects": "Projects",
-      "assistant": "Assistant",
       "settings": "Settings",
       "desk": "Desk",
       "workspaceViews": "Workspace Views"
@@ -237,9 +252,7 @@
       "week": "Week",
       "allTasks": "All Tasks",
       "allWorkspaces": "All Workspaces"
-    },
-    "assistant": {},
-    "settings": {}
+    }
   },
   "settings": {
     "general": {
@@ -332,7 +345,7 @@
     "ai": {
       "provider": {
         "title": "Provider",
-        "description": "Connect an AI provider. Powers the assistant, drafting, and catalog summaries.",
+        "description": "Connect an AI provider. Powers Smart Index catalog summaries.",
         "label": "Provider",
         "helperText": "AI API backend"
       },
@@ -354,10 +367,8 @@
         "notConfigured": "Provider key not configured."
       },
       "browserMode": {
-        "title": "AI is unavailable in browser mode",
-        "descriptionStart": "API keys are only stored in the OS keychain, which Desk can't reach from",
-        "descriptionMiddle": ". Run",
-        "descriptionEnd": " (or the built app) to configure providers and use the assistant."
+        "title": "AI keys are managed in the desktop app",
+        "description": "Your AI provider key is stored securely on your device by the desktop app, so it can't be set from the browser. Open desk.md on your desktop to add or change it."
       },
       "keychainError": {
         "title": "Couldn't read the keychain",
@@ -378,8 +389,6 @@
         "title": "Data & Privacy",
         "description": "What Desk sends to your AI provider, and when.",
         "intro": "AI features send content to the provider selected above (Anthropic or OpenAI) over their API. Desk has no AI server of its own, and nothing is sent until you configure an API key.",
-        "assistantLabel": "Assistant chat & drafting",
-        "assistantBody": ": your messages, the conversation history, and the contents of files the assistant reads to answer you.",
         "smartIndexLabel": "File index",
         "smartIndexBody": ": short previews and summaries of your files, sent when you rebuild the index or, if Auto-summarize on save is enabled, automatically after a save.",
         "retention": "Retention is governed by your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
@@ -391,19 +400,10 @@
         }
       }
     },
-    "assistant": {
-      "title": "Assistant",
-      "description": "How the in-app assistant chats, drafts, and retrieves context.",
-      "contextNotice": "The assistant doesn't auto-inject context at the start of a turn. It decides when to query the catalog and read files. Manage the catalog itself under Settings → Catalog.",
-      "toolDetails": {
-        "label": "Show tool details in assistant responses",
-        "description": "Display tool arguments, results, and retrieved file details inline."
-      }
-    },
     "agents": {
       "title": "External Agents",
       "description": "Generate Markdown files alongside your data so external CLI agents understand your work with no setup.",
-      "notice": "These settings apply to <strong>external CLI agents</strong> (Claude Code, Codex, Gemini CLI) reading your data folder directly. For instructions to the <strong>in-app assistant</strong>, see Settings → Assistant.",
+      "notice": "These settings apply to <strong>external CLI agents</strong> (Claude Code, Codex, Gemini CLI) reading your data folder directly.",
       "emit": {
         "title": "Emit Files",
         "description": "Choose which agent files to write into your data folder. Identical content, three filenames.",
@@ -515,7 +515,6 @@
       "planner": "Planner",
       "templates": "Templates",
       "ai": "AI Provider",
-      "assistant": "Assistant",
       "agents": "Agents",
       "context": "File Index",
       "data": "Data",
@@ -545,8 +544,9 @@
         "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded"
       },
       "info": {
-        "oneCatalog": "One index, two readers: the in-app assistant queries this file index directly. When any agent file is enabled (Settings → Agents) the same index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
-        "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries."
+        "oneCatalog": "When any agent file is enabled (Settings → Agents) the Smart Index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
+        "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries.",
+        "desktopOnly": "The Smart Index is built in the desktop app, using your locally stored AI key. In the browser it is served from the server's existing catalog."
       },
       "config": {
         "title": "File Index Settings",
@@ -568,7 +568,7 @@
       },
       "clearDialog": {
         "title": "Clear Index",
-        "description": "This empties the file index used by the in-app assistant and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone.",
+        "description": "This empties the Smart Index and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone.",
         "confirmLabel": "Clear Index"
       },
       "relativeTime": {
@@ -580,28 +580,6 @@
         "hoursAgo_other": "{{count}} hours ago",
         "daysAgo_one": "{{count}} day ago",
         "daysAgo_other": "{{count}} days ago"
-      }
-    },
-    "customInstructions": {
-      "title": "Custom Instructions",
-      "description": "Your additions to the AI's built-in default prompts. The defaults are always sent; your text is appended after them.",
-      "global": {
-        "label": "Applies to everything (chat + email)",
-        "placeholder": "e.g., respond with concise bullet points.",
-        "helperText": "For instructions to external CLI agents (Claude Code, Codex, Gemini CLI) reading your data folder, see Settings → Agents."
-      },
-      "perTypePlaceholder": "e.g., specific instructions for {{label}}...",
-      "viewBaseContext": "View base context (included in all prompts)",
-      "viewDefaultPrompt": "View default prompt",
-      "purposes": {
-        "chat": {
-          "label": "Assistant chat only",
-          "description": "General assistant interactions in the Assistant tab"
-        },
-        "draft-email": {
-          "label": "Email drafts only",
-          "description": "Drafting email replies via Assistant"
-        }
       }
     }
   },
@@ -775,13 +753,6 @@
     "meeting": {},
     "email": {
       "defaultTitle": "Email"
-    },
-    "assistant": {
-      "defaults": {
-        "newConversation": "New Assistant",
-        "emailDraft": "Draft Email Reply",
-        "emailDraftWithSubject": "Draft: {{subject}}"
-      }
     }
   },
   "emptyStates": {
@@ -900,9 +871,6 @@
         "failed": "Failed to move {{entity}}"
       }
     },
-    "assistant": {
-      "conversationNotFound": "Conversation not found."
-    },
     "secrets": {
       "keychainUnavailable": "Couldn't access the OS keychain. AI features will be off until this is resolved. Open Settings → AI for details."
     },
@@ -976,85 +944,11 @@
       "deleteMeetingFailed": "Failed to delete meeting"
     },
     "email": {
-      "openFailed": "Could not open email",
-      "draftStartFailed": "Failed to start assistant draft. Check Settings → AI."
+      "openFailed": "Could not open email"
     },
     "update": {
       "checkFailed": "Update check failed",
       "installFailed": "Update install failed"
-    }
-  },
-  "assistant": {
-    "conversations": {
-      "heading": "Conversations",
-      "newConversation": "New conversation",
-      "deleteConversation": "Delete conversation",
-      "empty": "No conversations yet"
-    },
-    "input": {
-      "placeholder": "Ask Assistant… (Enter to send, Shift+Enter for newline)",
-      "working": "Working…",
-      "enterToSend": "Enter to send",
-      "send": "Send"
-    },
-    "thinking": "Thinking…",
-    "notConfigured": "Assistant is not configured. Open Settings → AI and add a provider key.",
-    "promptInUse": "Prompt in use ({{mode}}): Effective Prompt",
-    "mode": {
-      "chat": "Assistant",
-      "draftEmail": "Email Draft"
-    },
-    "empty": {
-      "title": "Start with Desk Assistant",
-      "description": "Ask for analysis, context lookup, or task/doc/meeting updates. Assistant will use tools when needed."
-    },
-    "actions": {
-      "draftEmail": "Draft Email"
-    },
-    "toolActivity": {
-      "heading": "Tool Activity",
-      "showLess": "Show less",
-      "showMore_one": "Show {{count}} more",
-      "showMore_other": "Show {{count}} more",
-      "details": "Details",
-      "arguments": "Arguments",
-      "result": "Result"
-    },
-    "tools": {
-      "deskTree": "Browse workspace",
-      "deskCatalog": "Browse index",
-      "deskRead": "Read file",
-      "deskSearch": "Search files",
-      "deskWorkspaceInfo": "Get workspace info",
-      "deskCreateTask": "Create task",
-      "deskUpdateTask": "Update task",
-      "deskCreateMeeting": "Create meeting",
-      "deskUpdateMeeting": "Update meeting",
-      "deskCreateDoc": "Create document",
-      "deskUpdateDoc": "Update document",
-      "webSearch": "Web search"
-    },
-    "sources": {
-      "label": "Sources:",
-      "fileLabel": "File:",
-      "openTitle": "Open {{title}}",
-      "openTitleWithWorkspace": "Open {{title}} ({{workspace}})"
-    },
-    "consent": {
-      "title": "Before you use AI features",
-      "description": "Desk's AI features send content to the provider you chose (Anthropic or OpenAI) over their API. Desk runs no AI server of its own.",
-      "whatHeading": "What gets sent",
-      "whatItems": {
-        "messages": "Messages you type to the assistant, plus the conversation history.",
-        "previews": "Short previews and summaries of your files for the file index.",
-        "fileContents": "The contents of files the assistant reads to answer you."
-      },
-      "whenHeading": "When",
-      "whenBody": "Only when you use an AI feature. With <strong>Auto-summarize on save</strong> enabled, short file previews are also sent automatically after you edit a file.",
-      "retentionHeading": "Retention",
-      "retentionBody": "Handled under your provider's API terms. Anthropic and OpenAI state that API data is not used to train their models by default.",
-      "footer": "Nothing is sent if you have not configured an API key. You can review this anytime in Settings → AI.",
-      "accept": "I Understand & Continue"
     }
   },
   "email": {
@@ -1077,16 +971,11 @@
       }
     },
     "replyHelper": {
-      "instructionsLabel": "Instructions (optional)",
-      "instructionsPlaceholder": "e.g., be warm, concise, cite project status from docs...",
-      "contextHeading": "Context for assistant",
-      "noWorkspace": "No workspace",
-      "noProject": "No project",
-      "opening": "Opening Assistant...",
-      "openInAssistant": "Open Draft in Assistant",
+      "copyEmail": "Copy email",
+      "copied": "Copied",
       "extractTasks": "Extract Tasks",
       "comingSoon": "(coming soon)",
-      "configureProvider": "Configure an AI provider in Settings to use Assistant drafting."
+      "mcpHint": "Copy the email, then run the \"draft-email-reply\" prompt in your AI connector (Claude, ChatGPT) to draft a reply."
     }
   },
   "search": {

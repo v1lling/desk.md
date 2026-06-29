@@ -64,7 +64,7 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
 
     // Background task — never prompt. AI summarization stays off until the user has
     // acknowledged the privacy disclosure via a foreground feature.
-    const { useAISettingsStore } = await import("@/stores/ai");
+    const { useAISettingsStore, useAIUsageStore } = await import("@/stores/ai");
     const aiSettings = useAISettingsStore.getState();
     const consentGiven = aiSettings.aiConsentGiven;
     const aiKeyConfigured = aiSettings.providerConfigured[aiSettings.providerType];
@@ -78,7 +78,13 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
     if (shouldGenerateSummary) {
       try {
         const { createAIService } = await import("@/lib/ai/service");
-        const service = createAIService({ providerType: aiSettings.providerType });
+        const service = createAIService({
+          providerType: aiSettings.providerType,
+          onUsage: (usage) =>
+            useAIUsageStore
+              .getState()
+              .addRecord({ purpose: "index", provider: aiSettings.providerType, usage }),
+        });
         const body = extractBody(content);
         const preview = body.slice(0, getSummaryPreviewLength(contextState.summaryDetail));
         const response = await service.custom(

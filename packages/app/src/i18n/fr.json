@@ -1,4 +1,20 @@
 {
+  "ai": {
+    "consent": {
+      "title": "Avant d'utiliser les fonctionnalités d'IA",
+      "description": "Les fonctionnalités d'IA de Desk envoient du contenu au fournisseur choisi (Anthropic ou OpenAI) via son API. Desk n'a pas de serveur d'IA propre.",
+      "whatHeading": "Ce qui est envoyé",
+      "whatItems": {
+        "previews": "Courts aperçus et résumés de vos fichiers pour construire le catalogue Smart Index."
+      },
+      "whenHeading": "Quand",
+      "whenBody": "Seulement quand vous utilisez une fonctionnalité d'IA. Avec <strong>Résumer automatiquement à l'enregistrement</strong> activé, de courts aperçus de fichiers sont aussi envoyés automatiquement après une modification.",
+      "retentionHeading": "Conservation",
+      "retentionBody": "Régie par les conditions API de votre fournisseur. Anthropic et OpenAI indiquent que les données API ne servent pas à entraîner leurs modèles par défaut.",
+      "footer": "Rien n'est envoyé tant que vous n'avez pas configuré de clé API. Vous pouvez consulter ceci à tout moment dans Paramètres → IA.",
+      "accept": "Je comprends et je continue"
+    }
+  },
   "common": {
     "buttons": {
       "save": "Enregistrer",
@@ -34,7 +50,6 @@
       "docs": "Documents",
       "meetings": "Réunions",
       "projects": "Projets",
-      "assistant": "Assistant",
       "settings": "Paramètres",
       "desk": "Desk",
       "workspaceViews": "Vues de l'espace"
@@ -225,9 +240,7 @@
       "week": "Semaine",
       "allTasks": "Toutes les tâches",
       "allWorkspaces": "Tous les espaces"
-    },
-    "assistant": {},
-    "settings": {}
+    }
   },
   "settings": {
     "general": {
@@ -305,7 +318,7 @@
     "ai": {
       "provider": {
         "title": "Fournisseur",
-        "description": "Connecter un fournisseur d'IA. Alimente l'assistant, la rédaction et les résumés du catalogue.",
+        "description": "Connecter un fournisseur d'IA. Alimente les résumés du catalogue Smart Index.",
         "label": "Fournisseur",
         "helperText": "Backend API d'IA"
       },
@@ -327,10 +340,8 @@
         "notConfigured": "Clé du fournisseur non configurée."
       },
       "browserMode": {
-        "title": "L'IA n'est pas disponible en mode navigateur",
-        "descriptionStart": "Les clés API ne sont stockées que dans le trousseau du système, auquel Desk ne peut pas accéder depuis",
-        "descriptionMiddle": ". Exécutez",
-        "descriptionEnd": " (ou l'application compilée) pour configurer les fournisseurs et utiliser l'assistant."
+        "title": "Les clés d'IA sont gérées dans l'application de bureau",
+        "description": "Votre clé de fournisseur d'IA est stockée en toute sécurité sur votre appareil par l'application de bureau ; elle ne peut donc pas être définie depuis le navigateur. Ouvrez desk.md sur votre ordinateur pour l'ajouter ou la modifier."
       },
       "keychainError": {
         "title": "Impossible de lire le trousseau",
@@ -351,8 +362,6 @@
         "title": "Données et confidentialité",
         "description": "Ce que Desk envoie à votre fournisseur d'IA, et quand.",
         "intro": "Les fonctionnalités d'IA envoient du contenu au fournisseur sélectionné ci-dessus (Anthropic ou OpenAI) via leur API. Desk n'a pas de serveur d'IA propre, et rien n'est envoyé tant qu'une clé API n'est pas configurée.",
-        "assistantLabel": "Chat de l'assistant et rédaction",
-        "assistantBody": " : vos messages, l'historique de la conversation et le contenu des fichiers que l'assistant lit pour vous répondre.",
         "smartIndexLabel": "Smart Index",
         "smartIndexBody": " : courts aperçus et résumés de vos fichiers, envoyés lors de la reconstruction du catalogue ou, si « Résumer automatiquement à l'enregistrement » est activé, automatiquement après un enregistrement.",
         "retention": "La conservation est régie par les conditions API de votre fournisseur. Anthropic et OpenAI indiquent que les données API ne servent pas à entraîner leurs modèles par défaut.",
@@ -364,19 +373,10 @@
         }
       }
     },
-    "assistant": {
-      "title": "Assistant",
-      "description": "Comment l'assistant intégré discute, rédige et récupère du contexte.",
-      "contextNotice": "L'assistant n'injecte pas automatiquement de contexte au début d'un tour. Il décide quand interroger le catalogue et lire des fichiers. Gérez le catalogue dans Paramètres → Catalogue.",
-      "toolDetails": {
-        "label": "Afficher les détails des outils dans les réponses",
-        "description": "Affiche les arguments, résultats et détails des fichiers récupérés en ligne."
-      }
-    },
     "agents": {
       "title": "Agents externes",
       "description": "Générer des fichiers Markdown à côté de vos données pour que les agents CLI externes comprennent votre travail sans configuration.",
-      "notice": "Ces paramètres s'appliquent aux <strong>agents CLI externes</strong> (Claude Code, Codex, Gemini CLI) qui lisent votre dossier de données directement. Pour les instructions à l'<strong>assistant intégré</strong>, voir Paramètres → Assistant.",
+      "notice": "Ces paramètres s'appliquent aux <strong>agents CLI externes</strong> (Claude Code, Codex, Gemini CLI) qui lisent votre dossier de données directement.",
       "emit": {
         "title": "Générer les fichiers",
         "description": "Choisissez quels fichiers d'agent écrire dans votre dossier de données. Contenu identique, trois noms de fichier.",
@@ -488,7 +488,6 @@
       "planner": "Planificateur",
       "templates": "Modèles",
       "ai": "Fournisseur d'IA",
-      "assistant": "Assistant",
       "agents": "Agents",
       "context": "Catalogue",
       "data": "Données",
@@ -518,8 +517,9 @@
         "successWithExcluded": "{{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s)"
       },
       "info": {
-        "oneCatalog": "Un catalogue, deux lecteurs : l'assistant intégré interroge cet index directement. Quand un fichier d'agent est activé (Paramètres → Agents), le même catalogue est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
-        "noProvider": "Aucun fournisseur d'IA configuré, les résumés utilisent donc des aperçus en texte brut. Ajoutez une clé dans Paramètres → IA pour des résumés générés par l'IA."
+        "oneCatalog": "Quand un fichier d'agent est activé (Paramètres → Agents), le Smart Index est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
+        "noProvider": "Aucun fournisseur d'IA configuré, les résumés utilisent donc des aperçus en texte brut. Ajoutez une clé dans Paramètres → IA pour des résumés générés par l'IA.",
+        "desktopOnly": "Le Smart Index est créé dans l'application de bureau, avec votre clé d'IA stockée localement. Dans le navigateur, il est servi à partir du catalogue existant du serveur."
       },
       "config": {
         "title": "Paramètres du catalogue",
@@ -541,7 +541,7 @@
       },
       "clearDialog": {
         "title": "Vider le catalogue",
-        "description": "Cela vide l'index utilisé par l'assistant intégré et supprime les fichiers générés CLAUDE.md, AGENTS.md, GEMINI.md et WORKSPACE_CONTEXT.md. Reconstruisez pour les régénérer. Cette action est irréversible.",
+        "description": "Cela vide le Smart Index et supprime les fichiers générés CLAUDE.md, AGENTS.md, GEMINI.md et WORKSPACE_CONTEXT.md. Reconstruisez pour les régénérer. Cette action est irréversible.",
         "confirmLabel": "Vider le catalogue"
       },
       "relativeTime": {
@@ -553,28 +553,6 @@
         "hoursAgo_other": "il y a {{count}} heures",
         "daysAgo_one": "il y a {{count}} jour",
         "daysAgo_other": "il y a {{count}} jours"
-      }
-    },
-    "customInstructions": {
-      "title": "Instructions personnalisées",
-      "description": "Vos ajouts aux prompts par défaut intégrés de l'IA. Les prompts par défaut sont toujours envoyés ; votre texte est ajouté ensuite.",
-      "global": {
-        "label": "S'applique à tout (chat + e-mail)",
-        "placeholder": "ex. répondez avec des listes à puces concises.",
-        "helperText": "Pour les instructions aux agents CLI externes (Claude Code, Codex, Gemini CLI) lisant votre dossier de données, voir Paramètres → Agents."
-      },
-      "perTypePlaceholder": "ex. instructions spécifiques pour {{label}}...",
-      "viewBaseContext": "Voir le contexte de base (inclus dans tous les prompts)",
-      "viewDefaultPrompt": "Voir le prompt par défaut",
-      "purposes": {
-        "chat": {
-          "label": "Chat de l'assistant uniquement",
-          "description": "Interactions générales dans l'onglet Assistant"
-        },
-        "draft-email": {
-          "label": "Brouillons d'e-mail uniquement",
-          "description": "Rédaction de réponses e-mail via l'assistant"
-        }
       }
     }
   },
@@ -748,13 +726,6 @@
     "meeting": {},
     "email": {
       "defaultTitle": "E-mail"
-    },
-    "assistant": {
-      "defaults": {
-        "newConversation": "Nouvel assistant",
-        "emailDraft": "Rédiger une réponse e-mail",
-        "emailDraftWithSubject": "Brouillon : {{subject}}"
-      }
     }
   },
   "emptyStates": {
@@ -871,9 +842,6 @@
         "failed": "Échec du déplacement de {{entity}}"
       }
     },
-    "assistant": {
-      "conversationNotFound": "Conversation introuvable."
-    },
     "secrets": {
       "keychainUnavailable": "Impossible d'accéder au trousseau du système. Les fonctionnalités d'IA sont désactivées jusqu'à résolution. Ouvrez Paramètres → IA pour les détails."
     },
@@ -944,85 +912,11 @@
       "deleteMeetingFailed": "Échec de la suppression de la réunion"
     },
     "email": {
-      "openFailed": "Impossible d'ouvrir l'e-mail",
-      "draftStartFailed": "Échec du démarrage du brouillon de l'assistant. Vérifiez Paramètres → IA."
+      "openFailed": "Impossible d'ouvrir l'e-mail"
     },
     "update": {
       "checkFailed": "Échec de la vérification des mises à jour",
       "installFailed": "Échec de l'installation de la mise à jour"
-    }
-  },
-  "assistant": {
-    "conversations": {
-      "heading": "Conversations",
-      "newConversation": "Nouvelle conversation",
-      "deleteConversation": "Supprimer la conversation",
-      "empty": "Aucune conversation pour l'instant"
-    },
-    "input": {
-      "placeholder": "Posez une question à l'assistant… (Entrée pour envoyer, Maj+Entrée pour saut de ligne)",
-      "working": "Travail en cours…",
-      "enterToSend": "Entrée pour envoyer",
-      "send": "Envoyer"
-    },
-    "thinking": "Réflexion…",
-    "notConfigured": "L'assistant n'est pas configuré. Ouvrez Paramètres → IA et ajoutez une clé de fournisseur.",
-    "promptInUse": "Prompt actif ({{mode}}) : Prompt effectif",
-    "mode": {
-      "chat": "Assistant",
-      "draftEmail": "Brouillon e-mail"
-    },
-    "empty": {
-      "title": "Commencez avec l'assistant Desk",
-      "description": "Demandez une analyse, une recherche de contexte ou des mises à jour de tâches, documents ou réunions. L'assistant utilisera des outils au besoin."
-    },
-    "actions": {
-      "draftEmail": "Rédiger un e-mail"
-    },
-    "toolActivity": {
-      "heading": "Activité des outils",
-      "showLess": "Afficher moins",
-      "showMore_one": "Afficher {{count}} de plus",
-      "showMore_other": "Afficher {{count}} de plus",
-      "details": "Détails",
-      "arguments": "Arguments",
-      "result": "Résultat"
-    },
-    "tools": {
-      "deskTree": "Parcourir l'espace",
-      "deskCatalog": "Parcourir le catalogue",
-      "deskRead": "Lire un fichier",
-      "deskSearch": "Rechercher dans les fichiers",
-      "deskWorkspaceInfo": "Obtenir les infos de l'espace",
-      "deskCreateTask": "Créer une tâche",
-      "deskUpdateTask": "Mettre à jour une tâche",
-      "deskCreateMeeting": "Créer une réunion",
-      "deskUpdateMeeting": "Mettre à jour une réunion",
-      "deskCreateDoc": "Créer un document",
-      "deskUpdateDoc": "Mettre à jour un document",
-      "webSearch": "Recherche web"
-    },
-    "sources": {
-      "label": "Sources :",
-      "fileLabel": "Fichier :",
-      "openTitle": "Ouvrir {{title}}",
-      "openTitleWithWorkspace": "Ouvrir {{title}} ({{workspace}})"
-    },
-    "consent": {
-      "title": "Avant d'utiliser les fonctionnalités d'IA",
-      "description": "Les fonctionnalités d'IA de Desk envoient du contenu au fournisseur choisi (Anthropic ou OpenAI) via son API. Desk n'a pas de serveur d'IA propre.",
-      "whatHeading": "Ce qui est envoyé",
-      "whatItems": {
-        "messages": "Les messages que vous tapez à l'assistant, ainsi que l'historique de la conversation.",
-        "previews": "Courts aperçus et résumés de vos fichiers pour le catalogue Smart Index.",
-        "fileContents": "Le contenu des fichiers que l'assistant lit pour vous répondre."
-      },
-      "whenHeading": "Quand",
-      "whenBody": "Seulement quand vous utilisez une fonctionnalité d'IA. Avec <strong>Résumer automatiquement à l'enregistrement</strong> activé, de courts aperçus de fichiers sont aussi envoyés automatiquement après une modification.",
-      "retentionHeading": "Conservation",
-      "retentionBody": "Régie par les conditions API de votre fournisseur. Anthropic et OpenAI indiquent que les données API ne servent pas à entraîner leurs modèles par défaut.",
-      "footer": "Rien n'est envoyé tant que vous n'avez pas configuré de clé API. Vous pouvez consulter ceci à tout moment dans Paramètres → IA.",
-      "accept": "Je comprends et je continue"
     }
   },
   "email": {
@@ -1045,16 +939,11 @@
       }
     },
     "replyHelper": {
-      "instructionsLabel": "Instructions (optionnelles)",
-      "instructionsPlaceholder": "ex. ton chaleureux, concis, citer le statut projet depuis les documents...",
-      "contextHeading": "Contexte pour l'assistant",
-      "noWorkspace": "Aucun espace",
-      "noProject": "Aucun projet",
-      "opening": "Ouverture de l'assistant...",
-      "openInAssistant": "Ouvrir le brouillon dans l'assistant",
+      "copyEmail": "Copier l'e-mail",
+      "copied": "Copié",
       "extractTasks": "Extraire des tâches",
       "comingSoon": "(bientôt)",
-      "configureProvider": "Configurez un fournisseur d'IA dans les Paramètres pour utiliser la rédaction par l'assistant."
+      "mcpHint": "Copiez l'e-mail, puis lancez le prompt « draft-email-reply » dans votre connecteur IA (Claude, ChatGPT) pour rédiger une réponse."
     }
   },
   "search": {

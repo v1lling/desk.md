@@ -1,117 +1,36 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bot, ExternalLink, Loader2, ChevronRight, FolderKanban, Folder } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ExternalLink, ChevronRight, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useAISettingsStore } from "@/stores/ai";
-import { useAssistantStore } from "@/stores/assistant";
-import { useTabStore } from "@/stores/tabs";
-import { useNavigationStore } from "@/stores/navigation";
-import { useWorkspaces } from "@/stores/workspaces";
-import { useProjects } from "@/stores/projects";
 import type { IncomingEmail } from "@/lib/email/types";
-import { formatEmailAddress, formatEmailDate } from "@/lib/email/types";
+import {
+  formatEmailAddress,
+  formatEmailDate,
+  buildEmailPlainText,
+} from "@/lib/email/types";
 
 interface EmailViewerProps {
   email: IncomingEmail;
 }
 
-// Matches MetadataToolbar's chipClass so the context selects sit visually
-// alongside the chips in DocEditor / TaskEditor / MeetingEditor.
-const chipClass =
-  "border-none bg-transparent shadow-none px-1.5 gap-1.5 text-xs font-medium hover:bg-accent/50 rounded-md";
-
 export function EmailViewer({ email }: EmailViewerProps) {
   const { t } = useTranslation();
-  const [instructions, setInstructions] = useState("");
   const [bodyExpanded, setBodyExpanded] = useState(false);
-  const [isLaunchingAssistant, setIsLaunchingAssistant] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const { providerType, providerConfigured } = useAISettingsStore();
-  const hasAIProvider = !!providerConfigured[providerType];
-  const startEmailDraft = useAssistantStore((s) => s.startEmailDraft);
-  const navigate = useNavigate();
-  const setActiveTab = useTabStore((s) => s.setActiveTab);
-
-  const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
-  const { data: workspaces = [] } = useWorkspaces();
-  const [workspaceId, setWorkspaceId] = useState<string | null>(currentWorkspaceId);
-  const [projectId, setProjectId] = useState<string | null>(null);
-  const { data: projects = [] } = useProjects(workspaceId);
-
-  const selectedWorkspace = useMemo(
-    () => workspaces.find((w) => w.id === workspaceId) || null,
-    [workspaces, workspaceId],
-  );
-  const selectedProject = useMemo(
-    () => projects.find((p) => p.id === projectId) || null,
-    [projects, projectId],
-  );
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setInstructions("");
-    setError(null);
+    // Reset view state when a different email lands in this tab.
     setBodyExpanded(false);
-    setWorkspaceId(currentWorkspaceId);
-    setProjectId(null);
-    // Reset everything when a different email lands in this tab.
-    // currentWorkspaceId intentionally excluded — picking a workspace
-    // here shouldn't be undone by a background nav store change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setCopied(false);
   }, [email]);
 
-  const handleWorkspaceChange = useCallback((value: string) => {
-    setWorkspaceId(value === "_none" ? null : value);
-    setProjectId(null);
-  }, []);
-
-  const handleProjectChange = useCallback((value: string) => {
-    setProjectId(value === "_none" ? null : value);
-  }, []);
-
-  const handleOpenAssistantDraft = useCallback(async () => {
-    setIsLaunchingAssistant(true);
-    setError(null);
-
-    try {
-      setActiveTab("desk");
-      navigate("/assistant");
-      await startEmailDraft({
-        email,
-        instructions: instructions.trim() || undefined,
-        workspaceId: workspaceId ?? undefined,
-        workspaceName: selectedWorkspace?.name ?? undefined,
-        projectId: projectId ?? undefined,
-        projectName: selectedProject?.name ?? undefined,
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error("[email-viewer] Failed to launch assistant draft:", errorMessage);
-      setError(errorMessage);
-    } finally {
-      setIsLaunchingAssistant(false);
-    }
-  }, [
-    email,
-    instructions,
-    navigate,
-    setActiveTab,
-    startEmailDraft,
-    workspaceId,
-    selectedWorkspace,
-    projectId,
-    selectedProject,
-  ]);
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(buildEmailPlainText(email));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [email]);
 
   const sourceKey = (() => {
     switch (email.source) {
@@ -197,103 +116,17 @@ export function EmailViewer({ email }: EmailViewerProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="email-instructions"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              {t("email.replyHelper.instructionsLabel")}
-            </label>
-            <Textarea
-              id="email-instructions"
-              placeholder={t("email.replyHelper.instructionsPlaceholder")}
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              disabled={isLaunchingAssistant}
-              rows={3}
-              className="resize-none min-h-[72px] text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              {t("email.replyHelper.contextHeading")}
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Select
-                value={workspaceId ?? "_none"}
-                onValueChange={handleWorkspaceChange}
-                disabled={isLaunchingAssistant}
-              >
-                <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
-                  <Folder className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="truncate">
-                    {selectedWorkspace?.name || t("email.replyHelper.noWorkspace")}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">
-                    <span className="flex items-center gap-2">
-                      <Folder className="h-3 w-3 text-muted-foreground" />
-                      {t("email.replyHelper.noWorkspace")}
-                    </span>
-                  </SelectItem>
-                  {workspaces.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>
-                      <span className="flex items-center gap-2">
-                        <Folder className="h-3 w-3 text-muted-foreground" />
-                        {w.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={projectId ?? "_none"}
-                onValueChange={handleProjectChange}
-                disabled={isLaunchingAssistant || !workspaceId}
-              >
-                <SelectTrigger size="xs" className={cn(chipClass, "max-w-[200px]")}>
-                  <FolderKanban className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="truncate">
-                    {selectedProject?.name || t("email.replyHelper.noProject")}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">
-                    <span className="flex items-center gap-2">
-                      <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                      {t("email.replyHelper.noProject")}
-                    </span>
-                  </SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                        {p.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={handleOpenAssistantDraft}
-              disabled={isLaunchingAssistant || !hasAIProvider}
-            >
-              {isLaunchingAssistant ? (
+            <Button onClick={handleCopy}>
+              {copied ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t("email.replyHelper.opening")}
+                  <Check className="h-4 w-4 mr-2" />
+                  {t("email.replyHelper.copied")}
                 </>
               ) : (
                 <>
-                  <Bot className="h-4 w-4 mr-2" />
-                  {t("email.replyHelper.openInAssistant")}
+                  <Copy className="h-4 w-4 mr-2" />
+                  {t("email.replyHelper.copyEmail")}
                 </>
               )}
             </Button>
@@ -304,19 +137,9 @@ export function EmailViewer({ email }: EmailViewerProps) {
             </Button>
           </div>
 
-          {!hasAIProvider && (
-            <p className="text-xs text-muted-foreground">
-              {t("email.replyHelper.configureProvider")}
-            </p>
-          )}
-
-          {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">
-                {t("errors.email.draftStartFailed")}
-              </p>
-            </div>
-          )}
+          <p className="text-xs text-muted-foreground">
+            {t("email.replyHelper.mcpHint")}
+          </p>
         </div>
       </ScrollArea>
     </div>

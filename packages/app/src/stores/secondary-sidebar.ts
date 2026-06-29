@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { create } from "zustand";
 
 interface SecondarySidebarState {
-  /** Registered slot content keyed by route path or a tab-context key (e.g. "assistant"). */
+  /** Registered slot content keyed by route path or a tab-context key. */
   slots: Record<string, ReactNode>;
   setSlot: (key: string, content: ReactNode) => void;
   clearSlot: (key: string) => void;

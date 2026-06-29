@@ -3,9 +3,8 @@ import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
 
 /**
  * Register content into the app-shell's secondary-sidebar slot for the given key.
- * The key is usually a route path ("/docs") but may be a tab-context key
- * ("assistant") for tabs that have no route. Clears the slot on unmount or when
- * the key changes.
+ * The key is usually a route path ("/docs") but may be a tab-context key for tabs
+ * that have no route. Clears the slot on unmount or when the key changes.
  *
  * Callers should pass a stable `content` reference (wrap in `useMemo`) — otherwise
  * `setSlot` will fire on every render, replacing the slot content unnecessarily.

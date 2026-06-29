@@ -212,11 +212,7 @@ export function AITab() {
                   <div className="space-y-1 text-sm">
                     <p className="font-medium">{t("settings.ai.browserMode.title")}</p>
                     <p className="text-muted-foreground text-xs">
-                      {t("settings.ai.browserMode.descriptionStart")}{" "}
-                      {/* eslint-disable-next-line i18next/no-literal-string -- shell command, not translatable */}
-                      <code className="font-mono">npm run dev</code>{t("settings.ai.browserMode.descriptionMiddle")}{" "}
-                      {/* eslint-disable-next-line i18next/no-literal-string -- shell command, not translatable */}
-                      <code className="font-mono">npm run tauri:dev</code>{t("settings.ai.browserMode.descriptionEnd")}
+                      {t("settings.ai.browserMode.description")}
                     </p>
                   </div>
                 </div>
@@ -303,10 +299,6 @@ export function AITab() {
         <div className="space-y-3 py-3 text-sm text-muted-foreground">
           <p>{t("settings.ai.privacy.intro")}</p>
           <ul className="list-disc space-y-1 pl-5">
-            <li>
-              <span className="text-foreground">{t("settings.ai.privacy.assistantLabel")}</span>
-              {t("settings.ai.privacy.assistantBody")}
-            </li>
             <li>
               <span className="text-foreground">{t("settings.ai.privacy.smartIndexLabel")}</span>
               {t("settings.ai.privacy.smartIndexBody")}

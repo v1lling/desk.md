@@ -38,38 +38,19 @@ distinguish the two via `error instanceof BrowserModeError`.
 
 ## Service layer
 
-`AIService` handles raw AI calls for internal helpers (Smart Index summarization).
-The in-app assistant uses its own orchestrator (`src/lib/assistant/orchestrator.ts`).
+`AIService` is the only consumer of this module: it makes the raw AI calls for the
+**Smart Index** summarizer (`src/lib/context-index/builder.ts` for batch builds,
+`indexer.ts` for on-save refreshes). `AIService.custom(systemPrompt, message)` runs a
+single non-streaming completion and reports token usage via the optional `onUsage`
+callback — the builder/indexer use it to log usage (`purpose: 'index'`) to the AI settings
+Usage panel.
+
+There is no in-app chat assistant. External agents read/write desk over **MCP**
+(`@desk/server`, see `packages/server/src/mcp.ts`) or the generated `CLAUDE.md`/`AGENTS.md`.
 
 File:
 
 - `src/lib/ai/service.ts`
-
-## Assistant
-
-The in-app chat assistant can read and write workspace data.
-
-Read tools:
-- `desk_workspace_info` — list workspaces and projects
-- `desk_tree` — browse file tree
-- `desk_catalog` — query Smart Index summaries
-- `desk_read` — read file content
-- `desk_search` — full-text search
-
-Write tools:
-- `desk_create_task` / `desk_update_task`
-- `desk_create_doc` / `desk_update_doc`
-- `desk_create_meeting` / `desk_update_meeting`
-
-All tools run on the `@desk/core` domain layer via the `StorageProvider` seam —
-read queries live in `@desk/core` (`agent-queries.ts`), writes reuse the same
-CRUD functions the UI calls. There are no Rust `desk_*` commands.
-
-Files:
-
-- `src/lib/assistant/orchestrator.ts` — streaming turn runner
-- `src/lib/assistant/tool-core.ts` — tool definitions
-- `src/lib/assistant/types.ts` — event and message types
 
 ## Adding a provider
 

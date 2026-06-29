@@ -1,4 +1,20 @@
 {
+  "ai": {
+    "consent": {
+      "title": "Bevor du KI-Funktionen nutzt",
+      "description": "Desks KI-Funktionen senden Inhalte über die API an den von dir gewählten Anbieter (Anthropic oder OpenAI). Desk betreibt keinen eigenen KI-Server.",
+      "whatHeading": "Was gesendet wird",
+      "whatItems": {
+        "previews": "Kurze Vorschauen und Zusammenfassungen deiner Dateien für den Smart-Index-Katalog."
+      },
+      "whenHeading": "Wann",
+      "whenBody": "Nur wenn du eine KI-Funktion nutzt. Mit aktivem <strong>Automatisch zusammenfassen beim Speichern</strong> werden auch kurze Datei-Vorschauen automatisch nach dem Bearbeiten einer Datei gesendet.",
+      "retentionHeading": "Aufbewahrung",
+      "retentionBody": "Wird nach den API-Bedingungen deines Anbieters gehandhabt. Anthropic und OpenAI geben an, dass API-Daten standardmäßig nicht zum Training ihrer Modelle verwendet werden.",
+      "footer": "Es wird nichts gesendet, solange du keinen API-Schlüssel konfiguriert hast. Du kannst dies jederzeit unter Einstellungen → KI nachsehen.",
+      "accept": "Verstanden & weiter"
+    }
+  },
   "common": {
     "buttons": {
       "save": "Speichern",
@@ -34,7 +50,6 @@
       "docs": "Dokumente",
       "meetings": "Meetings",
       "projects": "Projekte",
-      "assistant": "Assistent",
       "settings": "Einstellungen",
       "desk": "Desk",
       "workspaceViews": "Arbeitsbereich-Ansichten"
@@ -225,9 +240,7 @@
       "week": "Woche",
       "allTasks": "Alle Aufgaben",
       "allWorkspaces": "Alle Arbeitsbereiche"
-    },
-    "assistant": {},
-    "settings": {}
+    }
   },
   "settings": {
     "general": {
@@ -305,7 +318,7 @@
     "ai": {
       "provider": {
         "title": "Anbieter",
-        "description": "KI-Anbieter verbinden. Versorgt Assistent, Drafting und Katalogzusammenfassungen.",
+        "description": "KI-Anbieter verbinden. Versorgt die Smart-Index-Katalogzusammenfassungen.",
         "label": "Anbieter",
         "helperText": "KI-API-Backend"
       },
@@ -327,10 +340,8 @@
         "notConfigured": "Anbieterschlüssel nicht konfiguriert."
       },
       "browserMode": {
-        "title": "KI ist im Browsermodus nicht verfügbar",
-        "descriptionStart": "API-Schlüssel werden nur im Schlüsselbund des Betriebssystems gespeichert, auf den Desk nicht zugreifen kann aus",
-        "descriptionMiddle": ". Führe",
-        "descriptionEnd": " (oder die gebaute App) aus, um Anbieter zu konfigurieren und den Assistenten zu nutzen."
+        "title": "KI-Schlüssel werden in der Desktop-App verwaltet",
+        "description": "Dein KI-Anbieter-Schlüssel wird von der Desktop-App sicher auf deinem Gerät gespeichert und kann daher nicht im Browser gesetzt werden. Öffne desk.md auf deinem Desktop, um ihn hinzuzufügen oder zu ändern."
       },
       "keychainError": {
         "title": "Schlüsselbund konnte nicht gelesen werden",
@@ -351,8 +362,6 @@
         "title": "Daten & Datenschutz",
         "description": "Was Desk an deinen KI-Anbieter sendet, und wann.",
         "intro": "KI-Funktionen senden Inhalte an den oben ausgewählten Anbieter (Anthropic oder OpenAI) über dessen API. Desk hat keinen eigenen KI-Server, und es wird nichts gesendet, bevor du einen API-Schlüssel konfiguriert hast.",
-        "assistantLabel": "Assistent-Chat & Drafting",
-        "assistantBody": ": deine Nachrichten, der Gesprächsverlauf und der Inhalt der Dateien, die der Assistent zur Beantwortung liest.",
         "smartIndexLabel": "Smart Index",
         "smartIndexBody": ": kurze Vorschauen und Zusammenfassungen deiner Dateien, gesendet beim Neuaufbau des Katalogs oder, wenn „Automatisch zusammenfassen beim Speichern“ aktiv ist, automatisch nach dem Speichern.",
         "retention": "Die Aufbewahrung richtet sich nach den API-Bedingungen deines Anbieters. Anthropic und OpenAI geben an, dass API-Daten standardmäßig nicht zum Training ihrer Modelle verwendet werden.",
@@ -364,19 +373,10 @@
         }
       }
     },
-    "assistant": {
-      "title": "Assistent",
-      "description": "Wie der In-App-Assistent chattet, Drafts erstellt und Kontext abruft.",
-      "contextNotice": "Der Assistent fügt zu Beginn eines Turns keinen Kontext automatisch ein. Er entscheidet, wann er den Katalog abfragt und Dateien liest. Den Katalog selbst verwaltest du unter Einstellungen → Katalog.",
-      "toolDetails": {
-        "label": "Tool-Details in Assistent-Antworten anzeigen",
-        "description": "Tool-Argumente, Ergebnisse und Details abgerufener Dateien inline anzeigen."
-      }
-    },
     "agents": {
       "title": "Externe Agenten",
       "description": "Markdown-Dateien neben deinen Daten erzeugen, damit externe CLI-Agenten deine Arbeit ohne Einrichtung verstehen.",
-      "notice": "Diese Einstellungen gelten für <strong>externe CLI-Agenten</strong> (Claude Code, Codex, Gemini CLI), die deinen Datenordner direkt lesen. Für Anweisungen an den <strong>In-App-Assistenten</strong> siehe Einstellungen → Assistent.",
+      "notice": "Diese Einstellungen gelten für <strong>externe CLI-Agenten</strong> (Claude Code, Codex, Gemini CLI), die deinen Datenordner direkt lesen.",
       "emit": {
         "title": "Dateien erzeugen",
         "description": "Wähle, welche Agenten-Dateien in deinen Datenordner geschrieben werden. Gleicher Inhalt, drei Dateinamen.",
@@ -488,7 +488,6 @@
       "planner": "Planer",
       "templates": "Vorlagen",
       "ai": "KI-Anbieter",
-      "assistant": "Assistent",
       "agents": "Agenten",
       "context": "Katalog",
       "data": "Daten",
@@ -518,8 +517,9 @@
         "successWithExcluded": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} ausgeschlossen"
       },
       "info": {
-        "oneCatalog": "Ein Katalog, zwei Leser: Der In-App-Assistent fragt diesen Index direkt ab. Wenn eine Agenten-Datei aktiv ist (Einstellungen → Agenten), wird derselbe Katalog daneben als Markdown geschrieben, damit externe Agenten (Claude Code, Codex, Gemini CLI) ihn ohne Einrichtung lesen können.",
-        "noProvider": "Kein KI-Anbieter konfiguriert, daher verwenden Zusammenfassungen Klartext-Vorschauen. Füge unter Einstellungen → KI einen Schlüssel hinzu für KI-generierte Zusammenfassungen."
+        "oneCatalog": "Wenn eine Agenten-Datei aktiv ist (Einstellungen → Agenten), wird der Smart Index daneben als Markdown geschrieben, damit externe Agenten (Claude Code, Codex, Gemini CLI) ihn ohne Einrichtung lesen können.",
+        "noProvider": "Kein KI-Anbieter konfiguriert, daher verwenden Zusammenfassungen Klartext-Vorschauen. Füge unter Einstellungen → KI einen Schlüssel hinzu für KI-generierte Zusammenfassungen.",
+        "desktopOnly": "Der Smart Index wird in der Desktop-App erstellt, mit deinem lokal gespeicherten KI-Schlüssel. Im Browser wird er aus dem bestehenden Katalog des Servers bereitgestellt."
       },
       "config": {
         "title": "Katalog-Einstellungen",
@@ -541,7 +541,7 @@
       },
       "clearDialog": {
         "title": "Katalog leeren",
-        "description": "Damit wird der vom In-App-Assistenten genutzte Datei-Index geleert und die generierten Dateien CLAUDE.md, AGENTS.md, GEMINI.md und WORKSPACE_CONTEXT.md werden gelöscht. Erneut aufbauen, um sie wiederherzustellen. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "description": "Damit wird der Smart Index geleert und die generierten Dateien CLAUDE.md, AGENTS.md, GEMINI.md und WORKSPACE_CONTEXT.md werden gelöscht. Erneut aufbauen, um sie wiederherzustellen. Diese Aktion kann nicht rückgängig gemacht werden.",
         "confirmLabel": "Katalog leeren"
       },
       "relativeTime": {
@@ -553,28 +553,6 @@
         "hoursAgo_other": "vor {{count}} Stunden",
         "daysAgo_one": "vor {{count}} Tag",
         "daysAgo_other": "vor {{count}} Tagen"
-      }
-    },
-    "customInstructions": {
-      "title": "Eigene Anweisungen",
-      "description": "Deine Ergänzungen zu den eingebauten Standardprompts der KI. Die Standardprompts werden immer gesendet; dein Text wird danach angehängt.",
-      "global": {
-        "label": "Gilt für alles (Chat + E-Mail)",
-        "placeholder": "z. B. mit knappen Stichpunkten antworten.",
-        "helperText": "Für Anweisungen an externe CLI-Agenten (Claude Code, Codex, Gemini CLI), die deinen Datenordner lesen, siehe Einstellungen → Agenten."
-      },
-      "perTypePlaceholder": "z. B. spezifische Anweisungen für {{label}}...",
-      "viewBaseContext": "Basiskontext anzeigen (in allen Prompts enthalten)",
-      "viewDefaultPrompt": "Standard-Prompt anzeigen",
-      "purposes": {
-        "chat": {
-          "label": "Nur Assistent-Chat",
-          "description": "Allgemeine Assistent-Interaktionen im Assistenten-Tab"
-        },
-        "draft-email": {
-          "label": "Nur E-Mail-Drafts",
-          "description": "Verfassen von E-Mail-Antworten über den Assistenten"
-        }
       }
     }
   },
@@ -748,13 +726,6 @@
     "meeting": {},
     "email": {
       "defaultTitle": "E-Mail"
-    },
-    "assistant": {
-      "defaults": {
-        "newConversation": "Neuer Assistent",
-        "emailDraft": "E-Mail-Antwort verfassen",
-        "emailDraftWithSubject": "Draft: {{subject}}"
-      }
     }
   },
   "emptyStates": {
@@ -871,9 +842,6 @@
         "failed": "{{entity}} konnte nicht verschoben werden"
       }
     },
-    "assistant": {
-      "conversationNotFound": "Konversation nicht gefunden."
-    },
     "secrets": {
       "keychainUnavailable": "Zugriff auf den Schlüsselbund des Betriebssystems nicht möglich. KI-Funktionen bleiben deaktiviert, bis das Problem behoben ist. Öffne Einstellungen → KI für Details."
     },
@@ -944,85 +912,11 @@
       "deleteMeetingFailed": "Meeting konnte nicht gelöscht werden"
     },
     "email": {
-      "openFailed": "E-Mail konnte nicht geöffnet werden",
-      "draftStartFailed": "Assistent-Draft konnte nicht gestartet werden. Prüfe Einstellungen → KI."
+      "openFailed": "E-Mail konnte nicht geöffnet werden"
     },
     "update": {
       "checkFailed": "Update-Prüfung fehlgeschlagen",
       "installFailed": "Update-Installation fehlgeschlagen"
-    }
-  },
-  "assistant": {
-    "conversations": {
-      "heading": "Konversationen",
-      "newConversation": "Neue Konversation",
-      "deleteConversation": "Konversation löschen",
-      "empty": "Noch keine Konversationen"
-    },
-    "input": {
-      "placeholder": "Frage den Assistenten… (Enter zum Senden, Shift+Enter für Zeilenumbruch)",
-      "working": "Arbeite…",
-      "enterToSend": "Enter zum Senden",
-      "send": "Senden"
-    },
-    "thinking": "Denke nach…",
-    "notConfigured": "Assistent ist nicht konfiguriert. Öffne Einstellungen → KI und füge einen Anbieter-Schlüssel hinzu.",
-    "promptInUse": "Prompt im Einsatz ({{mode}}): Effektiver Prompt",
-    "mode": {
-      "chat": "Assistent",
-      "draftEmail": "E-Mail-Draft"
-    },
-    "empty": {
-      "title": "Mit dem Desk-Assistenten starten",
-      "description": "Frage nach Analysen, Kontext-Lookups oder Aktualisierungen von Aufgaben, Dokumenten oder Meetings. Der Assistent setzt bei Bedarf Tools ein."
-    },
-    "actions": {
-      "draftEmail": "E-Mail verfassen"
-    },
-    "toolActivity": {
-      "heading": "Tool-Aktivität",
-      "showLess": "Weniger anzeigen",
-      "showMore_one": "{{count}} mehr anzeigen",
-      "showMore_other": "{{count}} mehr anzeigen",
-      "details": "Details",
-      "arguments": "Argumente",
-      "result": "Ergebnis"
-    },
-    "tools": {
-      "deskTree": "Arbeitsbereich durchsuchen",
-      "deskCatalog": "Katalog durchsuchen",
-      "deskRead": "Datei lesen",
-      "deskSearch": "Dateien durchsuchen",
-      "deskWorkspaceInfo": "Arbeitsbereich-Info abrufen",
-      "deskCreateTask": "Aufgabe erstellen",
-      "deskUpdateTask": "Aufgabe aktualisieren",
-      "deskCreateMeeting": "Meeting erstellen",
-      "deskUpdateMeeting": "Meeting aktualisieren",
-      "deskCreateDoc": "Dokument erstellen",
-      "deskUpdateDoc": "Dokument aktualisieren",
-      "webSearch": "Websuche"
-    },
-    "sources": {
-      "label": "Quellen:",
-      "fileLabel": "Datei:",
-      "openTitle": "{{title}} öffnen",
-      "openTitleWithWorkspace": "{{title}} öffnen ({{workspace}})"
-    },
-    "consent": {
-      "title": "Bevor du KI-Funktionen nutzt",
-      "description": "Desks KI-Funktionen senden Inhalte über die API an den von dir gewählten Anbieter (Anthropic oder OpenAI). Desk betreibt keinen eigenen KI-Server.",
-      "whatHeading": "Was gesendet wird",
-      "whatItems": {
-        "messages": "Nachrichten, die du an den Assistenten schreibst, plus den Gesprächsverlauf.",
-        "previews": "Kurze Vorschauen und Zusammenfassungen deiner Dateien für den Smart-Index-Katalog.",
-        "fileContents": "Den Inhalt der Dateien, die der Assistent zur Beantwortung liest."
-      },
-      "whenHeading": "Wann",
-      "whenBody": "Nur wenn du eine KI-Funktion nutzt. Mit aktivem <strong>Automatisch zusammenfassen beim Speichern</strong> werden auch kurze Datei-Vorschauen automatisch nach dem Bearbeiten einer Datei gesendet.",
-      "retentionHeading": "Aufbewahrung",
-      "retentionBody": "Wird nach den API-Bedingungen deines Anbieters gehandhabt. Anthropic und OpenAI geben an, dass API-Daten standardmäßig nicht zum Training ihrer Modelle verwendet werden.",
-      "footer": "Es wird nichts gesendet, solange du keinen API-Schlüssel konfiguriert hast. Du kannst dies jederzeit unter Einstellungen → KI nachsehen.",
-      "accept": "Verstanden & weiter"
     }
   },
   "email": {
@@ -1045,16 +939,11 @@
       }
     },
     "replyHelper": {
-      "instructionsLabel": "Anweisungen (optional)",
-      "instructionsPlaceholder": "z. B. freundlich, knapp, Projektstatus aus Dokumenten zitieren...",
-      "contextHeading": "Kontext für den Assistenten",
-      "noWorkspace": "Kein Arbeitsbereich",
-      "noProject": "Kein Projekt",
-      "opening": "Assistent wird geöffnet...",
-      "openInAssistant": "Draft im Assistenten öffnen",
+      "copyEmail": "E-Mail kopieren",
+      "copied": "Kopiert",
       "extractTasks": "Aufgaben extrahieren",
       "comingSoon": "(in Kürze)",
-      "configureProvider": "Konfiguriere einen KI-Anbieter in den Einstellungen, um Assistent-Drafting zu nutzen."
+      "mcpHint": "Kopiere die E-Mail und nutze dann den Prompt \"draft-email-reply\" in deinem KI-Connector (Claude, ChatGPT), um eine Antwort zu entwerfen."
     }
   },
   "search": {

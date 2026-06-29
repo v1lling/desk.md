@@ -43,7 +43,6 @@ function getPageNameKey(pathname: string): string {
     "/meetings": "nav.sidebar.meetings",
     "/projects": "nav.sidebar.projects",
     "/settings": "nav.sidebar.settings",
-    "/assistant": "nav.sidebar.assistant",
   };
   return pageMap[pathname] || "nav.sidebar.desk";
 }

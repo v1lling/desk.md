@@ -10,7 +10,6 @@ import {
   Calendar,
   CalendarDays,
   Home,
-  Bot,
   FileText,
   FolderKanban,
   Search,
@@ -109,17 +108,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
       </ScrollArea>
 
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/60 space-y-0.5">
-        <SidebarNavRow
-          to="/assistant"
-          label={t("nav.sidebar.assistant")}
-          icon={Bot}
-          active={pathname === "/assistant"}
-          collapsed={collapsed}
-          role="global"
-          onClick={switchToDesk}
-        />
         <SidebarNavRow to="/settings" label={t("nav.sidebar.settings")} icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />
-
       </div>
 
       <WorkspaceSelector isCollapsed={collapsed} />

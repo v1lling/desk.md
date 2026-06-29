@@ -24,8 +24,8 @@ export interface AIServiceResponse {
 }
 
 /**
- * AI Service for programmatic AI calls (summarization, etc.).
- * The in-app assistant uses its own orchestrator instead.
+ * AI Service for programmatic AI calls (Smart Index summarization).
+ * The only consumer is the context-index builder/indexer.
  */
 export class AIService {
   private config: AIServiceConfig;
