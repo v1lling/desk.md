@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Workspace } from "@desk/core/types";
+import type { WorkspaceUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
 import { useAgentInstructionsStore } from "./agent-instructions";
@@ -66,7 +66,7 @@ export function useUpdateWorkspace() {
       updates,
     }: {
       workspaceId: string;
-      updates: Partial<Pick<Workspace, "name" | "description" | "color">>;
+      updates: WorkspaceUpdate;
     }) => getDeskService().updateWorkspace(workspaceId, updates),
     onSuccess: (updatedWorkspace, { workspaceId }) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });

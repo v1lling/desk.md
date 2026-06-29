@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { StatePanel } from "@/components/ui/state-panel";
 import { useProject, useUpdateProject } from "@/stores";
-import type { Project, ProjectStatus } from "@desk/core/types";
+import type { Project, ProjectStatus, ProjectUpdate } from "@desk/core/types";
 import { taskStatusLabels, taskStatusOrder, taskStatusTextColors } from "@/lib/design-tokens";
 
 const statusValues: ProjectStatus[] = ["active", "paused", "completed", "archived"];
@@ -44,9 +44,7 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
   const { data: project, isLoading } = useProject(workspaceId, projectId);
   const updateProject = useUpdateProject();
 
-  const handleUpdate = async (
-    updates: Partial<Pick<Project, "name" | "status" | "description">>,
-  ) => {
+  const handleUpdate = async (updates: ProjectUpdate) => {
     try {
       await updateProject.mutateAsync({ projectId, workspaceId, updates });
     } catch (err) {
@@ -104,7 +102,7 @@ export function ProjectOverview({ workspaceId, projectId }: ProjectOverviewProps
           </div>
           <InlineDescription
             value={project.description ?? ""}
-            onSave={(description) => handleUpdate({ description })}
+            onSave={(description) => handleUpdate({ description: description || null })}
           />
         </div>
 

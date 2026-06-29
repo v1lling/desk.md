@@ -56,7 +56,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
         workspaceId: workspace.id,
         updates: {
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description.trim() || null,
           color,
         },
       });

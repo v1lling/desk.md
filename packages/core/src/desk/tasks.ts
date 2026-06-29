@@ -4,8 +4,8 @@
  * Uses file-operations.ts for all file I/O (cache invalidation + registry notification handled there).
  * Uses paths.ts for all path construction.
  */
-import type { Task, TaskStatus, TaskPriority } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate } from "./parser";
+import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "../types";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -62,15 +62,16 @@ function buildTask(
 function applyTaskUpdates(
   data: TaskFrontmatter,
   body: string,
-  updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content">>
+  updates: TaskUpdate
 ): { frontmatter: TaskFrontmatter; content: string } {
   return {
     frontmatter: {
       ...data,
       ...(updates.title && { title: updates.title }),
       ...(updates.status && { status: updates.status }),
-      ...(updates.priority !== undefined && { priority: updates.priority }),
-      ...(updates.due !== undefined && { due: updates.due }),
+      // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
+      ...(updates.priority !== undefined && { priority: updates.priority ?? undefined }),
+      ...(updates.due !== undefined && { due: updates.due ?? undefined }),
     },
     content: updates.content !== undefined ? updates.content : body,
   };
@@ -237,14 +238,14 @@ export async function createTask(data: {
  */
 export async function updateTask(
   taskId: string,
-  updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content" | "projectId">>,
+  updates: TaskUpdate,
   workspaceId?: string,
   projectId?: string
 ): Promise<Task | null> {
   if (isMockMode()) {
     const index = mockTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
-    mockTasks[index] = { ...mockTasks[index], ...updates };
+    mockTasks[index] = { ...mockTasks[index], ...clearNulls(updates) };
     return mockTasks[index];
   }
 

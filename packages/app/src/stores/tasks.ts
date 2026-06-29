@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Task, TaskStatus, TaskPriority } from "@desk/core/types";
+import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 
 // Query keys
@@ -96,7 +96,7 @@ export function useUpdateTask() {
       taskId: string;
       workspaceId: string;
       projectId: string;
-      updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content" | "projectId">>;
+      updates: TaskUpdate;
     }) => getDeskService().updateTask(taskId, updates, workspaceId, projectId),
     onSuccess: (updatedTask) => {
       if (updatedTask) {

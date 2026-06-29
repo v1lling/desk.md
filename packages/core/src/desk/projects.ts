@@ -1,8 +1,8 @@
 /**
  * Projects library - File system operations for projects
  */
-import type { Project, ProjectStatus } from "../types";
-import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate } from "./parser";
+import type { Project, ProjectStatus, ProjectUpdate } from "../types";
+import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockProjects } from "./mock-data";
@@ -250,13 +250,13 @@ ${project.description || ""}
  */
 export async function updateProject(
   projectId: string,
-  updates: Partial<Pick<Project, "name" | "status" | "description">>,
+  updates: ProjectUpdate,
   workspaceId?: string
 ): Promise<Project | null> {
   if (isMockMode()) {
     const index = mockProjects.findIndex((p) => p.id === projectId);
     if (index === -1) return null;
-    mockProjects[index] = { ...mockProjects[index], ...updates };
+    mockProjects[index] = { ...mockProjects[index], ...clearNulls(updates) };
     return mockProjects[index];
   }
 
@@ -284,7 +284,8 @@ export async function updateProject(
       ...data,
       ...(updates.name && { name: updates.name }),
       ...(updates.status && { status: updates.status }),
-      ...(updates.description !== undefined && { description: updates.description }),
+      // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
+      ...(updates.description !== undefined && { description: updates.description ?? undefined }),
     };
 
     const fileContent = serializeMarkdown(updatedData, body);

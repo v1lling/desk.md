@@ -6,8 +6,8 @@
  * inbox, is sorted first, and cannot be deleted. The home workspace is created
  * during onboarding like any other workspace — there is no magic folder name.
  */
-import type { Workspace } from "../types";
-import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate } from "./parser";
+import type { Workspace, WorkspaceUpdate } from "../types";
+import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockWorkspaces } from "./mock-data";
@@ -237,12 +237,12 @@ ${workspace.description || ""}
  */
 export async function updateWorkspace(
   workspaceId: string,
-  updates: Partial<Pick<Workspace, "name" | "description" | "color">>
+  updates: WorkspaceUpdate
 ): Promise<Workspace | null> {
   if (isMockMode()) {
     const index = mockWorkspaces.findIndex((w) => w.id === workspaceId);
     if (index === -1) return null;
-    mockWorkspaces[index] = { ...mockWorkspaces[index], ...updates };
+    mockWorkspaces[index] = { ...mockWorkspaces[index], ...clearNulls(updates) };
     return mockWorkspaces[index];
   }
 
@@ -256,8 +256,9 @@ export async function updateWorkspace(
     const updatedData: WorkspaceFrontmatter = {
       ...data,
       ...(updates.name && { name: updates.name }),
-      ...(updates.description !== undefined && { description: updates.description }),
-      ...(updates.color !== undefined && { color: updates.color }),
+      // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
+      ...(updates.description !== undefined && { description: updates.description ?? undefined }),
+      ...(updates.color !== undefined && { color: updates.color ?? undefined }),
     };
 
     const fileContent = serializeMarkdown(updatedData, body);

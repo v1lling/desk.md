@@ -17,6 +17,19 @@ export function parseMarkdown<T>(
 const GRAY_MATTER_RESERVED = ["engine", "engines", "language", "delimiters", "excerpt"];
 
 /**
+ * Replace the `null` "clear" sentinel with `undefined` in an updates object.
+ * Used by mock-mode update paths that spread updates straight into in-memory state,
+ * so a cleared field reads as absent (undefined) instead of a literal null.
+ */
+export function clearNulls<T extends Record<string, unknown>>(
+  updates: T
+): { [K in keyof T]: Exclude<T[K], null> } {
+  const out: Record<string, unknown> = { ...updates };
+  for (const k in out) if (out[k] === null) out[k] = undefined;
+  return out as { [K in keyof T]: Exclude<T[K], null> };
+}
+
+/**
  * Serialize data and content back to markdown with frontmatter
  * Automatically removes undefined values and gray-matter reserved keys
  */

@@ -188,14 +188,15 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
   );
 
   const handlePriorityChange = useMemo(
+    // null clears the field; "none" is the dropdown sentinel. See TaskUpdate.
     () => createMetadataHandler(setPriority, (v: TaskPriority | "none") => ({
-      priority: v === "none" ? undefined : v,
+      priority: v === "none" ? null : v,
     })),
     [createMetadataHandler]
   );
 
   const handleDueChange = useMemo(
-    () => createMetadataHandler(setDue, (v: string) => ({ due: v || undefined })),
+    () => createMetadataHandler(setDue, (v: string) => ({ due: v || null })),
     [createMetadataHandler]
   );
 

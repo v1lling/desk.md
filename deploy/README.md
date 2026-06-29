@@ -45,6 +45,13 @@ Then set `DESK_PUBLIC_URL=https://desk.example.com` in `.env` and restart. MCP s
 responses, so if your proxy buffers, disable buffering and raise read/send timeouts for the
 `/mcp` path.
 
+> **If your proxy has a WAF, don't let it block `http://` in the query string.** Native OAuth
+> clients (the Claude Code VSCode extension, MCP Inspector, etc.) sign in with an RFC 8252
+> loopback redirect, so the authorize URL carries `redirect_uri=http://localhost:<port>/callback`.
+> Many WAF rulesets (e.g. Nginx Proxy Manager's "Block Common Exploits", OWASP CRS RFI/SSRF
+> rules) flag a `http://` URL in a parameter and return 403 — breaking sign-in before it reaches
+> desk.md. Disable that rule for this host; desk.md validates the `redirect_uri` itself.
+
 ## Connect AI over MCP
 
 Once it's on a public HTTPS URL, add `https://desk.example.com/mcp` as a custom connector in

@@ -47,6 +47,20 @@ export interface Task {
 export type TaskStatus = 'backlog' | 'todo' | 'doing' | 'waiting' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
+// Entity update shapes. `null` on an optional field is the "clear" sentinel — it
+// removes the field from frontmatter. `undefined`/omitted leaves it unchanged. null
+// is used (not undefined) because it survives JSON-RPC to the hosted server, whereas
+// JSON.stringify strips undefined keys. See applyTaskUpdates / clearNulls.
+export type TaskUpdate =
+  Partial<Pick<Task, "title" | "status" | "content" | "projectId">> &
+  { priority?: TaskPriority | null; due?: string | null };
+
+export type ProjectUpdate =
+  Partial<Pick<Project, "name" | "status">> & { description?: string | null };
+
+export type WorkspaceUpdate =
+  Partial<Pick<Workspace, "name">> & { description?: string | null; color?: string | null };
+
 // Doc kind - derived from filesystem path (docs/ vs ai-docs/), not stored in frontmatter.
 // Still used by lib-level CRUD to select the physical directory (docs/ vs ai-docs/).
 export type DocKind = 'human' | 'ai';

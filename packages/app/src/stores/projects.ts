@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Project, ProjectStatus } from "@desk/core/types";
+import type { ProjectStatus, ProjectUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
 import { contentKeys } from "./content";
@@ -103,7 +103,7 @@ export function useUpdateProject() {
     }: {
       projectId: string;
       workspaceId: string;
-      updates: Partial<Pick<Project, "name" | "status" | "description">>;
+      updates: ProjectUpdate;
     }) => getDeskService().updateProject(projectId, updates, workspaceId),
     onSuccess: (updatedProject, variables) => {
       if (updatedProject) {
