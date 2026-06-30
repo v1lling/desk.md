@@ -1,25 +1,23 @@
 /**
  * Context Catalog incremental index updater.
  *
- * Keeps catalog hashes/titles up to date after file saves and optionally
- * refreshes summaries when content changes. Handles both existing entries
- * and brand-new files (added to the catalog on first save).
+ * Keeps catalog hashes/titles up to date after file saves and refreshes the AI
+ * summary when content changes and a key is available. New files are added to the
+ * catalog on first save (metadata always; summary only when a key exists — no fake
+ * text previews). Mirrors the build-time model in builder.ts.
  */
 
 import { useContextStore } from "@/stores/context";
 import { useContextIndexStore } from "@/stores/context-index";
-import { hashContent, extractBody } from "@/lib/context-index/content-utils";
+import { hashContent, extractBody, buildCatalogEntry } from "@desk/core";
 import { getAIInclusion } from "@/lib/context-index/aiignore";
-import { generatePreview } from "@desk/core";
 import { isTauri } from "@desk/core";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
-import { buildBaseEntry } from "./entry-factory";
 import { getSummaryPreviewLength } from "./constants";
 import type { IndexEntry } from "./types";
 
 const INDEX_UPDATE_DEBOUNCE_MS = 5000;
-const FALLBACK_PREVIEW_LENGTH = 150;
 
 export interface IndexDocOptions {
   path: string;
@@ -56,10 +54,11 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
       return;
     }
 
-    const contentHash = await hashContent(content);
+    // Hash the body (frontmatter stripped) — must match the catalog builder so
+    // summaries reuse correctly across the on-save and full-rebuild paths.
+    const contentHash = await hashContent(extractBody(content));
     const existingIndex = useContextIndexStore.getState().getIndex(workspaceId);
     const existingEntry = existingIndex?.entries.find((entry) => entry.filePath === path);
-    const isNewEntry = !existingEntry;
     const hashChanged = existingEntry ? existingEntry.contentHash !== contentHash : true;
 
     // Background task — never prompt. AI summarization stays off until the user has
@@ -72,8 +71,9 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
     const shouldGenerateSummary =
       contextState.autoSummarizeOnSave && hashChanged && consentGiven && aiKeyConfigured;
 
-    let summary = existingEntry?.summary ?? "";
-    let isPreview = existingEntry?.isPreview;
+    // Keep the previous summary by default (may be undefined). Without a key the entry
+    // is simply represented with metadata and no summary — no fake text preview.
+    let summary = existingEntry?.summary;
 
     if (shouldGenerateSummary) {
       try {
@@ -91,25 +91,15 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
           SYSTEM_PROMPTS.autoSummarize,
           `Title: ${title}\nType: ${contentType}\n\n${preview}`
         );
-        summary = response.message.trim();
-        isPreview = false;
+        summary = response.message.trim() || summary;
       } catch (error) {
         console.warn("[context-index] Failed to regenerate summary:", error);
-        // On AI failure: existing entries keep their previous summary. New entries
-        // fall back to a plain-text preview so they're at least represented.
-        if (isNewEntry) {
-          summary = generatePreview(extractBody(content), FALLBACK_PREVIEW_LENGTH);
-          isPreview = true;
-        }
+        // Keep the previous summary (may be undefined) — never fabricate one.
       }
-    } else if (isNewEntry) {
-      // New entry without AI (toggle off, no consent, or no key): plain-text preview.
-      summary = generatePreview(extractBody(content), FALLBACK_PREVIEW_LENGTH);
-      isPreview = true;
     }
 
-    if (isNewEntry) {
-      const base = await buildBaseEntry({
+    if (!existingEntry) {
+      const meta = await buildCatalogEntry({
         filePath: path,
         workspaceId,
         type: contentType,
@@ -118,8 +108,8 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
         created,
         content,
       });
-      const newEntry: IndexEntry = { ...base, summary };
-      if (isPreview !== undefined) newEntry.isPreview = isPreview;
+      const newEntry: IndexEntry = { ...meta };
+      if (summary) newEntry.summary = summary;
       useContextIndexStore.getState().updateEntry(workspaceId, newEntry);
     } else {
       const updated: IndexEntry = {
@@ -128,7 +118,6 @@ async function performIndex(options: IndexDocOptions): Promise<void> {
         title,
         summary,
       };
-      if (isPreview !== undefined) updated.isPreview = isPreview;
       useContextIndexStore.getState().updateEntry(workspaceId, updated);
     }
 

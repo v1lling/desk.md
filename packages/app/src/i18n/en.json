@@ -530,9 +530,9 @@
         "title": "File Index Status",
         "description": "File index stats, errors, and build controls",
         "filesIndexed": "Files indexed",
-        "coverage": "Summaries",
-        "coverageAi": "{{ai}} AI summaries",
-        "coverageMixed": "{{ai}} AI · {{preview}} text-only",
+        "coverage": "Summary coverage",
+        "coveragePartial": "{{summarized}} of {{total}} summarized",
+        "coverageComplete": "All {{count}} summarized",
         "workspaceFiles_one": "{{count}} file",
         "workspaceFiles_other": "{{count}} files",
         "updatedAgo": "updated {{time}}"
@@ -557,10 +557,10 @@
       },
       "info": {
         "oneCatalog": "When any agent file is enabled (Settings → Agents) the Smart Index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
-        "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries.",
-        "desktopOnly": "The Smart Index is built in the desktop app, using your locally stored AI key. In the browser it is served from the server's existing catalog.",
+        "noProvider": "No AI provider configured. The catalog still lists every file with full metadata; files just have no AI summary yet. Add a key in Settings → AI and rebuild to summarize them.",
+        "desktopOnly": "AI summaries are generated in the desktop app using your locally stored key. The catalog itself is always available to agents over MCP, even here in the browser, with metadata for every file.",
         "incremental": "Rebuild is incremental: unchanged files reuse their summary, so only new or edited files use the AI.",
-        "offlineChanges": "Files changed outside the desk app (another device, direct edits) are picked up on the next rebuild."
+        "offlineChanges": "Files changed outside the desk app (another device, direct edits) appear in the catalog immediately; their summaries refresh on the next rebuild."
       },
       "config": {
         "title": "File Index Settings",

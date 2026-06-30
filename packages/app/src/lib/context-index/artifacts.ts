@@ -21,11 +21,11 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push(`Files indexed: ${index.fileCount}`);
 
-  const previewCount = index.entries.filter((e) => e.isPreview).length;
-  if (previewCount > 0) {
+  const summarized = index.entries.filter((e) => e.summary).length;
+  if (summarized < index.entries.length) {
     lines.push(
-      `Note: ${previewCount} of ${index.entries.length} summaries are raw text previews ` +
-        "(built without an AI API key). Add a key in Settings → AI and rebuild for real summaries."
+      `Note: ${summarized} of ${index.entries.length} files have an AI summary. ` +
+        "Add a key in Settings → AI and rebuild to summarize the rest."
     );
   }
   lines.push("");
@@ -62,7 +62,7 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
     // One compact line per file: `path` · title · meta · summary
     const parts = [oneLine(entry.title)];
     if (meta.length > 0) parts.push(meta.join(", "));
-    parts.push(oneLine(entry.summary) || "(no summary)");
+    parts.push(entry.summary ? oneLine(entry.summary) : "(no summary)");
     lines.push(`- \`${entry.path}\` · ${parts.join(" · ")}`);
   }
 

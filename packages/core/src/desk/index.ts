@@ -34,6 +34,9 @@ export * from "./content-tree";
 export * from "./agent-queries";
 export * from "./planner";
 
+// ── Catalog (always-complete, AI-free metadata index) ───────────────
+export * from "./catalog";
+
 // ── Search ──────────────────────────────────────────────────────────
 export * from "./search";
 export * from "./search-index";

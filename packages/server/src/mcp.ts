@@ -24,12 +24,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
-import {
-  getDeskService,
-  PATH_SEGMENTS,
-  loadAIIgnoreEntries,
-  isPathExcludedByAIIgnore,
-} from "@desk/core";
+import { getDeskService, PATH_SEGMENTS } from "@desk/core";
+import type { WorkspaceCatalog } from "@desk/core";
 import { auth, baseURL, MCP_RESOURCE, OAUTH_ISSUER, OAUTH_JWKS_URL } from "./auth";
 
 const PRM_URL = `${baseURL}/.well-known/oauth-protected-resource`;
@@ -90,7 +86,7 @@ function buildServer(): McpServer {
     "desk_tree",
     {
       description:
-        "Get a workspace's file tree as a flat list of workspace-relative paths (usable with desk_read). Omit path for the full tree; only pass path to drill in when the full tree was truncated.",
+        "Structural fallback: a workspace's raw file tree as a flat list of workspace-relative paths, including assets and non-content files. Prefer desk_catalog to understand a workspace's content; use desk_tree to see structure or find a file the catalog doesn't list. Omit path for the full tree; pass path to drill in when truncated.",
       inputSchema: { workspace_id: z.string().min(1), path: z.string().optional() },
     },
     async ({ workspace_id, path }) => json(await svc.deskTree(workspace_id, path))
@@ -125,7 +121,7 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Get the AI-curated catalog (path, type, title, summary, date) for a workspace, newest-first. May be empty if no index has been built yet — fall back to desk_tree then.",
+        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, and an AI summary when one has been generated (summary may be absent until then). Always populated. Use desk_read to open specific files; use desk_tree only for raw structure.",
       inputSchema: { workspace_id: z.string().min(1) },
     },
     async ({ workspace_id }) => json(await readCatalog(workspace_id))
@@ -166,40 +162,55 @@ function buildServer(): McpServer {
 }
 
 /**
- * desk_catalog reads the persisted Smart Index cache (.desk/index/indexes.json) via the
- * DeskService. The payload is the app's zustand-persist envelope ({ state: { indexes } });
- * we parse defensively and apply the workspace's .aiignore, degrading to an empty catalog
- * (with a hint) when no index exists — the server can't build one until server-side AI lands.
+ * desk_catalog: the always-complete metadata catalog, built LIVE from the server's files
+ * (so it's never empty just because no AI key exists), with AI summaries merged in by path.
+ *
+ * Metadata comes fresh from the core catalog builder (`.aiignore` already applied there);
+ * summaries come from the persisted Smart Index cache (.desk/index/indexes.json), which a
+ * key-bearing desktop client contributes. A short in-process TTL memo absorbs bursty agent
+ * calls; if no cache exists, every summary is just absent and the metadata stands alone.
  */
-async function readCatalog(workspaceId: string) {
+const CATALOG_TTL_MS = 15_000;
+const catalogMemo = new Map<string, { at: number; value: WorkspaceCatalog }>();
+
+async function getCachedCatalog(workspaceId: string): Promise<WorkspaceCatalog> {
+  const memo = catalogMemo.get(workspaceId);
+  if (memo && Date.now() - memo.at < CATALOG_TTL_MS) return memo.value;
+  const value = await getDeskService().buildWorkspaceCatalog(workspaceId);
+  catalogMemo.set(workspaceId, { at: Date.now(), value });
+  return value;
+}
+
+/** Parse the zustand-persist envelope and extract path → AI summary (real summaries only). */
+async function loadSummaryMap(workspaceId: string): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
   const raw = await getDeskService().getIndexCache();
-  const empty = {
-    workspace_id: workspaceId,
-    entries: [],
-    total: 0,
-    message: "No index built yet. Use desk_tree for file listing.",
-  };
-  if (!raw) return empty;
-
-  let entries: Array<Record<string, unknown>> = [];
+  if (!raw) return map;
   try {
-    const parsed = JSON.parse(raw) as { state?: { indexes?: Record<string, { entries?: unknown[] }> } };
-    const ws = parsed.state?.indexes?.[workspaceId];
-    entries = (ws?.entries as Array<Record<string, unknown>>) ?? [];
+    const parsed = JSON.parse(raw) as {
+      state?: { indexes?: Record<string, { entries?: Array<Record<string, unknown>> }> };
+    };
+    const entries = parsed.state?.indexes?.[workspaceId]?.entries ?? [];
+    for (const e of entries) {
+      const path = typeof e.path === "string" ? e.path : "";
+      const summary = typeof e.summary === "string" ? e.summary : "";
+      if (path && summary) map.set(path, summary);
+    }
   } catch {
-    return empty;
+    // Malformed cache — summaries just stay absent.
   }
-  if (entries.length === 0) return empty;
+  return map;
+}
 
-  const aiignore = await loadAIIgnoreEntries(workspaceId);
-  const visible = aiignore.length
-    ? entries.filter((e) => !isPathExcludedByAIIgnore(String(e.path ?? ""), aiignore))
-    : entries;
-  visible.sort((a, b) =>
-    String(b.date ?? b.created ?? "").localeCompare(String(a.date ?? a.created ?? ""))
-  );
-
-  return { workspace_id: workspaceId, total: visible.length, entries: visible };
+async function readCatalog(workspaceId: string) {
+  const catalog = await getCachedCatalog(workspaceId);
+  const summaries = await loadSummaryMap(workspaceId);
+  const entries = catalog.entries
+    .map((e) => ({ ...e, summary: summaries.get(e.path) }))
+    .sort((a, b) =>
+      String(b.date ?? b.created ?? "").localeCompare(String(a.date ?? a.created ?? ""))
+    );
+  return { workspace_id: workspaceId, total: entries.length, entries };
 }
 
 // Resource-server view of the AS: validates access tokens in-process (same Better Auth

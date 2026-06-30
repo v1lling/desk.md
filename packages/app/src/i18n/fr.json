@@ -519,8 +519,8 @@
         "description": "Statistiques d'index, erreurs et commandes de construction",
         "filesIndexed": "Fichiers indexés",
         "coverage": "Résumés",
-        "coverageAi": "{{ai}} résumés IA",
-        "coverageMixed": "{{ai}} IA · {{preview}} texte seul",
+        "coveragePartial": "{{summarized}} sur {{total}} résumés",
+        "coverageComplete": "Les {{count}} résumés",
         "workspaceFiles_one": "{{count}} fichier",
         "workspaceFiles_other": "{{count}} fichiers",
         "updatedAgo": "mis à jour {{time}}"
@@ -545,10 +545,10 @@
       },
       "info": {
         "oneCatalog": "Quand un fichier d'agent est activé (Paramètres → Agents), le Smart Index est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
-        "noProvider": "Aucun fournisseur d'IA configuré, les résumés utilisent donc des aperçus en texte brut. Ajoutez une clé dans Paramètres → IA pour des résumés générés par l'IA.",
-        "desktopOnly": "Le Smart Index est créé dans l'application de bureau, avec votre clé d'IA stockée localement. Dans le navigateur, il est servi à partir du catalogue existant du serveur.",
+        "noProvider": "Aucun fournisseur d'IA configuré. Le catalogue liste toujours chaque fichier avec ses métadonnées complètes ; il manque seulement le résumé IA. Ajoutez une clé dans Paramètres → IA et reconstruisez pour les résumer.",
+        "desktopOnly": "Les résumés IA sont générés dans l'application de bureau avec votre clé stockée localement. Le catalogue lui-même reste accessible aux agents via MCP, même ici dans le navigateur, avec les métadonnées de chaque fichier.",
         "incremental": "La reconstruction est incrémentale : les fichiers inchangés réutilisent leur résumé, seuls les fichiers nouveaux ou modifiés utilisent l'IA.",
-        "offlineChanges": "Les fichiers modifiés hors de l'app desk (autre appareil, édition directe) sont pris en compte à la prochaine reconstruction."
+        "offlineChanges": "Les fichiers modifiés hors de l'app desk (autre appareil, édition directe) apparaissent immédiatement dans le catalogue ; leurs résumés sont actualisés à la prochaine reconstruction."
       },
       "config": {
         "title": "Paramètres du catalogue",

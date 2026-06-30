@@ -49,8 +49,8 @@ export function SmartIndexSection() {
     setSummaryDetail,
   } = useContextStore();
 
-  // True when the active provider has an API key saved. Without one, the catalog
-  // still builds — it just uses plain text previews instead of AI summaries.
+  // True when the active provider has an API key saved. Without one, the catalog still
+  // builds with full metadata — files just have no AI summary until a key is added.
   const aiKeyConfigured = useAISettingsStore(
     (s) => s.providerConfigured[s.providerType]
   );
@@ -71,9 +71,10 @@ export function SmartIndexSection() {
 
   const allEntries = Object.values(indexes).flatMap((idx) => idx.entries);
   const totalIndexFiles = allEntries.length;
-  // Preview = built without a working AI key (raw text). Everything else with a summary is AI.
-  const previewCount = allEntries.filter((e) => e.isPreview === true).length;
-  const aiSummaryCount = allEntries.filter((e) => e.summary && e.isPreview !== true).length;
+  // Every file is in the catalog; `summary` is the optional AI enrichment. Coverage =
+  // how many files have an AI summary vs still pending (no key, or not yet summarized).
+  const summarizedCount = allEntries.filter((e) => e.summary).length;
+  const pendingCount = totalIndexFiles - summarizedCount;
 
   // Per-workspace rows: file count + when last touched (background auto-summary OR rebuild).
   const workspaceRows = Object.values(indexes)
@@ -187,12 +188,12 @@ export function SmartIndexSection() {
               <Sparkles className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">
-                  {previewCount > 0
-                    ? t("settings.smartIndex.status.coverageMixed", {
-                        ai: aiSummaryCount,
-                        preview: previewCount,
+                  {pendingCount > 0
+                    ? t("settings.smartIndex.status.coveragePartial", {
+                        summarized: summarizedCount,
+                        total: totalIndexFiles,
                       })
-                    : t("settings.smartIndex.status.coverageAi", { ai: aiSummaryCount })}
+                    : t("settings.smartIndex.status.coverageComplete", { count: summarizedCount })}
                 </p>
                 <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.coverage")}</p>
               </div>

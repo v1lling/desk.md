@@ -1,45 +1,17 @@
-export interface IndexEntry {
-  /** Workspace-relative path (e.g. "projects/website/docs/api-spec.md") */
-  path: string;
-  /** Absolute file path for reading */
-  filePath: string;
-  /** Content type */
-  type: 'doc' | 'ai-doc' | 'task' | 'meeting';
-  /** Title from frontmatter */
-  title: string;
-  /** AI-generated 1-2 sentence summary, or a raw text preview when no AI key is set */
-  summary: string;
-  /** True when `summary` is a raw text preview (built without a working AI key) rather than an AI summary */
-  isPreview?: boolean;
-  /** SHA-256 hash of file content (for incremental rebuild) */
-  contentHash: string;
-  /** ISO date created */
-  created: string;
-  /** Project ID this belongs to */
-  projectId: string;
-  /** Project name (resolved) */
-  projectName?: string;
-  // Task-specific
-  status?: string;
-  priority?: string;
-  // Meeting-specific
-  date?: string;
-}
-
-export interface WorkspaceIndex {
-  workspaceId: string;
-  workspaceName: string;
-  entries: IndexEntry[];
-  /** Timestamp of the last full rebuild (set only by buildWorkspaceIndex). */
-  builtAt: string;
-  /**
-   * Timestamp of the last change to this index — bumped by a full rebuild AND by
-   * background auto-summary entry updates. Optional for indexes persisted before this
-   * field existed; fall back to `builtAt`.
-   */
-  updatedAt?: string;
-  fileCount: number;
-}
+/**
+ * Smart Index types.
+ *
+ * The data shapes (`CatalogEntry`/`IndexEntry`/`WorkspaceCatalog`/`WorkspaceIndex`) now
+ * live in `@desk/core` so the core builder, the server, and the app share one source.
+ * Re-exported here so existing `./types` importers keep working. The UI-only progress /
+ * result shapes stay app-side.
+ */
+export type {
+  CatalogEntry,
+  IndexEntry,
+  WorkspaceCatalog,
+  WorkspaceIndex,
+} from "@desk/core";
 
 export interface BuildIndexProgress {
   phase: 'collecting' | 'summarizing' | 'done';

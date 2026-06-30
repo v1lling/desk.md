@@ -30,6 +30,7 @@ import type * as dashboardApi from "../dashboard";
 import type * as viewStateApi from "../view-state";
 import type * as settingsApi from "../settings";
 import type * as agentQueriesApi from "../agent-queries";
+import type * as catalogApi from "../catalog";
 import type * as indexCacheApi from "../index-cache";
 import type * as aiignoreApi from "../aiignore";
 
@@ -136,6 +137,11 @@ export interface DeskService {
   deskTree: typeof agentQueriesApi.deskTree;
   deskReadFile: typeof agentQueriesApi.deskReadFile;
   deskFullTextSearch: typeof agentQueriesApi.deskFullTextSearch;
+
+  // ── Catalog (always-complete, AI-free metadata index) — promoted to the service so
+  // a native-remote client builds the *server's* catalog in one round-trip, and the
+  // MCP server builds it live (never empty). Summaries are merged on top separately.
+  buildWorkspaceCatalog: typeof catalogApi.buildWorkspaceCatalog;
 
   // ── Smart Index cache (.desk/index/indexes.json) — DERIVED, but routed through
   // the service so the catalog follows the domain (server-side in hosted mode,

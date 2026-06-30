@@ -519,8 +519,8 @@
         "description": "Index-Statistik, Fehler und Build-Steuerung",
         "filesIndexed": "Indexierte Dateien",
         "coverage": "Zusammenfassungen",
-        "coverageAi": "{{ai}} KI-Zusammenfassungen",
-        "coverageMixed": "{{ai}} KI · {{preview}} nur Text",
+        "coveragePartial": "{{summarized}} von {{total}} zusammengefasst",
+        "coverageComplete": "Alle {{count}} zusammengefasst",
         "workspaceFiles_one": "{{count}} Datei",
         "workspaceFiles_other": "{{count}} Dateien",
         "updatedAgo": "aktualisiert {{time}}"
@@ -545,10 +545,10 @@
       },
       "info": {
         "oneCatalog": "Wenn eine Agenten-Datei aktiv ist (Einstellungen → Agenten), wird der Smart Index daneben als Markdown geschrieben, damit externe Agenten (Claude Code, Codex, Gemini CLI) ihn ohne Einrichtung lesen können.",
-        "noProvider": "Kein KI-Anbieter konfiguriert, daher verwenden Zusammenfassungen Klartext-Vorschauen. Füge unter Einstellungen → KI einen Schlüssel hinzu für KI-generierte Zusammenfassungen.",
-        "desktopOnly": "Der Smart Index wird in der Desktop-App erstellt, mit deinem lokal gespeicherten KI-Schlüssel. Im Browser wird er aus dem bestehenden Katalog des Servers bereitgestellt.",
+        "noProvider": "Kein KI-Anbieter konfiguriert. Der Katalog listet weiterhin jede Datei mit vollständigen Metadaten; den Dateien fehlt nur noch die KI-Zusammenfassung. Füge unter Einstellungen → KI einen Schlüssel hinzu und baue neu auf, um sie zusammenzufassen.",
+        "desktopOnly": "KI-Zusammenfassungen werden in der Desktop-App mit deinem lokal gespeicherten Schlüssel erzeugt. Der Katalog selbst ist Agenten jederzeit über MCP verfügbar, auch hier im Browser, mit Metadaten für jede Datei.",
         "incremental": "Der Neuaufbau ist inkrementell: Unveränderte Dateien verwenden ihre Zusammenfassung weiter, nur neue oder geänderte Dateien nutzen die KI.",
-        "offlineChanges": "Dateien, die außerhalb der Desk-App geändert wurden (anderes Gerät, direkte Bearbeitung), werden beim nächsten Neuaufbau übernommen."
+        "offlineChanges": "Dateien, die außerhalb der Desk-App geändert wurden (anderes Gerät, direkte Bearbeitung), erscheinen sofort im Katalog; ihre Zusammenfassungen werden beim nächsten Neuaufbau aktualisiert."
       },
       "config": {
         "title": "Katalog-Einstellungen",
