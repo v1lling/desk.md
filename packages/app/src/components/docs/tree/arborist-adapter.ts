@@ -153,7 +153,8 @@ export function isDraggable(node: ArboristNode): boolean {
  * Whether dropping `dragNodes` into `parentNode` is allowed.
  * - Cannot drop into a doc or asset.
  * - Cannot drop into self / own descendants.
- * - Project stubs are not valid drop targets (they're lazy stubs; we don't support cross-project drag yet).
+ * - Project stubs ARE valid drop targets — dropping a doc onto a project moves it
+ *   into that project's docs root (handleMove resolves the stub's scope/projectId).
  */
 export function canDropInto(
   parentNode: ArboristNode | null,
@@ -161,7 +162,6 @@ export function canDropInto(
 ): boolean {
   if (!parentNode) return true; // root drop allowed
   if (parentNode.kind !== "folder") return false;
-  if (isProjectStub(parentNode)) return false;
   for (const dn of dragNodes) {
     if (dn.id === parentNode.id) return false;
     if (parentNode.treePath.startsWith(`${dn.treePath}/`)) return false;

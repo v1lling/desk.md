@@ -34,6 +34,10 @@ interface MetadataToolbarProps {
   projectId?: string;
   onProjectChange?: (projectId: string) => void;
   projects?: { id: string; name: string }[];
+  /** Render the project as a static, non-editable chip (e.g. docs, whose moves happen in the tree). */
+  projectReadOnly?: boolean;
+  /** Explicit label for the read-only chip (covers workspace-level / unassigned, which aren't in `projects`). */
+  projectLabel?: string;
 
   // Date field (for tasks = due date, for meetings = meeting date)
   date?: string;
@@ -51,6 +55,8 @@ export function MetadataToolbar({
   projectId,
   onProjectChange,
   projects = [],
+  projectReadOnly,
+  projectLabel,
   date,
   onDateChange,
   dateLabel = "Due",
@@ -120,7 +126,20 @@ export function MetadataToolbar({
     );
   }
 
-  if (projectId !== undefined && onProjectChange) {
+  if (projectId !== undefined && projectReadOnly) {
+    // Static location chip — moves happen via the docs tree (drag-drop / context menu).
+    fields.push(
+      <span
+        key="project"
+        className={cn(chipClass, "inline-flex items-center max-w-[180px] cursor-default")}
+      >
+        <FolderKanban className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+        <span className="truncate">
+          {projectLabel ?? selectedProject?.name ?? t("ui.metadataToolbar.noProject")}
+        </span>
+      </span>
+    );
+  } else if (projectId !== undefined && onProjectChange) {
     fields.push(
       <Select key="project" value={projectId} onValueChange={onProjectChange}>
         <SelectTrigger size="xs" className={cn(chipClass, "max-w-[180px]")}>

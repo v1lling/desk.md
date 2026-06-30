@@ -41,9 +41,10 @@ export interface DocsTreeHandlers {
   onCreateDocIn: (treePath: string) => void;
   onCreateFolderIn: (treePath: string) => void;
   onMoveDocToFolder: (doc: Doc, fromTreePath: string, toTreePath: string) => void;
+  /** Build the "Move To" targets (folders + projects) for a doc at the given parent path. */
+  buildDocMoveTargets: (parentTreePath: string) => { label: string; isProject?: boolean; toTreePath: string }[];
   onToggleFolderAI: (treePath: string, isCurrentlyIncluded: boolean) => void;
   folderAIStates: Map<string, boolean>;
-  allFolderTreePaths: string[];
   basePathFor: (treePath: string) => string | undefined;
 }
 
@@ -247,16 +248,10 @@ function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
 
   if (!doc) return null;
 
-  const docFolderPath = doc.path?.includes("/")
-    ? doc.path.substring(0, doc.path.lastIndexOf("/"))
-    : "";
-
   const menuItems: MenuItem[] = buildDocMenuItems({
     filePath: doc.filePath,
-    docId: doc.id,
-    docFolderPath,
-    moveToFolders: handlers.allFolderTreePaths,
-    onMoveToFolder: (toPath) => handlers.onMoveDocToFolder(doc, data.parentTreePath, toPath),
+    moveTargets: handlers.buildDocMoveTargets(data.parentTreePath),
+    onMoveTo: (toTreePath) => handlers.onMoveDocToFolder(doc, data.parentTreePath, toTreePath),
     onDeleteDoc: () => handlers.onDeleteDoc(doc),
     onRenameDoc: () => node.edit(),
   });

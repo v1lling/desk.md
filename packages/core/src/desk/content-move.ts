@@ -1,5 +1,5 @@
 /**
- * Content Move - Move docs between projects and folders
+ * Content Move - Move a doc between any (scope, project, folder, kind) location.
  */
 import type { Doc, DocKind, ContentScope } from "../types";
 import { normalizeDate, generatePreview, filenameToId } from "./parser";
@@ -9,7 +9,6 @@ import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getAIDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
-import { getAllDocsForWorkspace } from "./content-tree";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
@@ -17,102 +16,64 @@ interface DocFrontmatter extends Record<string, unknown> {
 }
 
 /**
- * Move doc to a different project (physically moves the file)
+ * A doc's physical location: which scope/project it belongs to, the folder path
+ * within that scope's docs root, and whether it lives in `docs/` (human) or
+ * `ai-docs/` (ai). A move is fully described by a `from` and a `to` of this shape.
  */
-export async function moveDocToProject(
-  docId: string,
-  workspaceId: string,
-  fromProjectId: string,
-  toProjectId: string
-): Promise<Doc | null> {
-  if (isMockMode()) {
-    const index = mockDocs.findIndex((d) => d.id === docId && d.workspaceId === workspaceId);
-    if (index === -1) return null;
-    mockDocs[index] = { ...mockDocs[index], projectId: toProjectId };
-    return mockDocs[index];
-  }
-
-  if (fromProjectId === toProjectId) {
-    const docs = await getAllDocsForWorkspace(workspaceId);
-    return docs.find((d) => d.id === docId) || null;
-  }
-
-  const fromDocsPath = await getDocsPath("project", workspaceId, fromProjectId);
-  const baseId = docId.split("/").pop()!;
-  const sourceFilePath = await findFileById(fromDocsPath, baseId);
-  if (!sourceFilePath) return null;
-
-  const parsed = await readMarkdownFile<DocFrontmatter>(sourceFilePath);
-  if (!parsed) return null;
-
-  const toDocsPath = await getDocsPath("project", workspaceId, toProjectId);
-  const sourceFilename = sourceFilePath.split("/").pop()!;
-  const targetFilePath = await joinPath(toDocsPath, sourceFilename);
-
-  // moveMarkdownFile handles mkdir, cache invalidation, registry notification
-  await moveMarkdownFile(sourceFilePath, targetFilePath);
-
-  return {
-    // Lands at the target project's docs root, so ID is just the filename.
-    id: filenameToId(sourceFilename),
-    projectId: toProjectId,
-    workspaceId,
-    filePath: targetFilePath,
-    title: parsed.frontmatter.title,
-    created: normalizeDate(parsed.frontmatter.created),
-    content: parsed.content,
-    preview: generatePreview(parsed.content),
-  };
+export interface DocLocation {
+  scope: ContentScope;
+  projectId?: string;
+  /** Folder path relative to the scope's docs root ("" = root). */
+  folderPath: string;
+  kind: DocKind;
 }
 
-function resolveBasePath(
-  kind: DocKind,
-  scope: ContentScope,
-  workspaceId?: string,
-  projectId?: string
-): Promise<string> {
-  return kind === "ai"
-    ? getAIDocsPath(scope, workspaceId, projectId)
-    : getDocsPath(scope, workspaceId, projectId);
+function resolveBasePath(loc: DocLocation, workspaceId?: string): Promise<string> {
+  return loc.kind === "ai"
+    ? getAIDocsPath(loc.scope, workspaceId, loc.projectId)
+    : getDocsPath(loc.scope, workspaceId, loc.projectId);
+}
+
+/** The projectId a doc carries once it lives at `loc` (workspace-level docs use a sentinel). */
+function projectIdFor(loc: DocLocation, homeWorkspaceId: string): string {
+  return loc.projectId ?? (loc.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId);
 }
 
 /**
- * Move a doc to a different folder (within the same scope). `fromKind` and `toKind`
- * may differ — that's a cross-section move (e.g. dragging an AI draft into `docs/`).
+ * Move a doc from one location to another. `from`/`to` may differ in scope,
+ * project, folder, and kind — this single primitive covers folder reorder,
+ * cross-kind (`docs/` ↔ `ai-docs/`), project↔project, and workspace↔project moves.
+ *
+ * Physically moves the file; the returned `Doc` reflects the new id/path/projectId.
  */
 export async function moveDoc(
-  scope: ContentScope,
   docId: string,
-  fromPath: string,
-  toPath: string,
-  workspaceId?: string,
-  projectId?: string,
-  fromKind: DocKind = "human",
-  toKind: DocKind = fromKind
+  workspaceId: string,
+  from: DocLocation,
+  to: DocLocation
 ): Promise<Doc | null> {
   if (isMockMode()) {
     const doc = mockDocs.find((d) => d.id === docId);
     if (doc) {
       // docId is a scope-relative path; the filename is its last segment.
       const baseFilename = `${docId.split("/").pop()!}.md`;
-      doc.path = toPath ? `${toPath}/${baseFilename}` : baseFilename;
+      doc.path = to.folderPath ? `${to.folderPath}/${baseFilename}` : baseFilename;
       doc.id = filenameToId(doc.path);
+      doc.projectId = projectIdFor(to, doc.workspaceId);
       // Reflect cross-kind moves in the mock filePath so subsequent path-based
       // kind derivation picks up the new directory.
-      if (fromKind !== toKind) {
-        const oldSeg = fromKind === "ai" ? "/ai-docs/" : "/docs/";
-        const newSeg = toKind === "ai" ? "/ai-docs/" : "/docs/";
+      if (from.kind !== to.kind) {
+        const oldSeg = from.kind === "ai" ? "/ai-docs/" : "/docs/";
+        const newSeg = to.kind === "ai" ? "/ai-docs/" : "/docs/";
         doc.filePath = doc.filePath.replace(oldSeg, newSeg);
       }
     }
     return doc || null;
   }
 
-  const fromBasePath = await resolveBasePath(fromKind, scope, workspaceId, projectId);
-  const toBasePath = await resolveBasePath(toKind, scope, workspaceId, projectId);
-  const fromDir = fromPath
-    ? await joinPath(fromBasePath, fromPath)
-    : fromBasePath;
+  const fromBasePath = await resolveBasePath(from, workspaceId);
+  const toBasePath = await resolveBasePath(to, workspaceId);
+  const fromDir = from.folderPath ? await joinPath(fromBasePath, from.folderPath) : fromBasePath;
 
   // docId is the scope-relative path; findFileById scans a single dir by
   // basename, so strip the folder portion before matching.
@@ -124,22 +85,23 @@ export async function moveDoc(
   if (!parsed) return null;
 
   const sourceFilename = sourceFilePath.split("/").pop()!;
-  const toDir = toPath ? await joinPath(toBasePath, toPath) : toBasePath;
+  const toDir = to.folderPath ? await joinPath(toBasePath, to.folderPath) : toBasePath;
   const targetFilePath = await joinPath(toDir, sourceFilename);
 
-  // moveMarkdownFile handles mkdir, cache invalidation, registry notification
-  await moveMarkdownFile(sourceFilePath, targetFilePath);
-
-  const newRelPath = toPath
-    ? `${toPath}/${sourceFilename}`
-    : sourceFilename;
-
   const homeWorkspaceId = await getHomeWorkspaceId();
+  const newRelPath = to.folderPath ? `${to.folderPath}/${sourceFilename}` : sourceFilename;
+
+  // Same source and destination — nothing to move; return the doc as-is.
+  if (targetFilePath !== sourceFilePath) {
+    // moveMarkdownFile handles mkdir, cache invalidation, registry notification
+    await moveMarkdownFile(sourceFilePath, targetFilePath);
+  }
+
   return {
     // ID follows the doc's new location.
     id: filenameToId(newRelPath),
     path: newRelPath,
-    projectId: projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
+    projectId: projectIdFor(to, homeWorkspaceId),
     workspaceId: workspaceId || homeWorkspaceId,
     filePath: targetFilePath,
     title: parsed.frontmatter.title,

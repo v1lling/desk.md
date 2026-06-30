@@ -1006,7 +1006,8 @@
     },
     "docContextMenu": {
       "moveTo": "Verschieben nach...",
-      "moveToRoot": "Stammverzeichnis"
+      "moveToRoot": "Stammverzeichnis",
+      "workspaceLevel": "Workspace-Dokumente"
     },
     "folderContextMenu": {
       "newDoc": "Neues Dokument",
@@ -1069,6 +1070,7 @@
     "metadataToolbar": {
       "none": "Keine",
       "noProject": "Kein Projekt",
+      "workspaceLevel": "Workspace",
       "addDueDate": "Fälligkeit hinzufügen",
       "addDate": "Datum hinzufügen"
     },

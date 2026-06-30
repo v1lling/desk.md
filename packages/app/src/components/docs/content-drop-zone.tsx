@@ -146,22 +146,29 @@ export function ContentDropZone({
   // DOM drag-drop — used in browser dev mode (npm run dev). In Tauri, OS file
   // drops never reach the DOM because the Cocoa overlay claims them first, so
   // these handlers are inert in Tauri mode but harmless to leave attached.
+  //
+  // CRITICAL: only claim (preventDefault + stopPropagation) drags that carry
+  // external files. The docs tree (react-arborist) lives inside this wrapper and
+  // its internal drag uses react-dnd's HTML5 backend, which processes events at
+  // the window level. Calling stopPropagation on a non-file drag would stop the
+  // event before it bubbles to that backend, breaking all internal doc DnD.
+  const isFileDrag = (e: DragEvent) => e.dataTransfer.types.includes("Files");
+
   const handleDragEnter = useCallback(
     (e: DragEvent) => {
+      if (isTauri() || !isFileDrag(e)) return;
       e.preventDefault();
       e.stopPropagation();
-      if (disabled || isTauri()) return;
-      if (e.dataTransfer.types.includes("Files")) {
-        setIsDragging(true);
-      }
+      if (disabled) return;
+      setIsDragging(true);
     },
     [disabled]
   );
 
   const handleDragLeave = useCallback((e: DragEvent) => {
+    if (isTauri() || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
-    if (isTauri()) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
@@ -178,9 +185,10 @@ export function ContentDropZone({
 
   const handleDragOver = useCallback(
     (e: DragEvent) => {
+      if (isTauri() || !isFileDrag(e)) return;
       e.preventDefault();
       e.stopPropagation();
-      if (disabled || isTauri()) return;
+      if (disabled) return;
       e.dataTransfer.dropEffect = "copy";
     },
     [disabled]
@@ -188,9 +196,9 @@ export function ContentDropZone({
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
+      if (isTauri() || !isFileDrag(e)) return;
       e.preventDefault();
       e.stopPropagation();
-      if (isTauri()) return;
       setIsDragging(false);
       if (disabled) return;
       const files = Array.from(e.dataTransfer.files);

@@ -20,6 +20,7 @@ import {
   FolderPlus,
   FolderInput,
   Folder,
+  FolderKanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileCategory } from "@desk/core";
@@ -325,10 +326,8 @@ export function buildAssetMenuItems(opts: {
 /** Build doc menu items */
 export function buildDocMenuItems(opts: {
   filePath: string;
-  docId: string;
-  docFolderPath: string;
-  moveToFolders: string[];
-  onMoveToFolder?: (toPath: string) => void;
+  moveTargets: { label: string; isProject?: boolean; toTreePath: string }[];
+  onMoveTo?: (toTreePath: string) => void;
   onDeleteDoc?: () => void;
   onRenameDoc?: () => void;
 }): MenuItem[] {
@@ -342,22 +341,14 @@ export function buildDocMenuItems(opts: {
     });
   }
 
-  if (opts.onMoveToFolder && opts.moveToFolders.length > 0) {
-    const submenuItems: { icon: ReactNode; label: string; onClick: () => void }[] = [];
-    if (opts.docFolderPath) {
-      submenuItems.push({
-        icon: <Folder className="size-4 mr-2" />,
-        label: i18next.t("menus.docContextMenu.moveToRoot"),
-        onClick: () => opts.onMoveToFolder!(""),
-      });
-    }
-    for (const folderPath of opts.moveToFolders) {
-      submenuItems.push({
-        icon: <Folder className="size-4 mr-2" />,
-        label: folderPath,
-        onClick: () => opts.onMoveToFolder!(folderPath),
-      });
-    }
+  if (opts.onMoveTo && opts.moveTargets.length > 0) {
+    const submenuItems = opts.moveTargets.map((target) => ({
+      icon: target.isProject
+        ? <FolderKanban className="size-4 mr-2" />
+        : <Folder className="size-4 mr-2" />,
+      label: target.label,
+      onClick: () => opts.onMoveTo!(target.toTreePath),
+    }));
     items.push({
       icon: <FolderInput className="size-4 mr-2" />,
       label: i18next.t("menus.docContextMenu.moveTo"),

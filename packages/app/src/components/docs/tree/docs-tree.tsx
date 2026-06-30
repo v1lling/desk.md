@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useQueries } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import type { Asset, Doc, FileTreeNode } from "@desk/core/types";
+import type { DocLocation } from "@desk/core";
 import {
   contentKeys,
   useMergedWorkspaceOverviewShell,
@@ -41,7 +42,6 @@ import {
   isAllowedNewFolderName,
   isDraggable,
   isAIDocsRoot,
-  isProjectStub,
   nodesToArborist,
   type ArboristNode,
 } from "./arborist-adapter";
@@ -211,6 +211,47 @@ export function DocsTree({
     workspaceId,
     "workspace",
     undefined,
+  );
+
+  // Projects in this workspace (from the overview's project stubs) — targets for
+  // the doc "Move To" context submenu.
+  const projects = useMemo(() => {
+    const out: { id: string; name: string }[] = [];
+    for (const n of overviewTree) {
+      if (n.type === "folder" && n.folder.isProject && n.folder.projectId) {
+        out.push({ id: n.folder.projectId, name: n.folder.name });
+      }
+    }
+    return out;
+  }, [overviewTree]);
+
+  // Build the "Move To" targets for a doc: workspace docs root, workspace folders,
+  // and each project — excluding the doc's current container. Folder/project moves
+  // all funnel through the one `moveDoc` primitive via onMoveDocToFolder.
+  const buildDocMoveTargets = useCallback(
+    (parentTreePath: string): { label: string; isProject?: boolean; toTreePath: string }[] => {
+      const locKey = (treePath: string) => {
+        const r = resolveTreePath(treePath);
+        const { kind, subPath } = splitTreePathToKind(r.scopeTreePath);
+        return `${r.scope}|${r.projectId ?? ""}|${kind}|${subPath}`;
+      };
+      const fromKey = locKey(parentTreePath);
+      const targets: { label: string; isProject?: boolean; toTreePath: string }[] = [];
+      // Workspace docs root + workspace (human) folders
+      const wsPaths = ["", ...workspaceFolderPaths.filter((p) => !isAITreePath(p))];
+      for (const tp of wsPaths) {
+        if (locKey(tp) === fromKey) continue;
+        targets.push({ label: tp === "" ? t("menus.docContextMenu.workspaceLevel") : tp, toTreePath: tp });
+      }
+      // Each project's docs root
+      for (const p of projects) {
+        const tp = `${PROJECT_TREE_PATH_PREFIX}${p.id}`;
+        if (locKey(tp) === fromKey) continue;
+        targets.push({ label: p.name, isProject: true, toTreePath: tp });
+      }
+      return targets;
+    },
+    [workspaceFolderPaths, projects, t],
   );
 
   // Provide a unified handler that routes AI toggling to the right scope (workspace only for now)
@@ -400,11 +441,10 @@ export function DocsTree({
       parentNode: NodeApi<ArboristNode> | null;
       index: number;
     }) => {
-      // Target parent treePath ("" = root of merged tree, which is the workspace root)
+      // Target parent treePath ("" = root of merged tree, which is the workspace root).
+      // Dropping onto a project stub resolves to that project's docs root — a valid
+      // doc target (the folder branch below still blocks cross-scope folder moves).
       const toTreePath = parentNode?.data.treePath ?? "";
-
-      // Reject drops onto project stubs themselves (covered by canDropInto but defensive)
-      if (parentNode && isProjectStub(parentNode.data)) return;
 
       const targetResolved = resolveTreePath(toTreePath);
       const { kind: toKind, subPath: toSubPath } = splitTreePathToKind(targetResolved.scopeTreePath);
@@ -412,31 +452,24 @@ export function DocsTree({
       for (const dragNode of dragNodes) {
         const d = dragNode.data;
         const fromResolved = resolveTreePath(d.parentTreePath);
-
-        // Only allow moves that stay within the same scope (workspace ↔ workspace, project X ↔ project X).
-        // Cross-scope drag is intentionally not supported in this iteration.
-        if (
-          fromResolved.scope !== targetResolved.scope
-          || fromResolved.projectId !== targetResolved.projectId
-        ) {
-          toast.error(t("errors.doc.crossScopeMove"));
-          continue;
-        }
-
         const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);
 
         if (d.kind === "doc" && d.node.type === "doc") {
+          // Docs move freely across scope / project / folder / kind.
+          const from: DocLocation = {
+            scope: fromResolved.scope,
+            projectId: fromResolved.projectId,
+            folderPath: fromSubPath,
+            kind: fromKind,
+          };
+          const to: DocLocation = {
+            scope: targetResolved.scope,
+            projectId: targetResolved.projectId,
+            folderPath: toSubPath,
+            kind: toKind,
+          };
           try {
-            await moveDoc.mutateAsync({
-              scope: targetResolved.scope,
-              docId: d.node.doc.id,
-              fromPath: fromSubPath,
-              toPath: toSubPath,
-              workspaceId,
-              projectId: targetResolved.projectId,
-              fromKind,
-              toKind,
-            });
+            await moveDoc.mutateAsync({ docId: d.node.doc.id, workspaceId, from, to });
           } catch (err) {
             console.error("Failed to move doc:", err);
             toast.error(t("errors.doc.moveFailed"));
@@ -447,6 +480,15 @@ export function DocsTree({
         if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue; // can't move a project stub
           if (isAIDocsRoot(d)) continue; // can't move the synthetic AI Docs folder
+          // Folder subtree moves stay within one scope/project (cross-scope folder
+          // reparenting is a separate, larger feature).
+          if (
+            fromResolved.scope !== targetResolved.scope
+            || fromResolved.projectId !== targetResolved.projectId
+          ) {
+            toast.error(t("errors.doc.crossScopeMove"));
+            continue;
+          }
           if (fromKind !== toKind) {
             // Cross-kind folder move: useMoveFolder takes a single kind. The lib needs to handle
             // a full directory move from docs/<src> to ai-docs/<dst> (or vice-versa) — currently it
@@ -557,29 +599,18 @@ export function DocsTree({
       onMoveDocToFolder: (doc, fromTreePath, toTreePath) => {
         const fromResolved = resolveTreePath(fromTreePath);
         const toResolved = resolveTreePath(toTreePath);
-        if (
-          fromResolved.scope !== toResolved.scope
-          || fromResolved.projectId !== toResolved.projectId
-        ) {
-          toast.error(t("errors.doc.crossScopeMove"));
-          return;
-        }
         const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);
         const { kind: toKind, subPath: toSubPath } = splitTreePathToKind(toResolved.scopeTreePath);
         moveDoc.mutate({
-          scope: toResolved.scope,
           docId: doc.id,
-          fromPath: fromSubPath,
-          toPath: toSubPath,
           workspaceId,
-          projectId: toResolved.projectId,
-          fromKind,
-          toKind,
+          from: { scope: fromResolved.scope, projectId: fromResolved.projectId, folderPath: fromSubPath, kind: fromKind },
+          to: { scope: toResolved.scope, projectId: toResolved.projectId, folderPath: toSubPath, kind: toKind },
         });
       },
+      buildDocMoveTargets,
       onToggleFolderAI: handleToggleFolderAI,
       folderAIStates: workspaceAIStates,
-      allFolderTreePaths: folderTreePaths,
       basePathFor,
     }),
     [
@@ -595,10 +626,9 @@ export function DocsTree({
       onCreateFolderIn,
       handleToggleFolderAI,
       workspaceAIStates,
-      folderTreePaths,
+      buildDocMoveTargets,
       basePathFor,
       workspaceId,
-      t,
     ],
   );
 

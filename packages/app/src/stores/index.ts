@@ -50,7 +50,6 @@ export {
   useUpdateDoc,
   useDeleteDoc,
   useDeleteAsset,
-  useMoveDocToProject,
   useAllWorkspaceDocs,
   contentKeys,
   useContentTree,

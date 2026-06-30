@@ -93,7 +93,6 @@ export const localDeskService: DeskService = {
   // Content import / move
   createDocInFolder: contentApi.createDocInFolder,
   importFiles: contentApi.importFiles,
-  moveDocToProject: contentApi.moveDocToProject,
   moveDoc: contentApi.moveDoc,
 
   // Dashboard / planner aggregators

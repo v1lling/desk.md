@@ -102,7 +102,6 @@ export interface DeskService {
   // ── Content import / move ───────────────────────────────────────────
   createDocInFolder: typeof contentApi.createDocInFolder;
   importFiles: typeof contentApi.importFiles;
-  moveDocToProject: typeof contentApi.moveDocToProject;
   moveDoc: typeof contentApi.moveDoc;
 
   // ── Dashboard / planner aggregators (cross-workspace reads) ─────────

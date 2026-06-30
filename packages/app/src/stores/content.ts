@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Doc, DocKind, ContentScope, Asset } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
-import type { ConvertibleAction } from "@desk/core";
+import type { ConvertibleAction, DocLocation } from "@desk/core";
 
 // Query keys for content (docs, assets, folders)
 export const contentKeys = {
@@ -193,37 +193,6 @@ export function useDeleteAsset() {
           queryKey: contentKeys.mergedTree("project", asset.workspaceId, asset.projectId),
         });
       }
-    },
-  });
-}
-
-/**
- * Hook to move a doc to a different project
- */
-export function useMoveDocToProject() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      docId,
-      workspaceId,
-      fromProjectId,
-      toProjectId,
-    }: {
-      docId: string;
-      workspaceId: string;
-      fromProjectId: string;
-      toProjectId: string;
-    }) => getDeskService().moveDocToProject(docId, workspaceId, fromProjectId, toProjectId),
-    onSuccess: (_result, variables) => {
-      // Invalidate workspace docs to refresh lists
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.byWorkspace(variables.workspaceId),
-      });
-      // Invalidate the detail query so the doc object refreshes with new filePath/projectId
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.detail(variables.workspaceId, variables.docId),
-      });
     },
   });
 }
@@ -460,68 +429,37 @@ export function useMoveFolder() {
 }
 
 /**
- * Hook to move a doc between folders (within same scope)
+ * Hook to move a doc between any (scope, project, folder, kind) location.
+ * `from`/`to` may differ in scope/projectId/folderPath/kind — see core `moveDoc`.
  */
 export function useMoveDoc() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
-      scope,
       docId,
-      fromPath,
-      toPath,
       workspaceId,
-      projectId,
-      fromKind = "human",
-      toKind,
+      from,
+      to,
     }: {
-      scope: ContentScope;
       docId: string;
-      fromPath: string;
-      toPath: string;
-      workspaceId?: string;
-      projectId?: string;
-      fromKind?: DocKind;
-      toKind?: DocKind;
-    }) =>
-      getDeskService().moveDoc(
-        scope,
-        docId,
-        fromPath,
-        toPath,
-        workspaceId,
-        projectId,
-        fromKind,
-        toKind ?? fromKind
-      ),
+      workspaceId: string;
+      from: DocLocation;
+      to: DocLocation;
+    }) => getDeskService().moveDoc(docId, workspaceId, from, to),
     onSuccess: (_result, variables) => {
-      const fromKind = variables.fromKind ?? "human";
-      const toKind = variables.toKind ?? fromKind;
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.tree(
-          variables.scope,
-          variables.workspaceId,
-          variables.projectId,
-          fromKind
-        ),
-      });
-      if (toKind !== fromKind) {
+      const { workspaceId, from, to } = variables;
+      // Invalidate both the source and destination trees — they may differ in
+      // scope / projectId / kind, and the merged overview spans both.
+      for (const loc of [from, to]) {
         queryClient.invalidateQueries({
-          queryKey: contentKeys.tree(
-            variables.scope,
-            variables.workspaceId,
-            variables.projectId,
-            toKind
-          ),
+          queryKey: contentKeys.tree(loc.scope, workspaceId, loc.projectId, loc.kind),
+        });
+        queryClient.invalidateQueries({
+          queryKey: contentKeys.mergedTree(loc.scope, workspaceId, loc.projectId),
         });
       }
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
-      if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
-      }
+      queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(workspaceId) });
     },
   });
 }

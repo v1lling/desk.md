@@ -29,14 +29,23 @@ interface TreeItemMenusProps {
   children: ReactNode;
 }
 
+/** True when `items` has at least one clickable action (separators don't count). */
+function hasActionableItems(items: MenuItem[]): boolean {
+  return items.some((item) => item !== "separator");
+}
+
 /**
  * Wraps a tree item with a right-click ContextMenu. The hover "..." dropdown is
  * a separate component (TreeItemDropdown) rendered inside the row.
+ *
+ * With no actionable items (e.g. a project stub), skip the menu entirely so
+ * right-clicking doesn't pop an empty box.
  */
 export function TreeItemMenus({
   items,
   children,
 }: TreeItemMenusProps) {
+  if (!hasActionableItems(items)) return <>{children}</>;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -61,6 +70,8 @@ export function TreeItemDropdown({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
+  // No actionable items → no "..." button (e.g. a project stub).
+  if (!hasActionableItems(items)) return null;
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>

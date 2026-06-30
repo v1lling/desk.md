@@ -1,9 +1,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useDoc, useUpdateDoc, useDeleteDoc, useMoveDocToProject, useProjects } from "@/stores";
+import { useDoc, useUpdateDoc, useDeleteDoc, useProjects } from "@/stores";
+import { WORKSPACE_LEVEL_PROJECT_ID, SPECIAL_DIRS } from "@desk/core";
 import { indexDocumentOnSave } from "@/lib/context-index/indexer";
-import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
+import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
 import { EditorPathBar } from "./editor-path-bar";
@@ -33,7 +34,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   // Mutations
   const updateDoc = useUpdateDoc();
   const deleteDoc = useDeleteDoc();
-  const moveDocToProject = useMoveDocToProject();
 
   // Local state
   const [title, setTitle] = useState("");
@@ -100,7 +100,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     newPath,
     fileDeleted,
     acknowledgePathChange,
-    acceptPathChange,
     acknowledgeDeleted,
     save,
     recover,
@@ -120,15 +119,15 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
   useEditorSaveShortcut(save);
   useEditorSaveAndClose(tabId, save);
 
-  // Project move
-  const { currentProjectId, handleProjectChange } = useEditorProjectMove({
-    entity: doc,
-    save,
-    acceptPathChange,
-    move: moveDocToProject.mutateAsync,
-    entityLabel: "doc",
-    buildMoveArgs: (id, ws, from, to) => ({ docId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
-  });
+  // A doc's location (project / workspace-level / unassigned) is shown read-only in the
+  // metadata row; moving a doc happens in the docs tree (drag-drop or the "Move To" menu),
+  // which is folder-aware in a way a flat dropdown can't be.
+  const projectLabel = useMemo(() => {
+    if (!doc) return undefined;
+    if (doc.projectId === WORKSPACE_LEVEL_PROJECT_ID) return t("ui.metadataToolbar.workspaceLevel");
+    if (doc.projectId === SPECIAL_DIRS.UNASSIGNED) return t("ui.metadataToolbar.noProject");
+    return projects.find((p) => p.id === doc.projectId)?.name ?? t("ui.metadataToolbar.noProject");
+  }, [doc, projects, t]);
 
   // Defer editor rendering
   useEffect(() => {
@@ -220,8 +219,9 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
       <div className="shrink-0">
         <div className="max-w-4xl mx-auto px-6">
           <MetadataToolbar
-            projectId={currentProjectId}
-            onProjectChange={handleProjectChange}
+            projectId={doc.projectId}
+            projectReadOnly
+            projectLabel={projectLabel}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
           <div className="h-px bg-border/40 mt-4" />
