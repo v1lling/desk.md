@@ -1,0 +1,13 @@
+# Keep the build context small and force a clean in-image install/build.
+.git
+node_modules
+**/node_modules
+packages/*/dist
+packages/app/dist
+packages/app/src-tauri/target
+packages/app/src-tauri/gen
+**/*.log
+deploy/data
+data
+scratchpad
+.DS_Store

@@ -126,7 +126,35 @@ drafting emails. Uses your own Anthropic or OpenAI API key
 external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
 auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
 `WORKSPACE_CONTEXT.md` that indexes and summarizes your files, so they
-understand your workspaces with zero setup. No MCP server, no plugins.
+understand your workspaces with zero setup — locally, just files, no server or
+plugins. Self-hosted (below), the server also exposes an **MCP** endpoint that
+Claude.ai and ChatGPT can connect to over the network.
+
+## Running it: local or self-hosted
+
+desk.md runs the same app two ways. Installed locally, it's an offline desktop
+app that reads and writes Markdown straight from your disk. Self-hosted, the same
+app runs on a server you control, so you can reach your desk from a browser or
+phone and let AI tools connect over the network. Either way your data stays plain
+Markdown you own; the difference is where it lives and who can reach it.
+
+| | **Local** (desktop app) | **Self-hosted** (your server) |
+|---|---|---|
+| Install | Native app on Mac, Windows, Linux | `docker compose` on a box you control |
+| Reach it from | The machine it runs on | Any browser, installable as a PWA on phone and tablet |
+| Devices | One | Many, all sharing one copy |
+| Where data lives | Your local disk | The server's disk |
+| On-disk format | Plain Markdown you own | Plain Markdown you own |
+| Multi-device sync | Your own tool (iCloud, Dropbox, git, Syncthing) | Built in, the server holds the shared copy |
+| Login | None, fully offline | Account and session (first user wins), needs the network |
+| In-app AI assistant | Yes, with your own API key | Yes, with a key on the server |
+| External AI agents | Point Claude Code, Codex, or Gemini at the folder (file-based) | Same, plus a hosted MCP endpoint browser and phone AI can connect to |
+
+> The native desktop app can also point at a self-hosted server instead of local
+> disk, giving you the desktop UI on top of server-side data.
+
+Self-hosting is one container (`docker compose up`) that serves the web/PWA app, the
+API, the OAuth server, and the MCP endpoint. See [deploy/README.md](./deploy/README.md).
 
 ## Roadmap
 
@@ -141,7 +169,10 @@ Ideas I'm exploring:
 
 ## Run from source
 
-desk.md is a Tauri desktop app. To run it from source:
+desk.md is a Tauri desktop app, organized as an npm-workspaces monorepo under
+`packages/` (`@desk/core` domain layer, `@desk/app` Tauri+React UI, `@desk/server`
+the Node/Hono self-host server — domain API, web/PWA, OAuth, and MCP). All commands
+run from the repo root:
 
 ```bash
 npm install

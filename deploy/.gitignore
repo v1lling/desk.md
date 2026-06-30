@@ -1,0 +1,12 @@
+# Local secrets and data — never commit these.
+.env
+data/
+.test-data/
+
+# But DO ship the env contract. The root .gitignore's `.env*` rule would otherwise
+# swallow it, so re-include it here (deeper .gitignore wins).
+!.env.example
+
+# Host-specific deploy scripts/configs (e.g. a personal NAS). Reuse the root Dockerfile
+# and this folder's generic compose; keep machine-specific bits out of the public repo.
+local/

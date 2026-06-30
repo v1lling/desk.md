@@ -1,0 +1,72 @@
+
+import { Calendar, ChevronRight } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import type { Meeting } from "@desk/core/types";
+
+interface MeetingCardProps {
+  meeting: Meeting;
+  onClick?: () => void;
+  isLatest?: boolean;
+}
+
+function formatMeetingDate(dateStr: string): string {
+  try {
+    const date = parseISO(dateStr);
+    return format(date, "EEE, MMM d");
+  } catch {
+    return dateStr;
+  }
+}
+
+export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
+  const { t } = useTranslation();
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3 group",
+        "hover:bg-accent/50"
+      )}
+    >
+      <div
+        className={cn(
+          "p-1.5 rounded-md shrink-0",
+          isLatest ? "bg-primary/15" : "bg-muted"
+        )}
+      >
+        <Calendar
+          className={cn(
+            "h-3.5 w-3.5",
+            isLatest ? "text-primary" : "text-muted-foreground"
+          )}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium truncate">
+            {meeting.title}
+          </span>
+          {isLatest && (
+            <span className="text-[10px] font-medium text-brand-accent bg-brand-accent/10 px-1.5 py-0.5 rounded shrink-0">
+              {t("pages.meetings.latestBadge")}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{formatMeetingDate(meeting.date)}</span>
+          {meeting.preview && (
+            <>
+              <span>·</span>
+              <span className="truncate">{meeting.preview}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0" />
+    </button>
+  );
+}

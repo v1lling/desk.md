@@ -3,12 +3,12 @@ name: CI (Rust)
 on:
   pull_request:
     paths:
-      - "src-tauri/**"
+      - "packages/app/src-tauri/**"
       - ".github/workflows/ci-rust.yml"
   push:
     branches: [main]
     paths:
-      - "src-tauri/**"
+      - "packages/app/src-tauri/**"
       - ".github/workflows/ci-rust.yml"
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: packages/app/src-tauri
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -39,8 +39,8 @@ jobs:
 
       - name: Placeholder frontend dist
         shell: bash
-        run: mkdir -p dist && echo '<!doctype html><title>ci</title>' > dist/index.html
+        run: mkdir -p packages/app/dist && echo '<!doctype html><title>ci</title>' > packages/app/dist/index.html
 
       - name: Cargo check
-        working-directory: src-tauri
+        working-directory: packages/app/src-tauri
         run: cargo check

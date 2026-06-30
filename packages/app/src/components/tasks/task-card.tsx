@@ -1,0 +1,145 @@
+
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
+import { Card, CardContent } from "@/components/ui/card";
+import { PriorityIcon } from "@/components/ui/priority-icon";
+import { formatDate } from "@/lib/format";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from "@/components/ui/context-menu";
+import { Calendar, Circle, GripVertical, FolderKanban, Star } from "lucide-react";
+import type { Task } from "@desk/core/types";
+import { cn } from "@/lib/utils";
+
+interface TaskCardProps {
+  task: Task;
+  onClick?: () => void;
+  showProject?: boolean;
+  projectName?: string | null;
+  /** Whether this task is highlighted for focus */
+  isHighlighted?: boolean;
+  /** Callback to toggle highlight status */
+  onToggleHighlight?: () => void;
+  /** Workspace color for highlight background */
+  workspaceColor?: string;
+  /** Workspace name for cross-workspace views */
+  workspaceName?: string;
+}
+
+export function TaskCard({
+  task,
+  onClick,
+  showProject,
+  projectName,
+  isHighlighted,
+  onToggleHighlight,
+  workspaceColor,
+  workspaceName,
+}: TaskCardProps) {
+  const { t } = useTranslation();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // Apply highlight styling with workspace color
+    ...(isHighlighted && workspaceColor
+      ? {
+          backgroundColor: `color-mix(in srgb, ${workspaceColor} 8%, var(--color-card))`,
+          borderColor: `color-mix(in srgb, ${workspaceColor} 40%, transparent)`,
+          boxShadow: `0 0 0 1px color-mix(in srgb, ${workspaceColor} 15%, transparent)`,
+        } as React.CSSProperties
+      : {}),
+  };
+
+  const card = (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "cursor-grab group touch-none border-border/50 bg-card overflow-hidden",
+        "shadow-sm hover:shadow-md hover:border-border",
+        "transition-all duration-150",
+        isDragging && "opacity-60 shadow-lg cursor-grabbing scale-[1.02] rotate-1"
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <CardContent className="p-0" onClick={onClick}>
+        <div className="flex items-start gap-2 p-3.5">
+          <div className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+          <div className="flex-1 min-w-0 cursor-pointer">
+            {workspaceName && (
+              <div className="flex items-center gap-1 mb-1">
+                <Circle
+                  className="h-2 w-2 shrink-0"
+                  style={{
+                    color: workspaceColor || "#64748b",
+                    fill: workspaceColor || "#64748b",
+                  }}
+                />
+                <span className="text-[11px] text-muted-foreground truncate">
+                  {workspaceName}
+                </span>
+              </div>
+            )}
+            {showProject && projectName && (
+              <div className="flex items-center gap-1 mb-1.5">
+                <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground truncate">
+                  {projectName}
+                </span>
+              </div>
+            )}
+            <h4 className="font-medium text-sm leading-snug mb-2 line-clamp-2 text-foreground/90">
+              {task.title}
+            </h4>
+            <div className="flex items-center gap-2 flex-wrap">
+              {task.priority && <PriorityIcon priority={task.priority} />}
+              {task.due && (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  {formatDate(task.due)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Wrap with context menu if highlight toggle is available
+  if (onToggleHighlight) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={onToggleHighlight}>
+            <Star
+              className={cn("h-4 w-4", isHighlighted && "fill-current")}
+            />
+            {isHighlighted
+              ? t("menus.taskContextMenu.removeHighlight")
+              : t("menus.taskContextMenu.highlightForFocus")}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  return card;
+}
