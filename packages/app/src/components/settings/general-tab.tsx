@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -12,26 +11,12 @@ import {
 import { Palette, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { isTauri } from "@desk/core";
 import {
   usePreferencesStore,
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_DEFAULT_WIDTH,
   type Language,
 } from "@/stores/preferences";
-
-// Hosted mode only: the account/sign-out section (and better-auth) is lazy-loaded
-// behind the build flag, so the desktop bundle never includes it.
-const HostedAccountSection = import.meta.env.VITE_DESK_HOSTED
-  ? lazy(() => import("./hosted-account-section"))
-  : null;
-
-// Native hosted mode: the local/remote backend toggle. Bundled in every non-hosted
-// build (constant `!VITE_DESK_HOSTED`, so the lean web build tree-shakes it out) and
-// shown only inside a Tauri webview (isTauri(), checked at render).
-const ConnectionSection = !import.meta.env.VITE_DESK_HOSTED
-  ? lazy(() => import("./connection-section"))
-  : null;
 
 export function GeneralTab() {
   const { t } = useTranslation();
@@ -153,18 +138,6 @@ export function GeneralTab() {
           </div>
         </div>
       </SettingsSection>
-
-      {ConnectionSection && isTauri() && (
-        <Suspense fallback={null}>
-          <ConnectionSection />
-        </Suspense>
-      )}
-
-      {HostedAccountSection && (
-        <Suspense fallback={null}>
-          <HostedAccountSection />
-        </Suspense>
-      )}
     </div>
   );
 }

@@ -1,11 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { WorkspaceIndex, IndexEntry } from "@/lib/context-index/types";
+import type { WorkspaceIndex, IndexEntry, BuildIndexResult } from "@/lib/context-index/types";
 import { createRemoteIndexStorage } from "./remote-setting-storage";
+
+/** Last full-rebuild result, persisted so the status panel survives navigation. */
+export type LastBuildResult = BuildIndexResult & { at: string };
 
 interface ContextIndexState {
   indexes: Record<string, WorkspaceIndex>;
   isBuilding: boolean;
+  lastResult: LastBuildResult | null;
 
   setIndex: (workspaceId: string, index: WorkspaceIndex) => void;
   removeIndex: (workspaceId: string) => void;
@@ -13,6 +17,7 @@ interface ContextIndexState {
   updateEntry: (workspaceId: string, entry: IndexEntry) => void;
   removeEntry: (workspaceId: string, filePath: string) => void;
   setIsBuilding: (building: boolean) => void;
+  setLastResult: (result: LastBuildResult | null) => void;
 }
 
 export const useContextIndexStore = create<ContextIndexState>()(
@@ -20,6 +25,7 @@ export const useContextIndexStore = create<ContextIndexState>()(
     (set, get) => ({
       indexes: {},
       isBuilding: false,
+      lastResult: null,
 
       setIndex: (workspaceId, index) =>
         set((state) => ({
@@ -55,6 +61,8 @@ export const useContextIndexStore = create<ContextIndexState>()(
                 ...index,
                 entries: newEntries,
                 fileCount: newEntries.length,
+                // Bump so the UI reflects background auto-summary updates, not just rebuilds.
+                updatedAt: new Date().toISOString(),
               },
             },
           };
@@ -73,12 +81,14 @@ export const useContextIndexStore = create<ContextIndexState>()(
                 ...index,
                 entries: newEntries,
                 fileCount: newEntries.length,
+                updatedAt: new Date().toISOString(),
               },
             },
           };
         }),
 
       setIsBuilding: (building) => set({ isBuilding: building }),
+      setLastResult: (result) => set({ lastResult: result }),
     }),
     {
       name: "desk-context-index",

@@ -141,7 +141,14 @@ export async function buildWorkspaceIndex(
   // isTauri(). Hosted web (no Keychain) has no key client-side, so it returns empty.
   if (!isTauri()) {
     return {
-      index: { workspaceId, workspaceName, entries: [], builtAt: new Date().toISOString(), fileCount: 0 },
+      index: {
+        workspaceId,
+        workspaceName,
+        entries: [],
+        builtAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fileCount: 0,
+      },
       result,
     };
   }
@@ -330,6 +337,7 @@ export async function buildWorkspaceIndex(
     workspaceName,
     entries: allEntries,
     builtAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     fileCount: allEntries.length,
   };
 

@@ -37,8 +37,8 @@ export default function ConnectionSection() {
     if (!normalized) {
       setError(
         /^http:\/\//i.test(urlInput.trim())
-          ? t("settings.general.connection.httpsRequired")
-          : t("settings.general.connection.invalidUrl")
+          ? t("settings.data.connection.httpsRequired")
+          : t("settings.data.connection.invalidUrl")
       );
       return;
     }
@@ -70,13 +70,13 @@ export default function ConnectionSection() {
     return (
       <SettingsSection
         icon={<Server className="h-4 w-4" />}
-        title={t("settings.general.connection.title")}
-        description={t("settings.general.connection.description")}
+        title={t("settings.data.connection.title")}
+        description={t("settings.data.connection.description")}
       >
         <div className="divide-y divide-border/40">
           <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5 min-w-0">
-              <Label>{t("settings.general.connection.remoteLabel")}</Label>
+              <Label>{t("settings.data.connection.remoteLabel")}</Label>
               <p className="text-sm text-muted-foreground truncate">{serverUrl}</p>
             </div>
             <Button variant="outline" onClick={handleSignOut} disabled={busy}>
@@ -86,14 +86,14 @@ export default function ConnectionSection() {
           </div>
           <div className="flex items-center justify-between py-3">
             <div className="space-y-0.5">
-              <Label>{t("settings.general.connection.switchToLocalLabel")}</Label>
+              <Label>{t("settings.data.connection.switchToLocalLabel")}</Label>
               <p className="text-sm text-muted-foreground">
-                {t("settings.general.connection.switchToLocalDescription")}
+                {t("settings.data.connection.switchToLocalDescription")}
               </p>
             </div>
             <Button variant="outline" onClick={handleSwitchToLocal} disabled={busy}>
               <HardDrive className="mr-2 h-4 w-4" />
-              {t("settings.general.connection.switchToLocal")}
+              {t("settings.data.connection.switchToLocal")}
             </Button>
           </div>
         </div>
@@ -104,25 +104,25 @@ export default function ConnectionSection() {
   return (
     <SettingsSection
       icon={<HardDrive className="h-4 w-4" />}
-      title={t("settings.general.connection.title")}
-      description={t("settings.general.connection.description")}
+      title={t("settings.data.connection.title")}
+      description={t("settings.data.connection.description")}
     >
       <div className="divide-y divide-border/40">
         <div className="flex items-center justify-between py-3">
           <div className="space-y-0.5 min-w-0">
-            <Label>{t("settings.general.connection.localLabel")}</Label>
+            <Label>{t("settings.data.connection.localLabel")}</Label>
             <p className="text-sm text-muted-foreground truncate">{dataPath}</p>
           </div>
           {!showConnect && (
             <Button variant="outline" onClick={() => setShowConnect(true)}>
               <Server className="mr-2 h-4 w-4" />
-              {t("settings.general.connection.connectToServer")}
+              {t("settings.data.connection.connectToServer")}
             </Button>
           )}
         </div>
         {showConnect && (
           <div className="py-3 space-y-2">
-            <Label htmlFor="serverUrl">{t("settings.general.connection.serverUrlLabel")}</Label>
+            <Label htmlFor="serverUrl">{t("settings.data.connection.serverUrlLabel")}</Label>
             <div className="flex gap-2">
               <Input
                 id="serverUrl"
@@ -135,12 +135,12 @@ export default function ConnectionSection() {
                 className="flex-1"
               />
               <Button onClick={handleConnect} disabled={busy || !urlInput.trim()}>
-                {t("settings.general.connection.connect")}
+                {t("settings.data.connection.connect")}
               </Button>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <p className="text-xs text-muted-foreground">
-              {t("settings.general.connection.connectHint")}
+              {t("settings.data.connection.connectHint")}
             </p>
           </div>
         )}

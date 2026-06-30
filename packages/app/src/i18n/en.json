@@ -281,21 +281,6 @@
       "compactSidebar": {
         "label": "Compact sidebar",
         "description": "Show only icons in the sidebar (or drag the edge to resize)"
-      },
-      "connection": {
-        "title": "Connection",
-        "description": "Where Desk keeps your work",
-        "localLabel": "This Mac",
-        "remoteLabel": "Connected to server",
-        "connectToServer": "Connect to a server",
-        "serverUrlLabel": "Server address",
-        "connect": "Connect",
-        "connectHint": "Defaults to https:// if you omit it. The address must use https.",
-        "invalidUrl": "Enter a valid server address.",
-        "httpsRequired": "Server must use https. An http address would send your sign-in token unencrypted.",
-        "switchToLocalLabel": "Use this Mac instead",
-        "switchToLocalDescription": "Switch back to local files. Your local data is untouched.",
-        "switchToLocal": "Switch to this Mac"
       }
     },
     "planner": {
@@ -440,10 +425,31 @@
         "refresh": "Refresh",
         "errorBrowserMode": "Preview is only available in the desktop app.",
         "errorFileMissing": "File doesn't exist yet. Toggle CLAUDE.md on, then come back."
+      },
+      "mcp": {
+        "title": "Model Context Protocol (MCP)",
+        "description": "On a server, external agents connect over MCP instead of generated files.",
+        "notice": "When Desk runs on a server, the generated CLAUDE.md / AGENTS.md / GEMINI.md files aren't written. External agents (Claude, ChatGPT) connect to your desk over <strong>MCP</strong> instead.",
+        "endpointLabel": "MCP endpoint",
+        "hint": "Add this URL as an MCP server in your AI client. It signs in with OAuth and exposes read-only tools over your workspaces."
       }
     },
-    "context": {},
     "data": {
+      "connection": {
+        "title": "Connection",
+        "description": "Where Desk keeps your work",
+        "localLabel": "This Mac",
+        "remoteLabel": "Connected to server",
+        "connectToServer": "Connect to a server",
+        "serverUrlLabel": "Server address",
+        "connect": "Connect",
+        "connectHint": "Defaults to https:// if you omit it. The address must use https.",
+        "invalidUrl": "Enter a valid server address.",
+        "httpsRequired": "Server must use https. An http address would send your sign-in token unencrypted.",
+        "switchToLocalLabel": "Use this Mac instead",
+        "switchToLocalDescription": "Switch back to local files. Your local data is untouched.",
+        "switchToLocal": "Switch to this Mac"
+      },
       "storage": {
         "title": "Data Storage",
         "description": "Where your projects and files are stored",
@@ -514,9 +520,8 @@
       "general": "General",
       "planner": "Planner",
       "templates": "Templates",
-      "ai": "AI Provider",
+      "ai": "AI",
       "agents": "Agents",
-      "context": "File Index",
       "data": "Data",
       "about": "About"
     },
@@ -525,7 +530,12 @@
         "title": "File Index Status",
         "description": "File index stats, errors, and build controls",
         "filesIndexed": "Files indexed",
-        "lastBuilt": "Last built"
+        "coverage": "Summaries",
+        "coverageAi": "{{ai}} AI summaries",
+        "coverageMixed": "{{ai}} AI · {{preview}} text-only",
+        "workspaceFiles_one": "{{count}} file",
+        "workspaceFiles_other": "{{count}} files",
+        "updatedAgo": "updated {{time}}"
       },
       "actions": {
         "rebuild": "Rebuild Index",
@@ -541,12 +551,16 @@
       },
       "results": {
         "success": "{{summarized}} summarized, {{reused}} reused",
-        "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded"
+        "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded",
+        "lastRebuild": "Last rebuild {{time}}: {{summarized}} summarized, {{reused}} reused",
+        "lastRebuildWithExcluded": "Last rebuild {{time}}: {{summarized}} summarized, {{reused}} reused, {{excluded}} excluded by .aiignore"
       },
       "info": {
         "oneCatalog": "When any agent file is enabled (Settings → Agents) the Smart Index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
         "noProvider": "No AI provider configured, so summaries use plain text previews. Add a key in Settings → AI for AI-generated summaries.",
-        "desktopOnly": "The Smart Index is built in the desktop app, using your locally stored AI key. In the browser it is served from the server's existing catalog."
+        "desktopOnly": "The Smart Index is built in the desktop app, using your locally stored AI key. In the browser it is served from the server's existing catalog.",
+        "incremental": "Rebuild is incremental: unchanged files reuse their summary, so only new or edited files use the AI.",
+        "offlineChanges": "Files changed outside the desk app (another device, direct edits) are picked up on the next rebuild."
       },
       "config": {
         "title": "File Index Settings",

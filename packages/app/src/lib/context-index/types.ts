@@ -30,7 +30,14 @@ export interface WorkspaceIndex {
   workspaceId: string;
   workspaceName: string;
   entries: IndexEntry[];
+  /** Timestamp of the last full rebuild (set only by buildWorkspaceIndex). */
   builtAt: string;
+  /**
+   * Timestamp of the last change to this index — bumped by a full rebuild AND by
+   * background auto-summary entry updates. Optional for indexes persisted before this
+   * field existed; fall back to `builtAt`.
+   */
+  updatedAt?: string;
   fileCount: number;
 }
 

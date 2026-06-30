@@ -413,10 +413,31 @@
         "refresh": "Aktualisieren",
         "errorBrowserMode": "Vorschau ist nur in der Desktop-App verfügbar.",
         "errorFileMissing": "Datei existiert noch nicht. Aktiviere CLAUDE.md und komm zurück."
+      },
+      "mcp": {
+        "title": "Model Context Protocol (MCP)",
+        "description": "Auf einem Server verbinden sich externe Agenten über MCP statt über generierte Dateien.",
+        "notice": "Wenn Desk auf einem Server läuft, werden die generierten Dateien CLAUDE.md / AGENTS.md / GEMINI.md nicht geschrieben. Externe Agenten (Claude, ChatGPT) verbinden sich stattdessen über <strong>MCP</strong> mit deinem Desk.",
+        "endpointLabel": "MCP-Endpunkt",
+        "hint": "Füge diese URL als MCP-Server in deinem KI-Client hinzu. Die Anmeldung erfolgt über OAuth und stellt schreibgeschützte Tools für deine Workspaces bereit."
       }
     },
-    "context": {},
     "data": {
+      "connection": {
+        "title": "Verbindung",
+        "description": "Wo Desk deine Arbeit speichert",
+        "localLabel": "Dieser Mac",
+        "remoteLabel": "Mit Server verbunden",
+        "connectToServer": "Mit einem Server verbinden",
+        "serverUrlLabel": "Serveradresse",
+        "connect": "Verbinden",
+        "connectHint": "Verwendet standardmäßig https://, wenn du es weglässt. Die Adresse muss https verwenden.",
+        "invalidUrl": "Gib eine gültige Serveradresse ein.",
+        "httpsRequired": "Der Server muss https verwenden. Eine http-Adresse würde dein Anmelde-Token unverschlüsselt senden.",
+        "switchToLocalLabel": "Stattdessen diesen Mac verwenden",
+        "switchToLocalDescription": "Zurück zu lokalen Dateien wechseln. Deine lokalen Daten bleiben unberührt.",
+        "switchToLocal": "Zu diesem Mac wechseln"
+      },
       "storage": {
         "title": "Datenspeicher",
         "description": "Wo deine Projekte und Dateien gespeichert sind",
@@ -487,9 +508,8 @@
       "general": "Allgemein",
       "planner": "Planer",
       "templates": "Vorlagen",
-      "ai": "KI-Anbieter",
+      "ai": "KI",
       "agents": "Agenten",
-      "context": "Katalog",
       "data": "Daten",
       "about": "Über"
     },
@@ -498,7 +518,12 @@
         "title": "Katalog-Status",
         "description": "Index-Statistik, Fehler und Build-Steuerung",
         "filesIndexed": "Indexierte Dateien",
-        "lastBuilt": "Zuletzt gebaut"
+        "coverage": "Zusammenfassungen",
+        "coverageAi": "{{ai}} KI-Zusammenfassungen",
+        "coverageMixed": "{{ai}} KI · {{preview}} nur Text",
+        "workspaceFiles_one": "{{count}} Datei",
+        "workspaceFiles_other": "{{count}} Dateien",
+        "updatedAgo": "aktualisiert {{time}}"
       },
       "actions": {
         "rebuild": "Katalog neu aufbauen",
@@ -514,12 +539,16 @@
       },
       "results": {
         "success": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet",
-        "successWithExcluded": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} ausgeschlossen"
+        "successWithExcluded": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} ausgeschlossen",
+        "lastRebuild": "Letzter Neuaufbau {{time}}: {{summarized}} zusammengefasst, {{reused}} wiederverwendet",
+        "lastRebuildWithExcluded": "Letzter Neuaufbau {{time}}: {{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} durch .aiignore ausgeschlossen"
       },
       "info": {
         "oneCatalog": "Wenn eine Agenten-Datei aktiv ist (Einstellungen → Agenten), wird der Smart Index daneben als Markdown geschrieben, damit externe Agenten (Claude Code, Codex, Gemini CLI) ihn ohne Einrichtung lesen können.",
         "noProvider": "Kein KI-Anbieter konfiguriert, daher verwenden Zusammenfassungen Klartext-Vorschauen. Füge unter Einstellungen → KI einen Schlüssel hinzu für KI-generierte Zusammenfassungen.",
-        "desktopOnly": "Der Smart Index wird in der Desktop-App erstellt, mit deinem lokal gespeicherten KI-Schlüssel. Im Browser wird er aus dem bestehenden Katalog des Servers bereitgestellt."
+        "desktopOnly": "Der Smart Index wird in der Desktop-App erstellt, mit deinem lokal gespeicherten KI-Schlüssel. Im Browser wird er aus dem bestehenden Katalog des Servers bereitgestellt.",
+        "incremental": "Der Neuaufbau ist inkrementell: Unveränderte Dateien verwenden ihre Zusammenfassung weiter, nur neue oder geänderte Dateien nutzen die KI.",
+        "offlineChanges": "Dateien, die außerhalb der Desk-App geändert wurden (anderes Gerät, direkte Bearbeitung), werden beim nächsten Neuaufbau übernommen."
       },
       "config": {
         "title": "Katalog-Einstellungen",

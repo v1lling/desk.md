@@ -16,11 +16,11 @@ import {
   Loader2,
   AlertCircle,
   FileText,
-  Clock,
   RefreshCw,
   Trash2,
   Database,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -61,18 +61,30 @@ export function SmartIndexSection() {
   // so building would silently no-op; disable the controls and explain instead.
   const canBuild = isTauri();
 
-  const { indexes, setIndex, isBuilding, setIsBuilding } = useContextIndexStore();
+  const { indexes, setIndex, isBuilding, setIsBuilding, lastResult, setLastResult } =
+    useContextIndexStore();
   const { data: workspaces = [] } = useWorkspaces();
 
   const [indexProgress, setIndexProgress] = useState<BuildIndexProgress | null>(null);
   const [indexResult, setIndexResult] = useState<BuildIndexResult | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const totalIndexFiles = Object.values(indexes).reduce((sum, idx) => sum + idx.fileCount, 0);
-  const lastBuiltAt = Object.values(indexes)
-    .map((idx) => idx.builtAt)
-    .sort()
-    .pop() ?? null;
+  const allEntries = Object.values(indexes).flatMap((idx) => idx.entries);
+  const totalIndexFiles = allEntries.length;
+  // Preview = built without a working AI key (raw text). Everything else with a summary is AI.
+  const previewCount = allEntries.filter((e) => e.isPreview === true).length;
+  const aiSummaryCount = allEntries.filter((e) => e.summary && e.isPreview !== true).length;
+
+  // Per-workspace rows: file count + when last touched (background auto-summary OR rebuild).
+  const workspaceRows = Object.values(indexes)
+    .map((idx) => ({
+      id: idx.workspaceId,
+      name: idx.workspaceName,
+      fileCount: idx.fileCount,
+      updatedAt: idx.updatedAt ?? idx.builtAt,
+      color: workspaces.find((w) => w.id === idx.workspaceId)?.color ?? "#6366f1",
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleBuildIndex = async () => {
     // Privacy gate: only when a provider key is configured does the build send
@@ -116,6 +128,7 @@ export function SmartIndexSection() {
 
       if (accumulatedResult) {
         setIndexResult(accumulatedResult);
+        setLastResult({ ...accumulatedResult, at: new Date().toISOString() });
         toast.success(
           t("toasts.settings.indexBuilt", {
             files: accumulatedResult.totalFiles,
@@ -141,6 +154,7 @@ export function SmartIndexSection() {
       useContextIndexStore.getState().removeIndex(workspace.id);
     }
     setIndexResult(null);
+    setLastResult(null);
     try {
       await deleteGeneratedAgentFiles(workspaces);
     } catch (error) {
@@ -170,13 +184,40 @@ export function SmartIndexSection() {
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-lg border p-3">
-              <Clock className="h-5 w-5 text-muted-foreground" />
+              <Sparkles className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">{formatRelativeTime(lastBuiltAt, t)}</p>
-                <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.lastBuilt")}</p>
+                <p className="text-sm font-medium">
+                  {previewCount > 0
+                    ? t("settings.smartIndex.status.coverageMixed", {
+                        ai: aiSummaryCount,
+                        preview: previewCount,
+                      })
+                    : t("settings.smartIndex.status.coverageAi", { ai: aiSummaryCount })}
+                </p>
+                <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.coverage")}</p>
               </div>
             </div>
           </div>
+
+          {workspaceRows.length > 0 && (
+            <div className="divide-y divide-border/40 rounded-lg border">
+              {workspaceRows.map((row) => (
+                <div key={row.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: row.color }}
+                    />
+                    <span className="truncate text-sm font-medium">{row.name}</span>
+                  </span>
+                  <span className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                    <span>{t("settings.smartIndex.status.workspaceFiles", { count: row.fileCount })}</span>
+                    <span>{t("settings.smartIndex.status.updatedAgo", { time: formatRelativeTime(row.updatedAt, t) })}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
@@ -235,23 +276,27 @@ export function SmartIndexSection() {
               </div>
             )}
 
-            {indexResult && indexResult.errors.length === 0 && (
+            {!isBuilding && lastResult && (
               <div className="text-sm text-muted-foreground">
-                {indexResult.excluded > 0
-                  ? t("settings.smartIndex.results.successWithExcluded", {
-                      summarized: indexResult.summarized,
-                      reused: indexResult.reused,
-                      excluded: indexResult.excluded,
+                {lastResult.excluded > 0
+                  ? t("settings.smartIndex.results.lastRebuildWithExcluded", {
+                      time: formatRelativeTime(lastResult.at, t),
+                      summarized: lastResult.summarized,
+                      reused: lastResult.reused,
+                      excluded: lastResult.excluded,
                     })
-                  : t("settings.smartIndex.results.success", {
-                      summarized: indexResult.summarized,
-                      reused: indexResult.reused,
+                  : t("settings.smartIndex.results.lastRebuild", {
+                      time: formatRelativeTime(lastResult.at, t),
+                      summarized: lastResult.summarized,
+                      reused: lastResult.reused,
                     })}
               </div>
             )}
 
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>{t("settings.smartIndex.info.oneCatalog")}</p>
+              {canBuild && <p>{t("settings.smartIndex.info.incremental")}</p>}
+              {canBuild && <p>{t("settings.smartIndex.info.offlineChanges")}</p>}
               {!canBuild ? (
                 <p>{t("settings.smartIndex.info.desktopOnly")}</p>
               ) : (

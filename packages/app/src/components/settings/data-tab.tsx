@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,19 @@ import { isTauri, expandFsScope } from "@desk/core";
 import { getDeskService } from "@desk/core";
 import { isRemoteMode } from "@/lib/connection";
 import type { Workspace } from "@desk/core/types";
+
+// Hosted mode only: the account/sign-out section (and better-auth) is lazy-loaded
+// behind the build flag, so the desktop bundle never includes it.
+const HostedAccountSection = import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./hosted-account-section"))
+  : null;
+
+// Native hosted mode: the local/remote backend toggle. Bundled in every non-hosted
+// build (constant `!VITE_DESK_HOSTED`, so the lean web build tree-shakes it out) and
+// shown only inside a Tauri webview (isTauri(), checked at render).
+const ConnectionSection = !import.meta.env.VITE_DESK_HOSTED
+  ? lazy(() => import("./connection-section"))
+  : null;
 
 export function DataTab() {
   const { t } = useTranslation();
@@ -117,6 +130,20 @@ export function DataTab() {
 
   return (
     <div className="space-y-6">
+      {/* Connection — local/remote backend toggle (native, non-hosted builds, Tauri only). */}
+      {ConnectionSection && isTauri() && (
+        <Suspense fallback={null}>
+          <ConnectionSection />
+        </Suspense>
+      )}
+
+      {/* Account — sign-out (hosted web build only). */}
+      {HostedAccountSection && (
+        <Suspense fallback={null}>
+          <HostedAccountSection />
+        </Suspense>
+      )}
+
       {/* Data Storage — local mode only (a remote backend owns the data root). */}
       {!remote && (
         <SettingsSection

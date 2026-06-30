@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Info } from "lucide-react";
+import { Users, Info, Plug } from "lucide-react";
 import { toast } from "sonner";
 import { Trans, useTranslation } from "react-i18next";
 import { useContextStore, anyAgentFileEnabled } from "@/stores/context";
@@ -19,6 +19,8 @@ import {
   writeTopLevelAgentFiles,
 } from "@/lib/context-index/agent-context";
 import { getDeskService } from "@desk/core";
+import { useBootStore } from "@/stores/boot";
+import { isDomainRemote } from "@/lib/connection";
 import { AgentInstructionsCard } from "./agent-instructions-card";
 import { AgentFilePreviewCard } from "./agent-file-preview-card";
 
@@ -65,6 +67,12 @@ export function AgentsTab() {
   const anyEnabled = anyAgentFileEnabled();
   const selectedWorkspace =
     scope !== GLOBAL_SCOPE ? workspaces.find((w) => w.id === scope) : undefined;
+
+  // On a server (native-remote or hosted web) the generated agent files aren't written —
+  // external agents connect over MCP instead. Show the endpoint rather than dead toggles.
+  if (isDomainRemote()) {
+    return <McpSection />;
+  }
 
   return (
     <div className="space-y-6">
@@ -178,6 +186,39 @@ interface ToggleRowProps {
   checked: boolean;
   onChange: (enabled: boolean) => void;
   bordered?: boolean;
+}
+
+function McpSection() {
+  const { t } = useTranslation();
+  const serverUrl = useBootStore((s) => s.serverUrl);
+  // Hosted web is served from the server origin; native-remote stores the URL in boot.
+  const base = import.meta.env.VITE_DESK_HOSTED ? window.location.origin : serverUrl;
+  const mcpEndpoint = `${base.replace(/\/+$/, "")}/mcp`;
+
+  return (
+    <div className="space-y-6">
+      <SettingsSection
+        icon={<Plug className="h-4 w-4" />}
+        title={t("settings.agents.mcp.title")}
+        description={t("settings.agents.mcp.description")}
+      >
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+          <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            <Trans i18nKey="settings.agents.mcp.notice" components={{ strong: <strong /> }} />
+          </p>
+        </div>
+
+        <div className="space-y-1 pt-4">
+          <Label>{t("settings.agents.mcp.endpointLabel")}</Label>
+          <code className="block w-full rounded-md border bg-muted/40 px-3 py-2 font-mono text-sm break-all">
+            {mcpEndpoint}
+          </code>
+          <p className="pt-1 text-xs text-muted-foreground">{t("settings.agents.mcp.hint")}</p>
+        </div>
+      </SettingsSection>
+    </div>
+  );
 }
 
 function ToggleRow({ label, description, checked, onChange, bordered }: ToggleRowProps) {

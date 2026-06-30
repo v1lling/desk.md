@@ -12,6 +12,7 @@ import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
 import type { AIProviderType } from "@/lib/ai/types";
 import { BrowserModeError, getSecret, setSecret } from "@/lib/ai/secrets";
 import { isTauri } from "@desk/core";
+import { SmartIndexSection } from "./smart-index-section";
 
 function linuxKeyringHint(message: string, t: (key: string) => string): string | null {
   const lower = message.toLowerCase();
@@ -329,6 +330,8 @@ export function AITab() {
           </div>
         </div>
       </SettingsSection>
+
+      <SmartIndexSection />
     </div>
   );
 }

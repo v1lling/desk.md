@@ -6,7 +6,6 @@ import {
   PlannerTab,
   AITab,
   AgentsTab,
-  ContextTab,
   DataTab,
   TemplatesTab,
   AboutTab,
@@ -20,7 +19,6 @@ const CONTENT: Record<SettingsCategory, React.ComponentType> = {
   templates: TemplatesTab,
   ai: AITab,
   agents: AgentsTab,
-  context: ContextTab,
   data: DataTab,
   about: AboutTab,
 };

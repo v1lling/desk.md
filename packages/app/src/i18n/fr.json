@@ -413,10 +413,31 @@
         "refresh": "Actualiser",
         "errorBrowserMode": "L'aperçu n'est disponible que dans l'application desktop.",
         "errorFileMissing": "Le fichier n'existe pas encore. Activez CLAUDE.md, puis revenez."
+      },
+      "mcp": {
+        "title": "Model Context Protocol (MCP)",
+        "description": "Sur un serveur, les agents externes se connectent via MCP plutôt que via des fichiers générés.",
+        "notice": "Quand Desk s'exécute sur un serveur, les fichiers générés CLAUDE.md / AGENTS.md / GEMINI.md ne sont pas écrits. Les agents externes (Claude, ChatGPT) se connectent à votre desk via <strong>MCP</strong> à la place.",
+        "endpointLabel": "Point de terminaison MCP",
+        "hint": "Ajoutez cette URL comme serveur MCP dans votre client IA. La connexion se fait via OAuth et expose des outils en lecture seule sur vos espaces de travail."
       }
     },
-    "context": {},
     "data": {
+      "connection": {
+        "title": "Connexion",
+        "description": "Où Desk conserve votre travail",
+        "localLabel": "Ce Mac",
+        "remoteLabel": "Connecté au serveur",
+        "connectToServer": "Se connecter à un serveur",
+        "serverUrlLabel": "Adresse du serveur",
+        "connect": "Se connecter",
+        "connectHint": "Utilise https:// par défaut si vous l'omettez. L'adresse doit utiliser https.",
+        "invalidUrl": "Saisissez une adresse de serveur valide.",
+        "httpsRequired": "Le serveur doit utiliser https. Une adresse http enverrait votre jeton de connexion non chiffré.",
+        "switchToLocalLabel": "Utiliser ce Mac à la place",
+        "switchToLocalDescription": "Revenir aux fichiers locaux. Vos données locales restent intactes.",
+        "switchToLocal": "Revenir à ce Mac"
+      },
       "storage": {
         "title": "Stockage des données",
         "description": "Emplacement de vos projets et fichiers",
@@ -487,9 +508,8 @@
       "general": "Général",
       "planner": "Planificateur",
       "templates": "Modèles",
-      "ai": "Fournisseur d'IA",
+      "ai": "IA",
       "agents": "Agents",
-      "context": "Catalogue",
       "data": "Données",
       "about": "À propos"
     },
@@ -498,7 +518,12 @@
         "title": "État du catalogue",
         "description": "Statistiques d'index, erreurs et commandes de construction",
         "filesIndexed": "Fichiers indexés",
-        "lastBuilt": "Dernière construction"
+        "coverage": "Résumés",
+        "coverageAi": "{{ai}} résumés IA",
+        "coverageMixed": "{{ai}} IA · {{preview}} texte seul",
+        "workspaceFiles_one": "{{count}} fichier",
+        "workspaceFiles_other": "{{count}} fichiers",
+        "updatedAgo": "mis à jour {{time}}"
       },
       "actions": {
         "rebuild": "Reconstruire le catalogue",
@@ -514,12 +539,16 @@
       },
       "results": {
         "success": "{{summarized}} résumé(s), {{reused}} réutilisé(s)",
-        "successWithExcluded": "{{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s)"
+        "successWithExcluded": "{{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s)",
+        "lastRebuild": "Dernière reconstruction {{time}} : {{summarized}} résumé(s), {{reused}} réutilisé(s)",
+        "lastRebuildWithExcluded": "Dernière reconstruction {{time}} : {{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s) par .aiignore"
       },
       "info": {
         "oneCatalog": "Quand un fichier d'agent est activé (Paramètres → Agents), le Smart Index est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
         "noProvider": "Aucun fournisseur d'IA configuré, les résumés utilisent donc des aperçus en texte brut. Ajoutez une clé dans Paramètres → IA pour des résumés générés par l'IA.",
-        "desktopOnly": "Le Smart Index est créé dans l'application de bureau, avec votre clé d'IA stockée localement. Dans le navigateur, il est servi à partir du catalogue existant du serveur."
+        "desktopOnly": "Le Smart Index est créé dans l'application de bureau, avec votre clé d'IA stockée localement. Dans le navigateur, il est servi à partir du catalogue existant du serveur.",
+        "incremental": "La reconstruction est incrémentale : les fichiers inchangés réutilisent leur résumé, seuls les fichiers nouveaux ou modifiés utilisent l'IA.",
+        "offlineChanges": "Les fichiers modifiés hors de l'app desk (autre appareil, édition directe) sont pris en compte à la prochaine reconstruction."
       },
       "config": {
         "title": "Paramètres du catalogue",
