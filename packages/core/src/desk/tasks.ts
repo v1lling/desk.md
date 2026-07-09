@@ -5,7 +5,7 @@
  * Uses paths.ts for all path construction.
  */
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, clearNulls } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, resolveContentDate, clearNulls } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -51,7 +51,7 @@ function buildTask(
     status: data.status || "todo",
     priority: data.priority,
     due: data.due ? normalizeDate(data.due) : undefined,
-    created: normalizeDate(data.created),
+    created: resolveContentDate(data.created, filename ?? filePath),
     content: body,
   };
 }

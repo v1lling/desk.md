@@ -1,10 +1,22 @@
 import { format, parseISO } from "date-fns";
+import { todayISO } from "@desk/core";
 
 /**
  * Format an ISO date string for display (e.g., "20 Jan 2024")
  */
 export function formatDate(iso: string): string {
   return format(parseISO(iso), "d MMM yyyy");
+}
+
+/**
+ * Whether a `YYYY-MM-DD` due date is strictly before the local today.
+ * Compares date strings lexicographically (which is chronological for this
+ * format) instead of `new Date("YYYY-MM-DD")`, which parses as UTC midnight
+ * and would flag a task due *today* as overdue in positive-offset zones.
+ * Due today → not overdue.
+ */
+export function isOverdue(due: string): boolean {
+  return due < todayISO();
 }
 
 /**

@@ -2,6 +2,7 @@ import { createProvider } from './provider';
 import { getProviderDefinition } from './provider-registry';
 import { getSecret } from './secrets';
 import { BASE_CONTEXT } from './prompts';
+import { todayISO } from '@desk/core';
 import type {
   AIUsage,
   AIProviderType,
@@ -55,7 +56,7 @@ export class AIService {
       model: this.config.model,
     });
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayISO();
     const fullPrompt = `Today's date: ${today}.\n\n${BASE_CONTEXT}\n\n${systemPrompt}`;
 
     const response = await provider.chat({

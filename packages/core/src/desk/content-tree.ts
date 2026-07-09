@@ -3,7 +3,7 @@
  */
 import type { Doc, DocKind, FileTreeNode, ContentScope, Asset } from "../types";
 import { isMarkdownFile, getExtension } from "./file-utils";
-import { parseMarkdown, filenameToId, normalizeDate, generatePreview } from "./parser";
+import { parseMarkdown, filenameToId, resolveContentDate, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
@@ -135,7 +135,7 @@ async function buildContentTreeRecursive(
           workspaceId,
           filePath,
           title: data.title || file.name.replace(".md", ""),
-          created: normalizeDate(data.created),
+          created: resolveContentDate(data.created, docRelPath),
           content: body,
           preview: generatePreview(body),
           fileCreated,

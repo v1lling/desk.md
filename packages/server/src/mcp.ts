@@ -106,7 +106,7 @@ function buildServer(): McpServer {
     "desk_search",
     {
       description:
-        "Full-text search across a workspace's files. Use for specific text, quotes, or keywords.",
+        "Full-text search across a workspace's SOURCE files. By default the query is split into words and a file matches only when EVERY word appears somewhere in it (good for multi-word research); words match punctuation-insensitively (edu-id = eduid). Wrap the query in double quotes for an exact-phrase match. Snippets are capped; generated agent files are skipped. Note: this searches source content only — a concept that exists only in an AI summary won't appear here, so fall back to desk_catalog for summary-level discovery.",
       inputSchema: {
         workspace_id: z.string().min(1),
         query: z.string().min(1),
@@ -121,10 +121,22 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, and an AI summary when one has been generated (summary may be absent until then). Always populated. Use desk_read to open specific files; use desk_tree only for raw structure.",
-      inputSchema: { workspace_id: z.string().min(1) },
+        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, and an AI summary when one has been generated (summary may be absent until then). Always populated, newest-first. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
+      inputSchema: {
+        workspace_id: z.string().min(1),
+        project_id: z.string().optional(),
+        type: z.enum(["doc", "ai-doc", "task", "meeting"]).optional(),
+        status: z.string().optional(),
+        since: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
+          .optional()
+          .describe("ISO date (YYYY-MM-DD); only entries on or after it."),
+        limit: z.number().int().min(1).max(200).optional(),
+        offset: z.number().int().min(0).optional(),
+      },
     },
-    async ({ workspace_id }) => json(await readCatalog(workspace_id))
+    async (args) => json(await readCatalog(args))
   );
 
   // Prompt: draft-email-reply. Paste the original email (copied from desk's email tab) and
@@ -169,6 +181,10 @@ function buildServer(): McpServer {
  * summaries come from the persisted Smart Index cache (.desk/index/indexes.json), which a
  * key-bearing desktop client contributes. A short in-process TTL memo absorbs bursty agent
  * calls; if no cache exists, every summary is just absent and the metadata stands alone.
+ *
+ * The full catalog is built/memoized once; filtering (project/type/status/since), newest-first
+ * sorting and limit/offset paging are applied per-request on top, so a large workspace returns a
+ * bounded page instead of one oversized blob.
  */
 const CATALOG_TTL_MS = 15_000;
 const catalogMemo = new Map<string, { at: number; value: WorkspaceCatalog }>();
@@ -202,15 +218,48 @@ async function loadSummaryMap(workspaceId: string): Promise<Map<string, string>>
   return map;
 }
 
-async function readCatalog(workspaceId: string) {
-  const catalog = await getCachedCatalog(workspaceId);
-  const summaries = await loadSummaryMap(workspaceId);
-  const entries = catalog.entries
-    .map((e) => ({ ...e, summary: summaries.get(e.path) }))
-    .sort((a, b) =>
-      String(b.date ?? b.created ?? "").localeCompare(String(a.date ?? a.created ?? ""))
-    );
-  return { workspace_id: workspaceId, total: entries.length, entries };
+interface CatalogQuery {
+  workspace_id: string;
+  project_id?: string;
+  type?: "doc" | "ai-doc" | "task" | "meeting";
+  status?: string;
+  since?: string;
+  limit?: number;
+  offset?: number;
+}
+
+const DEFAULT_CATALOG_LIMIT = 50;
+
+async function readCatalog(q: CatalogQuery) {
+  const catalog = await getCachedCatalog(q.workspace_id);
+  const summaries = await loadSummaryMap(q.workspace_id);
+
+  // The entry's effective date for `since`/sort is its meeting date, else creation date.
+  const dateOf = (e: { date?: string; created?: string }) => e.date ?? e.created ?? "";
+
+  // Strip the absolute server filePath — agents address files by the workspace-relative
+  // `path` (desk_read), and the host's filesystem layout is not theirs to see.
+  const filtered = catalog.entries
+    .map(({ filePath: _filePath, ...e }) => ({ ...e, summary: summaries.get(e.path) }))
+    .filter((e) => !q.project_id || e.projectId === q.project_id)
+    .filter((e) => !q.type || e.type === q.type)
+    .filter((e) => !q.status || e.status === q.status)
+    .filter((e) => !q.since || dateOf(e) >= q.since)
+    .sort((a, b) => dateOf(b).localeCompare(dateOf(a)));
+
+  const offset = Math.max(0, q.offset ?? 0);
+  const limit = Math.min(200, Math.max(1, q.limit ?? DEFAULT_CATALOG_LIMIT));
+  const page = filtered.slice(offset, offset + limit);
+
+  return {
+    workspace_id: q.workspace_id,
+    total: filtered.length,
+    returned: page.length,
+    offset,
+    limit,
+    has_more: offset + page.length < filtered.length,
+    entries: page,
+  };
 }
 
 // Resource-server view of the AS: validates access tokens in-process (same Better Auth

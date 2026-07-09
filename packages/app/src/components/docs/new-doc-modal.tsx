@@ -27,6 +27,7 @@ import {
   splitTreePathToKind,
   isAITreePath,
   isReservedAIDocsName,
+  todayISO,
 } from "@desk/core";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
@@ -99,7 +100,7 @@ export function NewDocModal({
         getTemplate("doc", workspaceId || ""),
         {
           title: trimmed,
-          date: new Date().toISOString().split("T")[0],
+          date: todayISO(),
           project: projects.find((p) => p.id === (defaultProjectId || projectId))?.name || "",
           workspace: currentWorkspace?.name || "",
         }

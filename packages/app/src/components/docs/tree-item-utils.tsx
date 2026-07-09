@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
 import i18next from "i18next";
-import { formatLocaleDate } from "@/lib/i18n/format";
 import {
   FileText,
   File,
@@ -28,31 +27,6 @@ import { isTauri } from "@desk/core";
 import { isRemoteMode } from "@/lib/connection";
 import { toast } from "sonner";
 import type { FileTreeNode } from "@desk/core/types";
-
-// ── Date Formatting ─────────────────────────────────────────────────
-
-export function formatRelativeDate(dateStr: string | undefined): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "";
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  // Same year: "Jan 15"
-  if (date.getFullYear() === now.getFullYear()) {
-    return formatLocaleDate(date, { month: "short", day: "numeric" });
-  }
-
-  // Different year: "Jan 2024"
-  return formatLocaleDate(date, { month: "short", year: "numeric" });
-}
 
 // ── Sorting ─────────────────────────────────────────────────────────
 
@@ -91,8 +65,10 @@ export function sortNodes(
       const nameB = b.type === "doc" ? b.doc.title : b.type === "asset" ? b.asset.id : "";
       cmp = nameA.localeCompare(nameB);
     } else if (sortBy === "created") {
-      const dateA = (a.type === "doc" ? a.doc.fileCreated : a.type === "asset" ? a.asset.fileCreated : undefined) || "";
-      const dateB = (b.type === "doc" ? b.doc.fileCreated : b.type === "asset" ? b.asset.fileCreated : undefined) || "";
+      // Docs carry a canonical frontmatter `created` (portable, survives import/copy);
+      // assets have no frontmatter, so fall back to the OS birthtime for those.
+      const dateA = (a.type === "doc" ? a.doc.created : a.type === "asset" ? a.asset.fileCreated : undefined) || "";
+      const dateB = (b.type === "doc" ? b.doc.created : b.type === "asset" ? b.asset.fileCreated : undefined) || "";
       cmp = dateA.localeCompare(dateB);
     } else if (sortBy === "modified") {
       const dateA = (a.type === "doc" ? a.doc.fileModified : a.type === "asset" ? a.asset.fileModified : undefined) || "";

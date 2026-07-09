@@ -80,6 +80,28 @@ type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 type ContentScope = 'personal' | 'workspace' | 'project';
 ```
 
+### Names & dates (the contract)
+
+- **Filename = frozen identifier.** Files are `YYYY-MM-DD-slug.md` (`generateFilename`), assigned once
+  at creation and **never renamed** when the title changes. The `slug` is the creation-time title and
+  the date prefix is the **creation** day — both go stale by design; don't read meaning into them
+  beyond "stable id". The item's `id` derives from the filename (`filenameToId`), so ids are stable
+  across title edits and links never break.
+- **`title` (frontmatter) = display name.** The editable name shown everywhere in the UI, in tabs,
+  search, and to agents. Editing a title rewrites frontmatter only (docs-tree "Rename" included) — it
+  never touches the filename.
+- **`created` (frontmatter) = canonical metadata date.** Resolved via `resolveContentDate`:
+  frontmatter → filename date-prefix → today (last resort only). Sorting, MCP `desk_catalog`, and the
+  Smart Index all key off this. **OS file stat (`birthtime`/`mtime`) is never an agent-visible or
+  canonical date** — it's unreliable across import/copy/sync; it survives only as a local docs-tree
+  "modified" sort key.
+- **One clock: local.** A date-only value is the **local** calendar day. Use `formatLocalISODate` /
+  `todayISO()` (local) and never `new Date().toISOString().split('T')[0]` (UTC — off by a day near
+  midnight). To *parse* a `YYYY-MM-DD` string for display, use date-fns `parseISO` or
+  `formatLocaleDate` (both local); never `new Date("YYYY-MM-DD")` (UTC midnight → previous day in
+  negative-offset zones). Compare due/created dates as **strings** (`a < b` is chronological for this
+  format), e.g. `isOverdue` in `lib/format.ts`.
+
 ## Key Directories
 
 **`@desk/core` (`packages/core/src/`) — domain layer:**

@@ -18,10 +18,9 @@ interface GroupedMeetings {
 }
 
 function groupMeetingsByMonth(meetings: Meeting[]): GroupedMeetings[] {
-  // Sort by date descending (newest first)
-  const sorted = [...meetings].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort by date descending (newest first). Dates are `YYYY-MM-DD`, so a string
+  // compare is chronological and avoids UTC-parsing a date-only value.
+  const sorted = [...meetings].sort((a, b) => b.date.localeCompare(a.date));
 
   const groups: Map<string, Meeting[]> = new Map();
 

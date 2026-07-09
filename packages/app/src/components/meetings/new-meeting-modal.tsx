@@ -25,6 +25,7 @@ import { useCreateMeeting, useProjects, useCurrentWorkspace, useOpenTab } from "
 import { toast } from "sonner";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
+import { todayISO } from "@desk/core";
 
 interface NewMeetingModalProps {
   open: boolean;
@@ -45,7 +46,7 @@ export function NewMeetingModal({
   const getTemplate = useTemplatesStore((s) => s.getTemplate);
 
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => todayISO());
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function NewMeetingModal({
         getTemplate("meeting", currentWorkspace.id),
         {
           title: title.trim(),
-          date: date || new Date().toISOString().split("T")[0],
+          date: date || todayISO(),
           project: projects.find((p) => p.id === projectId)?.name || "",
           workspace: currentWorkspace.name,
         }
@@ -82,7 +83,7 @@ export function NewMeetingModal({
 
       // Reset form
       setTitle("");
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(todayISO());
       onClose();
 
       // Auto-open in editor tab
@@ -100,7 +101,7 @@ export function NewMeetingModal({
 
   const handleClose = () => {
     setTitle("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(todayISO());
     onClose();
   };
 

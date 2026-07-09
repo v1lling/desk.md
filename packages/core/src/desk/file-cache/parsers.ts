@@ -5,7 +5,7 @@
  * Each parser transforms raw file content into a typed structure.
  */
 
-import { parseMarkdown, generatePreview, normalizeDate } from "../parser";
+import { parseMarkdown, generatePreview, resolveContentDate } from "../parser";
 import type { ContentParser } from "./types";
 
 /**
@@ -74,7 +74,7 @@ export function createDocParser(filename: string): ContentParser<ParsedDoc> {
 
     return {
       title: (parsed.frontmatter.title as string) || nameWithoutExt,
-      created: normalizeDate(parsed.frontmatter.created as string | undefined),
+      created: resolveContentDate(parsed.frontmatter.created as string | undefined, filename),
       content: parsed.content,
       preview: parsed.preview,
     };
@@ -105,7 +105,7 @@ export function createTaskParser(filename: string): ContentParser<ParsedTask> {
       title: (parsed.frontmatter.title as string) || nameWithoutExt,
       status: (parsed.frontmatter.status as string) || "todo",
       priority: (parsed.frontmatter.priority as string) || "medium",
-      created: normalizeDate(parsed.frontmatter.created as string | undefined),
+      created: resolveContentDate(parsed.frontmatter.created as string | undefined, filename),
       due: parsed.frontmatter.due as string | undefined,
       content: parsed.content,
     };

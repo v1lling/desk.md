@@ -5,7 +5,7 @@
  * Uses paths.ts for all path construction.
  */
 import type { Meeting } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, generatePreview } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, resolveContentDate, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -46,8 +46,8 @@ function buildMeeting(
     workspaceId,
     filePath,
     title: data.title || filename || id,
-    date: normalizeDate(data.date || data.created),
-    created: normalizeDate(data.created),
+    date: resolveContentDate(data.date || data.created, filename ?? filePath),
+    created: resolveContentDate(data.created, filename ?? filePath),
     content: body,
     preview: generatePreview(body),
   };

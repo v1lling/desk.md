@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Archive, CheckCircle2, Circle, Clock, Loader2, FolderKanban, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { formatDate, stripMarkdown } from "@/lib/format";
+import { formatDate, isOverdue, stripMarkdown } from "@/lib/format";
 import {
   taskStatusTextColors,
   taskStatusLabels,
@@ -205,7 +205,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
           )}
           {task.due && (
             <span className={cn(
-              new Date(task.due) < new Date() && task.status !== "done" && "text-destructive"
+              isOverdue(task.due) && task.status !== "done" && "text-destructive"
             )}>
               {t("pages.tasks.list.dueLabel", { date: formatDate(task.due) })}
             </span>

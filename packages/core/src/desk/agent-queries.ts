@@ -4,10 +4,10 @@
  * These mirror the (now-removed) Rust desk_* read commands, but run purely on
  * the StorageProvider so they work identically on the desktop and on a future
  * server. Output shapes match what the assistant tool layer expects:
- *   - deskWorkspaceInfo → { data_root, workspaces:[{ id, name, projects[] }] }
+ *   - deskWorkspaceInfo → { data_root, workspaces:[{ id, name, projects:[{ id, name }] }] }
  *   - deskTree          → { workspace_id, projects:[{ id, name }], total, truncated, entries[] }
  *   - deskReadFile      → { path, content, total_chars, truncated }
- *   - deskFullTextSearch→ { query, path, total_files_scanned, truncated, matches[] }
+ *   - deskFullTextSearch→ { query, terms, path, total_files_scanned, truncated, matches[] }
  *
  * `.aiignore` enforcement is built in here (deskTree / deskReadFile /
  * deskFullTextSearch honour each workspace's exclusions), so it applies to EVERY
@@ -38,6 +38,10 @@ const MAX_READ_CHARS = 20_000;
 const MAX_SEARCH_RESULTS = 100;
 const MAX_SEARCH_DEPTH = 8;
 const MAX_TREE_ENTRIES = 500;
+// Per-match snippet cap (chars) — a single long line can never blow up a result.
+const MAX_MATCH_TEXT_CHARS = 300;
+// Per-file match cap — keep one file from dominating the result set.
+const MAX_MATCHES_PER_FILE = 5;
 
 // Internal metadata files hidden from the agent's tree view.
 const TREE_EXCLUDED_FILES = new Set([
@@ -83,11 +87,14 @@ export interface DeskReadResult {
 export interface SearchMatch {
   path: string;
   line: number;
+  /** The matched line, trimmed and capped at MAX_MATCH_TEXT_CHARS (with a "…" marker). */
   text: string;
 }
 
 export interface DeskSearchResult {
   query: string;
+  /** The parsed query terms (lowercased); empty for a quoted phrase search. */
+  terms: string[];
   path: string;
   total_files_scanned: number;
   truncated: boolean;
@@ -96,7 +103,7 @@ export interface DeskSearchResult {
 
 export interface DeskWorkspaceInfoResult {
   data_root: string;
-  workspaces: { id: string; name: string; projects: string[] }[];
+  workspaces: { id: string; name: string; projects: { id: string; name: string }[] }[];
 }
 
 /**
@@ -127,6 +134,12 @@ function getExtension(name: string): string {
   return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
 }
 
+// Collapse to lowercase alphanumerics (Unicode letters/digits, so umlauts survive) for
+// punctuation-insensitive search: edu-id ≡ eduid ≡ edu_id, and openathens ≡ "open athens".
+function normalizeForMatch(s: string): string {
+  return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
 async function safeReadDir(absPath: string) {
   try {
     return await getStorage().readDir(absPath);
@@ -148,7 +161,9 @@ export async function deskWorkspaceInfo(): Promise<DeskWorkspaceInfoResult> {
       return {
         id: ws.id,
         name: ws.name,
-        projects: projects.map((p) => p.name).sort((a, b) => a.localeCompare(b)),
+        projects: projects
+          .map((p) => ({ id: p.id, name: p.name }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
       };
     })
   );
@@ -254,16 +269,38 @@ export async function deskReadFile(relPath: string): Promise<DeskReadResult> {
 }
 
 /**
- * Case-insensitive full-text (substring) search across a data-root-relative
- * scope. Mirrors the old Rust grep: line-by-line, skips dotfiles / node_modules
- * / .git, only known text extensions, capped at 100 matches.
+ * Full-text search across a data-root-relative scope.
+ *
+ * Two modes:
+ *  - **Phrase** — wrap the query in double quotes (e.g. `"edu-ID setup"`) to match that
+ *    exact substring on a line (case-insensitive).
+ *  - **Terms** (default) — the query is split on whitespace into terms; a file matches only
+ *    when EVERY term appears on some line of it (file-level AND), and the returned snippets
+ *    are the lines containing any term. This makes multi-word research queries
+ *    ("OpenAthens edu-ID Alternative") work instead of demanding a verbatim line. Terms match
+ *    punctuation-insensitively (edu-id ≡ eduid ≡ edu_id, openathens ≡ "open athens").
+ *
+ * Skips dotfiles / node_modules / .git, generated agent files (TREE_EXCLUDED_FILES) and
+ * .aiignore'd paths, scans only known text extensions. Capped at MAX_SEARCH_RESULTS total
+ * matches, MAX_MATCHES_PER_FILE per file, and MAX_MATCH_TEXT_CHARS per snippet.
  */
 export async function deskFullTextSearch(
   query: string,
   scopeRel?: string
 ): Promise<DeskSearchResult> {
-  const q = query.trim().toLowerCase();
-  if (!q) {
+  const raw = query.trim();
+  if (!raw) {
+    throw new Error("Query cannot be empty");
+  }
+
+  // Phrase mode when wrapped in double quotes; otherwise AND-of-terms.
+  const isPhrase = raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"');
+  const phrase = isPhrase ? raw.slice(1, -1).trim().toLowerCase() : "";
+  const terms = isPhrase ? [] : raw.toLowerCase().split(/\s+/).filter(Boolean);
+  // Punctuation-insensitive forms of the terms used for the actual matching (the response
+  // still echoes the readable `terms`).
+  const matchTerms = terms.map(normalizeForMatch).filter(Boolean);
+  if (isPhrase ? !phrase : matchTerms.length === 0) {
     throw new Error("Query cannot be empty");
   }
 
@@ -286,6 +323,9 @@ export async function deskFullTextSearch(
     return isPathExcludedByAIIgnore(split.relative, entries);
   };
 
+  const cap = (s: string): string =>
+    s.length > MAX_MATCH_TEXT_CHARS ? `${s.slice(0, MAX_MATCH_TEXT_CHARS)}…` : s;
+
   const walk = async (relPrefix: string, depth: number): Promise<void> => {
     if (depth > MAX_SEARCH_DEPTH || matches.length >= MAX_SEARCH_RESULTS) return;
     const absDir = relPrefix ? await joinPath(deskPath, relPrefix) : deskPath;
@@ -303,6 +343,8 @@ export async function deskFullTextSearch(
       }
 
       if (!SEARCHABLE_EXTENSIONS.has(getExtension(entry.name))) continue;
+      // Skip generated agent/aggregate files so matches resolve to real source files.
+      if (TREE_EXCLUDED_FILES.has(entry.name)) continue;
       if (await isExcluded(relPath)) continue;
 
       filesScanned += 1;
@@ -314,9 +356,27 @@ export async function deskFullTextSearch(
       }
 
       const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].toLowerCase().includes(q)) {
-          matches.push({ path: relPath, line: i + 1, text: lines[i].trim() });
+
+      // File-level gate + snippet test. Phrase mode is a literal substring; terms mode
+      // matches each punctuation-collapsed LINE (edu-id ≡ eduid ≡ "edu id"), and the file
+      // qualifies only when every term appears on some line — collapsing per line (not the
+      // whole body) keeps a term from "matching" across a line break and passing the gate
+      // without ever producing a snippet.
+      let lineHit: (line: string, i: number) => boolean;
+      if (isPhrase) {
+        if (!content.toLowerCase().includes(phrase)) continue;
+        lineHit = (line) => line.toLowerCase().includes(phrase);
+      } else {
+        const normLines = lines.map(normalizeForMatch);
+        if (!matchTerms.every((t) => normLines.some((l) => l.includes(t)))) continue;
+        lineHit = (_line, i) => matchTerms.some((t) => normLines[i].includes(t));
+      }
+
+      let perFile = 0;
+      for (let i = 0; i < lines.length && perFile < MAX_MATCHES_PER_FILE; i++) {
+        if (lineHit(lines[i], i)) {
+          matches.push({ path: relPath, line: i + 1, text: cap(lines[i].trim()) });
+          perFile += 1;
           if (matches.length >= MAX_SEARCH_RESULTS) break;
         }
       }
@@ -328,6 +388,7 @@ export async function deskFullTextSearch(
 
   return {
     query,
+    terms,
     path: scope,
     total_files_scanned: filesScanned,
     truncated: matches.length >= MAX_SEARCH_RESULTS,

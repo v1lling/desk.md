@@ -26,7 +26,7 @@ import type { TaskPriority } from "@desk/core/types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { SPECIAL_DIRS } from "@desk/core";
+import { SPECIAL_DIRS, todayISO } from "@desk/core";
 import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
 import { useTemplatesStore } from "@/stores/templates";
 import { resolveVariables } from "@/lib/templates";
@@ -67,7 +67,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
         getTemplate("task", currentWorkspace.id),
         {
           title: title.trim(),
-          date: new Date().toISOString().split("T")[0],
+          date: todayISO(),
           project: projects.find((p) => p.id === projectId)?.name || "",
           workspace: currentWorkspace.name,
         }
