@@ -1,0 +1,164 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Meeting } from "@desk/core/types";
+import { getDeskService } from "@desk/core";
+
+// Query keys
+export const meetingKeys = {
+  all: ["meetings"] as const,
+  byWorkspace: (workspaceId: string) => [...meetingKeys.all, "workspace", workspaceId] as const,
+  byProject: (workspaceId: string, projectId: string) =>
+    [...meetingKeys.byWorkspace(workspaceId), "project", projectId] as const,
+  detail: (workspaceId: string, meetingId: string) =>
+    [...meetingKeys.byWorkspace(workspaceId), "detail", meetingId] as const,
+};
+
+/**
+ * Hook to fetch all meetings for a workspace
+ */
+export function useMeetings(workspaceId: string | null) {
+  return useQuery({
+    queryKey: meetingKeys.byWorkspace(workspaceId || ""),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return getDeskService().getMeetings(workspaceId);
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+/**
+ * Hook to fetch meetings for a specific project
+ */
+export function useProjectMeetings(workspaceId: string | null, projectId: string | null) {
+  return useQuery({
+    queryKey: meetingKeys.byProject(workspaceId || "", projectId || ""),
+    queryFn: async () => {
+      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
+      return getDeskService().getMeetingsByProject(workspaceId, projectId);
+    },
+    enabled: !!workspaceId && !!projectId,
+  });
+}
+
+/**
+ * Hook to fetch a single meeting
+ */
+export function useMeeting(workspaceId: string | null, meetingId: string | null) {
+  return useQuery({
+    queryKey: meetingKeys.detail(workspaceId || "", meetingId || ""),
+    queryFn: async () => {
+      if (!workspaceId || !meetingId) throw new Error("workspaceId and meetingId are required");
+      return getDeskService().getMeeting(workspaceId, meetingId);
+    },
+    enabled: !!workspaceId && !!meetingId,
+  });
+}
+
+/**
+ * Hook to create a new meeting
+ */
+export function useCreateMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      workspaceId: string;
+      projectId: string;
+      title: string;
+      date?: string;
+      content?: string;
+      templateBody?: string;
+    }) => getDeskService().createMeeting(data),
+    onSuccess: (newMeeting) => {
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.byWorkspace(newMeeting.workspaceId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to update a meeting
+ */
+export function useUpdateMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      workspaceId,
+      projectId,
+      updates,
+    }: {
+      meetingId: string;
+      workspaceId: string;
+      projectId: string;
+      updates: Partial<Pick<Meeting, "title" | "date" | "content">>;
+    }) => getDeskService().updateMeeting(meetingId, updates, workspaceId, projectId),
+    onSuccess: (updatedMeeting) => {
+      if (updatedMeeting) {
+        // Directly update meeting in all cached list queries (avoids stale file-tree cache race).
+        queryClient.setQueriesData<Meeting[]>(
+          { queryKey: meetingKeys.all },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map(m => m.id === updatedMeeting.id ? updatedMeeting : m);
+          }
+        );
+        // Also update detail query directly
+        queryClient.setQueryData(
+          meetingKeys.detail(updatedMeeting.workspaceId, updatedMeeting.id),
+          updatedMeeting
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Hook to move a meeting to a different project
+ */
+export function useMoveMeetingToProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      workspaceId,
+      fromProjectId,
+      toProjectId,
+    }: {
+      meetingId: string;
+      workspaceId: string;
+      fromProjectId: string;
+      toProjectId: string;
+    }) => getDeskService().moveMeetingToProject(meetingId, workspaceId, fromProjectId, toProjectId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.byWorkspace(variables.workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.detail(variables.workspaceId, variables.meetingId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to delete a meeting
+ */
+export function useDeleteMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ meetingId, workspaceId, projectId }: { meetingId: string; workspaceId: string; projectId: string }) =>
+      getDeskService().deleteMeeting(meetingId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.byWorkspace(result.workspaceId),
+        });
+      }
+    },
+  });
+}

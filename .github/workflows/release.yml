@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Rust
@@ -42,7 +42,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: packages/app/src-tauri
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -63,13 +63,17 @@ jobs:
         shell: bash
         run: |
           TAG=${GITHUB_REF#refs/tags/v}
-          TAURI_VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
-          PKG_VERSION=$(jq -r '.version' package.json)
-          if [ "$TAG" != "$TAURI_VERSION" ] || [ "$TAG" != "$PKG_VERSION" ]; then
-            echo "Version mismatch! Tag: $TAG, tauri.conf.json: $TAURI_VERSION, package.json: $PKG_VERSION"
+          TAURI_VERSION=$(jq -r '.version' packages/app/src-tauri/tauri.conf.json)
+          APP_VERSION=$(jq -r '.version' packages/app/package.json)
+          CORE_VERSION=$(jq -r '.version' packages/core/package.json)
+          SERVER_VERSION=$(jq -r '.version' packages/server/package.json)
+          # All workspace packages are versioned in lockstep with the release tag.
+          if [ "$TAG" != "$TAURI_VERSION" ] || [ "$TAG" != "$APP_VERSION" ] || \
+             [ "$TAG" != "$CORE_VERSION" ] || [ "$TAG" != "$SERVER_VERSION" ]; then
+            echo "Version mismatch! Tag: $TAG, tauri.conf.json: $TAURI_VERSION, app: $APP_VERSION, core: $CORE_VERSION, server: $SERVER_VERSION"
             exit 1
           fi
-          echo "Version $TAG matches tag."
+          echo "Version $TAG matches tag across all packages."
 
       - name: Build & publish release
         uses: tauri-apps/tauri-action@v0
@@ -78,6 +82,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          projectPath: packages/app
           tagName: ${{ github.ref_name }}
           releaseName: "Desk ${{ github.ref_name }}"
           releaseBody: "Release ${{ github.ref_name }}"

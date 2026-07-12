@@ -1,0 +1,33 @@
+{
+  "name": "@desk/core",
+  "version": "0.9.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "date-fns": "^4.1.0",
+    "fuse.js": "^7.1.0",
+    "gray-matter": "^4.0.3",
+    "mammoth": "^1.12.0",
+    "papaparse": "^5.5.3",
+    "pdfjs-dist": "^4.10.38",
+    "read-excel-file": "^9.0.10",
+    "turndown": "^7.2.4"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.5.2",
+    "@types/turndown": "^5.0.6"
+  },
+  "peerDependencies": {
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-fs": "^2.4.5"
+  },
+  "peerDependenciesMeta": {
+    "@tauri-apps/api": { "optional": true },
+    "@tauri-apps/plugin-fs": { "optional": true }
+  }
+}

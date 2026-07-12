@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // The server imports @desk/core as TypeScript source, so tsc type-checks
+    // that source here. Core is DOM-aware (runtime-guarded), so it needs the dom
+    // lib at type-check time even though the server runs on Node — tsx strips all
+    // types at runtime, so this has zero runtime effect.
+    "lib": ["dom", "dom.iterable", "esnext"]
+  },
+  "include": ["src"]
+}

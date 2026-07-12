@@ -4,15 +4,46 @@
 
 ## Quick Start
 
+All commands run from the repo root. The root `package.json` is an npm-workspaces
+manifest; each script delegates to the relevant package (`-w @desk/app` / `@desk/server`).
+
 ```bash
-npm run dev          # Browser with mock data (port 3001)
-npm run tauri:dev    # Desktop with real file system
-npm run build        # Type-check (tsc -b) + production web build — run before committing
-npm run lint         # ESLint (flat config in eslint.config.mjs)
-npm run tauri:build  # Production desktop build
+npm run dev          # Browser with mock data (port 3001) — @desk/app
+npm run tauri:dev    # Desktop with real file system — @desk/app
+npm run build        # Type-check + production web build — run before committing — @desk/app
+npm run typecheck    # tsc --noEmit across core, app, and server
+npm run lint         # ESLint (flat config in packages/app/eslint.config.mjs)
+npm run tauri:build  # Production desktop build — @desk/app
+npm run dev:server   # Run the @desk/server skeleton (tsx watch)
 ```
 
-> Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. There is no test runner — `tests/` is empty and there is no `test` script; verify changes via `npm run build` + manual run.
+> Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. There is no test runner — there is no `test` script; verify changes via `npm run build` + manual run.
+
+## Monorepo Layout
+
+The codebase is an npm-workspaces monorepo under `packages/`:
+
+| Package | Path | Role |
+|---------|------|------|
+| `@desk/core` | `packages/core` | **Pure domain layer** — parser, CRUD, file-cache, search, storage. No React / Zustand / Tauri-static imports. Tauri is reached only through guarded dynamic imports declared as optional `peerDependencies`. Runs in the Tauri webview, the browser, or on Node. |
+| `@desk/app` | `packages/app` | **Tauri + React UI.** Owns everything UI-coupled: components, pages, stores, hooks, and the React-bound libs (`lib/ai`, `lib/context-index`, `lib/email`, `lib/i18n`, file-cache React hooks, `desk-watcher`). Consumes `@desk/core` and wires its host seams at boot. |
+| `@desk/server` | `packages/server` | **Node 22 + Hono skeleton** that boots the same `@desk/core` domain on a `NodeFsProvider`. WIP — no auth / MCP / remote service yet. |
+
+`@desk/app` resolves `@desk/core` straight to its TypeScript source (no build step):
+a Vite alias in `packages/app/vite.config.ts` and npm-workspace symlinks point at
+`packages/core/src`. The server consumes core as source via `tsx`.
+
+**Host seams (dependency injection).** `@desk/core` is UI/runtime-agnostic; three
+couplings are injectable registries (set/get) that the host wires before any domain call:
+
+| Seam | Setter | app wires it to | server wires it to |
+|------|--------|-----------------|--------------------|
+| Data root | `setDataRootResolver` | boot store `dataPath` | `DESK_DATA_ROOT` env |
+| Storage | `setStorage` | `TauriProvider` / `BrowserProvider` | `NodeFsProvider` |
+| Editor notify | `setEditorNotifier` | open-editor registry | no-op default |
+| Agent-context write | `setAgentContextWriter` | `lib/context-index` | no-op default |
+
+The app wires these in [packages/app/src/main.tsx](packages/app/src/main.tsx); the server in [packages/server/src/boot.ts](packages/server/src/boot.ts).
 
 ## Core Concept
 
@@ -38,7 +69,7 @@ The home workspace (frontmatter `home: true`) holds the capture inbox and is alw
 - **Editor**: Tiptap (WYSIWYG markdown)
 - **Drag & Drop**: @dnd-kit
 
-> **Note**: This is a single-page app (SPA) built with Vite. No SSR, no API routes — Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. If a real backend is ever needed (sync, auth), it would be a separate service.
+> **Note**: `@desk/app` is a single-page app (SPA) built with Vite. No SSR, no API routes — Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. The `@desk/server` package is the start of a real off-Tauri backend (sync/hosted), running the same `@desk/core` domain on Node; it is a WIP skeleton.
 
 ## Data Models
 
@@ -49,27 +80,64 @@ type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 type ContentScope = 'personal' | 'workspace' | 'project';
 ```
 
+### Names & dates (the contract)
+
+- **Filename = frozen identifier.** Files are `YYYY-MM-DD-slug.md` (`generateFilename`), assigned once
+  at creation and **never renamed** when the title changes. The `slug` is the creation-time title and
+  the date prefix is the **creation** day — both go stale by design; don't read meaning into them
+  beyond "stable id". The item's `id` derives from the filename (`filenameToId`), so ids are stable
+  across title edits and links never break.
+- **`title` (frontmatter) = display name.** The editable name shown everywhere in the UI, in tabs,
+  search, and to agents. Editing a title rewrites frontmatter only (docs-tree "Rename" included) — it
+  never touches the filename.
+- **`created` (frontmatter) = canonical metadata date.** Resolved via `resolveContentDate`:
+  frontmatter → filename date-prefix → today (last resort only). Sorting, MCP `desk_catalog`, and the
+  Smart Index all key off this. **OS file stat (`birthtime`/`mtime`) is never an agent-visible or
+  canonical date** — it's unreliable across import/copy/sync; it survives only as a local docs-tree
+  "modified" sort key.
+- **One clock: local.** A date-only value is the **local** calendar day. Use `formatLocalISODate` /
+  `todayISO()` (local) and never `new Date().toISOString().split('T')[0]` (UTC — off by a day near
+  midnight). To *parse* a `YYYY-MM-DD` string for display, use date-fns `parseISO` or
+  `formatLocaleDate` (both local); never `new Date("YYYY-MM-DD")` (UTC midnight → previous day in
+  negative-offset zones). Compare due/created dates as **strings** (`a < b` is chronological for this
+  format), e.g. `isOverdue` in `lib/format.ts`.
+
 ## Key Directories
+
+**`@desk/core` (`packages/core/src/`) — domain layer:**
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/lib/desk/` | Core CRUD operations |
-| `src/lib/desk/file-cache/` | File tree cache for list views (LRU cache) |
-| `src/lib/ai/` | AI integration (see [README](src/lib/ai/README.md)) |
-| `src/lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
-| `src/lib/assistant/` | Multi-turn agent orchestrator with read-only tools (browse/search/read) |
-| `src/stores/` | TanStack Query hooks + Zustand stores |
-| `src/hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
-| `src/components/patterns/` | Page-level layout patterns |
-| `src/components/tabs/` | Tab bar and content system |
-| `src/components/editors/` | Full-width doc/task/meeting editors |
-| `src/components/` | React components by feature |
-| `src/pages/` | Page components (one per route) |
-| `src/app/` | App shell, providers, globals.css |
+| `desk/` | Core CRUD operations |
+| `desk/storage/` | `StorageProvider` — the single filesystem seam (Tauri / browser / Node server) |
+| `desk/service/` | `DeskService` interface + `LocalDeskService` binding the domain functions |
+| `desk/env.ts` | Data-root resolution, path joining, bootstrap (not I/O) |
+| `desk/platform.ts` | Pure runtime checks (`isTauri`/`isMacOS`), dependency-free to avoid import cycles |
+| `desk/agent-queries.ts` | Read-side queries (tree/read/search) for MCP + the Smart Index, backed by `StorageProvider` |
+| `desk/file-cache/` | File tree cache for list views (LRU cache) — pure logic only |
+| `desk/{data-root,editor-notifier,agent-context-writer}.ts` | The injectable host seams (see Monorepo Layout) |
+
+**`@desk/app` (`packages/app/src/`) — UI layer:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `lib/ai/` | AI integration (see [README](packages/app/src/lib/ai/README.md)) |
+| `lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
+| `lib/email/` | `.eml` parsing + email tab data shapes |
+| `lib/{file-tree-hooks,cache-invalidator,desk-watcher}.ts` | React/query-coupled file-cache glue |
+| `stores/` | TanStack Query hooks + Zustand stores |
+| `hooks/` | Reusable React hooks (project lookup, grouping, etc.) |
+| `components/patterns/` | Page-level layout patterns |
+| `components/tabs/` | Tab bar and content system |
+| `components/editors/` | Full-width doc/task/meeting editors |
+| `components/` | React components by feature |
+| `pages/` | Page components (one per route) |
+| `app/` | App shell, providers, globals.css |
+| `../src-tauri/` (i.e. `packages/app/src-tauri/`) | Tauri 2 Rust shell (commands, drop overlay, icons, `tauri.conf.json`) |
 
 ## Current State: v0.9
 
-> The source of truth for the version is `package.json` / `src-tauri/tauri.conf.json`. Keep this heading in sync when bumping.
+> The source of truth for the version is `packages/app/package.json` / `packages/app/src-tauri/tauri.conf.json`. All workspace packages (`core`, `app`, `server`) are versioned in lockstep — the release workflow enforces this. Keep this heading in sync when bumping.
 
 Key features:
 - Dashboard with Focus and Workspaces widgets
@@ -80,24 +148,24 @@ Key features:
   (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
 - **Docs**: Tree structure with folders; drag-drop import converts Word/PDF/Excel/CSV/HTML
   to Markdown (mammoth, pdfjs-dist, read-excel-file, papaparse, turndown), targeting the drop folder
-- **AI Chat**: Claude Code CLI or Anthropic API, with context retrieval (Smart Index)
-- **i18n**: all UI copy via i18next/react-i18next from [src/i18n/en.json](src/i18n/en.json)
+- **Smart Index (AI catalog)**: AI-summarized file catalog (Anthropic/OpenAI key in the OS Keychain) for context retrieval; external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local). No in-app chat assistant.
+- **i18n**: all UI copy via i18next/react-i18next from [packages/app/src/i18n/en.json](packages/app/src/i18n/en.json)
 - Cross-platform: macOS, Windows, and Linux (email drag-drop overlay is macOS-only)
 - Global search (Cmd+K)
 - Manual save with Cmd+S, unsaved changes protection
 
 ## Email Integration
 
-**Drag any message onto the Desk window** — works for Apple Mail, Outlook for Mac (Legacy and New Outlook), Thunderbird, and Finder. The dropped message is parsed and opened in a session-only email tab; the user runs "Draft Reply → Open Draft in Assistant" and copies the reply back to their mail client.
+**Drag any message onto the Desk window** — works for Apple Mail, Outlook for Mac (Legacy and New Outlook), Thunderbird, and Finder. The dropped message is parsed and opened in a session-only email tab. The tab is a viewer with a **Copy email** button; to draft a reply the user pastes that text into the `draft-email-reply` **MCP prompt** in their AI connector (Claude/ChatGPT) and copies the result back to their mail client.
 
 Two parallel drop paths feed the same import pipeline:
 
-Both drop paths are handled by the native Cocoa `NSView` overlay in [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m), which sits above the WKWebView and claims every URL-bearing pasteboard:
+Both drop paths are handled by the native Cocoa `NSView` overlay in [packages/app/src-tauri/src/drop_view.m](packages/app/src-tauri/src/drop_view.m), which sits above the WKWebView and claims every URL-bearing pasteboard:
 
-- **File promises** (Apple Mail, Outlook) — Apple Mail / Outlook drag emails as `NSFilePromiseReceiver` (or the legacy `NSFilesPromisePboardType`), which Tauri's WKWebView drop handler ignores. The overlay accepts the promise, materializes it into `$TMPDIR/desk-drops/`, and emits `email-drag-{enter,leave,drop}` Tauri events. [src/components/email/email-drop-overlay.tsx](src/components/email/email-drop-overlay.tsx) opens the resulting `.eml` in an email tab.
-- **Plain file URLs** (Thunderbird, Finder, anywhere else) — the same overlay extracts the file URLs and emits `desk-files-drag-{enter,leave,over,drop}` (drop payload includes cursor x/y in flipped/DOM coords). [src/components/docs/content-drop-zone.tsx](src/components/docs/content-drop-zone.tsx) routes these into the docs tree at the cursor row. Direct file URLs no longer reach Tauri's `getCurrentWebview().onDragDropEvent`; the listener in `email-drop-overlay.tsx` is kept as a defensive fallback only.
+- **File promises** (Apple Mail, Outlook) — Apple Mail / Outlook drag emails as `NSFilePromiseReceiver` (or the legacy `NSFilesPromisePboardType`), which Tauri's WKWebView drop handler ignores. The overlay accepts the promise, materializes it into `$TMPDIR/desk-drops/`, and emits `email-drag-{enter,leave,drop}` Tauri events. [packages/app/src/components/email/email-drop-overlay.tsx](packages/app/src/components/email/email-drop-overlay.tsx) opens the resulting `.eml` in an email tab.
+- **Plain file URLs** (Thunderbird, Finder, anywhere else) — the same overlay extracts the file URLs and emits `desk-files-drag-{enter,leave,over,drop}` (drop payload includes cursor x/y in flipped/DOM coords). [packages/app/src/components/docs/content-drop-zone.tsx](packages/app/src/components/docs/content-drop-zone.tsx) routes these into the docs tree at the cursor row. Direct file URLs no longer reach Tauri's `getCurrentWebview().onDragDropEvent`; the listener in `email-drop-overlay.tsx` is kept as a defensive fallback only.
 
-The Cocoa file carries an inline comment block explaining the Apple Mail 60-second callback hang and the FSEvents workaround that makes drops feel instant for that client. Read [src-tauri/src/drop_view.m](src-tauri/src/drop_view.m) before touching this code.
+The Cocoa file carries an inline comment block explaining the Apple Mail 60-second callback hang and the FSEvents workaround that makes drops feel instant for that client. Read [packages/app/src-tauri/src/drop_view.m](packages/app/src-tauri/src/drop_view.m) before touching this code.
 
 Web mail (Gmail, Outlook Web) — out of scope. Workaround: "Show original" → save → drag the resulting `.eml`.
 
@@ -118,32 +186,36 @@ interface IncomingEmail {
 **Key Files:**
 | File | Purpose |
 |------|---------|
-| `src/lib/email/types.ts` | `IncomingEmail` / `EmailTabData` shapes |
-| `src/lib/email/eml-import.ts` | `.eml` parsing (postal-mime) + Tauri `read_eml_file` invoke |
-| `src/components/email/email-drop-overlay.tsx` | Listens for both direct-URL and promise drops |
-| `src/components/email/` | Email viewer and draft reply UI |
-| `src-tauri/src/drop_view.m` | Cocoa NSView accepting `NSFilePromiseReceiver` drops + FSEvents fallback |
-| `src-tauri/src/drop_view.rs` | Rust FFI wrapper around the Cocoa overlay |
-| `src-tauri/src/lib.rs` (`read_eml_file`, `delete_dropped_file`) | File read + temp cleanup |
-| `src-tauri/build.rs` | Compiles `drop_view.m` on macOS via the `cc` crate |
+| `packages/app/src/lib/email/types.ts` | `IncomingEmail` / `EmailTabData` shapes |
+| `packages/app/src/lib/email/eml-import.ts` | `.eml` parsing (postal-mime) + Tauri `read_eml_file` invoke |
+| `packages/app/src/components/email/email-drop-overlay.tsx` | Listens for both direct-URL and promise drops |
+| `packages/app/src/components/email/` | Email viewer and draft reply UI |
+| `packages/app/src-tauri/src/drop_view.m` | Cocoa NSView accepting `NSFilePromiseReceiver` drops + FSEvents fallback |
+| `packages/app/src-tauri/src/drop_view.rs` | Rust FFI wrapper around the Cocoa overlay |
+| `packages/app/src-tauri/src/lib.rs` (`read_eml_file`, `delete_dropped_file`) | File read + temp cleanup |
+| `packages/app/src-tauri/build.rs` | Compiles `drop_view.m` on macOS via the `cc` crate |
 
 ## AI Context
 
-The Smart Index builds an AI-summarized file catalog per workspace. The in-app assistant uses tool-driven retrieval (desk_catalog, desk_read). External agents use the generated `CLAUDE.md` and `WORKSPACE_CONTEXT.md` files.
+The Smart Index builds an AI-summarized file catalog per workspace. There is no in-app chat assistant — external agents reach desk over **MCP** (`@desk/server`, read-only tools `desk_workspace_info`/`desk_tree`/`desk_read`/`desk_search`/`desk_catalog`, plus the `draft-email-reply` prompt) in hosted mode, and over generated `CLAUDE.md`/`AGENTS.md` in local mode. There are no Rust `desk_*` commands.
+
+**Read layer routes through `DeskService`, not bare `getStorage()`.** The read queries (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) plus the Smart Index build reads and its cache (`getIndexCache`/`setIndexCache` → `.desk/index/indexes.json`) all go through `getDeskService()`. So in hosted mode they run on the **server** (the catalog lives server-side for MCP), not the client's local disk. The MCP tools on the server read through the same `DeskService`.
+
+**AI compute runs where the local key is.** The Smart Index model runs client-side on the local Keychain key (so native-remote indexes the server's files using the locally-typed key; web-hosted has no key → index off until a future server-side-AI step). Catalog/indexer AI calls log token usage to the AI settings **Usage** panel (`purpose: 'index'`). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`) are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the external-agent interface, not generated markdown.
 
 **Key files:**
 | Directory | Purpose |
 |-----------|---------|
-| `src/lib/context-index/` | Smart Index: builder, indexer, artifacts, agent context |
-| `src/lib/context-index/agent-context.ts` | Generates CLAUDE.md + AGENTS.md for external agents |
-| `src/stores/context.ts` | Context settings (Zustand, persisted) |
-| `src/stores/context-index.ts` | Smart Index data store |
+| `packages/app/src/lib/context-index/` | Smart Index: builder, indexer, artifacts, agent context |
+| `packages/app/src/lib/context-index/agent-context.ts` | Generates CLAUDE.md + AGENTS.md for external agents |
+| `packages/app/src/stores/context.ts` | Context settings (Zustand, persisted) |
+| `packages/app/src/stores/context-index.ts` | Smart Index data store |
 
 ## UI Patterns
 
 ### UI Strings (i18n)
 
-All user-facing strings live in [src/i18n/en.json](src/i18n/en.json). Never hardcode user-visible copy in JSX, toasts, or thrown errors that bubble to the UI.
+All user-facing strings live in [packages/app/src/i18n/en.json](packages/app/src/i18n/en.json). Never hardcode user-visible copy in JSX, toasts, or thrown errors that bubble to the UI.
 
 ```tsx
 // React components
@@ -156,9 +228,9 @@ import i18next from "i18next";
 toast.success(i18next.t("toasts.workspace.create.success"));
 ```
 
-Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `assistant`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
+Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
 
-**Out of scope for translation** — these stay English in source: AI system prompts ([src/lib/ai/prompts.ts](src/lib/ai/prompts.ts)), assistant tool descriptions ([src/lib/assistant/](src/lib/assistant/)), generated agent files ([src/lib/context-index/agent-context.ts](src/lib/context-index/agent-context.ts), [src/lib/context-index/artifacts.ts](src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
+**Out of scope for translation** — these stay English in source: AI system prompts ([packages/app/src/lib/ai/prompts.ts](packages/app/src/lib/ai/prompts.ts)), MCP tool/prompt descriptions ([packages/server/src/mcp.ts](packages/server/src/mcp.ts)), generated agent files ([packages/app/src/lib/context-index/agent-context.ts](packages/app/src/lib/context-index/agent-context.ts), [packages/app/src/lib/context-index/artifacts.ts](packages/app/src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` (within `@desk/app`) only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
 
 ### Scrolling
 Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).
@@ -177,8 +249,8 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 ### Component Architecture
 
 **Tab-Based Editing (Obsidian-style)**:
-- `TabBar` / `TabContent` - Tab system in `src/components/tabs/`
-- `DocEditor` / `TaskEditor` / `MeetingEditor` - Full-width editors in `src/components/editors/`
+- `TabBar` / `TabContent` - Tab system in `packages/app/src/components/tabs/`
+- `DocEditor` / `TaskEditor` / `MeetingEditor` - Full-width editors in `packages/app/src/components/editors/`
 - "Desk" tab is always pinned, showing current app view
 - Clicking docs/tasks/meetings opens them in new tabs
 - Tab state persists in localStorage via `useTabStore`
@@ -186,10 +258,9 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 
 **Core UI Components**:
 - `RichTextEditor` - Tiptap WYSIWYG markdown editor
-- `AIChatEditor` - AI Chat tab (⌘⇧A to open)
 - `DocExplorer` - Doc tree browser with scope dropdown
 
-### Reusable Hooks (`src/hooks/`)
+### Reusable Hooks (`packages/app/src/hooks/`)
 
 Use these hooks instead of duplicating logic:
 - `useProjectName(workspaceId)` - Project name lookup by ID
@@ -213,49 +284,75 @@ Editors use a dual-layer system:
 
 Key stores: `open-editor-registry.ts`, `editor-event-bus.ts`
 
-### Metadata File Conventions
+### Where state lives (the storage model)
 
-All app metadata lives in `~/Desk/.desk/` for organization and consistency:
+Decide by **scope**; the home follows mechanically. The key rule once hosted mode exists:
+**"it's a file" ≠ "it syncs" — only `DeskService`-backed paths reach the server.** So anything
+that should follow the user across devices must go through `getDeskService()`, not a bare
+`getStorage()` / `localStorage`.
+
+| Scope | Meaning | Home | Syncs in hosted? |
+|-------|---------|------|------------------|
+| **USER** | follows the person across devices | a file in the data tree via **`DeskService`** (markdown or `.desk/*.json`) | ✅ yes |
+| **DEVICE** | this machine / window / session | `localStorage` · Rust OS-config · Keychain (secrets) | no (correct) |
+| **DERIVED** | rebuildable cache | `.desk/*` local (server-side later) | n/a |
+| **AUTH/SESSION** | identity, server-side | **SQLite** (`@desk/server`) | server-only |
+
+Headline: *Follows you → `DeskService`-backed file. About this device → localStorage. Secrets →
+Keychain. Auth → SQLite. Caches → `.desk/`.* Do **not** put user settings in SQLite — files keep
+"own your files" and get sync free through the seam.
+
+**Remote mode makes local disk off-limits, structurally.** When the domain runs on a server
+(native app pointed at a server, or the hosted web build), `main.tsx` installs a
+`GuardStorageProvider` so every `getStorage()` call **throws** — domain data must go through
+`getDeskService()` (the RPC client). The one predicate that gates legitimate local-disk access is
+**`isLocalDisk()` = `isTauri() && !isDomainRemote()`** ([connection.ts](packages/app/src/lib/connection.ts));
+never branch storage decisions on bare `isTauri()` (that misses the native-remote case). Local-file
+needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri commands, not the
+`StorageProvider` seam.
 
 **Directory Structure:**
 ```
-~/Desk/
-├── .desk/                   ← All app metadata
-│   ├── index/
-│   │   └── indexes.json     ← Smart Index (all workspaces in one file)
-│   ├── usage/
-│   │   └── ai-usage.json   ← AI usage records (90-day rolling)
-│   └── planner/
-│       └── weeks.json      ← Week planner data
+~/DeskMD/
+├── .desk/                    ← App metadata
+│   ├── settings/             ← USER settings, shared via DeskService (getSetting/setSetting)
+│   │   ├── templates.json
+│   │   ├── agent-instructions.json
+│   │   └── planner.json
+│   ├── index/indexes.json    ← Smart Index (DERIVED cache, local)
+│   └── usage/ai-usage.json   ← AI usage records (DERIVED/telemetry, local)
 └── workspaces/
     └── {workspaceId}/
-        ├── .aiignore        ← Per-workspace AI exclusions (.gitignore syntax)
-        └── .view.json       ← Per-workspace view state (UI preferences)
+        ├── .aiignore         ← Per-workspace AI exclusions (.gitignore syntax)
+        └── .view.json        ← View state — USER, shared via DeskService (getViewState/…)
 ```
 
+**Classification (current):**
+| State | Scope | Home | Reached via |
+|-------|-------|------|-------------|
+| Tasks / docs / meetings / projects / workspaces | USER | markdown files | `getDeskService()` |
+| View state (`.view.json`: task order, view mode, expanded folders, highlights, hidden statuses) | USER | `.view.json` | `getDeskService().getViewState/…` |
+| Templates, agent-instructions, week planner | USER | `.desk/settings/*.json` | `getDeskService().getSetting/setSetting` (via `createRemoteSettingStorage`) |
+| Smart/context index, AI usage | DERIVED | `.desk/index`, `.desk/usage` | `createFileStorage` (local) |
+| Preferences (theme, language, sidebar widths, workday hours, dismissedUpdate) | DEVICE | localStorage `desk-preferences` | zustand persist |
+| Navigation (current workspace), tabs | DEVICE | localStorage | zustand persist |
+| Boot (dataPath, setupCompleted, connectionMode, serverUrl) | DEVICE | localStorage `desk-boot` + Rust `config.json` | boot store / Rust |
+| AI provider/model selection + consent | DEVICE | localStorage `desk-ai-settings-v2` | zustand persist |
+| AI keys, remote session token | DEVICE | OS Keychain | `secret_*` Tauri commands |
+| Auth (users, sessions) | AUTH | SQLite (hosted only) | Better Auth |
+
+> Known not-yet-moved: `ai.ts` custom/per-type instructions and `context.ts` emit-flags are
+> conceptually USER but live in stores that also hold DEVICE fields; splitting them is a follow-up.
+
 **Rules:**
-- **App-level metadata** → `.desk/` subdirectories (indexes, usage, planner)
-- **Workspace-specific config** → Root of workspace directory (`.aiignore`, `.view.json`)
-- **User content** → Regular `.md` files with YAML frontmatter
-- **Naming**: Use `.desk/` for app metadata, dot-prefix (`.aiignore`) for hidden config
-- **Format**: JSON for structured data, plain text for lists/exclusions
+- A new **user-level** setting → a `.desk/settings/<key>.json` via `createRemoteSettingStorage(key)`
+  (app store) which routes through `DeskService.getSetting/setSetting`. Never bare `localStorage`.
+- A new **device-level** UI preference → `localStorage` (plain zustand persist). Never a file.
+- A **derived cache** → `createFileStorage` (`.desk/`); do not sync large caches over RPC.
+- **Format**: JSON for structured data, plain text for lists (`.aiignore`).
 
-**Storage Strategy:**
-| Data Type | Storage | Reason |
-|-----------|---------|--------|
-| User Content | Filesystem | Must backup, sync, persist |
-| Derived Indexes | Filesystem (`.desk/`) | Expensive to rebuild, should sync |
-| Growing Data | Filesystem (`.desk/`) | AI usage, planner — too large for localStorage |
-| Boot Config | localStorage (`desk-boot`) | Sync read at startup, duplicated to Rust config |
-| User Preferences | localStorage (`desk-preferences`) | Sync read, reactive UI |
-| Navigation State | localStorage (`desk-navigation`) | Current workspace selection |
-| AI Settings | localStorage (`desk-ai-settings-v2`) | Provider config, custom instructions |
-| Session State | localStorage (`desk-tabs`, `desk-assistant`) | UI-only, OK to lose |
-| Rust Boot Config | OS config dir (`config.json`) | Rust needs `data_path` before WebView |
-| Secrets | OS Keychain | API keys (macOS) |
-| View Preferences | Filesystem (`.view.json`) | Per-workspace/project UI state |
-
-**No Backwards Compatibility:** Single user, no migration code needed. Just delete and rebuild.
+**No Backwards Compatibility:** Single user, no migration code. Moving a setting's home just
+abandons the old location and re-creates it empty.
 
 ### Form Components
 
@@ -274,7 +371,7 @@ import { FormGrid } from "@/components/ui/form-grid";
 </FormGrid>
 ```
 
-### Page Patterns (`src/components/patterns/`)
+### Page Patterns (`packages/app/src/components/patterns/`)
 
 - `FilteredListPage` - Standard layout for pages with Header + FilterBar + ScrollArea + Modal
 
@@ -299,9 +396,13 @@ cp icon_256x256@2x.png icon_512x512.png
 
 # 4. Convert to icns and replace
 iconutil -c icns macos-icon.iconset -o macos-icon.icns
-mv macos-icon.icns src-tauri/icons/icon.icns
+mv macos-icon.icns packages/app/src-tauri/icons/icon.icns
 rm -rf macos-icon.iconset
 ```
+
+> The Tauri project now lives in `packages/app/src-tauri`. `npx @tauri-apps/cli icon`
+> writes to `<cwd>/src-tauri/icons`, so run the icon commands from `packages/app`
+> (or move the generated `icons/` into `packages/app/src-tauri/`).
 
 > **Why two steps?** macOS doesn't auto-apply rounded corners to native apps (unlike iOS). The square source works for Windows/iOS/Android, but macOS needs the squircle baked in.
 
@@ -336,12 +437,12 @@ Desk generates `CLAUDE.md` and `AGENTS.md` files automatically so external AI ag
 **Regeneration triggers:** workspace create/update/delete, project create/update/delete, index rebuild, app startup.
 
 **Key files:**
-- `src/lib/context-index/agent-context.ts` — Generates CLAUDE.md + AGENTS.md content
-- `src/lib/context-index/artifacts.ts` — Generates WORKSPACE_CONTEXT.md
+- `packages/app/src/lib/context-index/agent-context.ts` — Generates CLAUDE.md + AGENTS.md content
+- `packages/app/src/lib/context-index/artifacts.ts` — Generates WORKSPACE_CONTEXT.md
 
 ## CI/CD & Releases
 
-**Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds the macOS app, and publishes a GitHub Release on `v1lling/desk.md` itself (built-in `GITHUB_TOKEN`, no PAT).
+**Workflow**: `.github/workflows/release.yml` — triggers on `v*` tag push, builds the macOS app (`tauri-action` with `projectPath: packages/app`; Rust cache scoped to `packages/app/src-tauri`), and publishes a GitHub Release on `v1lling/desk.md` itself (built-in `GITHUB_TOKEN`, no PAT). A pre-build step asserts the tag matches the version in all workspace packages.
 
 **Versioning (Semantic Versioning)**:
 - **MAJOR (x.0.0)**: Breaking changes, major architecture shifts
@@ -355,11 +456,14 @@ Examples:
 
 **Release steps**:
 ```bash
-# 1. Bump version in both files
-# tauri.conf.json → "version": "X.Y.Z"
-# package.json → "version": "X.Y.Z"
+# 1. Bump version in all four (kept in lockstep; release.yml enforces it)
+# packages/app/src-tauri/tauri.conf.json → "version": "X.Y.Z"
+# packages/app/package.json              → "version": "X.Y.Z"
+# packages/core/package.json             → "version": "X.Y.Z"
+# packages/server/package.json           → "version": "X.Y.Z"
 # 2. Commit, tag, push
-git add src-tauri/tauri.conf.json package.json
+git add packages/app/src-tauri/tauri.conf.json packages/app/package.json \
+        packages/core/package.json packages/server/package.json
 git commit -m "vX.Y.Z"
 git tag vX.Y.Z
 git push origin main --tags
