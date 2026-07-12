@@ -18,21 +18,26 @@
   </picture>
 </p>
 
-desk.md is a local-first desktop app for running your projects (tasks, docs, and meetings) as plain Markdown files. Think of Obsidian's local vault, but with lightweight project and task management built in.
+desk.md is a local-first workspace for projects, tasks, docs, and meetings,
+stored as plain Markdown files. Use it as an offline desktop app, or self-host
+it and let Claude, ChatGPT, and other AI tools read your workspace through MCP.
+Think Obsidian-style file ownership, but with lightweight project management
+and agent-ready context built in.
 
 - **Plain Markdown.** YAML frontmatter in an ordinary folder. No database,
   no lock-in. Drag in Word, PDF, Excel, CSV, or HTML files and they convert to Markdown docs.
 - **Project management.** Workspaces, projects, tasks, docs, and meetings,
   with statuses, priorities, due dates, Kanban or list views, and a
   quick-capture inbox in the home workspace.
-- **AI agents.** Every doc is potential context for an AI agent, and
-  nobody wants to re-explain their work every session. desk.md
-  auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
-  file index with summaries, so any agent you point at the folder already
-  knows your work.
-- **Offline.** Works fully offline. No account, no mandatory cloud.
-- **Workspaces.** One per client, side project, or area of life, each with
-  its own projects, tasks, docs, and meetings.
+- **AI-ready context.** desk.md generates `CLAUDE.md`, `AGENTS.md`,
+  `GEMINI.md`, and per-workspace context files, so local coding agents can
+  understand your projects without you re-explaining them every session.
+- **MCP for Claude and ChatGPT.** Self-host desk.md and connect AI tools to
+  your Markdown workspace over a read-only, OAuth-protected MCP endpoint. They
+  can browse, search, and read your docs, tasks, and meetings without getting
+  write access.
+- **Local or self-hosted.** Run fully offline on your desktop, or host it on
+  your own server for browser/PWA access and MCP.
 
 ## Screenshots
 
@@ -114,21 +119,26 @@ or edit it in another app.
 
 ## AI & agents
 
-desk.md isn't an AI dev tool or an autonomous agent platform. It's a
-work-management app that uses AI in two specific ways.
+desk.md isn't an autonomous agent platform. It's a work-management app that
+keeps your context organized, then lets AI tools read that context when you want
+them to.
 
 **Sparring partner.** A built-in chat assistant for the thinking work:
 brainstorming, sparring on decisions, working through technical problems,
 drafting emails. Uses your own Anthropic or OpenAI API key
 (**Settings → AI**); without a key, it's off.
 
-**Bring your own agent.** Because your data is just a folder of Markdown,
-external agents (Claude Code, Codex, Gemini CLI) can open it too. desk.md
-auto-generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and a per-workspace
-`WORKSPACE_CONTEXT.md` that indexes and summarizes your files, so they
-understand your workspaces with zero setup — locally, just files, no server or
-plugins. Self-hosted (below), the server also exposes an **MCP** endpoint that
-Claude.ai and ChatGPT can connect to over the network.
+**Local agent files.** Because your data is just Markdown, local tools like
+Claude Code, Codex, and Gemini CLI can open the folder directly. desk.md writes
+`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `WORKSPACE_CONTEXT.md` so those
+agents know what they are looking at.
+
+**Hosted MCP.** If you self-host desk.md, the server exposes a read-only MCP
+endpoint. Claude.ai, ChatGPT, Claude Code, and other MCP clients can browse,
+search, and read your workspace over the network. Useful for questions like
+"what did we decide about this project?", "find the latest client notes", or
+"draft a reply using the related meeting notes and tasks". Authentication uses
+OAuth, and the MCP tools do not get write access.
 
 ## Running it: local or self-hosted
 
@@ -148,7 +158,8 @@ Markdown you own; the difference is where it lives and who can reach it.
 | Multi-device sync | Your own tool (iCloud, Dropbox, git, Syncthing) | Built in, the server holds the shared copy |
 | Login | None, fully offline | Account and session (first user wins), needs the network |
 | In-app AI assistant | Yes, with your own API key | Yes, with a key on the server |
-| External AI agents | Point Claude Code, Codex, or Gemini at the folder (file-based) | Same, plus a hosted MCP endpoint browser and phone AI can connect to |
+| External AI agents | Point Claude Code, Codex, or Gemini at the folder | Connect Claude.ai, ChatGPT, Claude Code, or any MCP client to your workspace |
+| MCP | No server needed; agents read local files | Read-only OAuth-protected MCP endpoint |
 
 > The native desktop app can also point at a self-hosted server instead of local
 > disk, giving you the desktop UI on top of server-side data.
@@ -163,16 +174,15 @@ Ideas I'm exploring:
 - More project-management depth, still lightweight: timelines, milestones,
   task dependencies
 - Ollama support for the assistant, so AI can run fully local
-- Mobile companion: a read-only viewer and quick capture, synced through the
-  filesystem
+- Mobile polish: make the hosted PWA better for quick capture and read-only review
 - Time tracking: log time on tasks with simple per-project reports
 
 ## Run from source
 
-desk.md is a Tauri desktop app, organized as an npm-workspaces monorepo under
-`packages/` (`@desk/core` domain layer, `@desk/app` Tauri+React UI, `@desk/server`
-the Node/Hono self-host server — domain API, web/PWA, OAuth, and MCP). All commands
-run from the repo root:
+desk.md is organized as an npm-workspaces monorepo under `packages/`:
+`@desk/core` for the domain layer, `@desk/app` for the Tauri and React UI, and
+`@desk/server` for the Node/Hono self-host server with the domain API, web/PWA,
+OAuth, and MCP. All commands run from the repo root:
 
 ```bash
 npm install
