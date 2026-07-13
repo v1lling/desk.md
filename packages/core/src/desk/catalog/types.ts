@@ -14,10 +14,16 @@ export interface CatalogEntry {
   path: string;
   /** Absolute file path for reading */
   filePath: string;
-  /** Content type */
-  type: 'doc' | 'ai-doc' | 'task' | 'meeting';
+  /**
+   * Content type. A lifecycle distinction, not an authorship one:
+   * `context` is the evergreen, maintained map (read it first to orient); `doc` / `task` /
+   * `meeting` are dated records that accumulate and are never rewritten.
+   */
+  type: 'doc' | 'context' | 'task' | 'meeting';
   /** Title from frontmatter */
   title: string;
+  /** 'ai' when an agent wrote the file; absent means the user did. */
+  author?: 'ai';
   /** SHA-256 hash of file body (for incremental summary reuse) */
   contentHash: string;
   /** ISO date created - absent when the file carries no date */

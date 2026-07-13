@@ -31,9 +31,14 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
   lines.push("");
   lines.push("Each line below is one file: `path` · title · meta · summary.");
   lines.push("");
+  lines.push(
+    "**Context** is the maintained map — read it first to orient yourself. " +
+      "**Docs**, **Tasks**, and **Meetings** are dated records that accumulate."
+  );
+  lines.push("");
 
-  // Group entries: docs first, then AI docs, then tasks, then meetings
-  const typeOrder: Record<string, number> = { doc: 0, "ai-doc": 1, task: 2, meeting: 3 };
+  // Context first — it is the orientation layer — then the records.
+  const typeOrder: Record<string, number> = { context: 0, doc: 1, task: 2, meeting: 3 };
   const grouped = [...index.entries].sort((a, b) => {
     const orderDiff = (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
     if (orderDiff !== 0) return orderDiff;
@@ -48,7 +53,7 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
     if (entry.type !== currentType) {
       if (currentType !== "") lines.push("");
       currentType = entry.type;
-      const sectionName = entry.type === "ai-doc" ? "AI Docs" : entry.type === "doc" ? "Docs" : entry.type === "task" ? "Tasks" : "Meetings";
+      const sectionName = entry.type === "context" ? "Context" : entry.type === "doc" ? "Docs" : entry.type === "task" ? "Tasks" : "Meetings";
       lines.push(`## ${sectionName}`);
       lines.push("");
     }
@@ -58,6 +63,7 @@ function buildWorkspaceContext(index: WorkspaceIndex): string {
     if (entry.status) meta.push(`status=${entry.status}`);
     if (entry.priority) meta.push(`priority=${entry.priority}`);
     if (entry.date) meta.push(`date=${entry.date}`);
+    if (entry.author) meta.push(`author=${entry.author}`);
 
     // One compact line per file: `path` · title · meta · summary
     const parts = [oneLine(entry.title)];

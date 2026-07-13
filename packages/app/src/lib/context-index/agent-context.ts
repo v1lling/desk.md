@@ -1,7 +1,7 @@
 import { getDeskPath, joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
-import { FILE_NAMES } from "@desk/core";
+import { FILE_NAMES, DESK_SPACE_NORMS } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
 import { useContextStore } from "@/stores/context";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
@@ -52,26 +52,9 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   );
   lines.push("");
 
-  // How this space works (norms, non-imperative)
-  lines.push("## How this space works");
-  lines.push("");
-  lines.push("A few conventions keep this knowledge base coherent and tidy.");
-  lines.push("");
-  lines.push(
-    "**`docs/`** holds notes the user curates: references, drafts, and reference material. Read it freely when you need context. Don't write to it directly; new material flows in via `ai-docs/draft-*.md` and the user promotes it to `docs/` when ready."
-  );
-  lines.push("");
-  lines.push(
-    "**`ai-docs/`** is the AI working area. Everything here is AI-written, distilled from conversations, research, or analysis. This is where you capture and organize what you learn."
-  );
-  lines.push("");
-  lines.push(
-    "**`tasks/`** and **`meetings/`** are real, committed work items. Treat new ones as something the user decides to add. When you spot a candidate, surface it in chat rather than writing the file yourself."
-  );
-  lines.push("");
-  lines.push(
-    "**`.aiignore`** at each workspace root lists files the user has flagged as sensitive (gitignore-style patterns). Honor it. The Smart Index enforces these exclusions automatically; external agents are asked to do the same."
-  );
+  // How this space works — the shared norms. Same constant the MCP server ships as
+  // `instructions`, so a local agent and a hosted one read the identical conventions.
+  lines.push(DESK_SPACE_NORMS);
   lines.push("");
 
   // Your instructions — user-editable block
@@ -84,20 +67,6 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
       "No custom instructions configured (Settings → Agents)."
     )
   );
-  lines.push("");
-
-  // Conventions inside ai-docs
-  lines.push("## Conventions inside ai-docs");
-  lines.push("");
-  lines.push("A small vocabulary keeps `ai-docs/` findable as it grows:");
-  lines.push("");
-  lines.push("- `context.md`: running project brief, kept current as understanding grows");
-  lines.push("- `research-{topic}.md`: investigations with sources");
-  lines.push("- `notes-{topic}.md`: working notes, append-friendly");
-  lines.push("- `draft-{topic}.md`: material destined for `docs/` after review");
-  lines.push("- `adr-NNN-{topic}.md`: recorded decisions");
-  lines.push("");
-  lines.push("Append to an existing note when continuing a thread. New files are for new topics, not new thoughts.");
   lines.push("");
 
   // Workspaces table
@@ -124,7 +93,11 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("## Finding things");
   lines.push("");
   lines.push(
-    "Each workspace has a `WORKSPACE_CONTEXT.md`: a one-line-per-file catalog (`path · title · meta · summary`) of every doc, task, and meeting, with a file count at the top. Read it whole for an overview of what a workspace holds and how it's organized; scan it for a topic to jump straight to the right file."
+    "Two layers, and you want them in this order. **`context/`** (workspace root, and each project root) is the map: what this is, which systems it touches, what was decided. Start there — it holds the intent and background you cannot reconstruct from the records alone."
+  );
+  lines.push("");
+  lines.push(
+    "Then **`WORKSPACE_CONTEXT.md`**: a one-line-per-file catalog (`path · title · meta · summary`) of every file in the workspace, with a file count at the top. It is the index, not the story — complete and always current, but it will tell you where things are, not what they mean. Scan it for a topic to jump straight to the right file."
   );
   lines.push("");
   lines.push(
@@ -145,14 +118,14 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("        ├── CLAUDE.md / AGENTS.md / GEMINI.md   # workspace anchor (identical copies)");
   lines.push("        ├── WORKSPACE_CONTEXT.md       # AI-generated file catalog");
   lines.push("        ├── .aiignore                  # sensitive paths to skip");
-  lines.push("        ├── docs/                      # human-curated");
-  lines.push("        ├── ai-docs/                   # AI working area");
+  lines.push("        ├── context/                   # the map: evergreen, maintained, co-authored");
+  lines.push("        ├── docs/                      # records: dated, accumulate, never rewritten");
   lines.push("        ├── _unassigned/               # items without a project (tasks/docs/meetings)");
   lines.push("        ├── _capture/                  # home workspace only (triage inbox for tasks)");
   lines.push("        └── projects/{projectId}/");
   lines.push("            ├── project.md");
-  lines.push("            ├── docs/                  # human-curated");
-  lines.push("            ├── ai-docs/               # AI working area");
+  lines.push("            ├── context/               # the map (per project)");
+  lines.push("            ├── docs/                  # records");
   lines.push("            ├── tasks/");
   lines.push("            └── meetings/");
   lines.push("```");
@@ -186,11 +159,12 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("```");
   lines.push("");
 
-  lines.push("### Doc (`docs/*.md` and `ai-docs/*.md`)");
+  lines.push("### Doc (`docs/*.md` and `context/*.md`)");
   lines.push("```yaml");
   lines.push("---");
   lines.push("title: Architecture Overview");
   lines.push("created: \"2024-06-15\"");
+  lines.push("author: ai        # only when you wrote it; omit entirely for the user's own files");
   lines.push("---");
   lines.push("```");
   lines.push("");
@@ -235,11 +209,11 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   );
   lines.push("");
   lines.push(
-    "Where to write is covered by **How this space works** above: `ai-docs/` is yours to write freely; new `docs/`, tasks, and meetings are the user's call. Draft them in chat or in `ai-docs/draft-*.md` rather than creating those files yourself."
+    "Where to write is covered by **How this space works** above: `context/` is yours to keep current, and a dated record you produce (research, a decision, an analysis) belongs in `docs/` with `author: ai`. New tasks and meetings are the user's call — surface the candidate rather than creating the file yourself."
   );
   lines.push("");
   lines.push(
-    "To create a project: add a directory under `projects/` with a `project.md`, plus `tasks/`, `docs/`, `ai-docs/`, and `meetings/` subdirectories."
+    "To create a project: add a directory under `projects/` with a `project.md`, plus `context/`, `tasks/`, `docs/`, and `meetings/` subdirectories."
   );
   lines.push("");
 

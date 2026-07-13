@@ -129,6 +129,7 @@
         "searchPlaceholder": "Dokumente durchsuchen…",
         "fileCount_one": "{{count}} Datei",
         "fileCount_other": "{{count}} Dateien",
+        "contextFolder": "Kontext",
         "sections": {
           "workspace": "Arbeitsbereich",
           "projects": "Projekte"
@@ -158,7 +159,14 @@
       "selectWorkspaceTitle": "Arbeitsbereich auswählen",
       "selectWorkspaceDescription": "Wähle einen Arbeitsbereich in der Seitenleiste, um Dokumente anzuzeigen.",
       "selectDocTitle": "Dokument auswählen",
-      "selectDocDescription": "Wähle ein Dokument aus der Liste, um es zu öffnen."
+      "selectDocDescription": "Wähle ein Dokument aus der Liste, um es zu öffnen.",
+      "authorAi": "Von KI verfasst",
+      "authorFilter": {
+        "label": "Verfasst von",
+        "all": "Alle",
+        "mine": "Eigene",
+        "generated": "Generiert"
+      }
     },
     "meetings": {
       "latestBadge": "Neueste",
@@ -942,7 +950,7 @@
       "deleteFailed": "Ordner konnte nicht gelöscht werden",
       "moveFailed": "Ordner konnte nicht verschoben werden",
       "reservedName": "„{{name}}“ ist ein reservierter Ordnername.",
-      "crossKindMove": "Das Verschieben von Ordnern zwischen Dokumenten und KI-Dokumenten wird noch nicht unterstützt. Verschiebe Dokumente einzeln."
+      "crossKindMove": "Das Verschieben von Ordnern zwischen Dokumenten und Kontext wird noch nicht unterstützt. Verschiebe Dokumente einzeln."
     },
     "editor": {
       "deleteDocFailed": "Dokument konnte nicht gelöscht werden",

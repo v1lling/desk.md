@@ -28,6 +28,7 @@ export * from "./tree-path";
 export * from "./file-utils";
 export * from "./file-operations";
 export * from "./note-link";
+export * from "./norms";
 
 // ── Docs tree + queries + planner ───────────────────────────────────
 export * from "./content-tree";

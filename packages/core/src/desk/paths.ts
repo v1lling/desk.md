@@ -9,8 +9,8 @@
  * ├── workspaces/
  * │   └── {workspaceId}/           (one folder per workspace)
  * │       ├── workspace.md         (frontmatter `home: true` marks the home workspace)
- * │       ├── docs/                (Human-written docs)
- * │       ├── ai-docs/             (AI-generated docs)
+ * │       ├── context/             (The map: evergreen, maintained, co-authored)
+ * │       ├── docs/                (Records: dated, accumulate, never rewritten)
  * │       ├── _capture/            (Quick capture for triage — home workspace only)
  * │       │   └── tasks/
  * │       ├── _unassigned/
@@ -19,9 +19,9 @@
  * │       │   └── meetings/
  * │       └── projects/{projectId}/
  * │           ├── project.md
+ * │           ├── context/
  * │           ├── tasks/
  * │           ├── docs/
- * │           ├── ai-docs/
  * │           └── meetings/
  */
 
@@ -176,16 +176,16 @@ export async function getDocsPath(
 }
 
 /**
- * Get the AI docs directory based on scope (parallel to getDocsPath for ai-docs/)
+ * Get the context directory based on scope (parallel to getDocsPath for context/)
  */
-export async function getAIDocsPath(
+export async function getContextPath(
   scope: ContentScope,
   workspaceId?: string,
   projectId?: string
 ): Promise<string> {
   if (scope === "personal") {
     const workspacePath = await getWorkspacePath(await getHomeWorkspaceId());
-    return joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS);
+    return joinPath(workspacePath, PATH_SEGMENTS.CONTEXT);
   }
 
   if (!workspaceId) {
@@ -194,7 +194,7 @@ export async function getAIDocsPath(
 
   if (scope === "workspace") {
     const workspacePath = await getWorkspacePath(workspaceId);
-    return joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS);
+    return joinPath(workspacePath, PATH_SEGMENTS.CONTEXT);
   }
 
   // scope === "project"
@@ -203,7 +203,7 @@ export async function getAIDocsPath(
   }
 
   const projectPath = await getProjectPath(workspaceId, projectId);
-  return joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
+  return joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
 }
 
 // =============================================================================

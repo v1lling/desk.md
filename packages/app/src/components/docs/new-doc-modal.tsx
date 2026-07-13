@@ -25,8 +25,8 @@ import type { ContentScope } from "@desk/core/types";
 import {
   displayTreePath,
   splitTreePathToKind,
-  isAITreePath,
-  isReservedAIDocsName,
+  isContextTreePath,
+  isReservedContextName,
   todayISO,
 } from "@desk/core";
 import { useTemplatesStore } from "@/stores/templates";
@@ -38,7 +38,7 @@ interface NewDocModalProps {
   defaultProjectId?: string;
   defaultScope?: ContentScope;
   defaultWorkspaceId?: string;
-  /** Tree-relative folder path (may contain the AI Docs sentinel). */
+  /** Tree-relative folder path (may contain the Context sentinel). */
   defaultFolderPath?: string;
 }
 
@@ -71,7 +71,7 @@ export function NewDocModal({
 
   // Translate the tree path into a real on-disk folder + kind
   const { kind: destinationKind, subPath: destinationSubPath } = splitTreePathToKind(defaultFolderPath || "");
-  const isAIDestination = isAITreePath(defaultFolderPath || "");
+  const isAIDestination = isContextTreePath(defaultFolderPath || "");
 
   useEffect(() => {
     if (defaultProjectId) {
@@ -90,7 +90,7 @@ export function NewDocModal({
 
     // Block creating a doc whose name would create a reserved-name folder collision.
     // (Docs don't create folders, but be defensive about future automation.)
-    if (!isAIDestination && !destinationSubPath && isReservedAIDocsName(trimmed)) {
+    if (!isAIDestination && !destinationSubPath && isReservedContextName(trimmed)) {
       toast.error(t("errors.doc.reservedName", { name: trimmed }));
       return;
     }

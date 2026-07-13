@@ -10,14 +10,15 @@ export const BASE_CONTEXT = `You are summarizing files for Desk, a local-first p
 Desk organizes work into workspaces, each containing projects with tasks, documents, and meetings.
 
 Workspace structure:
+  projects/{project-id}/context/  — the map: evergreen, maintained, co-authored
   projects/{project-id}/tasks/    — task markdown files
-  projects/{project-id}/docs/     — human-written documents
-  projects/{project-id}/ai-docs/  — AI-generated documents
+  projects/{project-id}/docs/     — records: dated documents
   projects/{project-id}/meetings/ — meeting note markdown files
   _unassigned/tasks|docs|meetings — items not assigned to a project
-  docs/                           — workspace-level human docs
-  ai-docs/                        — workspace-level AI docs
-Files created by Desk are named YYYY-MM-DD-slug.md, but docs/ may also contain imported files with arbitrary names. Entity type is determined by directory (tasks/, docs/, ai-docs/, meetings/), not filename.`;
+  context/                        — workspace-level map
+  docs/                           — workspace-level records
+context/ and docs/ split on lifecycle, not authorship: context/ is the small, current description of how things are (read it first); docs/, tasks/, and meetings/ are dated records that accumulate and are never rewritten. Both the user and AI write both.
+Files created by Desk are named YYYY-MM-DD-slug.md, but docs/ may also contain imported files with arbitrary names. Entity type is determined by directory (context/, tasks/, docs/, meetings/), not filename.`;
 
 /**
  * System prompts for internal operations (indexing/summarization).

@@ -5,14 +5,14 @@ import type { ContentFolder, ContentScope, DocKind } from "../types";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getAIDocsPath } from "./paths";
+import { getDocsPath, getContextPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
 
 import { getContentTree } from "./content-tree";
 
 function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
-  return kind === "ai"
-    ? getAIDocsPath(scope, workspaceId, projectId)
+  return kind === "context"
+    ? getContextPath(scope, workspaceId, projectId)
     : getDocsPath(scope, workspaceId, projectId);
 }
 
@@ -24,7 +24,7 @@ export async function createFolder(
   folderPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "human"
+  kind: DocKind = "doc"
 ): Promise<ContentFolder> {
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
@@ -51,7 +51,7 @@ export async function renameFolder(
   newName: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "human"
+  kind: DocKind = "doc"
 ): Promise<ContentFolder> {
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, oldPath);
@@ -109,7 +109,7 @@ export async function moveFolder(
   toParentPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "human"
+  kind: DocKind = "doc"
 ): Promise<boolean> {
   // Prevent moving into itself or descendants
   if (toParentPath === fromPath || toParentPath.startsWith(fromPath + "/")) {
@@ -152,7 +152,7 @@ export async function deleteFolder(
   folderPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "human"
+  kind: DocKind = "doc"
 ): Promise<boolean> {
   if (isMockMode()) {
     return true;

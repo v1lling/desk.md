@@ -1,6 +1,7 @@
 
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { FileText, Sparkles } from "lucide-react";
 import type { Doc } from "@desk/core/types";
 
 interface DocCardProps {
@@ -9,6 +10,7 @@ interface DocCardProps {
 }
 
 export function DocCard({ doc, onClick }: DocCardProps) {
+  const { t } = useTranslation();
   return (
     <Card
       className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -23,6 +25,12 @@ export function DocCard({ doc, onClick }: DocCardProps) {
             <h3 className="font-medium truncate">{doc.title}</h3>
             {doc.created && <p className="text-xs text-muted-foreground">{doc.created}</p>}
           </div>
+          {doc.author === "ai" && (
+            <Sparkles
+              className="size-3.5 shrink-0 text-muted-foreground/40"
+              aria-label={t("pages.docs.authorAi")}
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">

@@ -49,17 +49,51 @@ The app wires these in [packages/app/src/main.tsx](packages/app/src/main.tsx); t
 
 ```
 Workspace (any area of work — a client, side project, or life area)
+├── context/              (the map — evergreen, maintained)
 ├── Workspace-level Docs
 ├── _unassigned/          (tasks without a project)
 ├── _capture/             (home workspace only - triage inbox)
 └── Projects
     └── Project
+        ├── context/      (the map, per project)
         ├── Tasks, Docs, Meetings
 
 The home workspace (frontmatter `home: true`) holds the capture inbox and is always first in the list.
 ```
 
 **"Work Mode" Navigation**: User selects active workspace via bottom selector. All views (Tasks, Docs, Meetings) filter to that workspace automatically.
+
+### Records vs Context
+
+Written material splits on **lifecycle, not authorship**. This is the load-bearing distinction
+in the data model, and getting it backwards is the mistake the old `ai-docs/` folder made.
+
+- **Records** — `docs/`, `tasks/`, `meetings/`. Dated. They accumulate and are never rewritten.
+  A March meeting note stays a March meeting note; research "as of May" stays true of May.
+  Because a record only ever claimed to be true of its date, **a record cannot go stale**, and
+  records are allowed to grow without bound.
+- **Context** — `context/`, at the workspace root and each project root. The map: what this is,
+  which systems it touches, what was decided. Evergreen, deliberately small, kept current. It is
+  the **only** layer that can go stale, hence the only one with a refresh mechanism.
+
+Both the user and AI write both kinds. Who typed a file is `Doc.author` (`'ai'`, or absent for the
+user) — frontmatter, orthogonal to the directory, surfaced in the UI as a badge + filter. Do not
+reintroduce an authorship-shaped directory: the axis does not hold (an AI can write the user's
+website copy; the user can hand-write a context file for the agent).
+
+`DocKind = 'doc' | 'context'` selects the directory and is always **derived from the path**, never
+stored in frontmatter.
+
+The conventions agents see live in **one** constant, `DESK_SPACE_NORMS`
+([packages/core/src/desk/norms.ts](packages/core/src/desk/norms.ts)), rendered into the generated
+`CLAUDE.md`/`AGENTS.md`/`GEMINI.md` (local mode), `WORKSPACE_CONTEXT.md`'s legend, and the MCP
+server's `instructions` (hosted mode). Change the norms there, not in the renderers.
+
+**Context and the Smart Index are complementary, not rivals.** The Smart Index is the *catalog*
+(one line per file, complete, mechanical, always current) and answers "where is the thing I need?".
+Context is the *narrative* (small, judged, maintained) and answers "what is going on here?". An
+agent can read a 227-line `WORKSPACE_CONTEXT.md` and still not know what the workspace *is*. Ship
+both, composed: context first, index below.
 
 ## Tech Stack
 
@@ -148,7 +182,7 @@ Key features:
   (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
 - **Docs**: Tree structure with folders; drag-drop import converts Word/PDF/Excel/CSV/HTML
   to Markdown (mammoth, pdfjs-dist, read-excel-file, papaparse, turndown), targeting the drop folder
-- **Smart Index (AI catalog)**: AI-summarized file catalog (Anthropic/OpenAI key in the OS Keychain) for context retrieval; external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local). No in-app chat assistant.
+- **Smart Index (AI catalog)**: AI-summarized file catalog (Anthropic/OpenAI key in the OS Keychain) for context retrieval; external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local).
 - **i18n**: all UI copy via i18next/react-i18next from [packages/app/src/i18n/en.json](packages/app/src/i18n/en.json)
 - Cross-platform: macOS, Windows, and Linux (email drag-drop overlay is macOS-only)
 - Global search (Cmd+K)
@@ -324,7 +358,12 @@ needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri
 └── workspaces/
     └── {workspaceId}/
         ├── .aiignore         ← Per-workspace AI exclusions (.gitignore syntax)
-        └── .view.json        ← View state — USER, shared via DeskService (getViewState/…)
+        ├── .view.json        ← View state — USER, shared via DeskService (getViewState/…)
+        ├── context/          ← The map (evergreen, maintained, co-authored)
+        ├── docs/             ← Records (dated, accumulate)
+        └── projects/{id}/
+            ├── context/      ← The map, per project
+            └── docs/, tasks/, meetings/   ← Records
 ```
 
 **Classification (current):**

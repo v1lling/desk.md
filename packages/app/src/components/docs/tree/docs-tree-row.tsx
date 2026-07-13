@@ -1,7 +1,9 @@
 import { createContext, useContext, useCallback, type CSSProperties } from "react";
 import type { NodeApi } from "react-arborist";
+import { useTranslation } from "react-i18next";
 import {
   ChevronRight,
+  Compass,
   FileText,
   Folder,
   FolderKanban,
@@ -24,7 +26,7 @@ import {
 } from "../tree-item-utils";
 import { InlineRenameInput } from "../inline-rename-input";
 import {
-  isAIDocsRoot,
+  isContextRoot,
   isProjectStub,
   type ArboristNode,
 } from "./arborist-adapter";
@@ -131,8 +133,8 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
   if (!folder) return null;
 
   const isProject = isProjectStub(data);
-  const isAIRoot = isAIDocsRoot(data);
-  const isProtected = isAIRoot; // synthetic AI Docs cannot be renamed/deleted/dragged
+  const isCtxRoot = isContextRoot(data);
+  const isProtected = isCtxRoot; // the synthetic Context root cannot be renamed/deleted/dragged
   const isExcludedFromAI = handlers.folderAIStates.get(data.treePath) === false;
   // Counts: projects expose a precomputed recursive total (lazy children aren't loaded yet);
   // everything else has a fully populated subtree from the overview shell, so count inline.
@@ -157,7 +159,9 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
     onDeleteFolder: isProtected || isProject ? undefined : (path) => handlers.onDeleteFolder(path),
   });
 
-  const Icon = isProject ? FolderKanban : Folder;
+  // Context is a peer of projects, not a muted appendix: it gets its own row icon
+  // (the map) rather than the trailing badge it used to carry.
+  const Icon = isProject ? FolderKanban : isCtxRoot ? Compass : Folder;
 
   return (
     <TreeItemMenus items={menuItems}>
@@ -183,7 +187,10 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
           )}
         />
         <Icon
-          className={cn("size-4 shrink-0", isProject ? "text-primary/70" : "text-muted-foreground")}
+          className={cn(
+            "size-4 shrink-0",
+            isProject || isCtxRoot ? "text-primary/70" : "text-muted-foreground",
+          )}
         />
         {node.isEditing ? (
           <InlineRenameInput
@@ -194,13 +201,7 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
           />
         ) : (
           <>
-            <span
-              className={cn(
-                "text-sm truncate",
-                isProject ? "font-medium" : "",
-                isAIRoot ? "text-muted-foreground" : "",
-              )}
-            >
+            <span className={cn("text-sm truncate", (isProject || isCtxRoot) && "font-medium")}>
               {folder.name}
             </span>
             <div
@@ -212,10 +213,9 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
               {docCount > 0 ? (
                 <span className="text-[11px] text-muted-foreground/40 tabular-nums">{docCount}</span>
               ) : null}
-              {isExcludedFromAI && !isProject && !isAIRoot && (
+              {isExcludedFromAI && !isProject && !isCtxRoot && (
                 <SparklesOff className="size-3.5 text-muted-foreground/60" />
               )}
-              {isAIRoot && <Sparkles className="size-3.5 text-muted-foreground/50" />}
             </div>
           </>
         )}
@@ -230,6 +230,7 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
 function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
   const handlers = useTreeHandlers();
+  const { t } = useTranslation();
   const doc = data.kind === "doc" && data.node.type === "doc" ? data.node.doc : null;
 
   const handleClick = useCallback(() => {
@@ -280,7 +281,16 @@ function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
         ) : (
           <span className="text-sm truncate">{doc.title}</span>
         )}
-        <div className="ml-auto" />
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          {/* Provenance, not lifecycle: an AI-written file is still the user's, it just
+              wasn't typed by them. Deliberately quiet — a mark, not a warning. */}
+          {doc.author === "ai" && (
+            <Sparkles
+              className="size-3 text-muted-foreground/40 group-hover:hidden"
+              aria-label={t("pages.docs.authorAi")}
+            />
+          )}
+        </div>
         <TreeItemDropdown items={menuItems} />
       </div>
     </TreeItemMenus>

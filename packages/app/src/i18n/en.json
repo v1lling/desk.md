@@ -140,6 +140,7 @@
         "searchPlaceholder": "Search docs…",
         "fileCount_one": "{{count}} file",
         "fileCount_other": "{{count}} files",
+        "contextFolder": "Context",
         "sections": {
           "workspace": "Workspace",
           "projects": "Projects"
@@ -169,7 +170,14 @@
       "selectWorkspaceTitle": "Select a workspace",
       "selectWorkspaceDescription": "Choose a workspace in the sidebar to view docs.",
       "selectDocTitle": "Select a doc",
-      "selectDocDescription": "Pick a doc from the list to open it."
+      "selectDocDescription": "Pick a doc from the list to open it.",
+      "authorAi": "Written by AI",
+      "authorFilter": {
+        "label": "Written by",
+        "all": "All",
+        "mine": "Mine",
+        "generated": "Generated"
+      }
     },
     "meetings": {
       "latestBadge": "Latest",
@@ -958,7 +966,7 @@
       "deleteFailed": "Failed to delete folder",
       "moveFailed": "Failed to move folder",
       "reservedName": "\"{{name}}\" is a reserved folder name.",
-      "crossKindMove": "Moving folders between Docs and AI Docs isn't supported yet. Move docs individually."
+      "crossKindMove": "Moving folders between Docs and Context isn't supported yet. Move docs individually."
     },
     "editor": {
       "deleteDocFailed": "Failed to delete doc",

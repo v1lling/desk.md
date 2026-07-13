@@ -21,7 +21,7 @@ import {
 } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { PATH_SEGMENTS } from "./constants";
-import { getDocsPath, getAIDocsPath } from "./paths";
+import { getDocsPath, getContextPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
 
 // Re-export all from split modules
@@ -78,11 +78,11 @@ export async function getDoc(
   workspaceId: string,
   docId: string
 ): Promise<Doc | null> {
-  const docs = await getAllDocsForWorkspace(workspaceId, "human");
+  const docs = await getAllDocsForWorkspace(workspaceId, "doc");
   const found = docs.find((doc) => doc.id === docId);
   if (found) return found;
-  const aiDocs = await getAllDocsForWorkspace(workspaceId, "ai");
-  return aiDocs.find((doc) => doc.id === docId) || null;
+  const contextDocs = await getAllDocsForWorkspace(workspaceId, "context");
+  return contextDocs.find((doc) => doc.id === docId) || null;
 }
 
 /**
@@ -96,11 +96,11 @@ export async function createDoc(data: {
   templateBody?: string;
   kind?: DocKind;
 }): Promise<Doc> {
-  const kind = data.kind || "human";
+  const kind = data.kind || "doc";
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
-  const dirSegment = kind === "ai" ? PATH_SEGMENTS.AI_DOCS : PATH_SEGMENTS.DOCS;
+  const dirSegment = kind === "context" ? PATH_SEGMENTS.CONTEXT : PATH_SEGMENTS.DOCS;
 
   const doc: Doc = {
     id,
@@ -120,8 +120,8 @@ export async function createDoc(data: {
     return doc;
   }
 
-  const docsPath = kind === "ai"
-    ? await getAIDocsPath("project", data.workspaceId, data.projectId)
+  const docsPath = kind === "context"
+    ? await getContextPath("project", data.workspaceId, data.projectId)
     : await getDocsPath("project", data.workspaceId, data.projectId);
   const filePath = await joinPath(docsPath, filename);
   doc.filePath = filePath;

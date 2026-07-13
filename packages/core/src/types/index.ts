@@ -62,9 +62,20 @@ export type ProjectUpdate =
 export type WorkspaceUpdate =
   Partial<Pick<Workspace, "name">> & { description?: string | null; color?: string | null };
 
-// Doc kind - derived from filesystem path (docs/ vs ai-docs/), not stored in frontmatter.
-// Still used by lib-level CRUD to select the physical directory (docs/ vs ai-docs/).
-export type DocKind = 'human' | 'ai';
+// Doc kind - derived from filesystem path (docs/ vs context/), not stored in frontmatter.
+// Selects the physical directory in lib-level CRUD.
+//
+// This is a LIFECYCLE distinction, not an authorship one:
+//   'doc'     — a dated record. Accumulates, never rewritten. Cannot go stale, because
+//               it only ever claimed to be true of its date.
+//   'context' — the map. Evergreen, small, maintained, rewritten as understanding changes.
+//               The only layer that can go stale, hence the only one with a refresh.
+// Both the user and AI write both kinds. Who typed it is `Doc.author`, not the directory.
+export type DocKind = 'doc' | 'context';
+
+// Who wrote a doc. Absent means the user — we never write `author: human`, absence is
+// the default. Agents stamp `author: ai` on files they create (see DESK_SPACE_NORMS).
+export type DocAuthor = 'ai';
 
 // Doc - lives under a project (renamed from Note)
 export interface Doc {
@@ -72,10 +83,11 @@ export interface Doc {
   path?: string;           // Relative path with folders (e.g., "tech/architecture.md")
   projectId: string;
   workspaceId: string;
-  filePath: string;        // Full absolute path — encodes kind via `/docs/` or `/ai-docs/` segment
+  filePath: string;        // Full absolute path — encodes kind via `/docs/` or `/context/` segment
   title: string;
   created?: string;        // ISO date - absent when the file carries no date
   updated?: string;        // ISO datetime - stamped on every save
+  author?: DocAuthor;      // 'ai' when an agent wrote it; absent = the user
   content: string;
   preview?: string;        // First ~100 chars
   fileCreated?: string;    // OS file creation time (ISO)

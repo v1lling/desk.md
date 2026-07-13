@@ -115,14 +115,14 @@ export async function buildWorkspaceIndex(
   if (canSummarize && needsSummarization.length > 0) {
     // Fetch raw content and strip frontmatter (extractBody) so the AI summarizes body
     // text, not YAML. Four bulk reads, keyed by absolute filePath to match catalog entries.
-    const [docs, aiDocs, tasks, meetings] = await Promise.all([
-      deskService.getAllDocsForWorkspace(workspaceId, "human"),
-      deskService.getAllDocsForWorkspace(workspaceId, "ai"),
+    const [docs, contextDocs, tasks, meetings] = await Promise.all([
+      deskService.getAllDocsForWorkspace(workspaceId, "doc"),
+      deskService.getAllDocsForWorkspace(workspaceId, "context"),
       deskService.getTasks(workspaceId),
       deskService.getMeetings(workspaceId),
     ]);
     const contentMap = new Map<string, string>();
-    for (const item of [...docs, ...aiDocs, ...tasks, ...meetings]) {
+    for (const item of [...docs, ...contextDocs, ...tasks, ...meetings]) {
       contentMap.set(item.filePath, extractBody(item.content));
     }
 

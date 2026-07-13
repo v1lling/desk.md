@@ -10,7 +10,7 @@ import { writeMarkdownFile } from "./file-operations";
 import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getAIDocsPath } from "./paths";
+import { getDocsPath, getContextPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
 import { convertFileToMarkdown } from "./file-conversion";
 
@@ -35,7 +35,7 @@ export async function createDocInFolder(data: {
   projectId?: string;
   kind?: DocKind;
 }): Promise<Doc> {
-  const kind = data.kind || "human";
+  const kind = data.kind || "doc";
   const filename = generateFilename(data.title);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const homeWorkspaceId = await getHomeWorkspaceId();
@@ -67,8 +67,8 @@ export async function createDocInFolder(data: {
     return doc;
   }
 
-  const basePath = kind === "ai"
-    ? await getAIDocsPath(data.scope, data.workspaceId, data.projectId)
+  const basePath = kind === "context"
+    ? await getContextPath(data.scope, data.workspaceId, data.projectId)
     : await getDocsPath(data.scope, data.workspaceId, data.projectId);
 
   const folderPath = data.folderPath
@@ -116,7 +116,7 @@ export async function importFiles(
   folderPath?: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "human",
+  kind: DocKind = "doc",
   convertibleAction: ConvertibleAction = "keep",
 ): Promise<ImportFilesResult> {
   const importedDocs: Doc[] = [];
@@ -124,8 +124,8 @@ export async function importFiles(
   const convertedDocs: Doc[] = [];
   const failures: ImportFileFailure[] = [];
 
-  const basePath = kind === "ai"
-    ? await getAIDocsPath(scope, workspaceId, projectId)
+  const basePath = kind === "context"
+    ? await getContextPath(scope, workspaceId, projectId)
     : await getDocsPath(scope, workspaceId, projectId);
   const targetDir = folderPath ? await joinPath(basePath, folderPath) : basePath;
   await getStorage().mkdir(targetDir);

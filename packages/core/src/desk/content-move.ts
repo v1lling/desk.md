@@ -7,7 +7,7 @@ import { isMockMode, joinPath } from "./env";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getAIDocsPath } from "./paths";
+import { getDocsPath, getContextPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
 
 interface DocFrontmatter extends Record<string, unknown> {
@@ -19,7 +19,7 @@ interface DocFrontmatter extends Record<string, unknown> {
 /**
  * A doc's physical location: which scope/project it belongs to, the folder path
  * within that scope's docs root, and whether it lives in `docs/` (human) or
- * `ai-docs/` (ai). A move is fully described by a `from` and a `to` of this shape.
+ * `context/` (context). A move is fully described by a `from` and a `to` of this shape.
  */
 export interface DocLocation {
   scope: ContentScope;
@@ -30,8 +30,8 @@ export interface DocLocation {
 }
 
 function resolveBasePath(loc: DocLocation, workspaceId?: string): Promise<string> {
-  return loc.kind === "ai"
-    ? getAIDocsPath(loc.scope, workspaceId, loc.projectId)
+  return loc.kind === "context"
+    ? getContextPath(loc.scope, workspaceId, loc.projectId)
     : getDocsPath(loc.scope, workspaceId, loc.projectId);
 }
 
@@ -43,7 +43,7 @@ function projectIdFor(loc: DocLocation, homeWorkspaceId: string): string {
 /**
  * Move a doc from one location to another. `from`/`to` may differ in scope,
  * project, folder, and kind — this single primitive covers folder reorder,
- * cross-kind (`docs/` ↔ `ai-docs/`), project↔project, and workspace↔project moves.
+ * cross-kind (`docs/` ↔ `context/`), project↔project, and workspace↔project moves.
  *
  * Physically moves the file; the returned `Doc` reflects the new id/path/projectId.
  */
@@ -64,8 +64,8 @@ export async function moveDoc(
       // Reflect cross-kind moves in the mock filePath so subsequent path-based
       // kind derivation picks up the new directory.
       if (from.kind !== to.kind) {
-        const oldSeg = from.kind === "ai" ? "/ai-docs/" : "/docs/";
-        const newSeg = to.kind === "ai" ? "/ai-docs/" : "/docs/";
+        const oldSeg = from.kind === "context" ? "/context/" : "/docs/";
+        const newSeg = to.kind === "context" ? "/context/" : "/docs/";
         doc.filePath = doc.filePath.replace(oldSeg, newSeg);
       }
     }

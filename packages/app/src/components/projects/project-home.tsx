@@ -334,7 +334,7 @@ function MeetingsSection({ workspaceId, projectId }: { workspaceId: string; proj
 
 function DocsSection({ workspaceId, projectId }: { workspaceId: string; projectId: string }) {
   const { t } = useTranslation();
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "human");
+  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "doc");
   const { openDoc } = useOpenTab();
 
   const recent = useMemo(
@@ -404,7 +404,7 @@ function ActivitySection({ workspaceId, projectId }: { workspaceId: string; proj
   const { t } = useTranslation();
   const { data: tasks = [] } = useProjectTasks(workspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(workspaceId, projectId);
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "human");
+  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "doc");
   const { openTask, openMeeting, openDoc } = useOpenTab();
 
   const recent = useMemo(() => {

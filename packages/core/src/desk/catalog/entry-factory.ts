@@ -20,6 +20,7 @@ export interface BuildCatalogEntryInput {
   type: CatalogEntry["type"];
   title: string;
   projectId: string;
+  author?: CatalogEntry["author"];
   created?: string;
   updated?: string;
   content: string;
@@ -39,6 +40,7 @@ export async function buildCatalogEntry(input: BuildCatalogEntryInput): Promise<
     filePath: input.filePath,
     type: input.type,
     title: input.title,
+    author: input.author,
     contentHash: await hashContent(extractBody(input.content)),
     created: input.created,
     updated: input.updated,

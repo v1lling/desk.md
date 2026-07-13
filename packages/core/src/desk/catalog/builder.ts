@@ -1,7 +1,7 @@
 /**
  * Workspace catalog builder — pure, AI-free, runnable anywhere (incl. the server).
  *
- * Enumerates every doc / ai-doc / task / meeting in a workspace and returns metadata
+ * Enumerates every context file / doc / task / meeting in a workspace and returns metadata
  * entries (path, title, type, dates, status, contentHash) with NO summaries. The app's
  * summary-enrichment pass layers AI summaries on top by `path`; the MCP server merges
  * persisted summaries at read time. This is the single source of truth for "what files
@@ -39,9 +39,9 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
   const projects = await getProjects(workspaceId);
   const projectNameMap = new Map(projects.map((p) => [p.id, p.name]));
 
-  const [docs, aiDocs, tasks, meetings] = await Promise.all([
-    getAllDocsForWorkspace(workspaceId, "human"),
-    getAllDocsForWorkspace(workspaceId, "ai"),
+  const [docs, contextDocs, tasks, meetings] = await Promise.all([
+    getAllDocsForWorkspace(workspaceId, "doc"),
+    getAllDocsForWorkspace(workspaceId, "context"),
     getTasks(workspaceId),
     getMeetings(workspaceId),
   ]);
@@ -57,6 +57,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         type: "doc",
         title: doc.title,
         projectId: doc.projectId,
+        author: doc.author,
         created: doc.created,
         updated: doc.updated,
         content: doc.content,
@@ -65,15 +66,16 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
     );
   }
 
-  for (const doc of aiDocs) {
+  for (const doc of contextDocs) {
     if (isExcluded(doc.filePath)) continue;
     entries.push(
       await buildCatalogEntry({
         filePath: doc.filePath,
         workspaceId,
-        type: "ai-doc",
+        type: "context",
         title: doc.title,
         projectId: doc.projectId,
+        author: doc.author,
         created: doc.created,
         updated: doc.updated,
         content: doc.content,

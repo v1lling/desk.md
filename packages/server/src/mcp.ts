@@ -24,7 +24,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
-import { getDeskService, PATH_SEGMENTS } from "@desk/core";
+import { getDeskService, PATH_SEGMENTS, DESK_SPACE_NORMS } from "@desk/core";
 import type { WorkspaceCatalog } from "@desk/core";
 import { auth, baseURL, MCP_RESOURCE, OAUTH_ISSUER, OAUTH_JWKS_URL } from "./auth";
 
@@ -69,7 +69,15 @@ If drafting the reply would benefit from workspace context (a referenced doc, ta
  * transport), so there is no shared session state to leak between connectors.
  */
 function buildServer(): McpServer {
-  const server = new McpServer({ name: "desk.md", version: "0.10.0" });
+  // `instructions` reaches the client in the `initialize` response and is surfaced as
+  // session-level context for every tool call. It is the ONLY channel that teaches a
+  // hosted agent how this space works: the generated CLAUDE.md / AGENTS.md files are a
+  // local-disk feature and are never written on the server, so without this an MCP agent
+  // would see the `context` type with no idea what it means.
+  const server = new McpServer(
+    { name: "desk.md", version: "0.10.0" },
+    { instructions: DESK_SPACE_NORMS },
+  );
   const svc = getDeskService();
 
   server.registerTool(
@@ -86,7 +94,7 @@ function buildServer(): McpServer {
     "desk_tree",
     {
       description:
-        "Structural fallback: a workspace's raw file tree as a flat list of workspace-relative paths, including assets and non-content files. Prefer desk_catalog to understand a workspace's content; use desk_tree to see structure or find a file the catalog doesn't list. Omit path for the full tree; pass path to drill in when truncated.",
+        "Structural fallback: a workspace's raw file tree as a flat list of workspace-relative paths, including assets and non-content files. Prefer desk_catalog to understand a workspace's content; use desk_tree to see structure or find a file the catalog doesn't list. Omit path for the full tree; pass path to drill in when truncated. `context/` directories (at the workspace root and each project root) hold the maintained orientation map — read those first; `docs/`, `tasks/`, and `meetings/` hold dated records.",
       inputSchema: { workspace_id: z.string().min(1), path: z.string().optional() },
     },
     async ({ workspace_id, path }) => json(await svc.deskTree(workspace_id, path))
@@ -121,11 +129,16 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, last-updated timestamp, and an AI summary when one has been generated (summary may be absent until then). Always populated, most recently updated first. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
+        "Start here: the workspace's content catalog — every context file, doc, task, and meeting with path, type, title, author, status/date, last-updated timestamp, and an AI summary when one has been generated (summary may be absent until then). Always populated, most recently updated first. `type` is a lifecycle distinction, not an authorship one: `context` is the evergreen, maintained map (what this is, which systems it touches, what was decided — filter to it first to orient yourself), while `doc`/`task`/`meeting` are dated records that accumulate and are never rewritten. `author: ai` marks a file an agent wrote; absent means the user wrote it. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
       inputSchema: {
         workspace_id: z.string().min(1),
         project_id: z.string().optional(),
-        type: z.enum(["doc", "ai-doc", "task", "meeting"]).optional(),
+        type: z
+          .enum(["doc", "context", "task", "meeting"])
+          .optional()
+          .describe(
+            "context = the evergreen maintained map (read first); doc/task/meeting = dated records."
+          ),
         status: z.string().optional(),
         since: z
           .string()
@@ -221,7 +234,7 @@ async function loadSummaryMap(workspaceId: string): Promise<Map<string, string>>
 interface CatalogQuery {
   workspace_id: string;
   project_id?: string;
-  type?: "doc" | "ai-doc" | "task" | "meeting";
+  type?: "doc" | "context" | "task" | "meeting";
   status?: string;
   since?: string;
   limit?: number;

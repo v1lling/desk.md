@@ -103,14 +103,14 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
         const content = await getStorage().readTextFile(projectMdPath);
         const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-        // Count project content (docs/ + ai-docs/ together — both surface in the tree)
+        // Count project content (context/ + docs/ together — both surface in the tree)
         const taskStats = await countProjectTasks(projectPath);
         const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
-        const aiDocsPath = await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
+        const contextPath = await joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
         const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
         const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
           countMarkdownFiles(docsPath, true),
-          countMarkdownFiles(aiDocsPath, true),
+          countMarkdownFiles(contextPath, true),
           countMarkdownFiles(meetingsPath),
         ]);
         const docCount = humanDocCount + aiDocCount;
@@ -159,14 +159,14 @@ export async function getProject(
     const content = await getStorage().readTextFile(projectMdPath);
     const { data } = parseMarkdown<ProjectFrontmatter>(content);
 
-    // Count project content (docs/ + ai-docs/ together — both surface in the tree)
+    // Count project content (context/ + docs/ together — both surface in the tree)
     const taskStats = await countProjectTasks(projectPath);
     const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
-    const aiDocsPath = await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS);
+    const contextPath = await joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
     const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
     const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
       countMarkdownFiles(docsPath, true),
-      countMarkdownFiles(aiDocsPath, true),
+      countMarkdownFiles(contextPath, true),
       countMarkdownFiles(meetingsPath),
     ]);
     const docCount = humanDocCount + aiDocCount;
@@ -224,7 +224,7 @@ export async function createProject(data: {
   await getStorage().mkdir(projectPath);
   await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
   await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
-  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.AI_DOCS));
+  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.CONTEXT));
 
   // Create project.md
   const frontmatter: ProjectFrontmatter = {

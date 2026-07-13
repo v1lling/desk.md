@@ -129,6 +129,7 @@
         "searchPlaceholder": "Rechercher des documents…",
         "fileCount_one": "{{count}} fichier",
         "fileCount_other": "{{count}} fichiers",
+        "contextFolder": "Contexte",
         "sections": {
           "workspace": "Espace",
           "projects": "Projets"
@@ -158,7 +159,14 @@
       "selectWorkspaceTitle": "Sélectionner un espace",
       "selectWorkspaceDescription": "Choisissez un espace dans la barre latérale pour voir les documents.",
       "selectDocTitle": "Sélectionner un document",
-      "selectDocDescription": "Choisissez un document dans la liste pour l'ouvrir."
+      "selectDocDescription": "Choisissez un document dans la liste pour l'ouvrir.",
+      "authorAi": "Rédigé par l'IA",
+      "authorFilter": {
+        "label": "Rédigé par",
+        "all": "Tous",
+        "mine": "Les miens",
+        "generated": "Générés"
+      }
     },
     "meetings": {
       "latestBadge": "Dernière",
@@ -942,7 +950,7 @@
       "deleteFailed": "Échec de la suppression du dossier",
       "moveFailed": "Échec du déplacement du dossier",
       "reservedName": "« {{name}} » est un nom de dossier réservé.",
-      "crossKindMove": "Le déplacement de dossiers entre Documents et Documents IA n'est pas encore pris en charge. Déplacez les documents un par un."
+      "crossKindMove": "Le déplacement de dossiers entre Documents et Contexte n'est pas encore pris en charge. Déplacez les documents un par un."
     },
     "editor": {
       "deleteDocFailed": "Échec de la suppression du document",

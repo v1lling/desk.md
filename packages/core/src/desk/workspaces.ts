@@ -192,7 +192,7 @@ export async function createWorkspace(data: {
   await getStorage().mkdir(workspacePath);
   await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
   await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.DOCS));
-  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.AI_DOCS));
+  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.CONTEXT));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));

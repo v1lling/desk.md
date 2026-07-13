@@ -63,10 +63,49 @@ const SEARCHABLE_EXTENSIONS = new Set([
   "jsx",
 ]);
 
+/**
+ * What kind of content a workspace-relative path holds. Lifecycle, not authorship:
+ * `context` is the evergreen maintained map; the rest are dated records.
+ */
+export type ContentKind = "context" | "doc" | "task" | "meeting" | "other";
+
+const CONTENT_DIR_KINDS: Record<string, ContentKind> = {
+  [PATH_SEGMENTS.CONTEXT]: "context",
+  [PATH_SEGMENTS.DOCS]: "doc",
+  [PATH_SEGMENTS.TASKS]: "task",
+  [PATH_SEGMENTS.MEETINGS]: "meeting",
+};
+
+/**
+ * Classify a workspace-relative path by the content directory it lives in (or is).
+ *
+ * Only *directory* segments count, and only ones desk itself creates — the content dir sits
+ * at the workspace root (`context/…`) or a project root (`projects/x/context/…`). A nested
+ * folder the user named "context" or "docs" does not qualify, which matters: this is a
+ * segment walk and never a substring test, because "context" is an ordinary English word
+ * and a real user already had a hand-made `docs/Context/` folder that must read as records.
+ *
+ * `isDir` tells us whether the final segment is itself a directory (and so classifiable) or
+ * a filename (which never is).
+ */
+export function contentKindForPath(workspaceRelPath: string, isDir = false): ContentKind {
+  const segments = workspaceRelPath.split("/");
+  const dirSegments = isDir ? segments : segments.slice(0, -1);
+
+  for (const [i, seg] of dirSegments.entries()) {
+    const kind = CONTENT_DIR_KINDS[seg];
+    // Depth 0 = workspace root; depth 2 = under `projects/{id}/`. `_unassigned/` is depth 1.
+    if (kind && (i === 0 || i === 1 || i === 2)) return kind;
+  }
+  return "other";
+}
+
 export interface TreeEntry {
   path: string;
   entry_type: "dir" | "file";
   name: string;
+  /** Which content layer this sits in, so an agent can tell the map from the records. */
+  kind: ContentKind;
 }
 
 export interface DeskTreeResult {
@@ -89,6 +128,11 @@ export interface SearchMatch {
   line: number;
   /** The matched line, trimmed and capped at MAX_MATCH_TEXT_CHARS (with a "…" marker). */
   text: string;
+  /**
+   * Which content layer the hit came from. Without this a match gives no way to tell a
+   * live map from a nine-month-old meeting note — both are just a path and a line.
+   */
+  kind: ContentKind;
 }
 
 export interface DeskSearchResult {
@@ -212,6 +256,7 @@ export async function deskTree(
         path: relPath,
         entry_type: entry.isDirectory ? "dir" : "file",
         name: entry.name,
+        kind: contentKindForPath(relPath, entry.isDirectory),
       });
 
       if (entry.isDirectory) {
@@ -375,7 +420,12 @@ export async function deskFullTextSearch(
       let perFile = 0;
       for (let i = 0; i < lines.length && perFile < MAX_MATCHES_PER_FILE; i++) {
         if (lineHit(lines[i], i)) {
-          matches.push({ path: relPath, line: i + 1, text: cap(lines[i].trim()) });
+          matches.push({
+            path: relPath,
+            line: i + 1,
+            text: cap(lines[i].trim()),
+            kind: contentKindForPath(relPath),
+          });
           perFile += 1;
           if (matches.length >= MAX_SEARCH_RESULTS) break;
         }

@@ -29,11 +29,11 @@ import { prefixSubtreePaths } from "@desk/core";
 import { getDeskService } from "@desk/core";
 import {
   PROJECT_TREE_PATH_PREFIX,
-  isAITreePath,
+  isContextTreePath,
   resolveTreePath,
   splitTreePathToKind,
 } from "@desk/core";
-import { getDocsPath, getAIDocsPath } from "@desk/core";
+import { getDocsPath, getContextPath } from "@desk/core";
 import { isTauri } from "@desk/core";
 import { sortNodes, type DocSortBy } from "../tree-item-utils";
 import {
@@ -41,7 +41,7 @@ import {
   insertSectionHeaders,
   isAllowedNewFolderName,
   isDraggable,
-  isAIDocsRoot,
+  isContextRoot,
   nodesToArborist,
   type ArboristNode,
 } from "./arborist-adapter";
@@ -50,6 +50,42 @@ import {
   DocsTreeRow,
   type DocsTreeHandlers,
 } from "./docs-tree-row";
+
+/**
+ * Recursively filter docs by who wrote them. Provenance, not lifecycle: an agent-written
+ * research doc is still the user's material, they just want to browse their own hand
+ * without it in the way. Folders (incl. the Context root and project stubs) always survive
+ * so the tree keeps its shape and stays a drop target.
+ */
+function filterTreeByAuthor(nodes: FileTreeNode[], filter: DocAuthorFilter): FileTreeNode[] {
+  if (filter === "all") return nodes;
+  const result: FileTreeNode[] = [];
+  for (const node of nodes) {
+    if (node.type === "folder") {
+      // Recurse into project folders too — an expanded project has its children loaded, and
+      // skipping them would leave AI docs visible under a project while "Mine" is selected.
+      // The folder itself is always kept (an unexpanded stub simply has no children yet).
+      //
+      // `docCount` on a project is a precomputed *unfiltered* recursive total, so under a
+      // filter it would state a number that contradicts the visible rows. Drop it rather
+      // than show a lie; an unexpanded stub can't be recounted without loading it.
+      result.push({
+        type: "folder",
+        folder: {
+          ...node.folder,
+          docCount: undefined,
+          children: filterTreeByAuthor(node.folder.children, filter),
+        },
+      });
+    } else if (node.type === "doc") {
+      const isAI = node.doc.author === "ai";
+      if (filter === "generated" ? isAI : !isAI) result.push(node);
+    } else {
+      result.push(node);
+    }
+  }
+  return result;
+}
 
 /** Recursively filter tree by search query (matches doc title/content or folder name). */
 function filterTree(nodes: FileTreeNode[], query: string): FileTreeNode[] {
@@ -97,6 +133,9 @@ function collectFolderTreePaths(nodes: FileTreeNode[]): string[] {
 
 // ── Public props ──────────────────────────────────────────────────────────────
 
+/** Which docs to show, by who wrote them. */
+export type DocAuthorFilter = "all" | "mine" | "generated";
+
 export interface DocsTreeProps {
   workspaceId: string;
   /** Active doc id from the tab store — used to highlight the matching tree row. */
@@ -104,6 +143,7 @@ export interface DocsTreeProps {
   searchQuery: string;
   sortBy: DocSortBy;
   sortDir: "asc" | "desc";
+  authorFilter: DocAuthorFilter;
   /** Triggered when the user clicks/activates a doc. */
   onOpenDoc: (doc: Doc) => void;
   /** Triggered when the user clicks/activates an asset (opens with default app). */
@@ -122,6 +162,7 @@ export function DocsTree({
   searchQuery,
   sortBy,
   sortDir,
+  authorFilter,
   onOpenDoc,
   onOpenAsset,
   onCreateDocIn,
@@ -186,9 +227,10 @@ export function DocsTree({
 
   // Apply sort + filter
   const filteredTree = useMemo(() => {
-    const filtered = filterTree(composedTree, searchQuery);
+    const byAuthor = filterTreeByAuthor(composedTree, authorFilter);
+    const filtered = filterTree(byAuthor, searchQuery);
     return sortNodes(filtered, sortBy, sortDir);
-  }, [composedTree, searchQuery, sortBy, sortDir]);
+  }, [composedTree, authorFilter, searchQuery, sortBy, sortDir]);
 
   // Adapt to arborist, then splice in Workspace/Projects section headers at the boundary.
   const arboristData = useMemo(
@@ -201,7 +243,7 @@ export function DocsTree({
 
   // For useFolderAIStates we need to identify scope per folder. Simplest: only enable
   // for workspace-scope folders for now (project-scope toggling needs per-project queries).
-  // The hook handles paths under `__ai-docs__` via splitTreePathToKind in the workspace-rel translator.
+  // The hook handles paths under `__context__` via splitTreePathToKind in the workspace-rel translator.
   const workspaceFolderPaths = useMemo(
     () => folderTreePaths.filter((p) => !p.startsWith(PROJECT_TREE_PATH_PREFIX)),
     [folderTreePaths],
@@ -238,7 +280,7 @@ export function DocsTree({
       const fromKey = locKey(parentTreePath);
       const targets: { label: string; isProject?: boolean; toTreePath: string }[] = [];
       // Workspace docs root + workspace (human) folders
-      const wsPaths = ["", ...workspaceFolderPaths.filter((p) => !isAITreePath(p))];
+      const wsPaths = ["", ...workspaceFolderPaths.filter((p) => !isContextTreePath(p))];
       for (const tp of wsPaths) {
         if (locKey(tp) === fromKey) continue;
         targets.push({ label: tp === "" ? t("menus.docContextMenu.workspaceLevel") : tp, toTreePath: tp });
@@ -282,7 +324,7 @@ export function DocsTree({
     }
     Promise.all([
       getDocsPath("workspace", workspaceId, undefined),
-      getAIDocsPath("workspace", workspaceId, undefined),
+      getContextPath("workspace", workspaceId, undefined),
     ])
       .then(([h, a]) => {
         setWorkspaceBasePath(h);
@@ -298,7 +340,7 @@ export function DocsTree({
     (treePath: string): string | undefined => {
       // Only workspace-scope base paths are exposed; project-scope reveal needs per-project lookup.
       if (treePath.startsWith(PROJECT_TREE_PATH_PREFIX)) return undefined;
-      const isAI = isAITreePath(treePath);
+      const isAI = isContextTreePath(treePath);
       const base = isAI ? workspaceAIBasePath : workspaceBasePath;
       if (!base) return undefined;
       const { subPath } = splitTreePathToKind(treePath);
@@ -479,7 +521,7 @@ export function DocsTree({
 
         if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue; // can't move a project stub
-          if (isAIDocsRoot(d)) continue; // can't move the synthetic AI Docs folder
+          if (isContextRoot(d)) continue; // the synthetic Context root is not a real folder
           // Folder subtree moves stay within one scope/project (cross-scope folder
           // reparenting is a separate, larger feature).
           if (
@@ -491,7 +533,7 @@ export function DocsTree({
           }
           if (fromKind !== toKind) {
             // Cross-kind folder move: useMoveFolder takes a single kind. The lib needs to handle
-            // a full directory move from docs/<src> to ai-docs/<dst> (or vice-versa) — currently it
+            // a full directory move from docs/<src> to context/<dst> (or vice-versa) — currently it
             // doesn't. Surface a friendly toast until that's implemented.
             toast.error(t("errors.folder.crossKindMove"));
             continue;
@@ -539,7 +581,7 @@ export function DocsTree({
           }
         } else if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue;
-          if (isAIDocsRoot(d)) continue;
+          if (isContextRoot(d)) continue;
           const resolved = resolveTreePath(d.treePath);
           const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
           try {

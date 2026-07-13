@@ -7,20 +7,20 @@ import { useState, useEffect, useCallback } from "react";
 import { getFolderAIInclusion, setFolderAIInclusion } from "@/lib/context-index/aiignore";
 import { useHomeWorkspace } from "@/stores/workspaces";
 import { isTauri } from "@desk/core";
-import { splitTreePathToKind } from "@desk/core";
+import { splitTreePathToKind, PATH_SEGMENTS } from "@desk/core";
 import type { ContentScope } from "@desk/core/types";
 
 /**
  * Convert a tree-relative folder path to a workspace-relative path used by .aiignore.
- * Paths under the AI Docs sentinel are mapped to `ai-docs/...`; everything else to `docs/...`.
+ * Paths under the Context sentinel map to `context/...`; everything else to `docs/...`.
  *
  * Examples (workspace scope):
  *   "drafts" → "docs/drafts"
- *   "__ai-docs__/research" → "ai-docs/research"
+ *   "__context__/services" → "context/services"
  *
  * Examples (project scope, projectId="alpha"):
  *   "drafts" → "projects/alpha/docs/drafts"
- *   "__ai-docs__/research" → "projects/alpha/ai-docs/research"
+ *   "__context__/services" → "projects/alpha/context/services"
  */
 function toWorkspaceRelativePath(
   treePath: string,
@@ -28,7 +28,7 @@ function toWorkspaceRelativePath(
   projectId?: string
 ): string {
   const { kind, subPath } = splitTreePathToKind(treePath);
-  const dirSegment = kind === "ai" ? "ai-docs" : "docs";
+  const dirSegment = kind === "context" ? PATH_SEGMENTS.CONTEXT : PATH_SEGMENTS.DOCS;
   const suffix = subPath ? `/${subPath}` : "";
   if (scope === "personal" || scope === "workspace") {
     return `${dirSegment}${suffix}`;

@@ -12,13 +12,13 @@ export const contentKeys = {
   detail: (workspaceId: string, docId: string) =>
     [...contentKeys.byWorkspace(workspaceId), "detail", docId] as const,
   // Tree keys for scoped content trees (kind distinguishes human vs AI docs)
-  tree: (scope: ContentScope, workspaceId?: string, projectId?: string, kind: DocKind = "human") =>
+  tree: (scope: ContentScope, workspaceId?: string, projectId?: string, kind: DocKind = "doc") =>
     [...contentKeys.all, "tree", scope, workspaceId || "", projectId || "", kind] as const,
   // Merged tree (human + AI flattened into a single UI tree)
   mergedTree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
     [...contentKeys.all, "merged-tree", scope, workspaceId || "", projectId || ""] as const,
   // Workspace overview tree (workspace content + project folders)
-  overview: (workspaceId: string, kind: DocKind = "human") =>
+  overview: (workspaceId: string, kind: DocKind = "doc") =>
     [...contentKeys.byWorkspace(workspaceId), "overview-tree", kind] as const,
   // Merged workspace overview (human + AI flattened)
   mergedOverview: (workspaceId: string) =>
@@ -223,7 +223,7 @@ export function useContentTree(
   scope: ContentScope,
   workspaceId?: string | null,
   projectId?: string | null,
-  kind: DocKind = "human"
+  kind: DocKind = "doc"
 ) {
   const enabled =
     scope === "personal" ||
@@ -247,7 +247,7 @@ export function useContentTree(
  * Hook to fetch workspace overview shell (workspace content + project folder stubs).
  * Project content is loaded lazily via useContentTree when folders are expanded.
  */
-export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: DocKind = "human") {
+export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: DocKind = "doc") {
   return useQuery({
     queryKey: contentKeys.overview(workspaceId || "", kind),
     queryFn: () => getDeskService().getWorkspaceOverviewShell(workspaceId!, kind),
@@ -280,7 +280,7 @@ export function useCreateFolder() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "human",
+      kind = "doc",
     }: {
       scope: ContentScope;
       folderPath: string;
@@ -320,7 +320,7 @@ export function useRenameFolder() {
       newName,
       workspaceId,
       projectId,
-      kind = "human",
+      kind = "doc",
     }: {
       scope: ContentScope;
       oldPath: string;
@@ -360,7 +360,7 @@ export function useDeleteFolder() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "human",
+      kind = "doc",
     }: {
       scope: ContentScope;
       folderPath: string;
@@ -400,7 +400,7 @@ export function useMoveFolder() {
       toParentPath,
       workspaceId,
       projectId,
-      kind = "human",
+      kind = "doc",
     }: {
       scope: ContentScope;
       fromPath: string;
@@ -521,7 +521,7 @@ export function useImportFiles() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "human",
+      kind = "doc",
       convertibleAction = "keep",
     }: {
       files: Array<{ name: string; content: string | Uint8Array }>;

@@ -21,7 +21,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { ListPane, type ListPaneSortOption } from "@/components/patterns";
 import { countTreeFiles } from "@/lib/tree-count";
 import type { Asset, Doc } from "@desk/core/types";
@@ -45,7 +51,7 @@ import { revealInFinder, openWithDefaultApp, type DocSortBy } from "./tree-item-
 import { isRemoteMode } from "@/lib/connection";
 import { ContentDropZone } from "./content-drop-zone";
 import { NewDocModal } from "./new-doc-modal";
-import { DocsTree } from "./tree/docs-tree";
+import { DocsTree, type DocAuthorFilter } from "./tree/docs-tree";
 import { ConvertFilesDialog, type ConvertChoice } from "./convert-files-dialog";
 import { isConvertibleFile } from "@desk/core";
 
@@ -71,6 +77,9 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   // ── Header state ────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<DocSortBy>("name");
+  // Provenance filter. Defaults to "all": hiding AI-written docs by default would bury
+  // real material (research, drafts) the user asked for and owns.
+  const [authorFilter, setAuthorFilter] = useState<DocAuthorFilter>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // ── New doc modal state ─────────────────────────────────────────────────────
@@ -357,6 +366,24 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
                 {t("pages.docs.tree.actions.openInFinder")}
               </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+              {t("pages.docs.authorFilter.label")}
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={authorFilter}
+              onValueChange={(v) => setAuthorFilter(v as DocAuthorFilter)}
+            >
+              <DropdownMenuRadioItem value="all">
+                {t("pages.docs.authorFilter.all")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="mine">
+                {t("pages.docs.authorFilter.mine")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="generated">
+                {t("pages.docs.authorFilter.generated")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
           </>
         }
         countLabel={t("pages.docs.tree.fileCount", { count: totalFiles })}
@@ -373,6 +400,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
           searchQuery={searchQuery}
           sortBy={sortBy}
           sortDir={sortDir}
+          authorFilter={authorFilter}
           onOpenDoc={handleOpenDoc}
           onOpenAsset={handleOpenAsset}
           onCreateDocIn={openNewDocForTreePath}

@@ -424,14 +424,17 @@ export const mockTasks: Task[] = [
 
 export const mockDocs: Doc[] = [
   {
-    id: "project-brief",
+    id: "brief",
     projectId: "website-redesign",
     workspaceId: "acme",
-    filePath: "~/Desk/workspaces/acme/projects/website-redesign/docs/project-brief.md",
-    title: "Project Brief",
+    // Context, not a record: the running brief. Human-seeded ("What this is", "Systems"),
+    // AI-refreshed below that line as the records move.
+    filePath: "~/Desk/workspaces/acme/projects/website-redesign/context/brief.md",
+    title: "Project brief",
     created: iso(-95),
+    updated: iso(-4),
     content:
-      "# Website Redesign: Project Brief\n\n## Goal\nRebuild the Acme Co marketing site on the new stack with a refreshed brand.\n\n## Scope\n- Homepage, pricing, and contact pages\n- New design system components\n- Working contact form with analytics\n\n## Out of scope\n- The customer portal (separate project)\n- Blog migration\n\n## Success looks like\nA faster, on-brand site live before the end of the quarter.",
+      "# Website Redesign\n\n## What this is\nRebuild the Acme Co marketing site on the new stack with a refreshed brand. Homepage, pricing, and contact pages, plus a working contact form. The customer portal and the blog migration are separate projects.\n\n## Systems & stack\n- Astro + Tailwind, deployed to Cloudflare Pages\n- Contact-form webhook posting into the Acme CRM\n\n## Current state\nDesign sign-off is done and the build is underway. The contact-form webhook is the last integration.\n\n## Decisions\n- Webhook auth uses HMAC-signed payloads with a rotating secret (see the auth research doc).\n\n## Open questions\n- Final homepage copy still pending from the client.\n- Security review not yet scheduled.",
     preview: "Rebuild the Acme Co marketing site on the new stack with a refreshed brand.",
   },
   {
@@ -446,25 +449,16 @@ export const mockDocs: Doc[] = [
     preview: "A page-by-page inventory of site content and who owns each piece.",
   },
   {
-    id: "context-website",
-    projectId: "website-redesign",
-    workspaceId: "acme",
-    filePath: "~/Desk/workspaces/acme/projects/website-redesign/ai-docs/context-website.md",
-    title: "Website Redesign context (AI-distilled)",
-    created: iso(-30),
-    content:
-      "# Website Redesign context\n\nDistilled from kickoff meetings and email threads.\n\n## Stakeholders\n- Acme marketing lead: owns sign-off, targets an end-of-quarter go-live.\n\n## Outstanding risks\n- Final homepage copy still pending from the client.\n- Security review not yet scheduled.",
-    preview: "Distilled from kickoff meetings and email threads.",
-  },
-  {
     id: "research-webhook-auth",
     projectId: "website-redesign",
     workspaceId: "acme",
-    filePath: "~/Desk/workspaces/acme/projects/website-redesign/ai-docs/research-webhook-auth.md",
+    // A record: dated, AI-written, never rewritten. Its conclusion is distilled into the brief.
+    filePath: "~/Desk/workspaces/acme/projects/website-redesign/docs/research-webhook-auth.md",
     title: "Research: webhook auth approaches",
     created: iso(-28),
+    author: "ai",
     content:
-      "# Research: webhook auth approaches\n\nComparing HMAC-signed payloads vs. mTLS for the contact-form webhook.\n\n- **HMAC**: simple, no cert management, good enough here.\n- **mTLS**: stronger, but heavier to operate.\n\n**Recommendation:** HMAC-signed payloads with a rotating secret.",
+      "# Research: webhook auth approaches\n\nComparing HMAC-signed payloads vs. mTLS for the contact-form webhook. Research as of this date.\n\n- **HMAC**: simple, no cert management, good enough here.\n- **mTLS**: stronger, but heavier to operate.\n\n**Recommendation:** HMAC-signed payloads with a rotating secret.",
     preview: "Comparing HMAC-signed payloads vs. mTLS for the contact-form webhook.",
   },
   {
@@ -479,15 +473,18 @@ export const mockDocs: Doc[] = [
     preview: "Field mapping, a staging dry run, then a production cutover.",
   },
   {
-    id: "legacy-schema-notes",
+    id: "legacy-schema",
     projectId: "data-migration",
     workspaceId: "acme",
-    filePath: "~/Desk/workspaces/acme/projects/data-migration/ai-docs/legacy-schema-notes.md",
-    title: "Legacy schema notes (AI-distilled)",
+    // Context, not a record: an evergreen description of a system that still exists.
+    filePath: "~/Desk/workspaces/acme/projects/data-migration/context/legacy-schema.md",
+    title: "Legacy CRM schema",
     created: iso(-40),
+    updated: iso(-9),
+    author: "ai",
     content:
-      "# Legacy schema notes\n\nThings worth remembering about the old CRM schema:\n\n- Customer categories are free-text, not an enum.\n- Transaction history uses a denormalized wide table.\n- IDs are sequential integers, not UUIDs.",
-    preview: "Things worth remembering about the old CRM schema.",
+      "# Legacy CRM schema\n\nHow the old CRM schema is shaped, as it stands today:\n\n- Customer categories are free-text, not an enum.\n- Transaction history uses a denormalized wide table.\n- IDs are sequential integers, not UUIDs.",
+    preview: "How the old CRM schema is shaped, as it stands today.",
   },
   {
     id: "api-v2-design-notes",
