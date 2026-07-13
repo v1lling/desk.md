@@ -58,6 +58,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         title: doc.title,
         projectId: doc.projectId,
         created: doc.created,
+        updated: doc.updated,
         content: doc.content,
         projectName: projectNameMap.get(doc.projectId),
       })
@@ -74,6 +75,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         title: doc.title,
         projectId: doc.projectId,
         created: doc.created,
+        updated: doc.updated,
         content: doc.content,
         projectName: projectNameMap.get(doc.projectId),
       })
@@ -90,6 +92,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         title: task.title,
         projectId: task.projectId,
         created: task.created,
+        updated: task.updated,
         content: task.content,
         projectName: projectNameMap.get(task.projectId),
         status: task.status,
@@ -108,6 +111,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         title: meeting.title,
         projectId: meeting.projectId,
         created: meeting.created,
+        updated: meeting.updated,
         content: meeting.content,
         projectName: projectNameMap.get(meeting.projectId),
         date: meeting.date,

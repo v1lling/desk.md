@@ -121,7 +121,7 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, and an AI summary when one has been generated (summary may be absent until then). Always populated, newest-first. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
+        "Start here: the workspace's content catalog — every doc, task, and meeting with path, type, title, status/date, last-updated timestamp, and an AI summary when one has been generated (summary may be absent until then). Always populated, most recently updated first. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
       inputSchema: {
         workspace_id: z.string().min(1),
         project_id: z.string().optional(),
@@ -131,7 +131,7 @@ function buildServer(): McpServer {
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
           .optional()
-          .describe("ISO date (YYYY-MM-DD); only entries on or after it."),
+          .describe("ISO date (YYYY-MM-DD); only entries updated/dated on or after it."),
         limit: z.number().int().min(1).max(200).optional(),
         offset: z.number().int().min(0).optional(),
       },
@@ -234,8 +234,12 @@ async function readCatalog(q: CatalogQuery) {
   const catalog = await getCachedCatalog(q.workspace_id);
   const summaries = await loadSummaryMap(q.workspace_id);
 
-  // The entry's effective date for `since`/sort is its meeting date, else creation date.
-  const dateOf = (e: { date?: string; created?: string }) => e.date ?? e.created ?? "";
+  // The entry's effective date for `since`/sort: last save, else meeting date, else
+  // creation date. `updated` is a full ISO datetime; comparing it against a date-only
+  // `since` bound stays correct lexicographically ("2026-07-09T…" >= "2026-07-09").
+  // Undated entries collapse to "" — they sort last (desc) and never match `since`.
+  const dateOf = (e: { updated?: string; date?: string; created?: string }) =>
+    e.updated ?? e.date ?? e.created ?? "";
 
   // Strip the absolute server filePath — agents address files by the workspace-relative
   // `path` (desk_read), and the host's filesystem layout is not theirs to see.

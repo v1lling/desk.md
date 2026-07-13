@@ -4,15 +4,10 @@ import {
   ArrowDownAZ,
   ArrowUp01,
   ArrowUpAZ,
-  ChevronsUpDown,
   FolderOpen,
   FolderPlus,
   Loader2,
-  MoreHorizontal,
-  Plus,
-  Search,
   Upload,
-  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -26,13 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ListPane, type ListPaneSortOption } from "@/components/patterns";
+import { countTreeFiles } from "@/lib/tree-count";
 import type { Asset, Doc } from "@desk/core/types";
 import {
   useCreateFolder,
@@ -41,7 +32,6 @@ import {
   useOpenTab,
   useTabStore,
 } from "@/stores";
-import { extractDocs, extractAssets } from "@desk/core";
 import { isMarkdownFile } from "@desk/core";
 import { isTauri } from "@desk/core";
 import { getDocsPath } from "@desk/core";
@@ -82,7 +72,6 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<DocSortBy>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // ── New doc modal state ─────────────────────────────────────────────────────
   const [newDocOpen, setNewDocOpen] = useState(false);
@@ -102,18 +91,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const convertChoiceResolverRef = useRef<((choice: ConvertChoice | null) => void) | null>(null);
 
   // ── File count ──────────────────────────────────────────────────────────────
-  const totalFiles = useMemo(() => {
-    let count = 0;
-    for (const node of overviewTree) {
-      if (node.type === "doc" || node.type === "asset") count++;
-      else if (node.type === "folder" && node.folder.isProject) {
-        count += (node.folder.docCount ?? 0) + (node.folder.assetCount ?? 0);
-      } else if (node.type === "folder") {
-        count += extractDocs([node]).length + extractAssets([node]).length;
-      }
-    }
-    return count;
-  }, [overviewTree]);
+  const totalFiles = useMemo(() => countTreeFiles(overviewTree), [overviewTree]);
 
   // ── Workspace base path for "Reveal in Finder" ──────────────────────────────
   const [workspaceBasePath, setWorkspaceBasePath] = useState<string | undefined>(undefined);
@@ -296,121 +274,75 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const sortOptions: ListPaneSortOption[] = [
+    {
+      key: "name",
+      label: (
+        <>
+          {t("pages.docs.tree.sort.name")}{" "}
+          {sortBy === "name"
+            ? sortDir === "asc"
+              ? t("pages.docs.tree.sort.nameAsc")
+              : t("pages.docs.tree.sort.nameDesc")
+            : ""}
+        </>
+      ),
+      icon: sortBy === "name" && sortDir === "desc" ? ArrowUpAZ : ArrowDownAZ,
+      active: sortBy === "name",
+      onSelect: () => {
+        setSortBy("name");
+        setSortDir((prev) => (sortBy === "name" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+      },
+    },
+    {
+      key: "created",
+      label: (
+        <>
+          {t("pages.docs.tree.sort.created")}{" "}
+          {sortBy === "created"
+            ? sortDir === "desc"
+              ? t("pages.docs.tree.sort.newest")
+              : t("pages.docs.tree.sort.oldest")
+            : ""}
+        </>
+      ),
+      icon: sortBy === "created" && sortDir === "asc" ? ArrowUp01 : ArrowDown01,
+      active: sortBy === "created",
+      onSelect: () => {
+        setSortBy("created");
+        setSortDir((prev) => (sortBy === "created" ? (prev === "asc" ? "desc" : "asc") : "desc"));
+      },
+    },
+    {
+      key: "modified",
+      label: (
+        <>
+          {t("pages.docs.tree.sort.modified")}{" "}
+          {sortBy === "modified"
+            ? sortDir === "desc"
+              ? t("pages.docs.tree.sort.newest")
+              : t("pages.docs.tree.sort.oldest")
+            : ""}
+        </>
+      ),
+      icon: sortBy === "modified" && sortDir === "asc" ? ArrowUp01 : ArrowDown01,
+      active: sortBy === "modified",
+      onSelect: () => {
+        setSortBy("modified");
+        setSortDir((prev) => (sortBy === "modified" ? (prev === "asc" ? "desc" : "asc") : "desc"));
+      },
+    },
+  ];
+
   return (
     <ContentDropZone onFilesDropped={handleFilesDropped} className="flex flex-col h-full">
-      {/* Header */}
-      <div className="shrink-0 min-h-11 py-2 px-3 border-b border-border/60 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            ref={searchInputRef}
-            type="text"
-            placeholder={t("pages.docs.tree.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setSearchQuery("");
-            }}
-            className="h-7 pl-7 pr-7 text-xs"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setSearchQuery("");
-                searchInputRef.current?.focus();
-              }}
-            >
-              <X className="size-3.5" />
-            </Button>
-          )}
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-foreground"
-              title={t("pages.docs.tree.sort.title")}
-            >
-              <ChevronsUpDown className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem
-              onClick={() => {
-                setSortBy("name");
-                setSortDir((prev) => (sortBy === "name" ? (prev === "asc" ? "desc" : "asc") : "asc"));
-              }}
-              className={cn(sortBy === "name" && "bg-accent")}
-            >
-              {sortBy === "name" && sortDir === "desc" ? (
-                <ArrowUpAZ className="size-4 mr-2" />
-              ) : (
-                <ArrowDownAZ className="size-4 mr-2" />
-              )}
-              {t("pages.docs.tree.sort.name")}{" "}
-              {sortBy === "name"
-                ? sortDir === "asc"
-                  ? t("pages.docs.tree.sort.nameAsc")
-                  : t("pages.docs.tree.sort.nameDesc")
-                : ""}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setSortBy("created");
-                setSortDir((prev) => (sortBy === "created" ? (prev === "asc" ? "desc" : "asc") : "desc"));
-              }}
-              className={cn(sortBy === "created" && "bg-accent")}
-            >
-              {sortBy === "created" && sortDir === "asc" ? (
-                <ArrowUp01 className="size-4 mr-2" />
-              ) : (
-                <ArrowDown01 className="size-4 mr-2" />
-              )}
-              {t("pages.docs.tree.sort.created")}{" "}
-              {sortBy === "created"
-                ? sortDir === "desc"
-                  ? t("pages.docs.tree.sort.newest")
-                  : t("pages.docs.tree.sort.oldest")
-                : ""}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setSortBy("modified");
-                setSortDir((prev) => (sortBy === "modified" ? (prev === "asc" ? "desc" : "asc") : "desc"));
-              }}
-              className={cn(sortBy === "modified" && "bg-accent")}
-            >
-              {sortBy === "modified" && sortDir === "asc" ? (
-                <ArrowUp01 className="size-4 mr-2" />
-              ) : (
-                <ArrowDown01 className="size-4 mr-2" />
-              )}
-              {t("pages.docs.tree.sort.modified")}{" "}
-              {sortBy === "modified"
-                ? sortDir === "desc"
-                  ? t("pages.docs.tree.sort.newest")
-                  : t("pages.docs.tree.sort.oldest")
-                : ""}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-foreground"
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+      <ListPane
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder={t("pages.docs.tree.searchPlaceholder")}
+        sortOptions={sortOptions}
+        menuItems={
+          <>
             <DropdownMenuItem onClick={() => openNewFolderForTreePath("")}>
               <FolderPlus className="size-4 mr-2" />
               {t("pages.docs.tree.actions.newFolder")}
@@ -425,39 +357,28 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
                 {t("pages.docs.tree.actions.openInFinder")}
               </DropdownMenuItem>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Action row: file count + new doc */}
-      <div className="shrink-0 px-3 py-1 flex items-center gap-2 border-b border-border/40">
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {t("pages.docs.tree.fileCount", { count: totalFiles })}
-        </span>
-        <div className="flex-1" />
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs"
-          onClick={() => openNewDocForTreePath("")}
-        >
-          <Plus className="size-3.5 mr-1" />
-          {t("pages.docs.tree.actions.newDoc")}
-        </Button>
-      </div>
-
-      {/* Tree */}
-      <DocsTree
-        workspaceId={workspaceId}
-        activeDocId={activeDocId}
-        searchQuery={searchQuery}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onOpenDoc={handleOpenDoc}
-        onOpenAsset={handleOpenAsset}
-        onCreateDocIn={openNewDocForTreePath}
-        onCreateFolderIn={openNewFolderForTreePath}
-      />
+          </>
+        }
+        countLabel={t("pages.docs.tree.fileCount", { count: totalFiles })}
+        action={{
+          label: t("pages.docs.tree.actions.newDoc"),
+          onClick: () => openNewDocForTreePath(""),
+        }}
+        scroll={false}
+        className="flex-1"
+      >
+        <DocsTree
+          workspaceId={workspaceId}
+          activeDocId={activeDocId}
+          searchQuery={searchQuery}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onOpenDoc={handleOpenDoc}
+          onOpenAsset={handleOpenAsset}
+          onCreateDocIn={openNewDocForTreePath}
+          onCreateFolderIn={openNewFolderForTreePath}
+        />
+      </ListPane>
 
       {/* New doc modal */}
       <NewDocModal

@@ -5,6 +5,7 @@
  */
 
 import type { Task } from "../types";
+import { compareDatesDesc } from "./parser";
 import { getWorkspaces } from "./workspaces";
 import { getTasks } from "./tasks";
 import { getProjects } from "./projects";
@@ -72,7 +73,7 @@ export async function getFocusTasks(): Promise<ActiveTask[]> {
   const focusTasks = perWorkspace.flat();
 
   // Sort by created date (most recent first)
-  focusTasks.sort((a, b) => b.created.localeCompare(a.created));
+  focusTasks.sort((a, b) => compareDatesDesc(a.created, b.created));
 
   return focusTasks;
 }
@@ -175,7 +176,7 @@ async function getAllWorkspaceTasksByStatus(
   }));
 
   allTasks.push(...enrichedCapture);
-  allTasks.sort((a, b) => b.created.localeCompare(a.created));
+  allTasks.sort((a, b) => compareDatesDesc(a.created, b.created));
 
   return allTasks;
 }

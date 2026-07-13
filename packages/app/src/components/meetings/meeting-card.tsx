@@ -56,10 +56,10 @@ export function MeetingCard({ meeting, onClick, isLatest }: MeetingCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{formatMeetingDate(meeting.date)}</span>
+          {meeting.date && <span>{formatMeetingDate(meeting.date)}</span>}
           {meeting.preview && (
             <>
-              <span>·</span>
+              {meeting.date && <span>·</span>}
               <span className="truncate">{meeting.preview}</span>
             </>
           )}

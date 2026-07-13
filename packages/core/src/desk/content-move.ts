@@ -2,7 +2,7 @@
  * Content Move - Move a doc between any (scope, project, folder, kind) location.
  */
 import type { Doc, DocKind, ContentScope } from "../types";
-import { normalizeDate, generatePreview, filenameToId } from "./parser";
+import { resolveContentDate, normalizeDateTime, generatePreview, filenameToId } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
@@ -12,7 +12,8 @@ import { getHomeWorkspaceId } from "./workspaces";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
-  created: string;
+  created?: string;
+  updated?: string;
 }
 
 /**
@@ -105,7 +106,9 @@ export async function moveDoc(
     workspaceId: workspaceId || homeWorkspaceId,
     filePath: targetFilePath,
     title: parsed.frontmatter.title,
-    created: normalizeDate(parsed.frontmatter.created),
+    // Filename is unchanged by a move, so its date prefix still applies as fallback.
+    created: resolveContentDate(parsed.frontmatter.created, newRelPath),
+    updated: normalizeDateTime(parsed.frontmatter.updated),
     content: parsed.content,
     preview: generatePreview(parsed.content),
   };

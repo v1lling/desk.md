@@ -26,7 +26,7 @@ export interface IndexDocOptions {
   contentType: "doc" | "task" | "meeting";
   title: string;
   projectId: string;
-  created: string;
+  created?: string;
 }
 
 const pendingIndexes = new Map<string, ReturnType<typeof setTimeout>>();

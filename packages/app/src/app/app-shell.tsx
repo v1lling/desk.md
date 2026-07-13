@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sidebar, SecondarySidebar } from "@/components/layout";
@@ -10,6 +10,8 @@ import { useBootStore } from "@/stores/boot";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { useSecondarySidebarResize } from "@/hooks/use-secondary-sidebar-resize";
 import { useSecondarySidebarStore } from "@/stores/secondary-sidebar";
+import { useNavigationStore } from "@/stores/navigation";
+import { useProjectSelectionStore } from "@/stores/project-selection";
 import { needsTrafficLightPadding, isTauri } from "@desk/core";
 import { openGlobalSearch } from "@/components/global-search";
 import { AIConsentDialog } from "@/components/ai/ai-consent-dialog";
@@ -75,6 +77,20 @@ export function AppShell({ children }: AppShellProps) {
     setHydrated(true);
     setHasMacTrafficLights(needsTrafficLightPadding());
   }, []);
+
+  // Project ids are name slugs, not unique ids — the same id can exist in two
+  // workspaces. Clear the selection on every workspace *switch* so a stale id
+  // can't silently resolve to the other workspace's project. Skipped on mount:
+  // ProjectsPage's `?open=` deep-link runs its (child) effect first, and clearing
+  // here would immediately undo it.
+  const currentWorkspaceId = useNavigationStore((s) => s.currentWorkspaceId);
+  const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
+  const prevWorkspaceIdRef = useRef(currentWorkspaceId);
+  useEffect(() => {
+    if (prevWorkspaceIdRef.current === currentWorkspaceId) return;
+    prevWorkspaceIdRef.current = currentWorkspaceId;
+    setSelectedProject(null);
+  }, [currentWorkspaceId, setSelectedProject]);
 
   // Shown while hydrating and while the hosted auth gate resolves the session.
   const loadingView = (

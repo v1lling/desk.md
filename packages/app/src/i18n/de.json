@@ -16,6 +16,10 @@
     }
   },
   "common": {
+    "listPane": {
+      "searchPlaceholder": "Suchen…",
+      "sortTitle": "Sortieren"
+    },
     "buttons": {
       "save": "Speichern",
       "cancel": "Abbrechen",
@@ -52,7 +56,10 @@
       "projects": "Projekte",
       "settings": "Einstellungen",
       "desk": "Desk",
-      "workspaceViews": "Arbeitsbereich-Ansichten"
+      "workspaceViews": "Arbeitsbereich-Ansichten",
+      "projectsSection": "Projekte",
+      "allProjects": "Alle Projekte",
+      "newProject": "Neues Projekt"
     },
     "secondarySidebar": {
       "expandPanel": "Panel ausklappen"
@@ -127,7 +134,6 @@
           "projects": "Projekte"
         },
         "sort": {
-          "title": "Sortieren",
           "name": "Name",
           "nameAsc": "A-Z",
           "nameDesc": "Z-A",
@@ -156,14 +162,15 @@
     },
     "meetings": {
       "latestBadge": "Neueste",
+      "groups": {
+        "noDate": "Ohne Datum"
+      },
       "tree": {
-        "searchPlaceholder": "Suchen…",
         "meetingCount_one": "{{count}} Meeting",
         "meetingCount_other": "{{count}} Meetings",
         "emptyAll": "Noch keine Meetings.",
         "emptyMatching": "Keine passenden Meetings.",
         "sort": {
-          "title": "Sortieren",
           "newestFirst": "Neueste zuerst",
           "oldestFirst": "Älteste zuerst"
         },
@@ -183,43 +190,45 @@
       "selectMeetingDescription": "Wähle ein Meeting aus der Liste, um es zu öffnen."
     },
     "projects": {
-      "overview": {
+      "home": {
         "loading": "Projekt wird geladen…",
         "notFoundTitle": "Projekt nicht gefunden",
         "notFoundDescription": "Dieses Projekt wurde möglicherweise gelöscht oder verschoben.",
         "createdOn": "Erstellt am {{date}}",
-        "tasksHeading": "Aufgaben",
-        "openHeading": "Offen",
         "progress": "Fortschritt",
         "noTasksYet": "Noch keine Aufgaben",
         "progressSummary": "{{done}} von {{total}} erledigt · {{pct}}%",
         "renameTitle": "Zum Umbenennen klicken",
         "descriptionPlaceholder": "Kurze Beschreibung hinzufügen…",
         "descriptionEditTitle": "Zum Bearbeiten klicken",
-        "quickLinks": {
-          "tasks": "Aufgaben",
-          "docs": "Dokumente",
-          "meetings": "Meetings"
-        }
+        "deleteProject": "Projekt löschen",
+        "tasksHeading": "Aktive Aufgaben",
+        "openBoard": "Board öffnen",
+        "moreOnBoard_one": "{{count}} weitere auf dem Board",
+        "moreOnBoard_other": "{{count}} weitere auf dem Board",
+        "noActiveTasks": "Keine aktiven Aufgaben.",
+        "quickAddPlaceholder": "Aufgabe hinzufügen…",
+        "meetingsHeading": "Meetings",
+        "newMeeting": "Neues Meeting",
+        "allMeetings": "Alle Meetings",
+        "noMeetings": "Noch keine Meetings.",
+        "docsHeading": "Dokumente",
+        "allDocs": "Alle Dokumente",
+        "noDocs": "Noch keine Dokumente.",
+        "activityHeading": "Letzte Aktivität",
+        "noActivity": "Noch keine Aktivität."
       },
-      "tree": {
-        "searchPlaceholder": "Suchen…",
-        "sortTitle": "Sortieren",
-        "sortAsc": "Name A–Z",
-        "sortDesc": "Name Z–A",
+      "browse": {
         "newProject": "Neues Projekt",
+        "statusLabel": "Status",
         "allStatuses": "Alle Status",
-        "projectCount_one": "{{count}} Projekt",
-        "projectCount_other": "{{count}} Projekte",
-        "deleteConfirmTitle": "Projekt löschen",
-        "deleteConfirmDescription": "Möchtest du „{{name}}“ wirklich löschen? Damit werden das Projekt und alle Aufgaben, Dokumente und Meetings unwiderruflich entfernt."
+        "countLabel": "Projekte",
+        "searchPlaceholder": "Projekte durchsuchen…"
       },
+      "deleteConfirmTitle": "Projekt löschen",
+      "deleteConfirmDescription": "Möchtest du „{{name}}“ wirklich löschen? Damit werden das Projekt und alle Aufgaben, Dokumente und Meetings unwiderruflich entfernt.",
       "selectWorkspaceTitle": "Arbeitsbereich auswählen",
-      "selectWorkspaceDescription": "Wähle einen Arbeitsbereich in der Seitenleiste, um Projekte anzuzeigen.",
-      "noProjectsTitle": "Noch keine Projekte",
-      "noProjectsDescription": "Erstelle eines über + Neues Projekt im Panel.",
-      "selectProjectTitle": "Projekt auswählen",
-      "selectProjectDescription": "Wähle ein Projekt aus der Liste, um die Übersicht anzuzeigen."
+      "selectWorkspaceDescription": "Wähle einen Arbeitsbereich in der Seitenleiste, um Projekte anzuzeigen."
     },
     "planner": {
       "toggle": {
@@ -238,7 +247,7 @@
         "moreCount": "+{{count}} weitere"
       },
       "week": "Woche",
-      "allTasks": "Alle Aufgaben",
+      "allTasks": "Board",
       "allWorkspaces": "Alle Arbeitsbereiche"
     }
   },

@@ -19,7 +19,7 @@ import { subscribeToEditorEvents } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { isLocalDisk, isDomainRemote } from "@/lib/connection";
 import { writeMarkdownFile } from "@desk/core";
-import { parseMarkdown, serializeMarkdown } from "@desk/core";
+import { parseMarkdown, serializeMarkdown, nowISO } from "@desk/core";
 import type { EditorType } from "@/stores/open-editor-registry";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -303,6 +303,10 @@ export function useEditorSession({
         try {
           const existingContent = await getStorage().readTextFile(path);
           const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
+          // This local-disk save bypasses the domain write helpers, so stamp
+          // `updated` here (the recover path below goes through writeMarkdownFile,
+          // which stamps it itself).
+          frontmatter.updated = nowISO();
           lastFrontmatterRef.current = frontmatter;
           fullContent = serializeMarkdown(frontmatter, contentToSave);
         } catch {

@@ -603,6 +603,15 @@ export const mockMeetings: Meeting[] = [
   },
 ];
 
+// Derive a deterministic `updated` stamp for every mock entry (the `created`
+// day at a fixed time), so recency ordering and the activity feed have data in
+// browser mode. Mock CRUD operations overwrite it with the real save instant.
+// Undated entries stay unstamped: they carry no recency signal, exactly like a
+// file dropped into the tree from outside the app.
+for (const task of mockTasks) if (task.created) task.updated = `${task.created}T09:00:00.000Z`;
+for (const doc of mockDocs) if (doc.created) doc.updated = `${doc.created}T10:00:00.000Z`;
+for (const meeting of mockMeetings) if (meeting.created) meeting.updated = `${meeting.created}T11:00:00.000Z`;
+
 // ============================================================================
 // VIEW STATE
 //

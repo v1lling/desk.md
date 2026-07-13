@@ -20,8 +20,10 @@ export interface CatalogEntry {
   title: string;
   /** SHA-256 hash of file body (for incremental summary reuse) */
   contentHash: string;
-  /** ISO date created */
-  created: string;
+  /** ISO date created - absent when the file carries no date */
+  created?: string;
+  /** ISO datetime of the last save (from the `updated` frontmatter stamp) */
+  updated?: string;
   /** Project ID this belongs to */
   projectId: string;
   /** Project name (resolved) */

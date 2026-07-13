@@ -102,11 +102,35 @@ export function todayISO(): string {
 }
 
 /**
- * Normalize a date value to YYYY-MM-DD string format
- * Handles Date objects (from gray-matter YAML parsing), strings, and missing values
+ * Current instant as a full ISO datetime (UTC, e.g. "2026-07-09T14:03:21.000Z").
+ * Used for the `updated` frontmatter stamp. UTC because `Date.toISOString()`
+ * round-trips exactly through YAML (js-yaml parses the unquoted timestamp back
+ * to the same instant) and sorts lexicographically without offset ambiguity.
+ * Never route this value through `normalizeDate` — that truncates to a day.
  */
-export function normalizeDate(date: unknown): string {
-  if (!date) return todayISO();
+export function nowISO(): string {
+  return new Date().toISOString();
+}
+
+/**
+ * Normalize an `updated` frontmatter value to a full ISO datetime string, or
+ * undefined when absent/unparseable. YAML parses an unquoted timestamp as a Date
+ * object; keep full precision (unlike `normalizeDate`, which truncates to
+ * YYYY-MM-DD). Unparseable strings are rejected rather than passed through — they
+ * would otherwise sort as garbage and render verbatim in relative-time labels.
+ */
+export function normalizeDateTime(value: unknown): string | undefined {
+  if (value instanceof Date) return isNaN(value.getTime()) ? undefined : value.toISOString();
+  if (typeof value === "string" && value && !isNaN(Date.parse(value))) return value;
+  return undefined;
+}
+
+/**
+ * Normalize a date value to YYYY-MM-DD, or undefined when absent/unparseable.
+ * "No date" is representable — never fabricate today here.
+ */
+export function normalizeOptionalDate(date: unknown): string | undefined {
+  if (!date) return undefined;
   // A Date here comes from YAML (`created: 2026-05-17`), which parses bare dates as UTC
   // midnight — so the UTC calendar day IS the day that was written. formatLocalISODate
   // would shift it back a day in negative-offset zones; toISOString is correct here.
@@ -119,7 +143,16 @@ export function normalizeDate(date: unknown): string {
     const parsed = new Date(date);
     if (!isNaN(parsed.getTime())) return formatLocalISODate(parsed);
   }
-  return todayISO();
+  return undefined;
+}
+
+/**
+ * Normalize a date value to YYYY-MM-DD, falling back to today when absent/unparseable.
+ * Only for fields that must always carry a date (workspace/project `created`, task `due`);
+ * content dates go through `resolveContentDate`, which keeps "no date" representable.
+ */
+export function normalizeDate(date: unknown): string {
+  return normalizeOptionalDate(date) ?? todayISO();
 }
 
 /**
@@ -138,14 +171,28 @@ export function extractDateFromFilename(fileNameOrPath: string): string | undefi
 }
 
 /**
- * Resolve a content date with a sensible fallback chain:
- *   frontmatter value → filename date prefix → today.
- * Use for `created` (and meeting `date`) so files lacking a frontmatter date don't all
- * collapse to the scan date.
+ * Resolve a content date: frontmatter value → filename date prefix → undefined.
+ * Use for `created` (and meeting `date`). "No date" is representable — a file dropped
+ * into the tree without frontmatter or a date-prefixed name must NOT masquerade as
+ * created today (it would float to the top of every newest-first list on every scan).
+ * Undated items sort last and display nothing.
  */
-export function resolveContentDate(frontmatterValue: unknown, fileNameOrPath: string): string {
-  if (frontmatterValue) return normalizeDate(frontmatterValue);
-  return extractDateFromFilename(fileNameOrPath) ?? todayISO();
+export function resolveContentDate(
+  frontmatterValue: unknown,
+  fileNameOrPath: string
+): string | undefined {
+  return normalizeOptionalDate(frontmatterValue) ?? extractDateFromFilename(fileNameOrPath);
+}
+
+/**
+ * Descending compare for optional YYYY-MM-DD / ISO datetime strings (lexicographic,
+ * which is chronological for this format). Undated values sort LAST.
+ */
+export function compareDatesDesc(a?: string, b?: string): number {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return b.localeCompare(a);
 }
 
 /**

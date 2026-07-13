@@ -8,6 +8,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionLabel } from "@/components/patterns";
 import type { Doc, Asset } from "@desk/core/types";
 import { extractDocs } from "@desk/core";
 import { PROJECT_TREE_PATH_PREFIX } from "@desk/core";
@@ -100,12 +101,9 @@ function SectionHeaderRow({
       className="flex flex-col justify-end gap-2 h-7 pb-0.5 pointer-events-none select-none"
     >
       {data.sectionShowDivider && <div className="h-px bg-border/60" />}
-      <span
-        style={{ paddingLeft: 16 }}
-        className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/45"
-      >
+      <SectionLabel className="pl-4 text-[10px] tracking-wider text-muted-foreground/45">
         {data.name}
-      </span>
+      </SectionLabel>
     </div>
   );
 }

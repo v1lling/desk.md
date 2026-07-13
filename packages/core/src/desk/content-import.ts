@@ -16,7 +16,9 @@ import { convertFileToMarkdown } from "./file-conversion";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
-  created: string;
+  /** Absent when the file carries no date. Docs created here always get one. */
+  created?: string;
+  updated?: string;
   source?: string;
 }
 

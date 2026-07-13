@@ -50,7 +50,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
   useEffect(() => {
     if (meeting) {
       setTitle(meeting.title);
-      setDate(meeting.date);
+      setDate(meeting.date ?? "");
       setIsEditorReady(false);
     }
     // Re-init only when the meeting identity changes, not on every metadata edit.

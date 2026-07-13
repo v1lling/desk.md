@@ -21,7 +21,10 @@ import {
   generateFilename,
   filenameToId,
   todayISO,
+  nowISO,
   normalizeDate,
+  normalizeDateTime,
+  resolveContentDate,
   clearNulls,
 } from "./parser";
 import { isMockMode, joinPath } from "./env";
@@ -50,6 +53,7 @@ export const mockCaptureTasks: Task[] = [
     status: "todo",
     priority: "low",
     created: "2024-01-16",
+    updated: "2024-01-16T09:00:00.000Z",
     content: "Remember to book the 6-month checkup",
   },
 ];
@@ -63,7 +67,8 @@ interface TaskFrontmatter extends Record<string, unknown> {
   status: TaskStatus;
   priority?: TaskPriority;
   due?: string;
-  created: string;
+  created?: string;
+  updated?: string;
 }
 
 // ============================================================================
@@ -104,7 +109,8 @@ export async function getCaptureTasks(): Promise<Task[]> {
           status: data.status || "todo",
           priority: data.priority,
           due: data.due ? normalizeDate(data.due) : undefined,
-          created: normalizeDate(data.created),
+          created: resolveContentDate(data.created, entry.name),
+          updated: normalizeDateTime(data.updated),
           content: body,
         });
       } catch (e) {
@@ -139,6 +145,7 @@ export async function createCaptureTask(data: {
     priority: data.priority,
     due: data.due,
     created: todayISO(),
+    updated: nowISO(),
     content: data.content || "",
   };
 
@@ -175,7 +182,7 @@ export async function updateCaptureTask(
   if (isMockMode()) {
     const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
-    mockCaptureTasks[index] = { ...mockCaptureTasks[index], ...clearNulls(updates) };
+    mockCaptureTasks[index] = { ...mockCaptureTasks[index], ...clearNulls(updates), updated: nowISO() };
     return mockCaptureTasks[index];
   }
 
@@ -205,6 +212,7 @@ export async function updateCaptureTask(
     status: result.frontmatter.status,
     priority: result.frontmatter.priority,
     due: result.frontmatter.due,
+    updated: normalizeDateTime(result.frontmatter.updated),
     content: result.content,
   };
 }

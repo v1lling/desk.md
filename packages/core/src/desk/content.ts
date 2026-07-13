@@ -11,7 +11,7 @@
  * - content-import.ts: Import files and create docs in folders
  */
 import type { Doc, DocKind, Asset } from "../types";
-import { generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
+import { generateFilename, filenameToId, todayISO, nowISO, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -50,7 +50,8 @@ export type { ConvertibleAction, ImportFilesResult } from "./content-import";
 
 interface DocFrontmatter extends Record<string, unknown> {
   title: string;
-  created: string;
+  created?: string;
+  updated?: string;
 }
 
 /**
@@ -108,6 +109,7 @@ export async function createDoc(data: {
     filePath: "",
     title: data.title,
     created: todayISO(),
+    updated: nowISO(),
     content,
     preview: generatePreview(content),
   };
@@ -146,7 +148,7 @@ export async function updateDoc(
     const index = mockDocs.findIndex((d) => d.id === doc.id);
     if (index === -1) return null;
 
-    const updatedFields: Partial<Doc> = { ...updates };
+    const updatedFields: Partial<Doc> = { ...updates, updated: nowISO() };
     if (updates.content) {
       updatedFields.preview = generatePreview(updates.content);
     }
@@ -169,6 +171,7 @@ export async function updateDoc(
   return {
     ...doc,
     title: result.frontmatter.title,
+    updated: result.frontmatter.updated,
     content: result.content,
     preview: generatePreview(result.content),
   };

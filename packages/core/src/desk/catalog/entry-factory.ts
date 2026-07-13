@@ -20,7 +20,8 @@ export interface BuildCatalogEntryInput {
   type: CatalogEntry["type"];
   title: string;
   projectId: string;
-  created: string;
+  created?: string;
+  updated?: string;
   content: string;
   projectName?: string;
   status?: string;
@@ -40,6 +41,7 @@ export async function buildCatalogEntry(input: BuildCatalogEntryInput): Promise<
     title: input.title,
     contentHash: await hashContent(extractBody(input.content)),
     created: input.created,
+    updated: input.updated,
     projectId: input.projectId,
     projectName: input.projectName,
     status: input.status,
