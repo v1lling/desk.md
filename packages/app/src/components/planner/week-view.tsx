@@ -8,7 +8,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { parseISO, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { usePlannerStore, useAllWorkspaceTasks } from "@/stores/planner";
+import { usePlannerStore, useAllWorkspaceTasksAllStatuses } from "@/stores/planner";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useWorkspaces } from "@/stores/workspaces";
 import {
@@ -27,16 +27,43 @@ import { WeekNavigator } from "./week-navigator";
 import { TimeGrid } from "./time-grid";
 import { DayColumn } from "./day-column";
 import { AddBlockButton } from "./add-block-popover";
+import type { WorkspaceBlock } from "@desk/core/types";
+
+/** Stable empty references — a week with no plan must not allocate on every render. */
+const NO_DAYS: Record<string, WorkspaceBlock[]> = {};
+const NO_BLOCKS: WorkspaceBlock[] = [];
+
+/** Minutes from midnight, re-read once a minute, for the "now" indicator. */
+function currentMinute(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function useCurrentMinute(): number {
+  const [minute, setMinute] = useState(currentMinute);
+  useEffect(() => {
+    const id = setInterval(() => setMinute(currentMinute()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return minute;
+}
 
 export function WeekView() {
   const [currentMonday, setCurrentMonday] = useState(() =>
     getWeekMonday(new Date())
   );
-  const weekPlan = usePlannerStore((s) => s.getOrCreateWeekPlan(currentMonday));
+  // Read-only selector: a week plan is created lazily by the first write, so
+  // merely paging through empty weeks must not persist empty plans.
+  const dayBlocks = usePlannerStore(
+    (s) => s.weekPlans[currentMonday]?.days ?? NO_DAYS
+  );
   const moveBlock = usePlannerStore((s) => s.moveBlock);
   const updateBlockTime = usePlannerStore((s) => s.updateBlockTime);
-  const { data: allTasks = [] } = useAllWorkspaceTasks();
+  // All statuses: a task finished after it was planned must stay visible in its
+  // block (struck through) rather than silently vanishing from the week.
+  const { data: allTasks = [] } = useAllWorkspaceTasksAllStatuses();
   const { data: workspaces = [] } = useWorkspaces();
+  const nowMinute = useCurrentMinute();
 
   const workDayStartHour = usePreferencesStore((s) => s.workDayStartHour);
   const workDayEndHour = usePreferencesStore((s) => s.workDayEndHour);
@@ -47,13 +74,13 @@ export function WeekView() {
   // Collect all blocks across all days for grid range calculation
   const allBlocks = useMemo(() => {
     const blocks: { startMinute: number; endMinute: number }[] = [];
-    for (const dayBlocks of Object.values(weekPlan.days)) {
-      for (const b of dayBlocks) {
+    for (const blocksOfDay of Object.values(dayBlocks)) {
+      for (const b of blocksOfDay) {
         blocks.push({ startMinute: b.startMinute, endMinute: b.endMinute });
       }
     }
     return blocks;
-  }, [weekPlan.days]);
+  }, [dayBlocks]);
 
   const { startMinute: gridStartMinute, endMinute: gridEndMinute } =
     computeGridRange(allBlocks, workDayStartHour * 60, workDayEndHour * 60);
@@ -148,8 +175,8 @@ export function WeekView() {
   } | null>(null);
 
   // Keep refs current for mousemove handler (avoids stale closures)
-  const weekPlanRef = useRef(weekPlan);
-  weekPlanRef.current = weekPlan;
+  const dayBlocksRef = useRef(dayBlocks);
+  dayBlocksRef.current = dayBlocks;
   const daysRef = useRef(days);
   daysRef.current = days;
 
@@ -158,7 +185,7 @@ export function WeekView() {
       // Clean up any in-progress drag before starting a new one
       dragCleanupRef.current?.();
 
-      const block = weekPlanRef.current.days[fromDay]?.find(
+      const block = dayBlocksRef.current[fromDay]?.find(
         (b) => b.id === blockId
       );
       if (!block) return;
@@ -201,7 +228,7 @@ export function WeekView() {
         }
 
         // Check overlap with blocks in target day
-        const targetBlocks = weekPlanRef.current.days[targetDay] || [];
+        const targetBlocks = dayBlocksRef.current[targetDay] || [];
         const siblings = targetBlocks.filter(
           (b) => b.id !== dragRef.current!.blockId
         );
@@ -325,7 +352,7 @@ export function WeekView() {
                   <AddBlockButton
                     date={day}
                     weekOf={currentMonday}
-                    blocks={weekPlan.days[day] || []}
+                    blocks={dayBlocks[day] ?? NO_BLOCKS}
                     compact
                   />
                 </div>
@@ -358,19 +385,20 @@ export function WeekView() {
                   key={day}
                   date={day}
                   weekOf={currentMonday}
-                  blocks={weekPlan.days[day] || []}
+                  blocks={dayBlocks[day] ?? NO_BLOCKS}
                   allTasks={allTasks}
                   workspaces={workspaces}
                   gridStartMinute={gridStartMinute}
                   gridEndMinute={gridEndMinute}
                   slotHeight={slotHeight}
+                  nowMinute={nowMinute}
                   onBlockDragStart={handleBlockDragStart}
                 />
               ))}
 
               {/* Drag preview ghost — inside grid so it scrolls with content */}
               {dragPreview && dragPreview.dayIndex >= 0 && (() => {
-                const block = Object.values(weekPlan.days)
+                const block = Object.values(dayBlocks)
                   .flat()
                   .find((b) => b.id === dragPreview.blockId);
                 const ws = block ? workspaces.find((w) => w.id === block.workspaceId) : null;

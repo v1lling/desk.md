@@ -141,6 +141,8 @@
         "fileCount_one": "{{count}} file",
         "fileCount_other": "{{count}} files",
         "contextFolder": "Context",
+        "contextEmpty": "No context yet. Describe what this is",
+        "newContextFile": "New context file",
         "sections": {
           "workspace": "Workspace",
           "projects": "Projects"
@@ -256,8 +258,8 @@
       },
       "taskPicker": {
         "placeholder": "Add task or note...",
-        "pressEnterAsNote": "Press Enter to add as note",
-        "noAvailableTasks": "No available tasks"
+        "noAvailableTasks": "No available tasks",
+        "addAsNote": "Add \"{{text}}\" as note"
       },
       "block": {
         "addNote": "Add note",

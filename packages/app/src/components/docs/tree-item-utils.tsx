@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getFileCategory } from "@desk/core";
 import { isTauri } from "@desk/core";
+import { CONTEXT_SENTINEL } from "@desk/core";
 import { isRemoteMode } from "@/lib/connection";
 import { toast } from "sonner";
 import type { FileTreeNode } from "@desk/core/types";
@@ -33,7 +34,19 @@ import type { FileTreeNode } from "@desk/core/types";
 export type DocSortBy = "name" | "created" | "modified";
 
 /**
- * Sort tree nodes recursively. Folders always come first, sorted alphabetically.
+ * True for the synthetic Context root (workspace-level `__context__`, or a project's
+ * `_project/<id>/__context__`). Keyed on the path sentinel, never the name: the name is
+ * localized later, in `nodesToArborist`, and a user can create a folder called "Context".
+ */
+function isContextRootNode(node: FileTreeNode): boolean {
+  if (node.type !== "folder") return false;
+  const path = node.folder.path;
+  return path === CONTEXT_SENTINEL || path.endsWith(`/${CONTEXT_SENTINEL}`);
+}
+
+/**
+ * Sort tree nodes recursively. Context is pinned first (it is the map you read to orient
+ * yourself), project folders sink to the bottom, other folders come before leaves.
  * Docs/assets are sorted by the given criteria.
  */
 export function sortNodes(
@@ -42,6 +55,11 @@ export function sortNodes(
   direction: "asc" | "desc"
 ): FileTreeNode[] {
   const sorted = [...nodes].sort((a, b) => {
+    // Context always first — core pins it at index 0 and this sort must not undo that.
+    const aIsContext = isContextRootNode(a);
+    const bIsContext = isContextRootNode(b);
+    if (aIsContext !== bIsContext) return aIsContext ? -1 : 1;
+
     // Project folders always last
     const aIsProject = a.type === "folder" && a.folder.isProject;
     const bIsProject = b.type === "folder" && b.folder.isProject;

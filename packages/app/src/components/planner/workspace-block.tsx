@@ -257,6 +257,7 @@ export function TimeBlock({
             backgroundColor: `color-mix(in srgb, ${color} 8%, var(--color-card))`,
             zIndex: resizePreview ? 20 : 10,
           }}
+          data-block
           onMouseDown={handleBodyMouseDown}
         >
           {/* Top resize handle */}
@@ -292,97 +293,106 @@ export function TimeBlock({
               </span>
             )}
 
-            {/* Notes — medium and full */}
-            {!isCompact && block.notes && block.notes.length > 0 && (
-              <div className="mt-0.5 space-y-0.5 shrink-0" data-no-drag>
-                {block.notes
-                  .slice(0, isMedium ? 2 : undefined)
-                  .map((note, index) => (
-                    <MiniNoteItem
-                      key={`${block.id}-note-${index}`}
-                      note={note}
-                      onEdit={(newText) =>
-                        updateNoteInBlock(weekOf, day, block.id, index, newText)
-                      }
-                      onRemove={() =>
-                        removeNoteFromBlock(weekOf, day, block.id, index)
-                      }
+            {/* Notes + tasks — medium and full.
+                One region that owns the space between header and footer. `safe center`
+                centres the contents while they fit, so a lone note is not squashed up
+                against the workspace name, and degrades to top-aligned (rather than
+                clipping the first row) once they overflow. */}
+            {!isCompact && (
+              <div
+                className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5 py-0.5"
+                style={{ justifyContent: "safe center" }}
+              >
+                {block.notes && block.notes.length > 0 && (
+                  <div className="space-y-0.5 shrink-0" data-no-drag>
+                    {block.notes
+                      .slice(0, isMedium ? 2 : undefined)
+                      .map((note, index) => (
+                        <MiniNoteItem
+                          key={`${block.id}-note-${index}`}
+                          note={note}
+                          onEdit={(newText) =>
+                            updateNoteInBlock(weekOf, day, block.id, index, newText)
+                          }
+                          onRemove={() =>
+                            removeNoteFromBlock(weekOf, day, block.id, index)
+                          }
+                        />
+                      ))}
+                    {isMedium && block.notes.length > 2 && (
+                      <span className="text-[10px] text-muted-foreground pl-1.5">
+                        {t("pages.planner.block.moreCount", { count: block.notes.length - 2 })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {addingNote && (
+                  <div className="shrink-0" data-no-drag>
+                    <input
+                      type="text"
+                      className="w-full text-xs px-1.5 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      placeholder={t("pages.planner.block.notePlaceholder")}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                          addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
+                          setAddingNote(false);
+                        }
+                        if (e.key === "Escape") setAddingNote(false);
+                      }}
+                      onBlur={(e) => {
+                        if (e.currentTarget.value.trim()) {
+                          addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
+                        }
+                        setAddingNote(false);
+                      }}
                     />
-                  ))}
-                {isMedium && block.notes.length > 2 && (
-                  <span className="text-[10px] text-muted-foreground pl-1.5">
-                    {t("pages.planner.block.moreCount", { count: block.notes.length - 2 })}
-                  </span>
+                  </div>
+                )}
+
+                {tasks.length > 0 && (
+                  <div className="space-y-0.5 shrink-0">
+                    {tasks.slice(0, isMedium ? 3 : undefined).map((task) => (
+                      <MiniTaskItem
+                        key={task.id}
+                        task={task}
+                        onClick={() => handleTaskClick(task)}
+                        onRemove={() =>
+                          removeTaskFromBlock(weekOf, day, block.id, task.id)
+                        }
+                      />
+                    ))}
+                    {isMedium && tasks.length > 3 && (
+                      <span className="text-[10px] text-muted-foreground pl-1.5">
+                        {t("pages.planner.block.moreCount", { count: tasks.length - 3 })}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-            {!isCompact && addingNote && (
-              <div className="mt-0.5 shrink-0" data-no-drag>
-                <input
-                  type="text"
-                  className="w-full text-xs px-1.5 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  placeholder={t("pages.planner.block.notePlaceholder")}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                      addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
-                      setAddingNote(false);
-                    }
-                    if (e.key === "Escape") setAddingNote(false);
-                  }}
-                  onBlur={(e) => {
-                    if (e.currentTarget.value.trim()) {
-                      addNoteToBlock(weekOf, day, block.id, e.currentTarget.value.trim());
-                    }
-                    setAddingNote(false);
-                  }}
-                />
-              </div>
-            )}
 
-            {/* Tasks — medium and full */}
-            {!isCompact && tasks.length > 0 && (
-              <div className="flex-1 min-h-0 overflow-hidden mt-1">
-                <div className="space-y-0.5">
-                  {tasks.slice(0, isMedium ? 3 : undefined).map((task) => (
-                    <MiniTaskItem
-                      key={task.id}
-                      task={task}
-                      onClick={() => handleTaskClick(task)}
-                      onRemove={() =>
-                        removeTaskFromBlock(weekOf, day, block.id, task.id)
-                      }
-                    />
-                  ))}
-                  {isMedium && tasks.length > 3 && (
-                    <span className="text-[10px] text-muted-foreground pl-1.5">
-                      {t("pages.planner.block.moreCount", { count: tasks.length - 3 })}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Task picker — full mode only */}
-            {!isCompact && !isMedium && (
-              <div className="mt-auto pt-1 shrink-0" data-no-drag>
-                <TaskPickerPopover
-                  workspaceId={block.workspaceId}
-                  allTasks={allTasks}
-                  assignedTaskIds={block.taskIds}
-                  onSelectTask={(taskId) =>
-                    addTaskToBlock(weekOf, day, block.id, taskId)
-                  }
-                  onAddNote={handleAddNote}
-                />
-              </div>
-            )}
-
-            {/* Time label — bottom, medium+ */}
+            {/* Footer — task picker (full only) above the time label */}
             {!isCompact && (
-              <span className="text-[10px] text-muted-foreground/50 mt-auto pt-0.5 shrink-0">
-                {timeLabel}
-              </span>
+              <div className="shrink-0">
+                {!isMedium && (
+                  <div data-no-drag>
+                    <TaskPickerPopover
+                      workspaceId={block.workspaceId}
+                      allTasks={allTasks}
+                      assignedTaskIds={block.taskIds}
+                      onSelectTask={(taskId) =>
+                        addTaskToBlock(weekOf, day, block.id, taskId)
+                      }
+                      onAddNote={handleAddNote}
+                    />
+                  </div>
+                )}
+                <span className="block text-[10px] text-muted-foreground/50 pt-0.5">
+                  {timeLabel}
+                </span>
+              </div>
             )}
           </div>
 

@@ -233,9 +233,12 @@ export function DocsTree({
   }, [composedTree, authorFilter, searchQuery, sortBy, sortDir]);
 
   // Adapt to arborist, then splice in Workspace/Projects section headers at the boundary.
+  // The empty-Context call to action is suppressed while a search or author filter is narrowing
+  // the tree: a Context emptied by a filter is not an empty Context, and the prompt would lie.
+  const showContextEmptyState = !searchQuery.trim() && authorFilter === "all";
   const arboristData = useMemo(
-    () => insertSectionHeaders(nodesToArborist(filteredTree, "")),
-    [filteredTree],
+    () => insertSectionHeaders(nodesToArborist(filteredTree, "", showContextEmptyState)),
+    [filteredTree, showContextEmptyState],
   );
 
   // Folder AI states — feed both top-level paths (for the toggle) and project paths
@@ -376,6 +379,11 @@ export function DocsTree({
   // ── Selection sync (active tab → tree) ───────────────────────────────────────
 
   const treeRef = useRef<TreeApi<ArboristNode> | null>(null);
+
+  // The map should be readable without a click, so every Context band opens itself the first
+  // time it appears (workspace-level on mount, a project's when the project is expanded).
+  // Tracked per id so a deliberate collapse is never undone on the next re-render.
+  const autoOpenedContextIds = useRef<Set<string>>(new Set());
   const selectedArboristId = useMemo(() => {
     if (!activeDocId) return undefined;
     // Find the ArboristNode whose underlying doc has this id
@@ -691,6 +699,23 @@ export function DocsTree({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // `size` is a dependency because the Tree (and therefore treeRef) only mounts once the
+  // container has been measured, which can happen after arboristData has already settled.
+  useEffect(() => {
+    const tree = treeRef.current;
+    if (!tree) return;
+    const walk = (nodes: ArboristNode[]) => {
+      for (const n of nodes) {
+        if (isContextRoot(n) && !autoOpenedContextIds.current.has(n.id)) {
+          autoOpenedContextIds.current.add(n.id);
+          tree.open(n.id);
+        }
+        if (n.children) walk(n.children);
+      }
+    };
+    walk(arboristData);
+  }, [arboristData, size]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 

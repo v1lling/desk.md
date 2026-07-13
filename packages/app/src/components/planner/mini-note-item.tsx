@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import { StickyNote, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MiniNoteItemProps {
@@ -68,7 +68,8 @@ export function MiniNoteItem({ note, onEdit, onRemove }: MiniNoteItemProps) {
         setIsEditing(true);
       }}
     >
-      <div className="w-1.5 h-1.5 rounded-full shrink-0 mt-[5px] bg-muted-foreground/30" />
+      {/* Icon vs. the task rows' status dot — the one glanceable task/note tell */}
+      <StickyNote className="h-3 w-3 shrink-0 mt-[2px] text-muted-foreground/40" />
       <span className="line-clamp-2 flex-1 text-muted-foreground">{note}</span>
       <button
         onClick={(e) => {

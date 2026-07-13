@@ -17,6 +17,33 @@ import { useWorkspaces } from "@/stores/workspaces";
 import { findLargestGap } from "@desk/core";
 import type { WorkspaceBlock } from "@desk/core/types";
 
+/** Workspace chooser rows — shared by the header "+" and by drag-to-create. */
+export function WorkspacePickerList({
+  onSelect,
+}: {
+  onSelect: (workspaceId: string) => void;
+}) {
+  const { data: workspaces = [] } = useWorkspaces();
+
+  return (
+    <>
+      {workspaces.map((ws) => (
+        <button
+          key={ws.id}
+          onClick={() => onSelect(ws.id)}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted/60 transition-colors"
+        >
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: ws.color || "#64748b" }}
+          />
+          {ws.name}
+        </button>
+      ))}
+    </>
+  );
+}
+
 interface AddBlockButtonProps {
   date: string;
   weekOf: string;
@@ -28,7 +55,6 @@ interface AddBlockButtonProps {
 export function AddBlockButton({ date, weekOf, blocks = [], compact }: AddBlockButtonProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const { data: workspaces = [] } = useWorkspaces();
   const addBlock = usePlannerStore((s) => s.addBlock);
   const workDayStartHour = usePreferencesStore((s) => s.workDayStartHour);
   const workDayEndHour = usePreferencesStore((s) => s.workDayEndHour);
@@ -72,19 +98,7 @@ export function AddBlockButton({ date, weekOf, blocks = [], compact }: AddBlockB
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-44 p-1" align="start">
-        {workspaces.map((ws) => (
-          <button
-            key={ws.id}
-            onClick={() => handleSelect(ws.id)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted/60 transition-colors"
-          >
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: ws.color || "#64748b" }}
-            />
-            {ws.name}
-          </button>
-        ))}
+        <WorkspacePickerList onSelect={handleSelect} />
       </PopoverContent>
     </Popover>
   );

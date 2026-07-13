@@ -7,6 +7,7 @@ import {
   FileText,
   Folder,
   FolderKanban,
+  Plus,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -82,9 +83,126 @@ interface DocsTreeRowProps {
 export function DocsTreeRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
   if (data.kind === "section-header") return <SectionHeaderRow node={node} style={style} />;
-  if (data.kind === "folder") return <FolderRow node={node} style={style} dragHandle={dragHandle} />;
+  if (data.kind === "context-empty") return <ContextEmptyRow node={node} style={style} />;
+  if (data.kind === "folder") {
+    // Context is a layer, not a folder inside Docs: on disk `context/` is a *sibling* of
+    // `docs/`, so it renders as a band (section typography) rather than folder chrome.
+    return isContextRoot(data)
+      ? <ContextSectionRow node={node} style={style} />
+      : <FolderRow node={node} style={style} dragHandle={dragHandle} />;
+  }
   if (data.kind === "doc") return <DocRow node={node} style={style} dragHandle={dragHandle} />;
   return <AssetRow node={node} style={style} dragHandle={dragHandle} />;
+}
+
+/** Hairline closing the Context band off from the records below it. */
+function RowDivider() {
+  return <div className="absolute left-2 right-2 top-0 h-px bg-border/60" />;
+}
+
+// ── Context band ──────────────────────────────────────────────────────────────
+
+/**
+ * The synthetic Context root. Interactive like a folder (toggle, drop target, create) but
+ * styled like a section label, so it reads as the orientation layer sitting above the records
+ * rather than as one more doc folder. Identical at workspace level and inside a project — it is
+ * the same node, just path-prefixed.
+ */
+function ContextSectionRow({ node, style }: DocsTreeRowProps) {
+  const data = node.data;
+  const handlers = useTreeHandlers();
+  const { t } = useTranslation();
+
+  const handleClick = useCallback(() => {
+    node.toggle();
+  }, [node]);
+
+  const handleCreate = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handlers.onCreateDocIn(data.treePath);
+    },
+    [handlers, data.treePath],
+  );
+
+  if (data.node.type !== "folder") return null;
+  const folder = data.node.folder;
+
+  // No rename, no delete (it is synthetic), and no AI-exclusion toggle: hiding the map from
+  // the agent is the one thing this folder exists to prevent.
+  const menuItems: MenuItem[] = buildFolderMenuItems({
+    folderPath: data.treePath,
+    fullFolderPath: handlers.basePathFor(data.treePath) ?? "",
+    isAIIncluded: true,
+    hasBasePath: !!handlers.basePathFor(data.treePath),
+    onNewDocInFolder: () => handlers.onCreateDocIn(data.treePath),
+    onNewSubfolder: () => handlers.onCreateFolderIn(data.treePath),
+  });
+
+  return (
+    <TreeItemMenus items={menuItems}>
+      <div
+        style={style}
+        data-drop-tree-path={data.treePath}
+        data-drop-target-kind="folder"
+        className={cn(
+          "group relative flex items-center gap-1 px-2 h-7 cursor-pointer select-none rounded-sm",
+          "hover:bg-accent/30",
+          node.willReceiveDrop && "bg-primary/10 ring-1 ring-primary/40",
+          "data-[desk-drop-target=true]:bg-primary/10 data-[desk-drop-target=true]:ring-1 data-[desk-drop-target=true]:ring-primary/40",
+        )}
+        onClick={handleClick}
+      >
+        <ChevronRight
+          className={cn(
+            "size-3 shrink-0 text-muted-foreground/40 transition-transform",
+            node.isOpen && "rotate-90",
+          )}
+        />
+        <Compass className="size-3.5 shrink-0 text-muted-foreground/50" />
+        <SectionLabel className="text-[10px] tracking-wider text-muted-foreground/50">
+          {folder.name}
+        </SectionLabel>
+        <button
+          type="button"
+          aria-label={t("pages.docs.tree.newContextFile")}
+          title={t("pages.docs.tree.newContextFile")}
+          onClick={handleCreate}
+          className="ml-auto shrink-0 rounded-sm p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
+        >
+          <Plus className="size-3.5 text-muted-foreground" />
+        </button>
+      </div>
+    </TreeItemMenus>
+  );
+}
+
+/**
+ * Shown when Context has no files. Emptiness is the normal starting state, so it is a prompt,
+ * not a void: the previous `ai-docs/` folder was silently empty and therefore never filled.
+ */
+function ContextEmptyRow({ node, style }: DocsTreeRowProps) {
+  const data = node.data;
+  const handlers = useTreeHandlers();
+  const { t } = useTranslation();
+
+  const handleClick = useCallback(() => {
+    handlers.onCreateDocIn(data.parentTreePath);
+  }, [handlers, data.parentTreePath]);
+
+  return (
+    <div
+      style={style}
+      className="flex items-center gap-1.5 px-2 h-7 cursor-pointer select-none rounded-sm hover:bg-accent/30"
+      onClick={handleClick}
+    >
+      <span className="size-3 shrink-0" />
+      <Plus className="size-3.5 shrink-0 text-muted-foreground/40" />
+      <span className="text-xs truncate text-muted-foreground/60">
+        {t("pages.docs.tree.contextEmpty")}
+      </span>
+    </div>
+  );
 }
 
 // ── Section header row (synthetic, non-interactive) ───────────────────────────
@@ -133,8 +251,6 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
   if (!folder) return null;
 
   const isProject = isProjectStub(data);
-  const isCtxRoot = isContextRoot(data);
-  const isProtected = isCtxRoot; // the synthetic Context root cannot be renamed/deleted/dragged
   const isExcludedFromAI = handlers.folderAIStates.get(data.treePath) === false;
   // Counts: projects expose a precomputed recursive total (lazy children aren't loaded yet);
   // everything else has a fully populated subtree from the overview shell, so count inline.
@@ -155,13 +271,11 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
     onToggleFolderAI: isProject || isInsideProject
       ? undefined
       : (path) => handlers.onToggleFolderAI(path, !isExcludedFromAI),
-    onRenameFolder: isProtected || isProject ? undefined : () => node.edit(),
-    onDeleteFolder: isProtected || isProject ? undefined : (path) => handlers.onDeleteFolder(path),
+    onRenameFolder: isProject ? undefined : () => node.edit(),
+    onDeleteFolder: isProject ? undefined : (path) => handlers.onDeleteFolder(path),
   });
 
-  // Context is a peer of projects, not a muted appendix: it gets its own row icon
-  // (the map) rather than the trailing badge it used to carry.
-  const Icon = isProject ? FolderKanban : isCtxRoot ? Compass : Folder;
+  const Icon = isProject ? FolderKanban : Folder;
 
   return (
     <TreeItemMenus items={menuItems}>
@@ -171,7 +285,7 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
         data-drop-tree-path={data.treePath}
         data-drop-target-kind="folder"
         className={cn(
-          "group flex items-center gap-1 px-2 h-7 cursor-pointer rounded-sm",
+          "group relative flex items-center gap-1 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
           node.isSelected && "bg-accent",
           node.willReceiveDrop && "bg-primary/10 ring-1 ring-primary/40",
@@ -180,6 +294,7 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
         onClick={handleClick}
         onDoubleClick={(e) => e.preventDefault()}
       >
+        {data.showDividerAbove && <RowDivider />}
         <ChevronRight
           className={cn(
             "size-3 shrink-0 text-muted-foreground/60 transition-transform",
@@ -189,7 +304,7 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
         <Icon
           className={cn(
             "size-4 shrink-0",
-            isProject || isCtxRoot ? "text-primary/70" : "text-muted-foreground",
+            isProject ? "text-primary/70" : "text-muted-foreground",
           )}
         />
         {node.isEditing ? (
@@ -201,25 +316,20 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
           />
         ) : (
           <>
-            <span className={cn("text-sm truncate", (isProject || isCtxRoot) && "font-medium")}>
+            <span className={cn("text-sm truncate", isProject && "font-medium")}>
               {folder.name}
             </span>
-            <div
-              className={cn(
-                "ml-auto flex items-center gap-1 shrink-0",
-                !isProtected && "group-hover:hidden",
-              )}
-            >
+            <div className="ml-auto flex items-center gap-1 shrink-0 group-hover:hidden">
               {docCount > 0 ? (
                 <span className="text-[11px] text-muted-foreground/40 tabular-nums">{docCount}</span>
               ) : null}
-              {isExcludedFromAI && !isProject && !isCtxRoot && (
+              {isExcludedFromAI && !isProject && (
                 <SparklesOff className="size-3.5 text-muted-foreground/60" />
               )}
             </div>
           </>
         )}
-        {!isProtected && <TreeItemDropdown items={menuItems} />}
+        <TreeItemDropdown items={menuItems} />
       </div>
     </TreeItemMenus>
   );
@@ -263,12 +373,13 @@ function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
         data-drop-tree-path={data.parentTreePath}
         data-drop-target-kind="sibling"
         className={cn(
-          "group flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
+          "group relative flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
           node.isSelected && "bg-accent",
         )}
         onClick={handleClick}
       >
+        {data.showDividerAbove && <RowDivider />}
         <span className="size-3 shrink-0" />
         <FileText className="size-4 shrink-0 text-muted-foreground" />
         {node.isEditing ? (
@@ -326,12 +437,13 @@ function AssetRow({ node, style, dragHandle }: DocsTreeRowProps) {
         data-drop-tree-path={data.parentTreePath}
         data-drop-target-kind="sibling"
         className={cn(
-          "group flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
+          "group relative flex items-center gap-1.5 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
           node.isSelected && "bg-accent",
         )}
         onClick={handleClick}
       >
+        {data.showDividerAbove && <RowDivider />}
         <span className="size-3 shrink-0" />
         <Icon className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-sm truncate">{asset.id}</span>

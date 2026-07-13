@@ -14,7 +14,6 @@ import { getDeskService } from "@desk/core";
 interface PlannerState {
   weekPlans: Record<string, WeekPlan>; // Keyed by weekOf ISO date
 
-  getOrCreateWeekPlan: (weekOf: string) => WeekPlan;
   addBlock: (weekOf: string, day: string, block: WorkspaceBlock) => void;
   removeBlock: (weekOf: string, day: string, blockId: string) => void;
   updateBlock: (
@@ -118,16 +117,8 @@ function updatePlan(
 
 export const usePlannerStore = create<PlannerState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       weekPlans: {},
-
-      getOrCreateWeekPlan: (weekOf) => {
-        const existing = get().weekPlans[weekOf];
-        if (existing) return existing;
-        const plan = emptyWeekPlan(weekOf);
-        set((s) => ({ weekPlans: { ...s.weekPlans, [weekOf]: plan } }));
-        return plan;
-      },
 
       addBlock: (weekOf, day, block) =>
         set((s) =>

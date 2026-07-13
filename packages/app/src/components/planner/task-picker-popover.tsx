@@ -3,8 +3,8 @@
  * Shows workspace tasks pre-filtered, with Enter on empty results adding as a note.
  */
 
-import { useState, useMemo, useRef } from "react";
-import { Plus } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, StickyNote } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Popover,
@@ -18,6 +18,7 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandItem,
+  CommandSeparator,
 } from "@/components/ui/command";
 import { taskStatusColors } from "@/lib/design-tokens";
 import { cn } from "@/lib/utils";
@@ -41,36 +42,38 @@ export function TaskPickerPopover({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const listRef = useRef<HTMLDivElement>(null);
 
-  const availableTasks = useMemo(
-    () =>
-      allTasks.filter(
-        (t) =>
-          t.workspaceId === workspaceId && !assignedTaskIds.includes(t.id)
-      ),
-    [allTasks, workspaceId, assignedTaskIds]
-  );
+  const trimmed = query.trim();
 
-  const handleSelect = (taskId: string) => {
+  // Filtering is ours, not cmdk's (`shouldFilter={false}` below, as in global search
+  // and the note-link picker). cmdk's built-in filter scores fuzzy *subsequences*, so
+  // typing "mia" matched "Mail an Fitness App" — plain substring is what people expect
+  // here, and it lets a genuinely new word like "Mia" fall through to a note.
+  //
+  // `allTasks` carries every status so blocks can keep showing finished work, but there
+  // is no point planning a task that is already done.
+  const matchingTasks = useMemo(() => {
+    const needle = trimmed.toLowerCase();
+    return allTasks.filter(
+      (task) =>
+        task.workspaceId === workspaceId &&
+        task.status !== "done" &&
+        !assignedTaskIds.includes(task.id) &&
+        (!needle || task.title.toLowerCase().includes(needle))
+    );
+  }, [allTasks, workspaceId, assignedTaskIds, trimmed]);
+
+  const handleSelectTask = (taskId: string) => {
     onSelectTask(taskId);
     setQuery("");
     setOpen(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && query.trim()) {
-      // Check if there are any visible (matching) items
-      const items = listRef.current?.querySelectorAll("[cmdk-item]");
-      const hasVisibleItems = items && items.length > 0;
-
-      if (!hasVisibleItems) {
-        e.preventDefault();
-        onAddNote(query.trim());
-        setQuery("");
-        setOpen(false);
-      }
-    }
+  const handleSelectNote = () => {
+    if (!trimmed) return;
+    onAddNote(trimmed);
+    setQuery("");
+    setOpen(false);
   };
 
   return (
@@ -82,27 +85,26 @@ export function TaskPickerPopover({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
-        <Command shouldFilter>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder={t("pages.planner.taskPicker.placeholder")}
             value={query}
             onValueChange={setQuery}
-            onKeyDown={handleKeyDown}
             className="h-9 text-xs"
           />
-          <CommandList ref={listRef} className="max-h-[200px]">
-            <CommandEmpty className="py-3 text-center text-[11px] text-muted-foreground">
-              {query.trim()
-                ? t("pages.planner.taskPicker.pressEnterAsNote")
-                : t("pages.planner.taskPicker.noAvailableTasks")}
-            </CommandEmpty>
-            {availableTasks.length > 0 && (
+          <CommandList className="max-h-[200px]">
+            {matchingTasks.length === 0 && !trimmed && (
+              <CommandEmpty className="py-3 text-center text-[11px] text-muted-foreground">
+                {t("pages.planner.taskPicker.noAvailableTasks")}
+              </CommandEmpty>
+            )}
+            {matchingTasks.length > 0 && (
               <CommandGroup>
-                {availableTasks.map((task) => (
+                {matchingTasks.map((task) => (
                   <CommandItem
                     key={task.id}
-                    value={task.title}
-                    onSelect={() => handleSelect(task.id)}
+                    value={`task:${task.id}`}
+                    onSelect={() => handleSelectTask(task.id)}
                     className="flex items-center gap-1.5 text-xs cursor-pointer"
                   >
                     <div
@@ -115,6 +117,24 @@ export function TaskPickerPopover({
                   </CommandItem>
                 ))}
               </CommandGroup>
+            )}
+            {/* Adding a note stays reachable even when tasks match the query */}
+            {trimmed && (
+              <>
+                {matchingTasks.length > 0 && <CommandSeparator />}
+                <CommandGroup>
+                  <CommandItem
+                    value="add-as-note"
+                    onSelect={handleSelectNote}
+                    className="flex items-center gap-1.5 text-xs cursor-pointer"
+                  >
+                    <StickyNote className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate text-muted-foreground">
+                      {t("pages.planner.taskPicker.addAsNote", { text: trimmed })}
+                    </span>
+                  </CommandItem>
+                </CommandGroup>
+              </>
             )}
           </CommandList>
         </Command>

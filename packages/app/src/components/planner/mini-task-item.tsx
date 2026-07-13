@@ -14,6 +14,8 @@ interface MiniTaskItemProps {
 }
 
 export function MiniTaskItem({ task, onClick, onRemove }: MiniTaskItemProps) {
+  const done = task.status === "done";
+
   return (
     <div
       className={cn(
@@ -28,7 +30,14 @@ export function MiniTaskItem({ task, onClick, onRemove }: MiniTaskItemProps) {
           taskStatusColors[task.status]
         )}
       />
-      <span className="truncate flex-1">{task.title}</span>
+      <span
+        className={cn(
+          "truncate flex-1",
+          done && "line-through text-muted-foreground"
+        )}
+      >
+        {task.title}
+      </span>
       {onRemove && (
         <button
           onClick={(e) => {

@@ -130,6 +130,8 @@
         "fileCount_one": "{{count}} Datei",
         "fileCount_other": "{{count}} Dateien",
         "contextFolder": "Kontext",
+        "contextEmpty": "Noch kein Kontext. Beschreibe, worum es hier geht",
+        "newContextFile": "Neue Kontextdatei",
         "sections": {
           "workspace": "Arbeitsbereich",
           "projects": "Projekte"
@@ -245,8 +247,8 @@
       },
       "taskPicker": {
         "placeholder": "Aufgabe oder Notiz hinzufügen...",
-        "pressEnterAsNote": "Enter drücken, um als Notiz hinzuzufügen",
-        "noAvailableTasks": "Keine verfügbaren Aufgaben"
+        "noAvailableTasks": "Keine verfügbaren Aufgaben",
+        "addAsNote": "\"{{text}}\" als Notiz hinzufügen"
       },
       "block": {
         "addNote": "Notiz hinzufügen",

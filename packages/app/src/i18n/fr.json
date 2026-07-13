@@ -130,6 +130,8 @@
         "fileCount_one": "{{count}} fichier",
         "fileCount_other": "{{count}} fichiers",
         "contextFolder": "Contexte",
+        "contextEmpty": "Pas encore de contexte. Décrivez de quoi il s'agit",
+        "newContextFile": "Nouveau fichier de contexte",
         "sections": {
           "workspace": "Espace",
           "projects": "Projets"
@@ -245,8 +247,8 @@
       },
       "taskPicker": {
         "placeholder": "Ajouter une tâche ou une note...",
-        "pressEnterAsNote": "Appuyez sur Entrée pour ajouter comme note",
-        "noAvailableTasks": "Aucune tâche disponible"
+        "noAvailableTasks": "Aucune tâche disponible",
+        "addAsNote": "Ajouter \"{{text}}\" comme note"
       },
       "block": {
         "addNote": "Ajouter une note",
