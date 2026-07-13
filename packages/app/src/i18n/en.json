@@ -58,8 +58,7 @@
       "desk": "Desk",
       "workspaceViews": "Workspace Views",
       "projectsSection": "Projects",
-      "allProjects": "All projects",
-      "newProject": "New project"
+      "allProjects": "All projects"
     },
     "secondarySidebar": {
       "expandPanel": "Expand panel"

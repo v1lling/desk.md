@@ -12,11 +12,10 @@ import {
   Home,
   FileText,
   FolderKanban,
-  Plus,
   Search,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
@@ -25,11 +24,8 @@ import { useMeetings } from "@/stores/meetings";
 import { countTreeFiles } from "@/lib/tree-count";
 import { useProjects } from "@/stores/projects";
 import { useProjectSelectionStore } from "@/stores/project-selection";
-import { projectStatusDotColors } from "@/lib/design-tokens";
 import { countActiveTasks, isActiveStatus } from "@/lib/task-status";
 import { SectionLabel } from "@/components/patterns";
-import { Button } from "@/components/ui/button";
-import { NewProjectModal } from "@/components/projects/new-project-modal";
 import { WorkspaceSelector } from "./workspace-selector";
 import { useTabStore } from "@/stores/tabs";
 import { openGlobalSearch } from "@/components/global-search";
@@ -69,7 +65,6 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
 
   const selectedProjectId = useProjectSelectionStore((s) => s.selectedProjectId);
   const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   // Active projects only, most recently touched first, capped — "All projects"
   // covers the rest. Recency is the latest `updated` stamp across the tasks and
@@ -150,49 +145,33 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
           )}
 
           {!collapsed && (
-            <div className="group/projects">
-              <SectionLabel
-                className="px-2.5 pb-0.5 text-[10px] tracking-wider text-sidebar-foreground/45"
-                end={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-5 -my-1 text-sidebar-foreground/50 hover:text-sidebar-foreground opacity-0 group-hover/projects:opacity-100 transition-opacity"
-                    title={t("nav.sidebar.newProject")}
-                    onClick={() => setNewProjectOpen(true)}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                }
-              >
+            <div>
+              <SectionLabel className="px-2.5 pb-0.5 text-[10px] tracking-wider text-sidebar-foreground/45">
                 {t("nav.sidebar.projectsSection")}
               </SectionLabel>
 
               <div className="space-y-0.5">
-                {sidebarProjects.map((project) => {
-                  const activeTasks = countActiveTasks(project.tasksByStatus);
-                  return (
-                    <SidebarNavRow
-                      key={project.id}
-                      to="/projects"
-                      role="project"
-                      dot={projectStatusDotColors[project.status]}
-                      label={project.name}
-                      count={activeTasks}
-                      active={pathname.startsWith("/projects") && selectedProjectId === project.id}
-                      onClick={() => {
-                        setSelectedProject(project.id);
-                        switchToDesk();
-                      }}
-                    />
-                  );
-                })}
+                {sidebarProjects.map((project) => (
+                  <SidebarNavRow
+                    key={project.id}
+                    to="/projects"
+                    role="project"
+                    label={project.name}
+                    count={countActiveTasks(project.tasksByStatus)}
+                    active={pathname.startsWith("/projects") && selectedProjectId === project.id}
+                    onClick={() => {
+                      setSelectedProject(project.id);
+                      switchToDesk();
+                    }}
+                  />
+                ))}
                 {/* Always present: the only route to the browse view (archived and
-                    paused projects, delete, filter) now that the nav row is gone. */}
+                    paused projects, create, delete, filter). Carries the section's
+                    icon so it reads as a nav destination, not a project. */}
                 <SidebarNavRow
                   to="/projects"
-                  role="subitem"
                   label={t("nav.sidebar.allProjects")}
+                  icon={FolderKanban}
                   count={projectCount}
                   active={pathname.startsWith("/projects") && !selectedProjectId}
                   onClick={() => {
@@ -207,8 +186,6 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
           )}
         </nav>
       </ScrollArea>
-
-      <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
 
       <div className="shrink-0 px-2 pb-1 pt-1.5 border-t border-sidebar-border/60 space-y-0.5">
         <SidebarNavRow to="/settings" label={t("nav.sidebar.settings")} icon={Settings} active={pathname === "/settings"} collapsed={collapsed} role="global" onClick={switchToDesk} />

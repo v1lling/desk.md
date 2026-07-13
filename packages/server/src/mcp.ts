@@ -69,7 +69,7 @@ If drafting the reply would benefit from workspace context (a referenced doc, ta
  * transport), so there is no shared session state to leak between connectors.
  */
 function buildServer(): McpServer {
-  const server = new McpServer({ name: "desk.md", version: "0.9.1" });
+  const server = new McpServer({ name: "desk.md", version: "0.10.0" });
   const svc = getDeskService();
 
   server.registerTool(

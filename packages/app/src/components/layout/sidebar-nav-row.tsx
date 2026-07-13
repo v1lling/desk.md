@@ -2,14 +2,12 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
-type SidebarNavRole = "global" | "project" | "subitem";
+type SidebarNavRole = "global" | "project";
 
 interface SidebarNavRowProps {
   to?: string;
   onClick?: () => void;
   icon?: LucideIcon;
-  /** Status dot (a bg-* class) shown in the icon slot when no icon is given. */
-  dot?: string;
   label: string;
   active?: boolean;
   role?: SidebarNavRole;
@@ -21,14 +19,12 @@ interface SidebarNavRowProps {
 const roleClasses: Record<SidebarNavRole, string> = {
   global: "text-sm px-2.5 py-1.5",
   project: "text-sm px-2.5 py-1.5",
-  subitem: "text-xs px-3 py-1.5",
 };
 
 export function SidebarNavRow({
   to,
   onClick,
   icon: Icon,
-  dot,
   label,
   active = false,
   role = "global",
@@ -56,9 +52,14 @@ export function SidebarNavRow({
           )}
         />
       )}
-      {!Icon && dot && (
+      {!Icon && role === "project" && (
+        // Neutral bullet, not a status dot: the sidebar lists active projects
+        // only, so a status colour here would always be the same green. It just
+        // marks the row and holds the label in the same column as the icon rows.
         <span className="size-4 shrink-0 flex items-center justify-center">
-          <span className={cn("size-2 rounded-full", dot)} />
+          <span
+            className={cn("size-1.5 rounded-full bg-current", active ? "opacity-70" : "opacity-30")}
+          />
         </span>
       )}
       {!collapsed && <span className="flex-1 truncate text-left">{label}</span>}
