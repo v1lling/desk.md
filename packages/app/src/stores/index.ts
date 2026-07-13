@@ -33,7 +33,6 @@ export {
 export {
   useProjects,
   useProject,
-  useProjectStats,
   useCreateProject,
   useUpdateProject,
   useDeleteProject,

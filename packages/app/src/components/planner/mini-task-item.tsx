@@ -5,6 +5,7 @@
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { taskStatusColors } from "@/lib/design-tokens";
+import { DueLabel } from "@/components/ui/due-label";
 import type { ActiveTask } from "@desk/core";
 
 interface MiniTaskItemProps {
@@ -38,6 +39,9 @@ export function MiniTaskItem({ task, onClick, onRemove }: MiniTaskItemProps) {
       >
         {task.title}
       </span>
+      {/* Text only — the row already carries a coloured status dot, and a second
+          coloured region would turn a 20px row into a traffic light. */}
+      <DueLabel due={task.due} status={task.status} />
       {onRemove && (
         <button
           onClick={(e) => {

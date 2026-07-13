@@ -27,6 +27,8 @@ interface PreferencesState {
   secondarySidebarWidth: number;
   /** Shared collapsed state for the secondary sidebar slot */
   secondarySidebarCollapsed: boolean;
+  /** Collapsed state of the planner's unscheduled-task rail */
+  plannerRailCollapsed: boolean;
   /** Version of an update the user explicitly skipped — suppresses the launch toast */
   dismissedUpdateVersion: string | null;
   setTheme: (theme: PreferencesState["theme"]) => void;
@@ -36,6 +38,7 @@ interface PreferencesState {
   setShowWeekends: (show: boolean) => void;
   setSecondarySidebarWidth: (width: number) => void;
   setSecondarySidebarCollapsed: (collapsed: boolean) => void;
+  setPlannerRailCollapsed: (collapsed: boolean) => void;
   setDismissedUpdateVersion: (version: string | null) => void;
   reset: () => void;
 }
@@ -49,6 +52,7 @@ const defaultPreferences = {
   showWeekends: false,
   secondarySidebarWidth: SECONDARY_SIDEBAR_DEFAULT_WIDTH,
   secondarySidebarCollapsed: false,
+  plannerRailCollapsed: false,
   dismissedUpdateVersion: null as string | null,
 };
 
@@ -67,6 +71,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setShowWeekends: (show) => set({ showWeekends: show }),
       setSecondarySidebarWidth: (width) => set({ secondarySidebarWidth: width }),
       setSecondarySidebarCollapsed: (collapsed) => set({ secondarySidebarCollapsed: collapsed }),
+      setPlannerRailCollapsed: (collapsed) => set({ plannerRailCollapsed: collapsed }),
       setDismissedUpdateVersion: (version) => set({ dismissedUpdateVersion: version }),
       reset: () => set(defaultPreferences),
     }),

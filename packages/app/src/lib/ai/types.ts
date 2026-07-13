@@ -40,8 +40,9 @@ export type AIProviderType = 'anthropic' | 'openai';
 
 /** AI call purposes tracked in the usage stats. */
 export type AIPurpose =
-  | 'index'   // Smart Index summarization (batch build + on-save)
-  | 'custom'; // Custom prompt via AIService.custom()
+  | 'index'            // Smart Index summarization (batch build + on-save)
+  | 'context-refresh'  // Reconcile a project brief against the records that changed since
+  | 'custom';          // Custom prompt via AIService.custom()
 
 export interface AIUsageRecord {
   id: string;

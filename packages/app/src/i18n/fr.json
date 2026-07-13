@@ -83,7 +83,9 @@
       "workspaces": {
         "title": "Espaces",
         "loadingLabel": "espaces",
-        "emptyTitle": "Aucun espace pour l'instant"
+        "emptyTitle": "Aucun espace pour l'instant",
+        "activeCount_one": "{{count}} en cours",
+        "activeCount_other": "{{count}} en cours"
       },
       "capture": {
         "title": "Capture",
@@ -205,9 +207,6 @@
         "notFoundTitle": "Projet introuvable",
         "notFoundDescription": "Ce projet a peut-être été supprimé ou déplacé.",
         "createdOn": "Créé le {{date}}",
-        "progress": "Avancement",
-        "noTasksYet": "Aucune tâche pour l'instant",
-        "progressSummary": "{{done}} sur {{total}} terminées · {{pct}}%",
         "renameTitle": "Cliquer pour renommer",
         "descriptionPlaceholder": "Ajouter une courte description…",
         "descriptionEditTitle": "Cliquer pour modifier",
@@ -226,7 +225,26 @@
         "allDocs": "Tous les documents",
         "noDocs": "Aucun document pour l'instant.",
         "activityHeading": "Activité récente",
-        "noActivity": "Aucune activité pour l'instant."
+        "noActivity": "Aucune activité pour l'instant.",
+        "counts": {
+          "active_one": "{{count}} en cours",
+          "active_other": "{{count}} en cours",
+          "done_one": "{{count}} terminée",
+          "done_other": "{{count}} terminées",
+          "backlog_one": "{{count}} en attente",
+          "backlog_other": "{{count}} en attente"
+        },
+        "context": {
+          "heading": "Contexte",
+          "refresh": "Actualiser",
+          "copyPrompt": "Copier le prompt",
+          "copyPromptHint": "Aucune clé IA configurée. Copiez le prompt et collez-le dans votre agent IA.",
+          "fresh": "À jour",
+          "stale_one": "{{count}} élément modifié depuis",
+          "stale_other": "{{count}} éléments modifiés depuis",
+          "reviewed": "Revu {{when}}",
+          "addBrief": "Ajouter une synthèse"
+        }
       },
       "browse": {
         "newProject": "Nouveau projet",
@@ -241,10 +259,6 @@
       "selectWorkspaceDescription": "Choisissez un espace dans la barre latérale pour voir les projets."
     },
     "planner": {
-      "toggle": {
-        "showColumn": "Afficher la colonne {{label}}",
-        "hideColumn": "Masquer la colonne {{label}}"
-      },
       "taskPicker": {
         "placeholder": "Ajouter une tâche ou une note...",
         "noAvailableTasks": "Aucune tâche disponible",
@@ -256,9 +270,27 @@
         "notePlaceholder": "Saisir une note...",
         "moreCount": "+{{count}} de plus"
       },
-      "week": "Semaine",
-      "allTasks": "Tableau",
-      "allWorkspaces": "Tous les espaces"
+      "rail": {
+        "title": "À planifier",
+        "empty": "Rien à planifier",
+        "overdue": "En retard",
+        "dueThisWeek": "À faire cette semaine",
+        "later": "Plus tard",
+        "noDate": "Sans date",
+        "collapse": "Réduire",
+        "expand": "Afficher les tâches non planifiées"
+      },
+      "due": {
+        "today": "Aujourd'hui"
+      },
+      "dueStrip": {
+        "count_one": "{{count}} tâche à faire",
+        "count_other": "{{count}} tâches à faire"
+      },
+      "intentions": {
+        "add": "Ajouter une intention",
+        "placeholder": "Quel est le thème de cette semaine ?"
+      }
     }
   },
   "settings": {
@@ -624,7 +656,9 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brève description du projet...",
       "statusLabel": "Statut",
-      "submit": "Créer le projet"
+      "submit": "Créer le projet",
+      "systemsLabel": "Systèmes et stack",
+      "systemsPlaceholder": "Quels services, dépôts ou outils sont concernés ?"
     },
     "newTask": {
       "title": "Nouvelle tâche",
@@ -696,6 +730,42 @@
       "deleteButton": "Supprimer l'espace",
       "deleteConfirmTitle": "Supprimer l'espace",
       "deleteConfirmDescription": "Cela supprimera définitivement « {{name}} » et tous ses projets, tâches, documents et réunions. Cette action est irréversible."
+    },
+    "brief": {
+      "title": "Rédiger la synthèse",
+      "description": "Deux choses qu'une IA ne peut pas deviner.",
+      "whatLabel": "De quoi parle ce projet ?",
+      "whatPlaceholder": "Que cherchez-vous à accomplir, et pourquoi ce projet existe-t-il ?",
+      "systemsLabel": "Systèmes et stack",
+      "systemsPlaceholder": "Quels services, dépôts ou outils sont concernés ?",
+      "submit": "Créer la synthèse"
+    },
+    "refreshBrief": {
+      "title": "Vérifier la mise à jour",
+      "description": "Vos propres sections restent telles quelles. Choisissez ce que vous acceptez du reste.",
+      "apply": "Appliquer",
+      "retry": "Réessayer",
+      "unusable": "Le modèle n'a pas renvoyé de synthèse exploitable. Rien n'a été modifié.",
+      "emptySection": "(vide)",
+      "showPrevious": "Afficher la version précédente",
+      "hidePrevious": "Masquer la version précédente",
+      "status": {
+        "unchanged": "Inchangé",
+        "rewritten": "Réécrit",
+        "added": "Ajouté",
+        "kept": "Conservé",
+        "yours": "À vous"
+      },
+      "warnings": {
+        "linesRestored_one": "{{count}} ligne supprimée par le modèle a été restaurée.",
+        "linesRestored_other": "{{count}} lignes supprimées par le modèle ont été restaurées.",
+        "humanProtected_one": "{{count}} section vous appartenant a été protégée de la réécriture.",
+        "humanProtected_other": "{{count}} sections vous appartenant ont été protégées de la réécriture.",
+        "sectionsKept_one": "{{count}} section est revenue vide et a été conservée telle quelle.",
+        "sectionsKept_other": "{{count}} sections sont revenues vides et ont été conservées telles quelles.",
+        "unknownDropped_one": "{{count}} titre inventé par le modèle a été écarté.",
+        "unknownDropped_other": "{{count}} titres inventés par le modèle ont été écartés."
+      }
     }
   },
   "editors": {
@@ -805,6 +875,11 @@
         "title": "Aucune réunion pour l'instant",
         "description": "Créez votre première note de réunion pour commencer"
       }
+    },
+    "brief": {
+      "title": "Pas encore de synthèse",
+      "description": "Décrivez ce qu'est ce projet et sur quoi il repose. Tout le reste se déduit de vos tâches, documents et réunions, mais cette partie, vous seul pouvez l'écrire.",
+      "action": "Rédiger la synthèse"
     }
   },
   "toasts": {
@@ -898,6 +973,19 @@
     },
     "ai": {
       "inclusionUpdateFailed": "Échec de la mise à jour du réglage IA"
+    },
+    "brief": {
+      "create": {
+        "error": "Impossible de créer la synthèse"
+      },
+      "refresh": {
+        "error": "Impossible d'actualiser la synthèse",
+        "success": "Synthèse mise à jour"
+      },
+      "apply": {
+        "error": "Impossible d'enregistrer la synthèse"
+      },
+      "promptCopied": "Prompt copié"
     }
   },
   "errors": {

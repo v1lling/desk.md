@@ -32,6 +32,9 @@ export * from "./norms";
 
 // ── Docs tree + queries + planner ───────────────────────────────────
 export * from "./content-tree";
+export * from "./doc-sections";
+export * from "./context-freshness";
+export * from "./project-brief";
 export * from "./agent-queries";
 export * from "./planner";
 

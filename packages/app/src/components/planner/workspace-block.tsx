@@ -4,7 +4,7 @@
  * Content adapts to block height: compact for short blocks, full for tall ones.
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Circle, StickyNote, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -20,12 +20,14 @@ import { useOpenTab } from "@/stores/tabs";
 import {
   minuteToPixel,
   minutesToTime,
+  pixelsToMinutes,
   snapToSlot,
   blocksOverlap,
 } from "@desk/core";
 import { MiniTaskItem } from "./mini-task-item";
 import { MiniNoteItem } from "./mini-note-item";
 import { TaskPickerPopover } from "./task-picker-popover";
+import { usePointerDrag } from "./use-pointer-drag";
 import type { WorkspaceBlock, Workspace } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
 
@@ -39,6 +41,8 @@ interface TimeBlockProps {
   slotHeight: number;
   siblingBlocks: WorkspaceBlock[];
   onDragStart?: (blockId: string, day: string, e: React.MouseEvent) => void;
+  /** A task from the rail is hovering over this block and would drop into it. */
+  isDropTarget?: boolean;
 }
 
 export function TimeBlock({
@@ -51,6 +55,7 @@ export function TimeBlock({
   slotHeight,
   siblingBlocks,
   onDragStart,
+  isDropTarget,
 }: TimeBlockProps) {
   const { t } = useTranslation();
   const workspace = workspaces.find((w) => w.id === block.workspaceId);
@@ -122,9 +127,7 @@ export function TimeBlock({
 
   // ── Resize handling ──────────────────────────────────────────────
 
-  // Cleanup ref for resize listeners — prevents memory leak on unmount
-  const resizeCleanupRef = useRef<(() => void) | null>(null);
-  useEffect(() => () => resizeCleanupRef.current?.(), []);
+  const beginDrag = usePointerDrag();
 
   // Ref to track the latest resize preview for the mouseup handler
   const resizePreviewRef = useRef(resizePreview);
@@ -172,56 +175,48 @@ export function TimeBlock({
         originalEnd: block.endMinute,
       };
 
-      const handleMouseMove = (ev: MouseEvent) => {
-        if (!resizeRef.current) return;
-        const deltaY = ev.clientY - resizeRef.current.startY;
-        const deltaMinutes = (deltaY / slotHeightRef.current) * 30;
-
-        let newStart = resizeRef.current.originalStart;
-        let newEnd = resizeRef.current.originalEnd;
-
-        if (edge === "top") {
-          newStart = snapToSlot(resizeRef.current.originalStart + deltaMinutes);
-        } else {
-          newEnd = snapToSlot(resizeRef.current.originalEnd + deltaMinutes);
-        }
-
-        const clamped = clampToSiblings(newStart, newEnd);
-        resizePreviewRef.current = clamped;
-        setResizePreview(clamped);
-      };
-
-      const cleanup = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-        resizeCleanupRef.current = null;
-      };
-
-      const handleMouseUp = () => {
-        cleanup();
-
-        if (resizePreviewRef.current) {
-          updateBlockTime(
-            weekOf,
-            day,
-            block.id,
-            resizePreviewRef.current.startMinute,
-            resizePreviewRef.current.endMinute
+      beginDrag(e, {
+        cursor: "ns-resize",
+        onMove: (ev) => {
+          if (!resizeRef.current) return;
+          const deltaMinutes = pixelsToMinutes(
+            ev.clientY - resizeRef.current.startY,
+            slotHeightRef.current
           );
-        }
-        setResizePreview(null);
-        resizeRef.current = null;
-      };
 
-      resizeCleanupRef.current = cleanup;
-      document.body.style.cursor = "ns-resize";
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+          let newStart = resizeRef.current.originalStart;
+          let newEnd = resizeRef.current.originalEnd;
+
+          if (edge === "top") {
+            newStart = snapToSlot(resizeRef.current.originalStart + deltaMinutes);
+          } else {
+            newEnd = snapToSlot(resizeRef.current.originalEnd + deltaMinutes);
+          }
+
+          const clamped = clampToSiblings(newStart, newEnd);
+          resizePreviewRef.current = clamped;
+          setResizePreview(clamped);
+        },
+        onEnd: () => {
+          if (resizePreviewRef.current) {
+            updateBlockTime(
+              weekOf,
+              day,
+              block.id,
+              resizePreviewRef.current.startMinute,
+              resizePreviewRef.current.endMinute
+            );
+          }
+          setResizePreview(null);
+          resizeRef.current = null;
+        },
+        onCancel: () => {
+          setResizePreview(null);
+          resizeRef.current = null;
+        },
+      });
     },
-    [block, weekOf, day, updateBlockTime, clampToSiblings]
+    [beginDrag, block, weekOf, day, updateBlockTime, clampToSiblings]
   );
 
   // ── Drag handling (body) ─────────────────────────────────────────
@@ -248,7 +243,8 @@ export function TimeBlock({
           className={cn(
             "absolute left-1 right-1 rounded-lg border overflow-hidden transition-shadow",
             "hover:shadow-md group/block",
-            resizePreview && "shadow-lg ring-1 ring-primary/20"
+            resizePreview && "shadow-lg ring-1 ring-primary/20",
+            isDropTarget && "ring-1 ring-primary/40 shadow-md"
           )}
           style={{
             top,
@@ -258,6 +254,7 @@ export function TimeBlock({
             zIndex: resizePreview ? 20 : 10,
           }}
           data-block
+          data-block-id={block.id}
           onMouseDown={handleBodyMouseDown}
         >
           {/* Top resize handle */}

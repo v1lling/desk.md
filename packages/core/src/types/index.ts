@@ -189,4 +189,6 @@ export interface WorkspaceBlock {
 export interface WeekPlan {
   weekOf: string;              // ISO date of Monday, e.g. "2026-03-23"
   days: Record<string, WorkspaceBlock[]>;  // Keyed by ISO date
+  /** Up to 3 short lines: what this week is about. Dense — no holes. */
+  intentions?: string[];
 }

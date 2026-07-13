@@ -23,7 +23,14 @@ export interface WorkspaceSummary {
   backlogTasks: number;
   completedTasks: number;
   doingTasks: number;
-  completionPercent: number;
+  /**
+   * todo + doing + waiting — the work actually in flight.
+   *
+   * There is deliberately no completion percentage here. `done / total` treats "tasks I have
+   * written down so far" as the denominator, so capturing a new task makes a workspace look
+   * *less* finished. A count has no denominator and cannot lie.
+   */
+  activeTasks: number;
 }
 
 /**
@@ -93,7 +100,9 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
     const backlogTasks = tasks.filter((t) => t.status === "backlog").length;
     const completedTasks = tasks.filter((t) => t.status === "done").length;
     const doingTasks = tasks.filter((t) => t.status === "doing").length;
-    const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const activeTasks = tasks.filter(
+      (t) => t.status === "todo" || t.status === "doing" || t.status === "waiting",
+    ).length;
 
     return {
       workspaceId: workspace.id,
@@ -103,19 +112,15 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
       backlogTasks,
       completedTasks,
       doingTasks,
-      completionPercent,
+      activeTasks,
     };
   });
 
   const results = await Promise.all(summaryPromises);
   summaries.push(...results);
 
-  // Sort by number of active (exclude done/backlog) tasks descending
-  summaries.sort((a, b) => {
-    const aActive = a.totalTasks - a.completedTasks - a.backlogTasks;
-    const bActive = b.totalTasks - b.completedTasks - b.backlogTasks;
-    return bActive - aActive;
-  });
+  // Busiest workspace first.
+  summaries.sort((a, b) => b.activeTasks - a.activeTasks);
 
   return summaries;
 }
@@ -123,16 +128,11 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
 // Note: Personal summary is now included in workspace summaries since Personal is a workspace
 
 /**
- * Get all plannable tasks across all workspaces (todo, doing, waiting).
- * Used by the planner week view.
- */
-export async function getAllWorkspaceTasks(): Promise<ActiveTask[]> {
-  return getAllWorkspaceTasksByStatus(["todo", "doing", "waiting"]);
-}
-
-/**
  * Get ALL tasks across all workspaces (all statuses).
- * Used by the planner board when backlog/done columns are visible.
+ *
+ * The planner's single task query: its blocks need done/backlog tasks too (a task finished
+ * after it was planned stays visible, struck through), and the unscheduled rail's set is a
+ * plain filter of this one.
  */
 export async function getAllWorkspaceTasksAllStatuses(): Promise<ActiveTask[]> {
   return getAllWorkspaceTasksByStatus();

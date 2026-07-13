@@ -7,6 +7,7 @@ import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
+import { ensureProjectBrief, hasSeedContent, type BriefSeed } from "./project-brief";
 
 interface ProjectFrontmatter {
   name: string;
@@ -196,6 +197,14 @@ export async function createProject(data: {
   name: string;
   description?: string;
   status?: ProjectStatus;
+  /**
+   * Seeds `context/<date>-brief.md`. The forcing function for the map: a project's intent and
+   * the systems it touches cannot be derived from its records later, so they are captured at
+   * birth or not at all. Omitted or empty on both fields → no brief is written, because an
+   * empty brief of bare headings looks done and is noise to an agent. Project Home then shows
+   * the "Write the brief" call to action instead.
+   */
+  seed?: BriefSeed;
 }): Promise<Project> {
   const id = slugify(data.name);
 
@@ -212,8 +221,18 @@ export async function createProject(data: {
     meetingCount: 0,
   };
 
+  const seed: BriefSeed = { description: data.description, ...data.seed };
+
   if (isMockMode()) {
     mockProjects.push(project);
+    if (hasSeedContent(seed)) {
+      await ensureProjectBrief({
+        workspaceId: data.workspaceId,
+        projectId: id,
+        projectName: project.name,
+        seed,
+      });
+    }
     return project;
   }
 
@@ -241,6 +260,15 @@ ${project.description || ""}
 
   const fileContent = serializeMarkdown(frontmatter, markdownContent);
   await getStorage().writeTextFile(await joinPath(projectPath, "project.md"), fileContent);
+
+  if (hasSeedContent(seed)) {
+    await ensureProjectBrief({
+      workspaceId: data.workspaceId,
+      projectId: id,
+      projectName: project.name,
+      seed,
+    });
+  }
 
   return project;
 }
@@ -333,24 +361,4 @@ export async function deleteProject(projectId: string, workspaceId?: string): Pr
   } catch {
     return false;
   }
-}
-
-/**
- * Get project counts by status for a workspace
- */
-export async function getProjectStats(workspaceId: string): Promise<{
-  total: number;
-  active: number;
-  paused: number;
-  completed: number;
-  archived: number;
-}> {
-  const projects = await getProjects(workspaceId);
-  return {
-    total: projects.length,
-    active: projects.filter((p) => p.status === "active").length,
-    paused: projects.filter((p) => p.status === "paused").length,
-    completed: projects.filter((p) => p.status === "completed").length,
-    archived: projects.filter((p) => p.status === "archived").length,
-  };
 }

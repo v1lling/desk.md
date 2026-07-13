@@ -20,6 +20,7 @@ import {
   SLOT_HEIGHT,
   MIN_SLOT_HEIGHT,
   minuteToPixel,
+  pixelsToMinutes,
   snapToSlot,
   blocksOverlap,
 } from "@desk/core";
@@ -27,11 +28,20 @@ import { WeekNavigator } from "./week-navigator";
 import { TimeGrid } from "./time-grid";
 import { DayColumn } from "./day-column";
 import { AddBlockButton } from "./add-block-popover";
+import { DueStrip } from "./due-strip";
+import { WeekIntentions } from "./week-intentions";
+import { UnscheduledRail } from "./unscheduled-rail";
+import { usePointerDrag } from "./use-pointer-drag";
+import { useTaskDrag } from "./use-task-drag";
+import { dayAtClientX, getPlannerViewport } from "./grid-hit-test";
 import type { WorkspaceBlock } from "@desk/core/types";
+import type { ActiveTask } from "@desk/core";
 
 /** Stable empty references — a week with no plan must not allocate on every render. */
 const NO_DAYS: Record<string, WorkspaceBlock[]> = {};
 const NO_BLOCKS: WorkspaceBlock[] = [];
+const NO_INTENTIONS: string[] = [];
+const NO_TASKS: ActiveTask[] = [];
 
 /** Minutes from midnight, re-read once a minute, for the "now" indicator. */
 function currentMinute(): number {
@@ -59,6 +69,13 @@ export function WeekView() {
   );
   const moveBlock = usePlannerStore((s) => s.moveBlock);
   const updateBlockTime = usePlannerStore((s) => s.updateBlockTime);
+  const setIntention = usePlannerStore((s) => s.setIntention);
+  // Same lazy-write rule as dayBlocks: reading an empty week must persist nothing.
+  const intentions = usePlannerStore(
+    (s) => s.weekPlans[currentMonday]?.intentions ?? NO_INTENTIONS
+  );
+  // Every week's blocks, to decide what is already scheduled (see `unscheduled`).
+  const weekPlans = usePlannerStore((s) => s.weekPlans);
   // All statuses: a task finished after it was planned must stay visible in its
   // block (struck through) rather than silently vanishing from the week.
   const { data: allTasks = [] } = useAllWorkspaceTasksAllStatuses();
@@ -70,6 +87,48 @@ export function WeekView() {
   const showWeekends = usePreferencesStore((s) => s.showWeekends);
 
   const days = getWeekDays(currentMonday, showWeekends);
+
+  // ── The rail's set ────────────────────────────────────────────────
+  // Scheduled = planned in *this real week or later*, not merely in the week on screen.
+  // Cutting at the displayed week would show a task planned for next Tuesday as
+  // unplanned whenever you paged back (so you would schedule it twice); cutting at
+  // "any week ever" would bury a task in a stale past block and never offer it again.
+  const scheduledTaskIds = useMemo(() => {
+    const thisMonday = getWeekMonday(new Date());
+    const scheduled = new Set<string>();
+    for (const plan of Object.values(weekPlans)) {
+      if (plan.weekOf < thisMonday) continue;
+      for (const blocks of Object.values(plan.days)) {
+        for (const block of blocks) {
+          for (const taskId of block.taskIds) scheduled.add(taskId);
+        }
+      }
+    }
+    return scheduled;
+  }, [weekPlans]);
+
+  // Backlog is deliberately absent: it means "not committed", and the planner is for
+  // committed work. Without that filter the rail becomes an unbounded dump.
+  const unscheduledTasks = useMemo(
+    () =>
+      allTasks.filter(
+        (task) =>
+          task.status !== "done" &&
+          task.status !== "backlog" &&
+          !scheduledTaskIds.has(task.id)
+      ),
+    [allTasks, scheduledTaskIds]
+  );
+
+  // Tasks due on each day of the week — including ones not planned that day.
+  const dueByDay = useMemo(() => {
+    const map: Record<string, ActiveTask[]> = {};
+    for (const task of allTasks) {
+      if (!task.due || task.status === "done") continue;
+      (map[task.due] ??= []).push(task);
+    }
+    return map;
+  }, [allTasks]);
 
   // Collect all blocks across all days for grid range calculation
   const allBlocks = useMemo(() => {
@@ -114,6 +173,20 @@ export function WeekView() {
   const slotHeightRef = useRef(slotHeight);
   slotHeightRef.current = slotHeight;
 
+  // ── Dragging a task out of the rail ───────────────────────────────
+  const {
+    startTaskDrag,
+    dragTask,
+    ghost,
+    target: taskDropTarget,
+  } = useTaskDrag({
+    weekOf: currentMonday,
+    dayBlocks,
+    gridStartMinute,
+    gridEndMinute,
+    slotHeight,
+  });
+
   // ── Scroll to work day start on mount / week change ──────────────
   const hasScrolled = useRef(false);
 
@@ -121,10 +194,7 @@ export function WeekView() {
     if (!hasScrolled.current && containerHeight > 0) {
       // OverlayScrollbars may not be ready immediately — poll briefly
       const id = setInterval(() => {
-        const wrapper = document.querySelector("[data-planner-scroll]");
-        const viewport = wrapper?.querySelector(
-          "[data-overlayscrollbars-viewport]"
-        );
+        const viewport = getPlannerViewport();
         if (viewport) {
           const workStartOffset = minuteToPixel(
             workDayStartHour * 60,
@@ -152,9 +222,7 @@ export function WeekView() {
 
   // ── Cross-day drag handling ────────────────────────────────────────
 
-  // Cleanup ref for drag listeners — prevents memory leak on unmount
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-  useEffect(() => () => dragCleanupRef.current?.(), []);
+  const beginDrag = usePointerDrag();
 
   const dragRef = useRef<{
     blockId: string;
@@ -182,9 +250,6 @@ export function WeekView() {
 
   const handleBlockDragStart = useCallback(
     (blockId: string, fromDay: string, e: React.MouseEvent) => {
-      // Clean up any in-progress drag before starting a new one
-      dragCleanupRef.current?.();
-
       const block = dayBlocksRef.current[fromDay]?.find(
         (b) => b.id === blockId
       );
@@ -202,225 +267,242 @@ export function WeekView() {
         currentStartMinute: block.startMinute,
       };
 
-      const handleMouseMove = (ev: MouseEvent) => {
-        if (!dragRef.current) return;
+      beginDrag(e, {
+        cursor: "grabbing",
+        onMove: (ev) => {
+          if (!dragRef.current) return;
 
-        const deltaY = ev.clientY - dragRef.current.startY;
-        const deltaMinutes = (deltaY / slotHeightRef.current) * 30;
-        let newStart = snapToSlot(
-          dragRef.current.originalStartMinute + deltaMinutes
-        );
+          const deltaY = ev.clientY - dragRef.current.startY;
+          let newStart = snapToSlot(
+            dragRef.current.originalStartMinute +
+              pixelsToMinutes(deltaY, slotHeightRef.current)
+          );
 
-        // Clamp to grid bounds
-        if (newStart < 0) newStart = 0;
-        if (newStart + duration > 1440) newStart = 1440 - duration;
+          // Clamp to grid bounds
+          if (newStart < 0) newStart = 0;
+          if (newStart + duration > 1440) newStart = 1440 - duration;
 
-        // Detect which day column the mouse is over
-        const dayElements =
-          document.querySelectorAll<HTMLElement>("[data-day]");
-        let targetDay = dragRef.current.fromDay;
-        for (const el of dayElements) {
-          const rect = el.getBoundingClientRect();
-          if (ev.clientX >= rect.left && ev.clientX <= rect.right) {
-            targetDay = el.dataset.day!;
-            break;
+          // Which column is the cursor over? Rect-scan, not elementFromPoint — the
+          // block being dragged sits under the cursor and would win the hit-test.
+          const targetDay = dayAtClientX(ev.clientX) ?? dragRef.current.fromDay;
+
+          // Check overlap with blocks in target day
+          const targetBlocks = dayBlocksRef.current[targetDay] || [];
+          const siblings = targetBlocks.filter(
+            (b) => b.id !== dragRef.current!.blockId
+          );
+          const wouldOverlap = siblings.some((s) =>
+            blocksOverlap(
+              { startMinute: newStart, endMinute: newStart + duration },
+              s
+            )
+          );
+
+          if (!wouldOverlap) {
+            dragRef.current.currentDay = targetDay;
+            dragRef.current.currentStartMinute = newStart;
+            setDragPreview({
+              blockId,
+              day: targetDay,
+              dayIndex: daysRef.current.indexOf(targetDay),
+              startMinute: newStart,
+              endMinute: newStart + duration,
+            });
           }
-        }
-
-        // Check overlap with blocks in target day
-        const targetBlocks = dayBlocksRef.current[targetDay] || [];
-        const siblings = targetBlocks.filter(
-          (b) => b.id !== dragRef.current!.blockId
-        );
-        const wouldOverlap = siblings.some((s) =>
-          blocksOverlap(
-            { startMinute: newStart, endMinute: newStart + duration },
-            s
-          )
-        );
-
-        if (!wouldOverlap) {
-          dragRef.current.currentDay = targetDay;
-          dragRef.current.currentStartMinute = newStart;
-          setDragPreview({
-            blockId,
-            day: targetDay,
-            dayIndex: daysRef.current.indexOf(targetDay),
-            startMinute: newStart,
-            endMinute: newStart + duration,
-          });
-        }
-      };
-
-      const cleanup = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-        dragCleanupRef.current = null;
-      };
-
-      const handleMouseUp = () => {
-        cleanup();
-
-        if (dragRef.current) {
-          const {
-            fromDay: fd,
-            currentDay: td,
-            blockId: bid,
-            currentStartMinute,
-            originalStartMinute,
-          } = dragRef.current;
-          if (fd !== td) {
-            moveBlock(currentMonday, fd, td, bid, currentStartMinute);
-          } else if (currentStartMinute !== originalStartMinute) {
-            updateBlockTime(
-              currentMonday,
-              td,
-              bid,
+        },
+        onEnd: () => {
+          if (dragRef.current) {
+            const {
+              fromDay: fd,
+              currentDay: td,
+              blockId: bid,
               currentStartMinute,
-              currentStartMinute + duration
-            );
+              originalStartMinute,
+            } = dragRef.current;
+            if (fd !== td) {
+              moveBlock(currentMonday, fd, td, bid, currentStartMinute);
+            } else if (currentStartMinute !== originalStartMinute) {
+              updateBlockTime(
+                currentMonday,
+                td,
+                bid,
+                currentStartMinute,
+                currentStartMinute + duration
+              );
+            }
           }
-        }
 
-        dragRef.current = null;
-        setDragPreview(null);
-      };
-
-      dragCleanupRef.current = cleanup;
-      document.body.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+          dragRef.current = null;
+          setDragPreview(null);
+        },
+        onCancel: () => {
+          dragRef.current = null;
+          setDragPreview(null);
+        },
+      });
     },
-    [currentMonday, moveBlock, updateBlockTime]
+    [beginDrag, currentMonday, moveBlock, updateBlockTime]
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      {/* Week navigation header */}
-      <div className="shrink-0 border-b border-border/60 h-10 px-4 flex items-center justify-center">
-        <WeekNavigator
-          currentMonday={currentMonday}
-          showWeekends={showWeekends}
-          onChange={setCurrentMonday}
-        />
-      </div>
+    <div className="flex flex-1 min-h-0">
+      {/* Grid column — the rail lives outside it, and outside gridContainerRef, so it
+          cannot perturb the ResizeObserver that sizes the slots. */}
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
+        {/* Week navigation header */}
+        <div className="shrink-0 border-b border-border/60 h-10 px-4 flex items-center justify-center">
+          <WeekNavigator
+            currentMonday={currentMonday}
+            showWeekends={showWeekends}
+            onChange={setCurrentMonday}
+          />
+        </div>
 
-      {/* Day column headers (sticky above scroll) */}
-      <div className="shrink-0 flex border-b border-border/40">
-        {/* Spacer for time axis */}
-        <div className="shrink-0 w-12" />
-        {/* Day name headers */}
-        <div
-          className="flex-1 grid"
-          style={{
-            gridTemplateColumns: `repeat(${days.length}, 1fr)`,
-          }}
-        >
-          {days.map((day) => {
-            const today = isToday(parseISO(day));
-            return (
+        <WeekIntentions
+          intentions={intentions}
+          onChange={(index, text) => setIntention(currentMonday, index, text)}
+        />
+
+        {/* Day column headers (sticky above scroll) */}
+        <div className="shrink-0 flex border-b border-border/40">
+          {/* Spacer for time axis */}
+          <div className="shrink-0 w-12" />
+          {/* Day name headers */}
+          <div
+            className="flex-1 grid"
+            style={{
+              gridTemplateColumns: `repeat(${days.length}, 1fr)`,
+            }}
+          >
+            {days.map((day) => {
+              const today = isToday(parseISO(day));
+              return (
+                <div
+                  key={day}
+                  className={cn(
+                    "px-3 py-1.5 text-center border-r border-border/40 last:border-r-0 relative group/day-header",
+                    today && "bg-primary/5"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "text-[11px] uppercase tracking-wide",
+                      today
+                        ? "text-primary font-semibold"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {formatDayName(day)}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-sm font-medium",
+                      today ? "text-primary" : "text-foreground/80"
+                    )}
+                  >
+                    {formatDayNumber(day)}
+                  </div>
+                  <DueStrip tasks={dueByDay[day] ?? NO_TASKS} />
+                  {/* Add block button */}
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                    <AddBlockButton
+                      date={day}
+                      weekOf={currentMonday}
+                      blocks={dayBlocks[day] ?? NO_BLOCKS}
+                      compact
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scrollable time grid + day columns */}
+        <div ref={gridContainerRef} data-planner-scroll className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="flex">
+              {/* Time axis labels */}
+              <TimeGrid
+                gridStartMinute={gridStartMinute}
+                gridEndMinute={gridEndMinute}
+                slotHeight={slotHeight}
+              />
+
+              {/* Day columns grid */}
               <div
-                key={day}
-                className={cn(
-                  "px-3 py-1.5 text-center border-r border-border/40 last:border-r-0 relative group/day-header",
-                  today && "bg-primary/5"
-                )}
+                className="flex-1 grid relative"
+                style={{
+                  gridTemplateColumns: `repeat(${days.length}, 1fr)`,
+                }}
               >
-                <div
-                  className={cn(
-                    "text-[11px] uppercase tracking-wide",
-                    today
-                      ? "text-primary font-semibold"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {formatDayName(day)}
-                </div>
-                <div
-                  className={cn(
-                    "text-sm font-medium",
-                    today ? "text-primary" : "text-foreground/80"
-                  )}
-                >
-                  {formatDayNumber(day)}
-                </div>
-                {/* Add block button */}
-                <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                  <AddBlockButton
+                {days.map((day) => (
+                  <DayColumn
+                    key={day}
                     date={day}
                     weekOf={currentMonday}
                     blocks={dayBlocks[day] ?? NO_BLOCKS}
-                    compact
+                    allTasks={allTasks}
+                    workspaces={workspaces}
+                    gridStartMinute={gridStartMinute}
+                    gridEndMinute={gridEndMinute}
+                    slotHeight={slotHeight}
+                    nowMinute={nowMinute}
+                    onBlockDragStart={handleBlockDragStart}
+                    taskDropTarget={
+                      taskDropTarget?.day === day ? taskDropTarget : undefined
+                    }
+                    taskDropColor={dragTask?.workspaceColor}
                   />
-                </div>
+                ))}
+
+                {/* Drag preview ghost — inside grid so it scrolls with content */}
+                {dragPreview && dragPreview.dayIndex >= 0 && (() => {
+                  const block = Object.values(dayBlocks)
+                    .flat()
+                    .find((b) => b.id === dragPreview.blockId);
+                  const ws = block ? workspaces.find((w) => w.id === block.workspaceId) : null;
+                  const ghostColor = ws?.color || "#64748b";
+                  return (
+                    <div
+                      className="absolute pointer-events-none z-30 rounded-lg border-2 border-dashed mx-1"
+                      style={{
+                        gridColumn: dragPreview.dayIndex + 1,
+                        top: minuteToPixel(dragPreview.startMinute, gridStartMinute, slotHeight),
+                        height: ((dragPreview.endMinute - dragPreview.startMinute) / 30) * slotHeight,
+                        borderColor: `color-mix(in srgb, ${ghostColor} 60%, transparent)`,
+                        backgroundColor: `color-mix(in srgb, ${ghostColor} 12%, transparent)`,
+                      }}
+                    />
+                  );
+                })()}
               </div>
-            );
-          })}
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
-      {/* Scrollable time grid + day columns */}
-      <div ref={gridContainerRef} data-planner-scroll className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          <div className="flex">
-            {/* Time axis labels */}
-            <TimeGrid
-              gridStartMinute={gridStartMinute}
-              gridEndMinute={gridEndMinute}
-              slotHeight={slotHeight}
-            />
+      <UnscheduledRail
+        tasks={unscheduledTasks}
+        days={days}
+        onTaskMouseDown={startTaskDrag}
+        draggingTaskId={dragTask?.id}
+      />
 
-            {/* Day columns grid */}
-            <div
-              className="flex-1 grid relative"
-              style={{
-                gridTemplateColumns: `repeat(${days.length}, 1fr)`,
-              }}
-            >
-              {days.map((day) => (
-                <DayColumn
-                  key={day}
-                  date={day}
-                  weekOf={currentMonday}
-                  blocks={dayBlocks[day] ?? NO_BLOCKS}
-                  allTasks={allTasks}
-                  workspaces={workspaces}
-                  gridStartMinute={gridStartMinute}
-                  gridEndMinute={gridEndMinute}
-                  slotHeight={slotHeight}
-                  nowMinute={nowMinute}
-                  onBlockDragStart={handleBlockDragStart}
-                />
-              ))}
-
-              {/* Drag preview ghost — inside grid so it scrolls with content */}
-              {dragPreview && dragPreview.dayIndex >= 0 && (() => {
-                const block = Object.values(dayBlocks)
-                  .flat()
-                  .find((b) => b.id === dragPreview.blockId);
-                const ws = block ? workspaces.find((w) => w.id === block.workspaceId) : null;
-                const ghostColor = ws?.color || "#64748b";
-                return (
-                  <div
-                    className="absolute pointer-events-none z-30 rounded-lg border-2 border-dashed mx-1"
-                    style={{
-                      gridColumn: dragPreview.dayIndex + 1,
-                      top: minuteToPixel(dragPreview.startMinute, gridStartMinute, slotHeight),
-                      height: ((dragPreview.endMinute - dragPreview.startMinute) / 30) * slotHeight,
-                      borderColor: `color-mix(in srgb, ${ghostColor} 60%, transparent)`,
-                      backgroundColor: `color-mix(in srgb, ${ghostColor} 12%, transparent)`,
-                    }}
-                  />
-                );
-              })()}
-            </div>
-          </div>
-        </ScrollArea>
-      </div>
-
+      {/* Cursor ghost. pointer-events-none is load-bearing: blockAtPoint() uses
+          elementFromPoint, and a ghost under the cursor would win every hit-test. */}
+      {dragTask && ghost && (
+        <div
+          className="fixed z-50 pointer-events-none flex items-center gap-1.5 px-2 py-1 rounded-md border bg-card shadow-md text-xs max-w-[14rem]"
+          style={{ left: ghost.x + 12, top: ghost.y + 12 }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: dragTask.workspaceColor || "#64748b" }}
+          />
+          <span className="truncate">{dragTask.title}</span>
+        </div>
+      )}
     </div>
   );
 }

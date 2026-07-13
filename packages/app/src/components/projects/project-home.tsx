@@ -32,7 +32,9 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatePanel } from "@/components/ui/state-panel";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionLabel, ListRow } from "@/components/patterns";
+import { ContextSection } from "@/components/context";
 import { TaskListView } from "@/components/tasks/task-list-view";
 import { NewMeetingModal } from "@/components/meetings/new-meeting-modal";
 import {
@@ -48,8 +50,8 @@ import {
 import { useProjectSelectionStore } from "@/stores/project-selection";
 import { extractDocs, compareDatesDesc } from "@desk/core";
 import type { Project, ProjectStatus, ProjectUpdate, TaskStatus } from "@desk/core/types";
-import { projectStatusDotColors, projectStatuses } from "@/lib/design-tokens";
-import { isActiveStatus } from "@/lib/task-status";
+import { projectStatusDotColors, projectStatuses, taskStatusColors } from "@/lib/design-tokens";
+import { isActiveStatus, countActiveTasks } from "@/lib/task-status";
 
 const TASK_CAP = 7;
 const NO_HIDDEN_STATUSES = new Set<TaskStatus>();
@@ -64,9 +66,11 @@ interface ProjectHomeProps {
 }
 
 /**
- * The project's home: header (name, description, status, progress), active
- * tasks with quick-add, recent meetings, recent docs, and the recent-activity
- * feed driven by the `updated` frontmatter stamp.
+ * The project's home: header (name, description, status, task counts), the Context panel,
+ * active tasks with quick-add, recent meetings, recent docs, and the recent-activity feed
+ * driven by the `updated` frontmatter stamp.
+ *
+ * Context sits above the work on purpose — orientation comes before the to-do list.
  */
 export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
   const { t } = useTranslation();
@@ -114,22 +118,21 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
   return (
     <>
       <ScrollArea className="h-full">
-        <div className="mx-auto max-w-3xl px-8 py-8 space-y-8">
+        <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
           {/* Header */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <FolderKanban className="size-7 shrink-0 text-muted-foreground mt-1" />
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <InlineName value={project.name} onSave={(name) => handleUpdate({ name })} />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("pages.projects.home.createdOn", { date: safeFormatDate(project.created) })}
-                </p>
               </div>
               <Select
                 value={project.status}
                 onValueChange={(v) => handleUpdate({ status: v as ProjectStatus })}
               >
-                <SelectTrigger className="w-[150px] shrink-0">
+                <SelectTrigger
+                  size="sm"
+                  className="shrink-0 border-0 bg-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-accent/60 focus-visible:ring-0"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -148,7 +151,7 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-9 shrink-0 text-muted-foreground hover:text-foreground"
+                    className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
                   >
                     <MoreHorizontal className="size-4" />
                   </Button>
@@ -168,9 +171,10 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
               value={project.description ?? ""}
               onSave={(description) => handleUpdate({ description: description || null })}
             />
-            <ProgressBar tasksByStatus={project.tasksByStatus} />
+            <TaskCounts project={project} />
           </div>
 
+          <ContextSection project={project} />
           <TasksSection workspaceId={workspaceId} projectId={projectId} />
           <MeetingsSection workspaceId={workspaceId} projectId={projectId} />
           <DocsSection workspaceId={workspaceId} projectId={projectId} />
@@ -232,9 +236,11 @@ function TasksSection({ workspaceId, projectId }: { workspaceId: string; project
       </SectionLabel>
 
       {!isLoading && shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 py-1">
-          {t("pages.projects.home.noActiveTasks")}
-        </p>
+        <EmptyState
+          display="inline"
+          className="py-6"
+          title={t("pages.projects.home.noActiveTasks")}
+        />
       ) : (
         <TaskListView
           tasks={shown}
@@ -306,9 +312,11 @@ function MeetingsSection({ workspaceId, projectId }: { workspaceId: string; proj
       </SectionLabel>
 
       {recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 py-1">
-          {t("pages.projects.home.noMeetings")}
-        </p>
+        <EmptyState
+          display="inline"
+          className="py-6"
+          title={t("pages.projects.home.noMeetings")}
+        />
       ) : (
         <div className="-mx-4">
           {recent.map((meeting) => (
@@ -349,13 +357,13 @@ function DocsSection({ workspaceId, projectId }: { workspaceId: string; projectI
     <section>
       <SectionLabel
         className="mb-1"
-        end={<SectionLink to="/docs">{t("pages.projects.home.allDocs")}</SectionLink>}
+        end={<SectionLink to={`/docs?project=${projectId}`}>{t("pages.projects.home.allDocs")}</SectionLink>}
       >
         {t("pages.projects.home.docsHeading")}
       </SectionLabel>
 
       {recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 py-1">{t("pages.projects.home.noDocs")}</p>
+        <EmptyState display="inline" className="py-6" title={t("pages.projects.home.noDocs")} />
       ) : (
         <div className="-mx-4">
           {recent.map((doc) => (
@@ -426,9 +434,11 @@ function ActivitySection({ workspaceId, projectId }: { workspaceId: string; proj
     <section>
       <SectionLabel className="mb-1">{t("pages.projects.home.activityHeading")}</SectionLabel>
       {recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 py-1">
-          {t("pages.projects.home.noActivity")}
-        </p>
+        <EmptyState
+          display="inline"
+          className="py-6"
+          title={t("pages.projects.home.noActivity")}
+        />
       ) : (
         <div className="-mx-4">
           {recent.map((item) => {
@@ -486,13 +496,13 @@ function InlineName({ value, onSave }: { value: string; onSave: (v: string) => v
             setEditing(false);
           }
         }}
-        className="h-auto py-0.5 px-1.5 -mx-1.5 text-2xl font-semibold tracking-tight"
+        className="h-auto py-0.5 px-1.5 -mx-1.5 text-lg font-semibold tracking-tight"
       />
     );
   }
   return (
     <h1
-      className="text-2xl font-semibold tracking-tight cursor-text rounded px-1.5 -mx-1.5 py-0.5 hover:bg-accent/60 truncate"
+      className="text-lg font-semibold tracking-tight cursor-text rounded px-1.5 -mx-1.5 py-0.5 hover:bg-accent/60 truncate"
       title={t("pages.projects.home.renameTitle")}
       onClick={() => {
         setDraft(value);
@@ -560,34 +570,54 @@ function InlineDescription({ value, onSave }: { value: string; onSave: (v: strin
   );
 }
 
-function ProgressBar({ tasksByStatus }: { tasksByStatus?: Project["tasksByStatus"] }) {
+/**
+ * Task counts, not a completion percentage.
+ *
+ * The old progress bar was `done / (backlog + todo + doing + waiting + done)`, which made a
+ * project look *less* finished the moment you wrote another task down — the denominator was
+ * "things I have thought of so far", not "the work". Counts have no denominator, so they cannot
+ * lie. `countActiveTasks` is the same signal the sidebar and the projects list already show.
+ */
+function TaskCounts({ project }: { project: Project }) {
   const { t } = useTranslation();
-  const total = tasksByStatus
-    ? tasksByStatus.backlog +
-      tasksByStatus.todo +
-      tasksByStatus.doing +
-      tasksByStatus.waiting +
-      tasksByStatus.done
-    : 0;
-  const done = tasksByStatus?.done ?? 0;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const byStatus = project.tasksByStatus;
+  const active = countActiveTasks(byStatus);
+  const done = byStatus?.done ?? 0;
+  const backlog = byStatus?.backlog ?? 0;
+
+  const parts: { key: string; label: string; dot: string }[] = [];
+  if (active > 0) {
+    parts.push({
+      key: "active",
+      label: t("pages.projects.home.counts.active", { count: active }),
+      dot: taskStatusColors.doing,
+    });
+  }
+  if (done > 0) {
+    parts.push({
+      key: "done",
+      label: t("pages.projects.home.counts.done", { count: done }),
+      dot: taskStatusColors.done,
+    });
+  }
+  if (backlog > 0) {
+    parts.push({
+      key: "backlog",
+      label: t("pages.projects.home.counts.backlog", { count: backlog }),
+      dot: taskStatusColors.backlog,
+    });
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-        <span>{t("pages.projects.home.progress")}</span>
-        <span className="tabular-nums">
-          {total === 0
-            ? t("pages.projects.home.noTasksYet")
-            : t("pages.projects.home.progressSummary", { done, total, pct })}
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <span>{t("pages.projects.home.createdOn", { date: safeFormatDate(project.created) })}</span>
+      {parts.map((part) => (
+        <span key={part.key} className="flex items-center gap-1.5">
+          <span className="text-muted-foreground/40">·</span>
+          <span className={cn("size-1.5 rounded-full", part.dot)} />
+          <span className="tabular-nums">{part.label}</span>
         </span>
-      </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full bg-emerald-500 transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      ))}
     </div>
   );
 }

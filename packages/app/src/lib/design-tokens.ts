@@ -128,6 +128,17 @@ export const taskStatusTextColors = {
   done: "text-emerald-600 dark:text-emerald-400",
 } as const;
 
+/**
+ * How a due date reads at a glance. Amber is the same hue `waiting` uses ("needs
+ * attention, not yet a problem"), reused deliberately to keep the palette closed —
+ * but a separate constant, because the meaning is different.
+ */
+export const dueAccent = {
+  overdue: "text-destructive",
+  today: "text-amber-600 dark:text-amber-500",
+  upcoming: "text-muted-foreground/60",
+} as const;
+
 // =============================================================================
 // TASK STATUS CONFIG
 // Complete status configuration with labels for UI display

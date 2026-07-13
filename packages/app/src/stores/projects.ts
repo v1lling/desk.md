@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ProjectStatus, ProjectUpdate } from "@desk/core/types";
-import { getDeskService } from "@desk/core";
+import { getDeskService, type BriefSeed } from "@desk/core";
 import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
 import { contentKeys } from "./content";
 
@@ -19,7 +19,6 @@ export const projectKeys = {
   byWorkspace: (workspaceId: string) => [...projectKeys.all, "workspace", workspaceId] as const,
   detail: (workspaceId: string, projectId: string) =>
     [...projectKeys.byWorkspace(workspaceId), "detail", projectId] as const,
-  stats: (workspaceId: string) => [...projectKeys.byWorkspace(workspaceId), "stats"] as const,
 };
 
 /**
@@ -51,20 +50,6 @@ export function useProject(workspaceId: string | null, projectId: string | null)
 }
 
 /**
- * Hook to fetch project stats for a workspace
- */
-export function useProjectStats(workspaceId: string | null) {
-  return useQuery({
-    queryKey: projectKeys.stats(workspaceId || ""),
-    queryFn: async () => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      return getDeskService().getProjectStats(workspaceId);
-    },
-    enabled: !!workspaceId,
-  });
-}
-
-/**
  * Hook to create a new project
  */
 export function useCreateProject() {
@@ -76,6 +61,7 @@ export function useCreateProject() {
       name: string;
       description?: string;
       status?: ProjectStatus;
+      seed?: BriefSeed;
     }) => getDeskService().createProject(data),
     onSuccess: (newProject) => {
       queryClient.invalidateQueries({
@@ -84,6 +70,9 @@ export function useCreateProject() {
       queryClient.invalidateQueries({
         queryKey: contentKeys.overview(newProject.workspaceId),
       });
+      // Seeding writes context/<date>-brief.md, so the context tree and the merged trees
+      // that render it are now stale.
+      queryClient.invalidateQueries({ queryKey: contentKeys.all });
       regenerateWorkspaceAgentFiles(newProject.workspaceId);
     },
   });

@@ -5,14 +5,16 @@
  * which is committed once a workspace is picked.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { isToday, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { usePlannerStore } from "@/stores/planner";
-import { minuteToPixel, minutesToTime, snapToSlot, blocksOverlap } from "@desk/core";
+import { minuteToPixel, minutesToTime, pixelToMinute, blocksOverlap } from "@desk/core";
 import { TimeBlock } from "./workspace-block";
 import { WorkspacePickerList } from "./add-block-popover";
+import { usePointerDrag, DRAG_THRESHOLD_PX } from "./use-pointer-drag";
+import type { TaskDropTarget } from "./use-task-drag";
 import type { WorkspaceBlock, Workspace } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
 
@@ -28,6 +30,10 @@ interface DayColumnProps {
   /** Minutes from midnight, for the "now" line (only drawn on today's column) */
   nowMinute: number;
   onBlockDragStart?: (blockId: string, day: string, e: React.MouseEvent) => void;
+  /** Where a task being dragged out of the rail would land — set only on the hovered day. */
+  taskDropTarget?: TaskDropTarget;
+  /** Workspace colour of that task, so the pending block previews in its own colour. */
+  taskDropColor?: string;
 }
 
 /** Draft range being dragged out on empty grid, before a workspace is chosen */
@@ -35,9 +41,6 @@ interface DraftRange {
   startMinute: number;
   endMinute: number;
 }
-
-/** Vertical travel before a mousedown counts as a drag rather than a stray click */
-const DRAG_THRESHOLD_PX = 4;
 
 export function DayColumn({
   date,
@@ -50,6 +53,8 @@ export function DayColumn({
   slotHeight,
   nowMinute,
   onBlockDragStart,
+  taskDropTarget,
+  taskDropColor,
 }: DayColumnProps) {
   const columnRef = useRef<HTMLDivElement>(null);
   const addBlock = usePlannerStore((s) => s.addBlock);
@@ -66,8 +71,7 @@ export function DayColumn({
   const [draft, setDraft] = useState<DraftRange | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const createCleanupRef = useRef<(() => void) | null>(null);
-  useEffect(() => () => createCleanupRef.current?.(), []);
+  const beginDrag = usePointerDrag();
 
   // Keep the latest blocks/geometry available to the mousemove closure
   const stateRef = useRef({ blocks, gridStartMinute, gridEndMinute, slotHeight });
@@ -88,7 +92,7 @@ export function DayColumn({
         stateRef.current;
 
       const minuteAt = (clientY: number) =>
-        snapToSlot(gs + ((clientY - rect.top) / sh) * 30);
+        pixelToMinute(clientY - rect.top, gs, sh);
 
       const anchor = Math.min(Math.max(minuteAt(e.clientY), gs), ge - 30);
 
@@ -108,42 +112,28 @@ export function DayColumn({
 
       e.preventDefault();
 
-      // A plain click must do nothing — only an actual drag drafts a block.
-      let dragging = false;
-
-      const handleMouseMove = (ev: MouseEvent) => {
-        if (!dragging) {
-          if (Math.abs(ev.clientY - e.clientY) < DRAG_THRESHOLD_PX) return;
-          dragging = true;
-        }
-
-        const cursor = minuteAt(ev.clientY);
-        let start = Math.min(anchor, cursor);
-        let end = Math.max(anchor + 30, cursor);
-        start = Math.max(start, lowerBound);
-        end = Math.min(end, upperBound);
-        if (end - start < 30) end = start + 30;
-        setDraft({ startMinute: start, endMinute: end });
-      };
-
-      const cleanup = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.userSelect = "";
-        createCleanupRef.current = null;
-      };
-
-      const handleMouseUp = () => {
-        cleanup();
-        if (dragging) setPickerOpen(true);
-      };
-
-      createCleanupRef.current = cleanup;
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      // A plain click must do nothing — only an actual drag drafts a block. The
+      // threshold measures vertical travel only: this gesture reads time, and a
+      // sloppy sideways click should not become a block.
+      beginDrag(e, {
+        threshold: DRAG_THRESHOLD_PX,
+        axis: "y",
+        onMove: (ev) => {
+          const cursor = minuteAt(ev.clientY);
+          let start = Math.min(anchor, cursor);
+          let end = Math.max(anchor + 30, cursor);
+          start = Math.max(start, lowerBound);
+          end = Math.min(end, upperBound);
+          if (end - start < 30) end = start + 30;
+          setDraft({ startMinute: start, endMinute: end });
+        },
+        onEnd: (moved) => {
+          if (moved) setPickerOpen(true);
+        },
+        onCancel: () => setDraft(null),
+      });
     },
-    [pickerOpen]
+    [beginDrag, pickerOpen]
   );
 
   const handlePickWorkspace = (workspaceId: string) => {
@@ -221,8 +211,29 @@ export function DayColumn({
           slotHeight={slotHeight}
           siblingBlocks={blocks.filter((b) => b.id !== block.id)}
           onDragStart={onBlockDragStart}
+          isDropTarget={
+            taskDropTarget?.kind === "block" && taskDropTarget.blockId === block.id
+          }
         />
       ))}
+
+      {/* Where a task dragged from the rail would land as a new block */}
+      {taskDropTarget?.kind === "empty" && (
+        <div
+          className="absolute left-1 right-1 z-30 pointer-events-none rounded-lg border-2 border-dashed flex items-start px-2 py-1"
+          style={{
+            top: minuteToPixel(taskDropTarget.startMinute, gridStartMinute, slotHeight),
+            height:
+              ((taskDropTarget.endMinute - taskDropTarget.startMinute) / 30) * slotHeight,
+            borderColor: `color-mix(in srgb, ${taskDropColor || "#64748b"} 60%, transparent)`,
+            backgroundColor: `color-mix(in srgb, ${taskDropColor || "#64748b"} 12%, transparent)`,
+          }}
+        >
+          <span className="text-[10px] text-muted-foreground">
+            {minutesToTime(taskDropTarget.startMinute)}
+          </span>
+        </div>
+      )}
 
       {/* Draft range + workspace picker */}
       {draft && (

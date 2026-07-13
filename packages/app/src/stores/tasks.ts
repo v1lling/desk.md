@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "@desk/core/types";
+import type { ActiveTask } from "@desk/core";
 import { getDeskService } from "@desk/core";
+import { plannerKeys } from "./planner";
 
 // Query keys
 export const taskKeys = {
@@ -76,6 +78,8 @@ export function useCreateTask() {
       queryClient.invalidateQueries({
         queryKey: taskKeys.byWorkspace(newTask.workspaceId),
       });
+      // The planner's cross-workspace list feeds the unscheduled rail.
+      queryClient.invalidateQueries({ queryKey: plannerKeys.all });
     },
   });
 }
@@ -110,6 +114,18 @@ export function useUpdateTask() {
             return old.map(t => t.id === updatedTask.id ? updatedTask : t);
           }
         );
+        // Same patch for the planner's cross-workspace list, so a task edited from a tab
+        // opened out of the planner does not linger stale in the rail. Merge rather than
+        // replace: these entries are ActiveTask (Task + workspaceName/workspaceColor).
+        queryClient.setQueriesData<ActiveTask[]>(
+          { queryKey: plannerKeys.all },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map((t) =>
+              t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+            );
+          }
+        );
         // Also update detail query directly
         queryClient.setQueryData(
           taskKeys.detail(updatedTask.workspaceId, updatedTask.id),
@@ -134,6 +150,7 @@ export function useDeleteTask() {
         queryClient.invalidateQueries({
           queryKey: taskKeys.byWorkspace(result.workspaceId),
         });
+        queryClient.invalidateQueries({ queryKey: plannerKeys.all });
       }
     },
   });
@@ -151,20 +168,24 @@ export function useMoveTask() {
     onMutate: async ({ taskId, newStatus }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.all });
+      await queryClient.cancelQueries({ queryKey: plannerKeys.all });
 
       // Snapshot current state for rollback
-      const previousTasks = queryClient.getQueriesData({ queryKey: taskKeys.all });
+      const previousTasks = [
+        ...queryClient.getQueriesData({ queryKey: taskKeys.all }),
+        ...queryClient.getQueriesData({ queryKey: plannerKeys.all }),
+      ];
 
-      // Optimistically update the task in all list queries
-      queryClient.setQueriesData<Task[]>(
-        { queryKey: taskKeys.all },
-        (old) => {
-          if (!Array.isArray(old)) return old;
-          return old.map((task) =>
-            task.id === taskId ? { ...task, status: newStatus } : task
-          );
-        }
-      );
+      // Optimistically update the task in all list queries — including the planner's,
+      // so finishing a task drops it out of the rail immediately.
+      const patch = <T extends Task>(old: T[] | undefined) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((task) =>
+          task.id === taskId ? { ...task, status: newStatus } : task
+        );
+      };
+      queryClient.setQueriesData<Task[]>({ queryKey: taskKeys.all }, patch);
+      queryClient.setQueriesData<ActiveTask[]>({ queryKey: plannerKeys.all }, patch);
 
       return { previousTasks };
     },

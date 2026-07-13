@@ -142,3 +142,23 @@ export function computeGridRange(
 export function minuteToPixel(minute: number, gridStartMinute: number, slotHeight = SLOT_HEIGHT): number {
   return ((minute - gridStartMinute) / 30) * slotHeight;
 }
+
+/**
+ * Convert a pixel *delta* to a minute delta. For dragging/resizing, where the
+ * gesture moves an existing time by some distance.
+ */
+export function pixelsToMinutes(px: number, slotHeight = SLOT_HEIGHT): number {
+  return (px / slotHeight) * 30;
+}
+
+/**
+ * The snapped minute at a pixel offset from the top of the grid — the inverse of
+ * `minuteToPixel`. Takes an offset, not a clientY, so this stays DOM-free.
+ */
+export function pixelToMinute(
+  offsetY: number,
+  gridStartMinute: number,
+  slotHeight = SLOT_HEIGHT
+): number {
+  return snapToSlot(gridStartMinute + pixelsToMinutes(offsetY, slotHeight));
+}

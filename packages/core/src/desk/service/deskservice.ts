@@ -22,6 +22,7 @@
  */
 import type * as tasksApi from "../tasks";
 import type * as projectsApi from "../projects";
+import type * as projectBriefApi from "../project-brief";
 import type * as workspacesApi from "../workspaces";
 import type * as meetingsApi from "../meetings";
 import type * as personalApi from "../personal";
@@ -51,7 +52,6 @@ export interface DeskService {
   createProject: typeof projectsApi.createProject;
   updateProject: typeof projectsApi.updateProject;
   deleteProject: typeof projectsApi.deleteProject;
-  getProjectStats: typeof projectsApi.getProjectStats;
 
   // ── Workspaces ──────────────────────────────────────────────────────
   getWorkspaces: typeof workspacesApi.getWorkspaces;
@@ -100,6 +100,11 @@ export interface DeskService {
   moveFolder: typeof contentApi.moveFolder;
   deleteFolder: typeof contentApi.deleteFolder;
 
+  // ── Project brief (context/) ────────────────────────────────────────
+  // The one definition of "which file is the brief" — shared by the Context panel, the AI
+  // refresh, and a future entity-shaped MCP `desk_project`.
+  ensureProjectBrief: typeof projectBriefApi.ensureProjectBrief;
+
   // ── Content import / move ───────────────────────────────────────────
   createDocInFolder: typeof contentApi.createDocInFolder;
   importFiles: typeof contentApi.importFiles;
@@ -110,7 +115,6 @@ export interface DeskService {
   // round-trip), instead of fanning out N+1 domain calls from the client.
   getFocusTasks: typeof dashboardApi.getFocusTasks;
   getWorkspaceSummaries: typeof dashboardApi.getWorkspaceSummaries;
-  getAllWorkspaceTasks: typeof dashboardApi.getAllWorkspaceTasks;
   getAllWorkspaceTasksAllStatuses: typeof dashboardApi.getAllWorkspaceTasksAllStatuses;
 
   // ── View state (.view.json) — user-level, so it must route server-side in

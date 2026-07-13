@@ -9,6 +9,19 @@ export function formatDate(iso: string): string {
 }
 
 /**
+ * Year-less date for tight spots (e.g., "20 Jan") — planner rows are ~20px tall and the
+ * rail is 256px wide, where the full "20 Jan 2024" does not fit.
+ */
+export function formatDateShort(iso: string): string {
+  return format(parseISO(iso), "d MMM");
+}
+
+/** Whether a `YYYY-MM-DD` date is the local today. String compare, same reasoning as isOverdue. */
+export function isDueToday(due: string): boolean {
+  return due === todayISO();
+}
+
+/**
  * Whether a `YYYY-MM-DD` due date is strictly before the local today.
  * Compares date strings lexicographically (which is chronological for this
  * format) instead of `new Date("YYYY-MM-DD")`, which parses as UTC midnight

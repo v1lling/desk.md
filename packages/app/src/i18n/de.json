@@ -83,7 +83,9 @@
       "workspaces": {
         "title": "Arbeitsbereiche",
         "loadingLabel": "Arbeitsbereiche",
-        "emptyTitle": "Noch keine Arbeitsbereiche"
+        "emptyTitle": "Noch keine Arbeitsbereiche",
+        "activeCount_one": "{{count}} aktiv",
+        "activeCount_other": "{{count}} aktiv"
       },
       "capture": {
         "title": "Eingang",
@@ -205,9 +207,6 @@
         "notFoundTitle": "Projekt nicht gefunden",
         "notFoundDescription": "Dieses Projekt wurde möglicherweise gelöscht oder verschoben.",
         "createdOn": "Erstellt am {{date}}",
-        "progress": "Fortschritt",
-        "noTasksYet": "Noch keine Aufgaben",
-        "progressSummary": "{{done}} von {{total}} erledigt · {{pct}}%",
         "renameTitle": "Zum Umbenennen klicken",
         "descriptionPlaceholder": "Kurze Beschreibung hinzufügen…",
         "descriptionEditTitle": "Zum Bearbeiten klicken",
@@ -226,7 +225,26 @@
         "allDocs": "Alle Dokumente",
         "noDocs": "Noch keine Dokumente.",
         "activityHeading": "Letzte Aktivität",
-        "noActivity": "Noch keine Aktivität."
+        "noActivity": "Noch keine Aktivität.",
+        "counts": {
+          "active_one": "{{count}} aktiv",
+          "active_other": "{{count}} aktiv",
+          "done_one": "{{count}} erledigt",
+          "done_other": "{{count}} erledigt",
+          "backlog_one": "{{count}} im Backlog",
+          "backlog_other": "{{count}} im Backlog"
+        },
+        "context": {
+          "heading": "Kontext",
+          "refresh": "Aktualisieren",
+          "copyPrompt": "Prompt kopieren",
+          "copyPromptHint": "Kein AI-Schlüssel hinterlegt. Kopiere den Prompt und füge ihn in deinen AI-Agenten ein.",
+          "fresh": "Aktuell",
+          "stale_one": "{{count}} Eintrag seither geändert",
+          "stale_other": "{{count}} Einträge seither geändert",
+          "reviewed": "Zuletzt geprüft {{when}}",
+          "addBrief": "Briefing hinzufügen"
+        }
       },
       "browse": {
         "newProject": "Neues Projekt",
@@ -241,10 +259,6 @@
       "selectWorkspaceDescription": "Wähle einen Arbeitsbereich in der Seitenleiste, um Projekte anzuzeigen."
     },
     "planner": {
-      "toggle": {
-        "showColumn": "Spalte {{label}} anzeigen",
-        "hideColumn": "Spalte {{label}} ausblenden"
-      },
       "taskPicker": {
         "placeholder": "Aufgabe oder Notiz hinzufügen...",
         "noAvailableTasks": "Keine verfügbaren Aufgaben",
@@ -256,9 +270,27 @@
         "notePlaceholder": "Notiz eingeben...",
         "moreCount": "+{{count}} weitere"
       },
-      "week": "Woche",
-      "allTasks": "Board",
-      "allWorkspaces": "Alle Arbeitsbereiche"
+      "rail": {
+        "title": "Einzuplanen",
+        "empty": "Nichts einzuplanen",
+        "overdue": "Überfällig",
+        "dueThisWeek": "Diese Woche fällig",
+        "later": "Später",
+        "noDate": "Ohne Datum",
+        "collapse": "Einklappen",
+        "expand": "Nicht geplante Aufgaben anzeigen"
+      },
+      "due": {
+        "today": "Heute"
+      },
+      "dueStrip": {
+        "count_one": "{{count}} Aufgabe fällig",
+        "count_other": "{{count}} Aufgaben fällig"
+      },
+      "intentions": {
+        "add": "Vorsatz hinzufügen",
+        "placeholder": "Worum geht es diese Woche?"
+      }
     }
   },
   "settings": {
@@ -624,7 +656,9 @@
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Kurze Projektbeschreibung...",
       "statusLabel": "Status",
-      "submit": "Projekt erstellen"
+      "submit": "Projekt erstellen",
+      "systemsLabel": "Systeme und Stack",
+      "systemsPlaceholder": "Welche Services, Repos oder Tools sind betroffen?"
     },
     "newTask": {
       "title": "Neue Aufgabe",
@@ -696,6 +730,42 @@
       "deleteButton": "Arbeitsbereich löschen",
       "deleteConfirmTitle": "Arbeitsbereich löschen",
       "deleteConfirmDescription": "Damit werden „{{name}}“ und alle Projekte, Aufgaben, Dokumente und Meetings unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "brief": {
+      "title": "Briefing schreiben",
+      "description": "Zwei Dinge, die eine KI nicht selbst herausfinden kann.",
+      "whatLabel": "Worum geht es in diesem Projekt?",
+      "whatPlaceholder": "Was willst du erreichen, und warum gibt es das Projekt?",
+      "systemsLabel": "Systeme und Stack",
+      "systemsPlaceholder": "Welche Services, Repos oder Tools sind betroffen?",
+      "submit": "Briefing erstellen"
+    },
+    "refreshBrief": {
+      "title": "Aktualisierung prüfen",
+      "description": "Deine eigenen Abschnitte bleiben unverändert. Wähle, was du vom Rest übernimmst.",
+      "apply": "Übernehmen",
+      "retry": "Erneut versuchen",
+      "unusable": "Das Modell hat kein brauchbares Briefing geliefert. Es wurde nichts geändert.",
+      "emptySection": "(leer)",
+      "showPrevious": "Vorherige Fassung zeigen",
+      "hidePrevious": "Vorherige Fassung ausblenden",
+      "status": {
+        "unchanged": "Unverändert",
+        "rewritten": "Neu geschrieben",
+        "added": "Hinzugefügt",
+        "kept": "Beibehalten",
+        "yours": "Von dir"
+      },
+      "warnings": {
+        "linesRestored_one": "{{count}} vom Modell gelöschte Zeile wurde wiederhergestellt.",
+        "linesRestored_other": "{{count}} vom Modell gelöschte Zeilen wurden wiederhergestellt.",
+        "humanProtected_one": "{{count}} eigener Abschnitt wurde vor dem Überschreiben geschützt.",
+        "humanProtected_other": "{{count}} eigene Abschnitte wurden vor dem Überschreiben geschützt.",
+        "sectionsKept_one": "{{count}} Abschnitt kam leer zurück und blieb unverändert.",
+        "sectionsKept_other": "{{count}} Abschnitte kamen leer zurück und blieben unverändert.",
+        "unknownDropped_one": "{{count}} vom Modell erfundene Überschrift wurde verworfen.",
+        "unknownDropped_other": "{{count}} vom Modell erfundene Überschriften wurden verworfen."
+      }
     }
   },
   "editors": {
@@ -805,6 +875,11 @@
         "title": "Noch keine Meetings",
         "description": "Erstelle deine erste Meeting-Notiz, um loszulegen"
       }
+    },
+    "brief": {
+      "title": "Noch kein Briefing",
+      "description": "Beschreibe, worum es in diesem Projekt geht und worauf es läuft. Alles Übrige wird aus deinen Aufgaben, Dokumenten und Meetings abgeleitet, aber diesen Teil kannst nur du schreiben.",
+      "action": "Briefing schreiben"
     }
   },
   "toasts": {
@@ -898,6 +973,19 @@
     },
     "ai": {
       "inclusionUpdateFailed": "KI-Einstellung konnte nicht aktualisiert werden"
+    },
+    "brief": {
+      "create": {
+        "error": "Briefing konnte nicht erstellt werden"
+      },
+      "refresh": {
+        "error": "Briefing konnte nicht aktualisiert werden",
+        "success": "Briefing aktualisiert"
+      },
+      "apply": {
+        "error": "Briefing konnte nicht gespeichert werden"
+      },
+      "promptCopied": "Prompt kopiert"
     }
   },
   "errors": {

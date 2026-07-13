@@ -34,9 +34,15 @@ export async function createDocInFolder(data: {
   workspaceId?: string;
   projectId?: string;
   kind?: DocKind;
+  /**
+   * Override the generated `YYYY-MM-DD-<title-slug>.md` filename. Used for singletons whose
+   * identity must not follow the title — the project brief resolves itself by filename slug
+   * (`project-brief.ts`), so it cannot be renamed by editing the title.
+   */
+  filename?: string;
 }): Promise<Doc> {
   const kind = data.kind || "doc";
-  const filename = generateFilename(data.title);
+  const filename = data.filename || generateFilename(data.title);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const homeWorkspaceId = await getHomeWorkspaceId();
   const wsId = data.workspaceId || homeWorkspaceId;
@@ -62,7 +68,12 @@ export async function createDocInFolder(data: {
   };
 
   if (isMockMode()) {
-    doc.filePath = `~/Desk/${data.scope}/${data.folderPath || ""}/${filename}`;
+    // Mirror the real tree shape: mock reads derive the DocKind from this path
+    // (`filePathIsContextKind` in content-tree.ts), so a flat path would file every
+    // context doc under `docs/`.
+    const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
+    const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
+    doc.filePath = `~/Desk/workspaces/${wsId}${scopeSegment}/${kind === "context" ? "context" : "docs"}${folderSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }

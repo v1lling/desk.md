@@ -424,13 +424,15 @@ export const mockTasks: Task[] = [
 
 export const mockDocs: Doc[] = [
   {
-    id: "brief",
+    // The brief is resolved by its frozen filename slug (see project-brief.ts), so the
+    // date prefix is load-bearing here: `brief.md` would not be recognized as the brief.
+    id: `${iso(-95)}-brief`,
     projectId: "website-redesign",
     workspaceId: "acme",
     // Context, not a record: the running brief. Human-seeded ("What this is", "Systems"),
     // AI-refreshed below that line as the records move.
-    filePath: "~/Desk/workspaces/acme/projects/website-redesign/context/brief.md",
-    title: "Project brief",
+    filePath: `~/Desk/workspaces/acme/projects/website-redesign/context/${iso(-95)}-brief.md`,
+    title: "Brief",
     created: iso(-95),
     updated: iso(-4),
     content:

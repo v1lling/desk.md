@@ -82,7 +82,9 @@
       "workspaces": {
         "title": "Workspaces",
         "loadingLabel": "workspaces",
-        "emptyTitle": "No workspaces yet"
+        "emptyTitle": "No workspaces yet",
+        "activeCount_one": "{{count}} active",
+        "activeCount_other": "{{count}} active"
       },
       "capture": {
         "title": "Capture",
@@ -216,9 +218,6 @@
         "notFoundTitle": "Project not found",
         "notFoundDescription": "This project may have been deleted or moved.",
         "createdOn": "Created {{date}}",
-        "progress": "Progress",
-        "noTasksYet": "No tasks yet",
-        "progressSummary": "{{done}} of {{total}} done · {{pct}}%",
         "renameTitle": "Click to rename",
         "descriptionPlaceholder": "Add a short description…",
         "descriptionEditTitle": "Click to edit",
@@ -237,7 +236,26 @@
         "allDocs": "All docs",
         "noDocs": "No docs yet.",
         "activityHeading": "Recent activity",
-        "noActivity": "No activity yet."
+        "noActivity": "No activity yet.",
+        "counts": {
+          "active_one": "{{count}} active",
+          "active_other": "{{count}} active",
+          "done_one": "{{count}} done",
+          "done_other": "{{count}} done",
+          "backlog_one": "{{count}} in backlog",
+          "backlog_other": "{{count}} in backlog"
+        },
+        "context": {
+          "heading": "Context",
+          "refresh": "Refresh",
+          "copyPrompt": "Copy refresh prompt",
+          "copyPromptHint": "No AI key configured. Copy the prompt and paste it into your AI agent.",
+          "fresh": "Up to date",
+          "stale_one": "{{count}} record changed since",
+          "stale_other": "{{count}} records changed since",
+          "reviewed": "Reviewed {{when}}",
+          "addBrief": "Add a brief"
+        }
       },
       "browse": {
         "newProject": "New Project",
@@ -252,10 +270,6 @@
       "selectWorkspaceDescription": "Choose a workspace in the sidebar to view projects."
     },
     "planner": {
-      "toggle": {
-        "showColumn": "Show {{label}} column",
-        "hideColumn": "Hide {{label}} column"
-      },
       "taskPicker": {
         "placeholder": "Add task or note...",
         "noAvailableTasks": "No available tasks",
@@ -267,9 +281,27 @@
         "notePlaceholder": "Type a note...",
         "moreCount": "+{{count}} more"
       },
-      "week": "Week",
-      "allTasks": "Board",
-      "allWorkspaces": "All Workspaces"
+      "rail": {
+        "title": "To schedule",
+        "empty": "Nothing to schedule",
+        "overdue": "Overdue",
+        "dueThisWeek": "Due this week",
+        "later": "Later",
+        "noDate": "No date",
+        "collapse": "Collapse",
+        "expand": "Show unscheduled tasks"
+      },
+      "due": {
+        "today": "Today"
+      },
+      "dueStrip": {
+        "count_one": "{{count}} task due",
+        "count_other": "{{count}} tasks due"
+      },
+      "intentions": {
+        "add": "Add intention",
+        "placeholder": "What is this week about?"
+      }
     }
   },
   "settings": {
@@ -635,7 +667,9 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brief description of the project...",
       "statusLabel": "Status",
-      "submit": "Create Project"
+      "submit": "Create Project",
+      "systemsLabel": "Systems and stack",
+      "systemsPlaceholder": "Which services, repos, or tools does this touch?"
     },
     "newTask": {
       "title": "New Task",
@@ -707,6 +741,42 @@
       "deleteButton": "Delete Workspace",
       "deleteConfirmTitle": "Delete Workspace",
       "deleteConfirmDescription": "This will permanently delete \"{{name}}\" and all its projects, tasks, docs, and meetings. This action cannot be undone."
+    },
+    "brief": {
+      "title": "Write the brief",
+      "description": "Two things an AI cannot work out for itself.",
+      "whatLabel": "What is this project about?",
+      "whatPlaceholder": "What are you trying to achieve, and why does it exist?",
+      "systemsLabel": "Systems and stack",
+      "systemsPlaceholder": "Which services, repos, or tools does this touch?",
+      "submit": "Create brief"
+    },
+    "refreshBrief": {
+      "title": "Review the refresh",
+      "description": "Your own sections are kept as written. Choose which of the rest to accept.",
+      "apply": "Apply",
+      "retry": "Try again",
+      "unusable": "The model did not return a usable brief. Nothing was changed.",
+      "emptySection": "(empty)",
+      "showPrevious": "Show previous",
+      "hidePrevious": "Hide previous",
+      "status": {
+        "unchanged": "Unchanged",
+        "rewritten": "Rewritten",
+        "added": "Added",
+        "kept": "Kept",
+        "yours": "Yours"
+      },
+      "warnings": {
+        "linesRestored_one": "{{count}} line the model dropped was restored.",
+        "linesRestored_other": "{{count}} lines the model dropped were restored.",
+        "humanProtected_one": "{{count}} section you own was protected from rewriting.",
+        "humanProtected_other": "{{count}} sections you own were protected from rewriting.",
+        "sectionsKept_one": "{{count}} section came back empty and was kept as it was.",
+        "sectionsKept_other": "{{count}} sections came back empty and were kept as they were.",
+        "unknownDropped_one": "{{count}} heading the model invented was dropped.",
+        "unknownDropped_other": "{{count}} headings the model invented were dropped."
+      }
     }
   },
   "editors": {
@@ -816,6 +886,11 @@
         "title": "No meetings yet",
         "description": "Create your first meeting note to get started"
       }
+    },
+    "brief": {
+      "title": "No brief yet",
+      "description": "Describe what this project is and what it runs on. Everything else in the map is reconciled from your tasks, docs, and meetings, but this part only you can write.",
+      "action": "Write the brief"
     }
   },
   "toasts": {
@@ -911,6 +986,19 @@
     },
     "ai": {
       "inclusionUpdateFailed": "Failed to update AI setting"
+    },
+    "brief": {
+      "create": {
+        "error": "Could not create the brief"
+      },
+      "refresh": {
+        "error": "Could not refresh the brief",
+        "success": "Brief updated"
+      },
+      "apply": {
+        "error": "Could not save the brief"
+      },
+      "promptCopied": "Refresh prompt copied"
     }
   },
   "errors": {

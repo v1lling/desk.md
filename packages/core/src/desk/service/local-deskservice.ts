@@ -12,6 +12,7 @@
  */
 import * as tasksApi from "../tasks";
 import * as projectsApi from "../projects";
+import * as projectBriefApi from "../project-brief";
 import * as workspacesApi from "../workspaces";
 import * as meetingsApi from "../meetings";
 import * as personalApi from "../personal";
@@ -42,7 +43,6 @@ export const localDeskService: DeskService = {
   createProject: projectsApi.createProject,
   updateProject: projectsApi.updateProject,
   deleteProject: projectsApi.deleteProject,
-  getProjectStats: projectsApi.getProjectStats,
 
   // Workspaces
   getWorkspaces: workspacesApi.getWorkspaces,
@@ -91,6 +91,9 @@ export const localDeskService: DeskService = {
   moveFolder: contentApi.moveFolder,
   deleteFolder: contentApi.deleteFolder,
 
+  // Project brief (context/)
+  ensureProjectBrief: projectBriefApi.ensureProjectBrief,
+
   // Content import / move
   createDocInFolder: contentApi.createDocInFolder,
   importFiles: contentApi.importFiles,
@@ -99,7 +102,6 @@ export const localDeskService: DeskService = {
   // Dashboard / planner aggregators
   getFocusTasks: dashboardApi.getFocusTasks,
   getWorkspaceSummaries: dashboardApi.getWorkspaceSummaries,
-  getAllWorkspaceTasks: dashboardApi.getAllWorkspaceTasks,
   getAllWorkspaceTasksAllStatuses: dashboardApi.getAllWorkspaceTasksAllStatuses,
 
   // View state (.view.json)

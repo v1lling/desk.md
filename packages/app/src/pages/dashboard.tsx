@@ -15,7 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { Circle, CheckCircle2, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import { cn } from "@/lib/utils";
 import type { Task } from "@desk/core/types";
 import type { ActiveTask, WorkspaceSummary } from "@desk/core";
 import { DataCard } from "@/components/ui/data-card";
@@ -116,34 +115,15 @@ function WorkspacesWidget({
                   fill={summary.color || DEFAULT_WORKSPACE_COLOR}
                 />
                 <span className="flex-1 text-left truncate font-medium text-sm">{summary.name}</span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {summary.completedTasks}/{summary.totalTasks}
+                <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                  {t("pages.dashboard.workspaces.activeCount", { count: summary.activeTasks })}
                 </span>
-                <ProgressBar percent={summary.completionPercent} />
               </DataRow>
             </button>
           ))}
         </DenseList>
       )}
     </DataCard>
-  );
-}
-
-function ProgressBar({ percent }: { percent: number }) {
-  return (
-    <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-      <div
-        className={cn(
-          "h-full rounded-full transition-all",
-          percent === 100
-            ? "bg-green-500"
-            : percent >= 50
-              ? "bg-primary"
-              : "bg-brand-accent"
-        )}
-        style={{ width: `${percent}%` }}
-      />
-    </div>
   );
 }
 

@@ -38,7 +38,15 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [systems, setSystems] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("active");
+
+  const reset = () => {
+    setName("");
+    setDescription("");
+    setSystems("");
+    setStatus("active");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,14 +59,14 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
         name: name.trim(),
         description: description.trim() || undefined,
         status,
+        // Seeds context/<date>-brief.md. `description` doubles as "What this is" — it already
+        // answers that question, so asking twice would be rude. Both empty → no brief is
+        // written, and Project Home shows the call to action instead.
+        seed: { description: description.trim(), systems: systems.trim() },
       });
 
       toast.success(t("toasts.project.create.success"));
-
-      // Reset form
-      setName("");
-      setDescription("");
-      setStatus("active");
+      reset();
       onClose();
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -67,9 +75,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   };
 
   const handleClose = () => {
-    setName("");
-    setDescription("");
-    setStatus("active");
+    reset();
     onClose();
   };
 
@@ -99,6 +105,20 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("modals.newProject.descriptionPlaceholder")}
               className="min-h-[80px] resize-none"
+            />
+          </FormField>
+
+          <FormField
+            id="project-systems"
+            label={t("modals.newProject.systemsLabel")}
+            optional
+          >
+            <Textarea
+              id="project-systems"
+              value={systems}
+              onChange={(e) => setSystems(e.target.value)}
+              placeholder={t("modals.newProject.systemsPlaceholder")}
+              className="min-h-[60px] resize-none"
             />
           </FormField>
 

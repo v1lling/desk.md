@@ -75,7 +75,12 @@ interface PlannerState {
     toBlockId: string,
     taskId: string
   ) => void;
+  /** Set (or clear, with an empty string) one of the week's ≤3 intentions. */
+  setIntention: (weekOf: string, index: number, text: string) => void;
 }
+
+/** Max intentions per week. Three is a focus; ten is a to-do list. */
+export const MAX_INTENTIONS = 3;
 
 /** Migrate old string notes to string[] format on rehydration */
 function normalizeBlockNotes(block: WorkspaceBlock): WorkspaceBlock {
@@ -274,6 +279,17 @@ export const usePlannerStore = create<PlannerState>()(
           };
         }),
 
+      // One action covers add, edit and clear: writing at `index` then compacting means
+      // a cleared slot makes the ones below it slide up, and the list never grows holes.
+      setIntention: (weekOf, index, text) =>
+        set((s) =>
+          updatePlan(s, weekOf, (plan) => {
+            const next = [...(plan.intentions ?? [])];
+            next[index] = text.trim();
+            const compact = next.filter(Boolean).slice(0, MAX_INTENTIONS);
+            return { ...plan, intentions: compact.length ? compact : undefined };
+          })
+        ),
     }),
     {
       name: "planner-store",
@@ -297,24 +313,18 @@ export const usePlannerStore = create<PlannerState>()(
 
 export const plannerKeys = {
   all: ["planner"] as const,
-  allTasks: () => [...plannerKeys.all, "allTasks"] as const,
   allTasksAllStatuses: () =>
     [...plannerKeys.all, "allTasksAllStatuses"] as const,
 };
 
 /**
- * Hook to fetch all plannable tasks (todo/doing/waiting) across all workspaces
- */
-export function useAllWorkspaceTasks() {
-  return useQuery({
-    queryKey: plannerKeys.allTasks(),
-    queryFn: () => getDeskService().getAllWorkspaceTasks(),
-    staleTime: 30_000,
-  });
-}
-
-/**
- * Hook to fetch ALL tasks across all workspaces (all statuses including backlog/done)
+ * Every task, every status, every workspace — the planner's single task query.
+ *
+ * Blocks need done/backlog tasks too (a task finished after it was planned must stay
+ * visible, struck through, rather than vanishing from the week), and the rail's set is a
+ * plain filter of this one. Running a second, narrower query alongside it would mean two
+ * filesystem scans and two independent staleness clocks that can disagree — long enough
+ * for a task to sit in a block and in the rail at the same time.
  */
 export function useAllWorkspaceTasksAllStatuses() {
   return useQuery({
