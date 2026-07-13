@@ -1,27 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  ArrowDown01,
-  ArrowUp01,
-  Calendar,
-  ChevronsUpDown,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { useCallback, useMemo, useState } from "react";
+import { ArrowDown01, ArrowUp01, Calendar, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -29,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { StatePanel } from "@/components/ui/state-panel";
+import { ListPane, ListRow, SectionLabel, type ListPaneSortOption } from "@/components/patterns";
 import { cn } from "@/lib/utils";
+import { matchesSearch } from "@/lib/tree-count";
+import { safeFormat } from "@/lib/i18n/format";
 import type { Meeting } from "@desk/core/types";
 import {
   useMeetings,
@@ -55,31 +40,30 @@ interface MonthGroup {
   meetings: Meeting[];
 }
 
-function groupByMonth(meetings: Meeting[], dir: "asc" | "desc"): MonthGroup[] {
-  const sorted = [...meetings].sort((a, b) => {
-    const cmp = a.date.localeCompare(b.date);
+function groupByMonth(meetings: Meeting[], dir: "asc" | "desc", noDateLabel: string): MonthGroup[] {
+  // Undated meetings form one trailing group, regardless of sort direction.
+  const dated = meetings.filter((m) => m.date);
+  const undated = meetings.filter((m) => !m.date);
+  const sorted = [...dated].sort((a, b) => {
+    const cmp = a.date!.localeCompare(b.date!);
     return dir === "asc" ? cmp : -cmp;
   });
   const groups = new Map<string, Meeting[]>();
   for (const m of sorted) {
-    const key = m.date.slice(0, 7); // YYYY-MM, stable without parsing
+    const key = m.date!.slice(0, 7); // YYYY-MM, stable without parsing
     const bucket = groups.get(key);
     if (bucket) bucket.push(m);
     else groups.set(key, [m]);
   }
-  return Array.from(groups.entries()).map(([key, ms]) => ({
+  const result = Array.from(groups.entries()).map(([key, ms]) => ({
     key,
     label: safeFormat(ms[0].date, "MMMM yyyy"),
     meetings: ms,
   }));
-}
-
-function safeFormat(iso: string, pattern: string): string {
-  try {
-    return format(parseISO(iso), pattern);
-  } catch {
-    return "";
+  if (undated.length > 0) {
+    result.push({ key: "no-date", label: noDateLabel, meetings: undated });
   }
+  return result;
 }
 
 export function MeetingsTreePane({ workspaceId, initialProjectFilter }: MeetingsTreePaneProps) {
@@ -98,7 +82,6 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
   const [projectFilter, setProjectFilter] = useState<string>(
     initialProjectFilter ?? ALL_PROJECTS,
   );
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
 
@@ -114,28 +97,26 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
   );
 
   const filtered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
     return meetings.filter((m) => {
       if (projectFilter === UNASSIGNED) {
         if (m.projectId) return false;
       } else if (projectFilter !== ALL_PROJECTS) {
         if (m.projectId !== projectFilter) return false;
       }
-      if (q) {
-        if (!m.title.toLowerCase().includes(q) && !m.content?.toLowerCase().includes(q)) return false;
-      }
-      return true;
+      return matchesSearch(searchQuery, m.title, m.content);
     });
   }, [meetings, projectFilter, searchQuery]);
 
-  const groups = useMemo(() => groupByMonth(filtered, sortDir), [filtered, sortDir]);
+  const groups = useMemo(
+    () => groupByMonth(filtered, sortDir, t("pages.meetings.groups.noDate")),
+    [filtered, sortDir, t],
+  );
 
-  // Most recent meeting *in the current filter scope* — anchors the "Latest" pill.
-  // When sort is asc (oldest-first), the latest is the last item of the last group;
-  // for desc it's the first item of the first group.
+  // Most recent *dated* meeting in the current filter scope — anchors the "Latest" pill.
   const latestId = useMemo(() => {
-    if (filtered.length === 0) return null;
-    return filtered.reduce((acc, m) => (m.date > acc.date ? m : acc), filtered[0]).id;
+    const dated = filtered.filter((m) => m.date);
+    if (dated.length === 0) return null;
+    return dated.reduce((acc, m) => (m.date! > acc.date! ? m : acc), dated[0]).id;
   }, [filtered]);
 
   const handleOpenMeeting = useCallback((meeting: Meeting) => openMeeting(meeting), [openMeeting]);
@@ -159,204 +140,118 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
 
   const showProjectTag = projectFilter === ALL_PROJECTS;
 
+  const sortOptions: ListPaneSortOption[] = [
+    {
+      key: "desc",
+      label: t("pages.meetings.tree.sort.newestFirst"),
+      icon: ArrowDown01,
+      active: sortDir === "desc",
+      onSelect: () => setSortDir("desc"),
+    },
+    {
+      key: "asc",
+      label: t("pages.meetings.tree.sort.oldestFirst"),
+      icon: ArrowUp01,
+      active: sortDir === "asc",
+      onSelect: () => setSortDir("asc"),
+    },
+  ];
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header: search + sort + more */}
-      <div className="shrink-0 min-h-11 py-2 px-3 border-b border-border/60 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            ref={searchInputRef}
-            type="text"
-            placeholder={t("pages.meetings.tree.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setSearchQuery("");
-            }}
-            className="h-7 pl-7 pr-7 text-xs"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setSearchQuery("");
-                searchInputRef.current?.focus();
-              }}
-            >
-              <X className="size-3.5" />
-            </Button>
-          )}
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-foreground"
-              title={t("pages.meetings.tree.sort.title")}
-            >
-              <ChevronsUpDown className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem
-              onClick={() => setSortDir("desc")}
-              className={cn(sortDir === "desc" && "bg-accent")}
-            >
-              <ArrowDown01 className="size-4 mr-2" />
-              {t("pages.meetings.tree.sort.newestFirst")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setSortDir("asc")}
-              className={cn(sortDir === "asc" && "bg-accent")}
-            >
-              <ArrowUp01 className="size-4 mr-2" />
-              {t("pages.meetings.tree.sort.oldestFirst")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-foreground"
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setNewMeetingOpen(true)}>
-              <Plus className="size-4 mr-2" />
-              {t("pages.meetings.tree.actions.newMeeting")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Project filter */}
-      <div className="shrink-0 px-3 py-2 border-b border-border/40">
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger size="xs" className="h-7 w-full text-xs">
-            <SelectValue placeholder={t("pages.meetings.tree.filter.allProjects")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_PROJECTS}>{t("pages.meetings.tree.filter.allProjects")}</SelectItem>
-            <SelectItem value={UNASSIGNED}>{t("pages.meetings.tree.filter.noProject")}</SelectItem>
-            {sortedProjects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
+    <>
+      <ListPane
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortOptions={sortOptions}
+        menuItems={
+          <DropdownMenuItem onClick={() => setNewMeetingOpen(true)}>
+            <Plus className="size-4 mr-2" />
+            {t("pages.meetings.tree.actions.newMeeting")}
+          </DropdownMenuItem>
+        }
+        filter={
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger size="xs" className="h-7 w-full text-xs">
+              <SelectValue placeholder={t("pages.meetings.tree.filter.allProjects")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PROJECTS}>
+                {t("pages.meetings.tree.filter.allProjects")}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Action row: count + new meeting */}
-      <div className="shrink-0 px-3 py-1 flex items-center gap-2 border-b border-border/40">
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {t("pages.meetings.tree.meetingCount", { count: filtered.length })}
-        </span>
-        <div className="flex-1" />
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs"
-          onClick={() => setNewMeetingOpen(true)}
-        >
-          <Plus className="size-3.5 mr-1" />
-          {t("pages.meetings.tree.actions.newMeeting")}
-        </Button>
-      </div>
-
-      {/* List */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="py-1">
-          {filtered.length === 0 ? (
-            <div className="px-4 py-6 text-xs text-muted-foreground text-center">
-              {searchQuery.trim()
+              <SelectItem value={UNASSIGNED}>
+                {t("pages.meetings.tree.filter.noProject")}
+              </SelectItem>
+              {sortedProjects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+        countLabel={t("pages.meetings.tree.meetingCount", { count: filtered.length })}
+        action={{
+          label: t("pages.meetings.tree.actions.newMeeting"),
+          onClick: () => setNewMeetingOpen(true),
+        }}
+      >
+        {filtered.length === 0 ? (
+          <StatePanel
+            variant="empty"
+            display="inline"
+            className="py-8"
+            title={
+              searchQuery.trim()
                 ? t("pages.meetings.tree.emptyMatching")
-                : t("pages.meetings.tree.emptyAll")}
-            </div>
-          ) : (
-            groups.map((group) => (
-              <div key={group.key} className="mb-1">
-                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                  {group.label}
-                </div>
-                {group.meetings.map((meeting) => {
-                  const isActive = meeting.id === activeMeetingId;
-                  const isLatest = meeting.id === latestId;
-                  const projectName = meeting.projectId
-                    ? (projectsById.get(meeting.projectId) ?? null)
-                    : null;
-                  const showSecondLine = showProjectTag && !!projectName;
-                  return (
-                    <div
-                      key={meeting.id}
-                      className={cn(
-                        "group flex items-start gap-2 px-3 py-1.5 cursor-pointer rounded-sm mx-1",
-                        "hover:bg-accent/40",
-                        isActive && "bg-accent",
-                      )}
-                      onClick={() => handleOpenMeeting(meeting)}
-                    >
+                : t("pages.meetings.tree.emptyAll")
+            }
+          />
+        ) : (
+          groups.map((group) => (
+            <div key={group.key} className="mb-1">
+              <SectionLabel sticky>{group.label}</SectionLabel>
+              {group.meetings.map((meeting) => {
+                const isLatest = meeting.id === latestId;
+                const projectName = meeting.projectId
+                  ? (projectsById.get(meeting.projectId) ?? null)
+                  : null;
+                const showSecondLine = showProjectTag && !!projectName;
+                return (
+                  <ListRow
+                    key={meeting.id}
+                    isActive={meeting.id === activeMeetingId}
+                    onClick={() => handleOpenMeeting(meeting)}
+                    leading={
                       <Calendar
                         className={cn(
-                          "size-3.5 shrink-0 mt-0.5",
+                          "size-3.5 shrink-0",
+                          showSecondLine && "mt-0.5",
                           isLatest ? "text-brand-accent" : "text-muted-foreground",
                         )}
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm truncate flex-1">{meeting.title}</span>
-                          <span className="text-[11px] text-muted-foreground/70 tabular-nums shrink-0">
-                            {safeFormat(meeting.date, "MMM d")}
-                          </span>
-                        </div>
-                        {showSecondLine && (
-                          <div className="text-[11px] text-muted-foreground/70 truncate">
-                            {projectName}
-                          </div>
-                        )}
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground mt-0.5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="size-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDelete(meeting);
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="size-4 mr-2" />
-                            {t("common.buttons.delete")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  );
-                })}
-              </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+                    }
+                    title={meeting.title}
+                    meta={safeFormat(meeting.date, "MMM d")}
+                    secondLine={showSecondLine ? projectName : undefined}
+                    menuItems={
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDelete(meeting);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        {t("common.buttons.delete")}
+                      </DropdownMenuItem>
+                    }
+                  />
+                );
+              })}
+            </div>
+          ))
+        )}
+      </ListPane>
 
       <NewMeetingModal
         open={newMeetingOpen}
@@ -365,6 +260,6 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           projectFilter !== ALL_PROJECTS && projectFilter !== UNASSIGNED ? projectFilter : undefined
         }
       />
-    </div>
+    </>
   );
 }

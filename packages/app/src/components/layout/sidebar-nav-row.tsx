@@ -8,6 +8,8 @@ interface SidebarNavRowProps {
   to?: string;
   onClick?: () => void;
   icon?: LucideIcon;
+  /** Status dot (a bg-* class) shown in the icon slot when no icon is given. */
+  dot?: string;
   label: string;
   active?: boolean;
   role?: SidebarNavRole;
@@ -26,6 +28,7 @@ export function SidebarNavRow({
   to,
   onClick,
   icon: Icon,
+  dot,
   label,
   active = false,
   role = "global",
@@ -52,6 +55,11 @@ export function SidebarNavRow({
             active ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/60"
           )}
         />
+      )}
+      {!Icon && dot && (
+        <span className="size-4 shrink-0 flex items-center justify-center">
+          <span className={cn("size-2 rounded-full", dot)} />
+        </span>
       )}
       {!collapsed && <span className="flex-1 truncate text-left">{label}</span>}
       {!collapsed && count !== undefined && count > 0 && (

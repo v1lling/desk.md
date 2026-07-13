@@ -3,7 +3,7 @@
  */
 import type { Doc, DocKind, FileTreeNode, ContentScope, Asset } from "../types";
 import { isMarkdownFile, getExtension } from "./file-utils";
-import { parseMarkdown, filenameToId, resolveContentDate, generatePreview } from "./parser";
+import { parseMarkdown, filenameToId, resolveContentDate, normalizeDateTime, compareDatesDesc, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
@@ -24,6 +24,7 @@ function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, p
 interface DocFrontmatter {
   title: string;
   created: string;
+  updated?: string;
 }
 
 /**
@@ -136,6 +137,7 @@ async function buildContentTreeRecursive(
           filePath,
           title: data.title || file.name.replace(".md", ""),
           created: resolveContentDate(data.created, docRelPath),
+          updated: normalizeDateTime(data.updated),
           content: body,
           preview: generatePreview(body),
           fileCreated,
@@ -296,7 +298,7 @@ export async function getAllDocs(
 ): Promise<Doc[]> {
   const tree = await getContentTree(scope, workspaceId, projectId, kind);
   const docs = extractDocs(tree);
-  docs.sort((a, b) => b.created.localeCompare(a.created));
+  docs.sort((a, b) => compareDatesDesc(a.created, b.created));
   return docs;
 }
 
@@ -335,7 +337,7 @@ export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind 
   const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED, kind);
   allDocs.push(...unassignedDocs);
 
-  allDocs.sort((a, b) => b.created.localeCompare(a.created));
+  allDocs.sort((a, b) => compareDatesDesc(a.created, b.created));
   return allDocs;
 }
 

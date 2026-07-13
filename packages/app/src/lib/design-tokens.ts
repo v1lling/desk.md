@@ -65,6 +65,17 @@ export const statusColors = {
 
 export type ProjectStatus = keyof typeof statusColors;
 
+/** Solid dot colors for project status — `statusColors` are badge bundles, not plain dots. */
+export const projectStatusDotColors: Record<ProjectStatus, string> = {
+  active: "bg-emerald-500",
+  paused: "bg-amber-500",
+  completed: "bg-blue-500",
+  archived: "bg-slate-400",
+};
+
+/** Ordered list of project statuses — the one source for status pickers and filters. */
+export const projectStatuses = Object.keys(projectStatusDotColors) as ProjectStatus[];
+
 // =============================================================================
 // WORKSPACE COLORS
 // Default color palette for workspaces - refined selection

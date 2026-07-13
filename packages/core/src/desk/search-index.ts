@@ -7,6 +7,7 @@
 
 import Fuse, { type IFuseOptions } from "fuse.js";
 import type { Task, Doc, Meeting, Project } from "../types";
+import { compareDatesDesc } from "./parser";
 
 // Unified search item type
 export type SearchItemType = "task" | "doc" | "meeting" | "project";
@@ -24,7 +25,7 @@ export interface SearchItem {
   status?: string;
   priority?: string;
   due?: string;
-  created: string;
+  created?: string;
   // Full path for navigation
   filePath?: string;
 }
@@ -168,10 +169,8 @@ export function getRecentItems(
     filtered = filtered.filter((i) => i.workspaceId === workspaceId);
   }
 
-  // Sort by created date descending
-  const sorted = [...filtered].sort(
-    (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
-  );
+  // Sort by created date descending (undated last)
+  const sorted = [...filtered].sort((a, b) => compareDatesDesc(a.created, b.created));
 
   return sorted.slice(0, limit).map((item) => ({
     item,

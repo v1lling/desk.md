@@ -21,7 +21,7 @@ export function DocCard({ doc, onClick }: DocCardProps) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium truncate">{doc.title}</h3>
-            <p className="text-xs text-muted-foreground">{doc.created}</p>
+            {doc.created && <p className="text-xs text-muted-foreground">{doc.created}</p>}
           </div>
         </div>
       </CardHeader>

@@ -1,3 +1,3 @@
 export { NewProjectModal } from "./new-project-modal";
-export { ProjectsTreePane } from "./projects-tree-pane";
-export { ProjectOverview } from "./project-overview";
+export { ProjectsBrowse } from "./projects-browse";
+export { ProjectHome } from "./project-home";

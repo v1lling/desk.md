@@ -5,7 +5,7 @@
  * Uses paths.ts for all path construction.
  */
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, resolveContentDate, clearNulls } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, normalizeDate, normalizeDateTime, resolveContentDate, clearNulls } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -27,7 +27,8 @@ interface TaskFrontmatter extends Record<string, unknown> {
   status: TaskStatus;
   priority?: TaskPriority;
   due?: string;
-  created: string;
+  created?: string;
+  updated?: string;
 }
 
 /**
@@ -52,6 +53,7 @@ function buildTask(
     priority: data.priority,
     due: data.due ? normalizeDate(data.due) : undefined,
     created: resolveContentDate(data.created, filename ?? filePath),
+    updated: normalizeDateTime(data.updated),
     content: body,
   };
 }
@@ -207,6 +209,7 @@ export async function createTask(data: {
     priority: data.priority,
     due: data.due,
     created: todayISO(),
+    updated: nowISO(),
     content: data.content || data.templateBody || "",
   };
 
@@ -245,7 +248,7 @@ export async function updateTask(
   if (isMockMode()) {
     const index = mockTasks.findIndex((t) => t.id === taskId);
     if (index === -1) return null;
-    mockTasks[index] = { ...mockTasks[index], ...clearNulls(updates) };
+    mockTasks[index] = { ...mockTasks[index], ...clearNulls(updates), updated: nowISO() };
     return mockTasks[index];
   }
 

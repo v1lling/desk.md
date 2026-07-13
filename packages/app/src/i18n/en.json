@@ -16,6 +16,10 @@
     }
   },
   "common": {
+    "listPane": {
+      "searchPlaceholder": "Search…",
+      "sortTitle": "Sort"
+    },
     "buttons": {
       "save": "Save",
       "cancel": "Cancel",
@@ -52,7 +56,10 @@
       "projects": "Projects",
       "settings": "Settings",
       "desk": "Desk",
-      "workspaceViews": "Workspace Views"
+      "workspaceViews": "Workspace Views",
+      "projectsSection": "Projects",
+      "allProjects": "All projects",
+      "newProject": "New project"
     },
     "secondarySidebar": {
       "expandPanel": "Expand panel"
@@ -139,7 +146,6 @@
           "projects": "Projects"
         },
         "sort": {
-          "title": "Sort",
           "name": "Name",
           "nameAsc": "A-Z",
           "nameDesc": "Z-A",
@@ -168,14 +174,15 @@
     },
     "meetings": {
       "latestBadge": "Latest",
+      "groups": {
+        "noDate": "No date"
+      },
       "tree": {
-        "searchPlaceholder": "Search…",
         "meetingCount_one": "{{count}} meeting",
         "meetingCount_other": "{{count}} meetings",
         "emptyAll": "No meetings yet.",
         "emptyMatching": "No matching meetings.",
         "sort": {
-          "title": "Sort",
           "newestFirst": "Newest first",
           "oldestFirst": "Oldest first"
         },
@@ -195,43 +202,45 @@
       "selectMeetingDescription": "Pick a meeting from the list to open it."
     },
     "projects": {
-      "overview": {
+      "home": {
         "loading": "Loading project…",
         "notFoundTitle": "Project not found",
         "notFoundDescription": "This project may have been deleted or moved.",
         "createdOn": "Created {{date}}",
-        "tasksHeading": "Tasks",
-        "openHeading": "Open",
         "progress": "Progress",
         "noTasksYet": "No tasks yet",
         "progressSummary": "{{done}} of {{total}} done · {{pct}}%",
         "renameTitle": "Click to rename",
         "descriptionPlaceholder": "Add a short description…",
         "descriptionEditTitle": "Click to edit",
-        "quickLinks": {
-          "tasks": "Tasks",
-          "docs": "Docs",
-          "meetings": "Meetings"
-        }
+        "deleteProject": "Delete project",
+        "tasksHeading": "Active tasks",
+        "openBoard": "Open board",
+        "moreOnBoard_one": "{{count}} more on the board",
+        "moreOnBoard_other": "{{count}} more on the board",
+        "noActiveTasks": "No active tasks.",
+        "quickAddPlaceholder": "Add a task…",
+        "meetingsHeading": "Meetings",
+        "newMeeting": "New meeting",
+        "allMeetings": "All meetings",
+        "noMeetings": "No meetings yet.",
+        "docsHeading": "Docs",
+        "allDocs": "All docs",
+        "noDocs": "No docs yet.",
+        "activityHeading": "Recent activity",
+        "noActivity": "No activity yet."
       },
-      "tree": {
-        "searchPlaceholder": "Search…",
-        "sortTitle": "Sort",
-        "sortAsc": "Name A–Z",
-        "sortDesc": "Name Z–A",
+      "browse": {
         "newProject": "New Project",
+        "statusLabel": "Status",
         "allStatuses": "All statuses",
-        "projectCount_one": "{{count}} project",
-        "projectCount_other": "{{count}} projects",
-        "deleteConfirmTitle": "Delete Project",
-        "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This will permanently remove the project and all its tasks, docs, and meetings."
+        "countLabel": "projects",
+        "searchPlaceholder": "Search projects…"
       },
+      "deleteConfirmTitle": "Delete Project",
+      "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This will permanently remove the project and all its tasks, docs, and meetings.",
       "selectWorkspaceTitle": "Select a workspace",
-      "selectWorkspaceDescription": "Choose a workspace in the sidebar to view projects.",
-      "noProjectsTitle": "No projects yet",
-      "noProjectsDescription": "Create one with + New Project in the panel.",
-      "selectProjectTitle": "Select a project",
-      "selectProjectDescription": "Pick a project from the list to view its overview."
+      "selectWorkspaceDescription": "Choose a workspace in the sidebar to view projects."
     },
     "planner": {
       "toggle": {
@@ -250,7 +259,7 @@
         "moreCount": "+{{count}} more"
       },
       "week": "Week",
-      "allTasks": "All Tasks",
+      "allTasks": "Board",
       "allWorkspaces": "All Workspaces"
     }
   },

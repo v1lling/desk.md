@@ -11,6 +11,7 @@
  * If .view.json is missing or corrupted, the app falls back to default ordering.
  */
 
+import { compareDatesDesc } from "./parser";
 import { getDeskPath, joinPath, isMockMode } from "./env";
 import { getStorage } from "./storage";
 import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
@@ -145,15 +146,13 @@ export async function getTaskOrderForStatus(
  * Sort tasks by custom order from view state
  * Tasks not in the order array are appended at the end (by created date)
  */
-export function sortTasksByOrder<T extends { id: string; created: string }>(
+export function sortTasksByOrder<T extends { id: string; created?: string }>(
   tasks: T[],
   order: string[] | undefined
 ): T[] {
   if (!order || order.length === 0) {
-    // No custom order - sort by created date (newest first)
-    return [...tasks].sort((a, b) =>
-      new Date(b.created).getTime() - new Date(a.created).getTime()
-    );
+    // No custom order - sort by created date (newest first, undated last)
+    return [...tasks].sort((a, b) => compareDatesDesc(a.created, b.created));
   }
 
   // Create a map of id -> index for O(1) lookup
@@ -174,8 +173,8 @@ export function sortTasksByOrder<T extends { id: string; created: string }>(
     // Only b has custom order - b comes first
     if (bIndex !== undefined) return 1;
 
-    // Neither has custom order - sort by created date (newest first)
-    return new Date(b.created).getTime() - new Date(a.created).getTime();
+    // Neither has custom order - sort by created date (newest first, undated last)
+    return compareDatesDesc(a.created, b.created);
   });
 }
 

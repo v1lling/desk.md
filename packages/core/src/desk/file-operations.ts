@@ -11,7 +11,7 @@
 
 import { joinPath } from "./env";
 import { getStorage } from "./storage";
-import { parseMarkdown, serializeMarkdown, filenameToId } from "./parser";
+import { parseMarkdown, serializeMarkdown, filenameToId, nowISO } from "./parser";
 import { publishPathChange, publishDeleted } from "./editor-event-bus";
 import { getEditorNotifier } from "./editor-notifier";
 import { getFileTreeService, getContentCache } from "./file-cache";
@@ -179,7 +179,9 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
     await getStorage().mkdir(dirPath);
   }
 
-  const fileContent = serializeMarkdown(frontmatter, content);
+  // Every caller writes a content file (task/doc/meeting/capture) — workspace.md
+  // and project.md are written elsewhere — so the `updated` stamp is unconditional.
+  const fileContent = serializeMarkdown({ ...frontmatter, updated: nowISO() }, content);
   await getStorage().writeTextFile(filePath, fileContent);
   getContentCache().invalidate(filePath);
 }
@@ -232,7 +234,9 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
     const { data, content } = parseMarkdown<T>(rawContent);
 
     const updated = updater(data, content);
-    const fileContent = serializeMarkdown(updated.frontmatter, updated.content);
+    // Stamp after the updater so it can't be overwritten with a stale value.
+    const frontmatter = { ...updated.frontmatter, updated: nowISO() };
+    const fileContent = serializeMarkdown(frontmatter, updated.content);
     await getStorage().writeTextFile(filePath, fileContent);
 
     getContentCache().invalidate(filePath);
@@ -245,7 +249,7 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
     }
 
     return {
-      frontmatter: updated.frontmatter,
+      frontmatter,
       content: updated.content,
       filePath,
     };

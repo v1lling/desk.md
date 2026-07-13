@@ -40,7 +40,8 @@ export interface Task {
   status: TaskStatus;
   priority?: TaskPriority;
   due?: string;            // ISO date
-  created: string;
+  created?: string;        // ISO date - absent when the file carries no date
+  updated?: string;        // ISO datetime - stamped on every save
   content: string;         // Markdown body
 }
 
@@ -73,7 +74,8 @@ export interface Doc {
   workspaceId: string;
   filePath: string;        // Full absolute path — encodes kind via `/docs/` or `/ai-docs/` segment
   title: string;
-  created: string;
+  created?: string;        // ISO date - absent when the file carries no date
+  updated?: string;        // ISO datetime - stamped on every save
   content: string;
   preview?: string;        // First ~100 chars
   fileCreated?: string;    // OS file creation time (ISO)
@@ -126,8 +128,9 @@ export interface Meeting {
   workspaceId: string;
   filePath: string;
   title: string;
-  date: string;            // ISO date - when the meeting occurred
-  created: string;         // ISO date - when the note was created
+  date?: string;           // ISO date - when the meeting occurred; absent when unknown
+  created?: string;        // ISO date - absent when the file carries no date
+  updated?: string;        // ISO datetime - stamped on every save
   content: string;         // Markdown body (agenda, notes, action items)
   preview?: string;        // First ~100 chars
 }

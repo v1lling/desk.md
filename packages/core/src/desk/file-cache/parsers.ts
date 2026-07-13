@@ -59,7 +59,7 @@ export const parseMarkdownDoc: ContentParser<ParsedMarkdownDoc> = (raw, path) =>
  */
 export interface ParsedDoc {
   title: string;
-  created: string;
+  created?: string;
   content: string;
   preview: string;
 }
@@ -88,7 +88,7 @@ export interface ParsedTask {
   title: string;
   status: string;
   priority: string;
-  created: string;
+  created?: string;
   due?: string;
   content: string;
 }

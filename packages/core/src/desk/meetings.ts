@@ -5,7 +5,7 @@
  * Uses paths.ts for all path construction.
  */
 import type { Meeting } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, normalizeDate, resolveContentDate, generatePreview } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, normalizeOptionalDate, normalizeDateTime, resolveContentDate, compareDatesDesc, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -24,8 +24,9 @@ import { getFileTreeService } from "./file-cache";
 
 interface MeetingFrontmatter extends Record<string, unknown> {
   title: string;
-  date: string;
-  created: string;
+  date?: string;
+  created?: string;
+  updated?: string;
 }
 
 /**
@@ -48,6 +49,7 @@ function buildMeeting(
     title: data.title || filename || id,
     date: resolveContentDate(data.date || data.created, filename ?? filePath),
     created: resolveContentDate(data.created, filename ?? filePath),
+    updated: normalizeDateTime(data.updated),
     content: body,
     preview: generatePreview(body),
   };
@@ -64,9 +66,10 @@ function applyMeetingUpdates(
   return {
     frontmatter: {
       ...data,
-      // Normalize dates from gray-matter (may be Date objects)
-      date: normalizeDate(data.date),
-      created: normalizeDate(data.created),
+      // Normalize dates from gray-matter (may be Date objects). Absence is preserved —
+      // a file without date/created must not get a fabricated date stamped in on save.
+      date: normalizeOptionalDate(data.date),
+      created: normalizeOptionalDate(data.created),
       ...(updates.title && { title: updates.title }),
       ...(updates.date && { date: updates.date }),
     },
@@ -115,7 +118,7 @@ async function readProjectMeetings(
     }
   }
 
-  meetings.sort((a, b) => b.date.localeCompare(a.date));
+  meetings.sort((a, b) => compareDatesDesc(a.date, b.date));
   return meetings;
 }
 
@@ -150,7 +153,7 @@ export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
     allMeetings.push(...unassignedMeetings);
   }
 
-  allMeetings.sort((a, b) => b.date.localeCompare(a.date));
+  allMeetings.sort((a, b) => compareDatesDesc(a.date, b.date));
   return allMeetings;
 }
 
@@ -204,6 +207,7 @@ export async function createMeeting(data: {
     title: data.title,
     date: meetingDate,
     created: todayISO(),
+    updated: nowISO(),
     content,
     preview: generatePreview(content),
   };
@@ -246,7 +250,7 @@ export async function updateMeeting(
     const index = mockMeetings.findIndex((m) => m.id === meetingId);
     if (index === -1) return null;
 
-    const updatedFields: Partial<Meeting> = { ...updates };
+    const updatedFields: Partial<Meeting> = { ...updates, updated: nowISO() };
     if (updates.content) {
       updatedFields.preview = generatePreview(updates.content);
     }

@@ -1,18 +1,16 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FolderKanban } from "lucide-react";
 import { useCurrentWorkspace, useProjects } from "@/stores";
 import { useProjectSelectionStore } from "@/stores/project-selection";
-import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { StatePanel } from "@/components/ui/state-panel";
-import { ProjectsTreePane, ProjectOverview } from "@/components/projects";
+import { ProjectsBrowse, ProjectHome } from "@/components/projects";
 
 /**
- * Projects Hub — a secondary-sidebar project list (`ProjectsTreePane`) plus a
- * project overview dashboard in the main pane. Single `/projects` route;
- * selection lives in `useProjectSelectionStore` so the sidebar slot key stays
- * stable (see `use-secondary-sidebar.ts`).
+ * Projects — a single `/projects` route. With no selection it shows the
+ * full-width "All projects" browse view; selecting a project (browse row,
+ * sidebar PROJECTS section, or `?open=` from global search) swaps in its
+ * ProjectHome. Selection lives in `useProjectSelectionStore`.
  */
 export default function ProjectsPage() {
   const { t } = useTranslation();
@@ -22,13 +20,6 @@ export default function ProjectsPage() {
 
   const selectedProjectId = useProjectSelectionStore((s) => s.selectedProjectId);
   const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
-
-  // Register the projects tree as the secondary sidebar slot for /projects.
-  const pane = useMemo(
-    () => (currentWorkspaceId ? <ProjectsTreePane workspaceId={currentWorkspaceId} /> : null),
-    [currentWorkspaceId],
-  );
-  useSecondarySidebar("/projects", pane);
 
   // Consume ?open=<id> (e.g. from global search) → select that project, clear param.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,7 +33,8 @@ export default function ProjectsPage() {
   }, [searchParams, setSearchParams, setSelectedProject]);
 
   // Resolve the selection against the current workspace's project list — a stale
-  // id (deleted project, or workspace switched) falls back to the empty state.
+  // id (deleted project) falls back to the browse view. Workspace switches clear
+  // the selection at the store level (slug ids collide across workspaces).
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId) ?? null,
     [projects, selectedProjectId],
@@ -65,25 +57,14 @@ export default function ProjectsPage() {
   if (!selectedProject) {
     return (
       <div className="flex flex-col h-full">
-        <StatePanel
-          variant="empty"
-          display="inline"
-          icon={FolderKanban}
-          title={projects.length === 0 ? t("pages.projects.noProjectsTitle") : t("pages.projects.selectProjectTitle")}
-          description={
-            projects.length === 0
-              ? t("pages.projects.noProjectsDescription")
-              : t("pages.projects.selectProjectDescription")
-          }
-          className="h-full"
-        />
+        <ProjectsBrowse workspaceId={currentWorkspaceId} />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <ProjectOverview workspaceId={currentWorkspaceId} projectId={selectedProject.id} />
+      <ProjectHome workspaceId={currentWorkspaceId} projectId={selectedProject.id} />
     </div>
   );
 }
