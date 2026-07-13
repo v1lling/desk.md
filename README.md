@@ -26,10 +26,7 @@ and connect Claude, ChatGPT, or Claude Code to your work over MCP.
 I built it for my own work and use it every day to keep track of everything from
 client projects to personal tasks. The point isn't to generate the notes, it's to
 have a nice note-taking and project-management environment that happens to keep
-real context somewhere an agent can reach it.
-A folder of loose notes is a pile an agent has to
-crawl through. A desk.md workspace is typed, so it can ask which projects exist,
-read a catalog of summaries, and open the two files that matter.
+real context somewhere an agent can reach it in a structured way.
 
 - **Projects and tasks.** Workspaces, projects, tasks, docs, and meetings as real
   things, with statuses, priorities, due dates, Kanban or list views, a week
@@ -85,34 +82,6 @@ desk.md has the model built in, and the agent side is a real difference: desk.md
 The files stay plain Markdown either way, so nothing stops you opening them in
 Obsidian, an editor, or `grep`. You just won't need to.
 
-## Install
-
-Download the build for your OS from the
-[latest release](https://github.com/v1lling/desk.md/releases/latest). desk.md
-then keeps itself up to date automatically. To build from source, see
-[Run from source](#run-from-source).
-
-> Windows and Linux builds are **beta**. desk.md is developed and tested on
-> macOS. Please [report anything broken](https://github.com/v1lling/desk.md/issues).
-
-- **macOS** (`Desk_*.dmg`, one universal build for Apple Silicon and Intel). Drag
-  **Desk** into Applications. The app isn't notarized by Apple yet, so macOS
-  calls it "damaged" on first launch. Clear the quarantine flag once:
-  `xattr -dr com.apple.quarantine /Applications/Desk.app`
-- **Windows** (`.exe` installer). Not code-signed yet, so SmartScreen warns:
-  **More info → Run anyway**.
-- **Linux** (`.AppImage`, `.deb`, or `.rpm`). For the AppImage,
-  `chmod +x Desk_*.AppImage` and run it. Storing AI API keys needs a desktop
-  secret service (GNOME Keyring or KWallet), present on most desktop installs.
-
-## Data & files
-
-desk.md stores your content under `workspaces/` and app metadata under `.desk/`,
-inside the data folder you pick at setup (default `~/Desk/`). One workspace is the
-**home workspace**, which holds the quick-capture inbox and is created the first
-time you set up desk.md. Everything is plain Markdown: back it up, sync it, or
-edit it in another app.
-
 ## AI & agents
 
 desk.md isn't an agent platform. It keeps your context organized and reachable,
@@ -148,12 +117,18 @@ Markdown you own; the difference is where it lives and who can reach it.
 |---|---|---|
 | Install | Native app on Mac, Windows, Linux | `docker compose` on a box you control |
 | Reach it from | The one machine it runs on | Any browser, on any device, all sharing one copy. Installable as a PWA on phone and tablet |
-| Where data lives | Your local disk | The server's disk |
+| Where data lives | A folder you pick at setup (default `~/Desk/`) | A folder on the server you bind-mount into the container |
 | Multi-device sync | Your own tool (iCloud, Dropbox, git, Syncthing) | Built in, the server holds the shared copy |
 | Login | None, fully offline | Account and session (first user wins), needs the network |
 | Smart Index | Yes, with your own API key | From the desktop app, using your local key. Browser-only hosting has no key store yet |
 | External AI agents | Point Claude Code, Codex, or Gemini at the folder | Connect Claude.ai, ChatGPT, Claude Code, or any MCP client to your workspace |
 | MCP | No server needed; agents read local files | OAuth-protected MCP endpoint, read-only for now |
+
+Both modes write the same folder: your Markdown under `workspaces/`, app metadata
+under `.desk/`. So a folder made by the desktop app can be handed to a server, and
+back, with nothing to migrate. Hosting adds one file, `.desk/auth.sqlite`, for
+accounts and sessions. Everything else is Markdown you can open, back up, or `git`
+like any other directory.
 
 > The native desktop app can also point at a self-hosted server instead of local
 > disk, giving you the desktop UI on top of server-side data.
@@ -161,6 +136,28 @@ Markdown you own; the difference is where it lives and who can reach it.
 Self-hosting is one container (`docker compose up`) that serves the web/PWA app,
 the API, the OAuth server, and the MCP endpoint. See
 [deploy/README.md](./deploy/README.md).
+
+## Install
+
+Download the build for your OS from the
+[latest release](https://github.com/v1lling/desk.md/releases/latest). desk.md
+then keeps itself up to date automatically. To build from source, see
+[Run from source](#run-from-source).
+
+> Windows and Linux builds are **beta**. desk.md is developed and tested on
+> macOS. Please [report anything broken](https://github.com/v1lling/desk.md/issues).
+
+- **macOS** (`Desk_*.dmg`, one universal build for Apple Silicon and Intel). Drag
+  **Desk** into Applications. The app isn't notarized by Apple yet, so macOS
+  calls it "damaged" on first launch. Clear the quarantine flag once:
+  `xattr -dr com.apple.quarantine /Applications/Desk.app`
+- **Windows** (`.exe` installer). Not code-signed yet, so SmartScreen warns:
+  **More info → Run anyway**.
+- **Linux** (`.AppImage`, `.deb`, or `.rpm`). For the AppImage,
+  `chmod +x Desk_*.AppImage` and run it. Storing AI API keys needs a desktop
+  secret service (GNOME Keyring or KWallet), present on most desktop installs.
+
+To self-host instead, see [deploy/README.md](./deploy/README.md).
 
 ## Roadmap
 
