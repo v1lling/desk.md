@@ -2,13 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import type { AIProviderType } from "./types";
-import type { SecretKeyRef } from "./secrets";
-
-export interface ProviderCapability {
-  chat: boolean;
-  tools: boolean;
-  streaming: boolean;
-}
+import type { AIKeyRef } from "./key-resolver";
 
 export interface ProviderModelOption {
   id: string;
@@ -19,19 +13,23 @@ export interface ProviderModelOption {
 export interface ProviderDefinition {
   providerId: AIProviderType;
   label: string;
-  keyRef: SecretKeyRef;
-  capabilities: ProviderCapability;
+  keyRef: AIKeyRef;
   defaultModel: string;
   models: ProviderModelOption[];
+  /** The one place a provider SDK model is constructed (used by the transport). */
   createModel: (apiKey: string, modelId?: string) => LanguageModel;
 }
 
+/**
+ * The single source of truth for providers: label, key seam ref, model catalog, default model,
+ * and the SDK model factory. The transport (`transport.ts`), the key resolver, and the Settings
+ * model picker (`PROVIDER_MODELS`/`DEFAULT_MODELS`, derived below) all read from here.
+ */
 export const PROVIDER_REGISTRY: Record<AIProviderType, ProviderDefinition> = {
   anthropic: {
     providerId: "anthropic",
     label: "Anthropic",
     keyRef: "ai.anthropic",
-    capabilities: { chat: true, tools: true, streaming: true },
     defaultModel: "claude-sonnet-4-5",
     models: [
       { id: "claude-sonnet-4-5", label: "Sonnet 4.5", description: "Fast, great for most tasks" },
@@ -44,7 +42,6 @@ export const PROVIDER_REGISTRY: Record<AIProviderType, ProviderDefinition> = {
     providerId: "openai",
     label: "OpenAI",
     keyRef: "ai.openai",
-    capabilities: { chat: true, tools: true, streaming: true },
     defaultModel: "gpt-5-mini",
     models: [
       { id: "gpt-5-mini", label: "GPT-5 Mini", description: "Balanced quality and speed" },
@@ -59,3 +56,13 @@ export function getProviderDefinition(provider: AIProviderType): ProviderDefinit
   return PROVIDER_REGISTRY[provider];
 }
 
+const providerTypes = Object.keys(PROVIDER_REGISTRY) as AIProviderType[];
+
+/** Model catalog for the Settings picker, derived from the registry (one source of truth). */
+export const PROVIDER_MODELS: Record<AIProviderType, ProviderModelOption[]> = Object.fromEntries(
+  providerTypes.map((p) => [p, PROVIDER_REGISTRY[p].models]),
+) as Record<AIProviderType, ProviderModelOption[]>;
+
+export const DEFAULT_MODELS: Record<AIProviderType, string> = Object.fromEntries(
+  providerTypes.map((p) => [p, PROVIDER_REGISTRY[p].defaultModel]),
+) as Record<AIProviderType, string>;

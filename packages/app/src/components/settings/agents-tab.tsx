@@ -12,7 +12,7 @@ import {
 import { Users, Info, Plug } from "lucide-react";
 import { toast } from "sonner";
 import { Trans, useTranslation } from "react-i18next";
-import { useContextStore, anyAgentFileEnabled } from "@/stores/context";
+import { useAgentSettingsStore, anyAgentFileEnabled } from "@/stores/agent-settings";
 import { useWorkspaces } from "@/stores";
 import {
   writePerWorkspaceAgentFiles,
@@ -35,7 +35,7 @@ export function AgentsTab() {
     setEmitClaudeMd,
     setEmitAgentsMd,
     setEmitGeminiMd,
-  } = useContextStore();
+  } = useAgentSettingsStore();
   const { data: workspaces = [] } = useWorkspaces();
   const [scope, setScope] = useState<string>(GLOBAL_SCOPE);
 

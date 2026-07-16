@@ -15,7 +15,7 @@
  * because RemoteDeskService sends `credentials: "include"`.
  */
 import type { Hono } from "hono";
-import { getDeskService, encode, decode } from "@desk/core";
+import { getDeskService, encode, decode, isAIProviderError } from "@desk/core";
 import { auth, TRUSTED_ORIGINS } from "./auth";
 
 type AnyFn = (...args: unknown[]) => Promise<unknown>;
@@ -79,10 +79,17 @@ export function registerDeskApi(app: Hono): void {
         headers: { "content-type": "application/json" },
       });
     } catch (err) {
-      // Full detail (which can include absolute filesystem paths, e.g. "Path
-      // escapes data root: /data/...") stays in the server log; the client gets a
-      // generic message so the server's layout isn't disclosed over the wire.
       console.error(`[desk-api] op "${op}" failed:`, err);
+      // AI provider errors carry a machine `code` and a self-authored message (no raw
+      // provider prose, no filesystem paths), so they are safe to pass through — the client
+      // maps the code to a localized string. Everything else stays opaque: full detail (which
+      // can include absolute paths like "Path escapes data root: /data/...") stays in the log.
+      if (isAIProviderError(err)) {
+        return c.json(
+          { error: { code: `ai/${err.code}`, provider: err.provider, message: err.message } },
+          502,
+        );
+      }
       return c.json({ error: { message: "Request failed" } }, 500);
     }
   });

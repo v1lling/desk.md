@@ -1,25 +1,32 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Compass, RefreshCw, Copy, Loader2 } from "lucide-react";
+import { Compass, RefreshCw, Loader2, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { describeAIError } from "@/lib/ai-error";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { SectionLabel, ListRow } from "@/components/patterns";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
 import { useOpenTab } from "@/stores";
+import { useCreateDocInFolder } from "@/stores/content";
 import {
   useProjectContext,
   useEnsureProjectBrief,
-  useRefreshBrief,
-  useApplyBrief,
+  useRefreshState,
   useCanRunAI,
-  buildRefreshPromptText,
 } from "@/stores/project-brief";
-import { type BriefSeed, type SectionMergeResult } from "@desk/core";
+import { type BriefSeed } from "@desk/core";
 import type { Project } from "@desk/core/types";
 import { BriefSeedDialog } from "./brief-seed-dialog";
-import { RefreshPreviewDialog } from "./refresh-preview-dialog";
 
 interface ContextSectionProps {
   project: Project;
@@ -28,10 +35,11 @@ interface ContextSectionProps {
 /**
  * The orientation layer, mounted above the work on Project Home.
  *
- * Shows the brief, the other context files, and whether the map has drifted from the records.
- * When there is no brief, the whole panel becomes the call to action to write one — which is the
- * only thing standing between `context/` and the fate of `ai-docs/`, an empty folder nobody
- * could see a reason to fill.
+ * Two files carry the map: the brief (the user's, AI never writes it) and the state file
+ * (AI's, rewritten in the background as records change — see core desk/maintenance). The panel
+ * shows both plus any hand-written context files, and whether the snapshot has drifted from
+ * the records. The refresh normally runs itself; the icon-button exists for native-remote
+ * (no watcher) and impatience.
  */
 export function ContextSection({ project }: ContextSectionProps) {
   const { t } = useTranslation();
@@ -39,20 +47,18 @@ export function ContextSection({ project }: ContextSectionProps) {
   const workspaceId = project.workspaceId;
   const projectId = project.id;
 
-  // `records` is the changed-since set the model reconciles against — the same list the
-  // freshness count is derived from, so the pill and the payload always agree.
-  const { brief, others, contextDocs, records, freshness } = useProjectContext(
+  const { brief, state, others, contextDocs, records, freshness } = useProjectContext(
     workspaceId,
     projectId,
   );
   const canRunAI = useCanRunAI();
 
   const ensureBrief = useEnsureProjectBrief();
-  const refreshBrief = useRefreshBrief();
-  const applyBrief = useApplyBrief();
+  const refreshState = useRefreshState();
+  const createContextDoc = useCreateDocInFolder();
 
   const [seedOpen, setSeedOpen] = useState(false);
-  const [preview, setPreview] = useState<SectionMergeResult | null>(null);
+  const [newFileOpen, setNewFileOpen] = useState(false);
 
   const handleSeed = async (seed: BriefSeed) => {
     try {
@@ -70,84 +76,78 @@ export function ContextSection({ project }: ContextSectionProps) {
   };
 
   const handleRefresh = async () => {
-    if (!brief) return;
     try {
-      const result = await refreshBrief.mutateAsync({ brief, records });
-      setPreview(result);
+      const result = await refreshState.mutateAsync({ workspaceId, projectId });
+      if (result === "written") toast.success(t("toasts.state.refresh.success"));
     } catch (err) {
-      console.error("Failed to refresh brief:", err);
-      toast.error(t("toasts.brief.refresh.error"));
+      console.error("Failed to refresh state:", err);
+      // Surface the real cause (quota, invalid key, network) — without it, "could not refresh"
+      // hides a billing problem behind a shrug. describeAIError localizes typed provider errors.
+      toast.error(t("toasts.state.refresh.error"), {
+        description: describeAIError(err, t),
+      });
     }
   };
 
-  const handleCopyPrompt = async () => {
-    if (!brief) return;
-    await navigator.clipboard.writeText(buildRefreshPromptText(brief, records));
-    toast.success(t("toasts.brief.promptCopied"));
-  };
-
-  // Rethrows on failure: the dialog closes itself only once the write lands, so a failed write
-  // leaves the reviewed merge on screen to retry rather than discarding it behind a toast.
-  const handleApply = async (content: string) => {
-    if (!brief) return;
+  const handleCreateContextFile = async (title: string) => {
     try {
-      await applyBrief.mutateAsync({ brief, content });
-      toast.success(t("toasts.brief.refresh.success"));
+      const doc = await createContextDoc.mutateAsync({
+        scope: "project",
+        title,
+        workspaceId,
+        projectId,
+        kind: "context",
+      });
+      setNewFileOpen(false);
+      openDoc(doc);
     } catch (err) {
-      console.error("Failed to apply brief:", err);
-      toast.error(t("toasts.brief.apply.error"));
-      throw err;
+      console.error("Failed to create context file:", err);
+      toast.error(t("toasts.doc.createError"));
     }
   };
+
+  const refreshButton = canRunAI ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        void handleRefresh();
+      }}
+      disabled={refreshState.isPending || freshness.changedSince === 0}
+      title={t("pages.projects.home.context.refreshState")}
+      aria-label={t("pages.projects.home.context.refreshState")}
+      className="text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
+    >
+      {refreshState.isPending ? (
+        <Loader2 className="size-3 animate-spin" />
+      ) : (
+        <RefreshCw className="size-3" />
+      )}
+    </button>
+  ) : null;
 
   return (
     <section>
       <SectionLabel
         className="mb-1"
         end={
-          contextDocs.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <FreshnessPill freshness={freshness} />
-              {!brief ? null : canRunAI ? (
-                <button
-                  type="button"
-                  onClick={handleRefresh}
-                  // Nothing has changed since the brief was written, so there is nothing to
-                  // reconcile. A refresh here would just burn tokens to restate the file.
-                  disabled={refreshBrief.isPending || freshness.changedSince === 0}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
-                >
-                  {refreshBrief.isPending ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-3" />
-                  )}
-                  {t("pages.projects.home.context.refresh")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleCopyPrompt}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                  title={t("pages.projects.home.context.copyPromptHint")}
-                >
-                  <Copy className="size-3" />
-                  {t("pages.projects.home.context.copyPrompt")}
-                </button>
-              )}
-            </div>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            <FreshnessPill freshness={freshness} />
+            <button
+              type="button"
+              onClick={() => setNewFileOpen(true)}
+              title={t("pages.projects.home.context.newContextFile")}
+              aria-label={t("pages.projects.home.context.newContextFile")}
+              className="text-muted-foreground/60 hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
         }
       >
         {t("pages.projects.home.context.heading")}
       </SectionLabel>
 
-      {/*
-        The context files are always listed, brief or not. A project can hold hand-written
-        context files without a canonical brief (every project migrated from `ai-docs/` does),
-        and showing "no brief yet" while hiding them would tell the user their map is empty
-        when it is not.
-      */}
       {contextDocs.length > 0 && (
         <div className="-mx-4">
           {brief && (
@@ -155,12 +155,27 @@ export function ContextSection({ project }: ContextSectionProps) {
               onClick={() => openDoc(brief)}
               leading={<Compass className="size-3.5 shrink-0 text-muted-foreground" />}
               title={brief.title}
+            />
+          )}
+          {state && (
+            <ListRow
+              onClick={() => openDoc(state)}
+              leading={
+                <Sparkles
+                  className="size-3.5 shrink-0 text-muted-foreground/60"
+                  aria-label={t("pages.docs.authorAi")}
+                />
+              }
+              title={state.title}
               meta={
-                freshness.contextUpdated
-                  ? t("pages.projects.home.context.reviewed", {
-                      when: formatRelativeTime(freshness.contextUpdated),
-                    })
-                  : undefined
+                <>
+                  {freshness.contextUpdated
+                    ? t("pages.projects.home.context.reviewed", {
+                        when: formatRelativeTime(freshness.contextUpdated),
+                      })
+                    : null}
+                  {refreshButton}
+                </>
               }
             />
           )}
@@ -175,30 +190,32 @@ export function ContextSection({ project }: ContextSectionProps) {
         </div>
       )}
 
-      {!brief &&
-        (contextDocs.length === 0 ? (
-          <EmptyState
-            display="inline"
-            className="py-6"
-            icon={Compass}
-            title={t("emptyStates.brief.title")}
-            description={t("emptyStates.brief.description")}
-            action={
-              <Button size="sm" variant="outline" onClick={() => setSeedOpen(true)}>
-                {t("emptyStates.brief.action")}
-              </Button>
-            }
-          />
-        ) : (
-          // Context exists but no brief anchors it. A quieter nudge than the full empty state.
-          <button
-            type="button"
-            onClick={() => setSeedOpen(true)}
-            className="mt-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            {t("pages.projects.home.context.addBrief")}
-          </button>
-        ))}
+      {/* One quiet line per missing half of the map — no cards. The seed dialog carries the
+          explanation; a project page does not need a billboard about an empty folder. */}
+      {!brief && (
+        <button
+          type="button"
+          onClick={() => setSeedOpen(true)}
+          className="mt-1 block text-xs text-muted-foreground hover:text-foreground"
+        >
+          {t("pages.projects.home.context.writeBrief")}
+        </button>
+      )}
+      {!state && records.length > 0 && canRunAI && (
+        <button
+          type="button"
+          onClick={() => void handleRefresh()}
+          disabled={refreshState.isPending}
+          className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          {refreshState.isPending ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Sparkles className="size-3" />
+          )}
+          {t("pages.projects.home.context.generateState")}
+        </button>
+      )}
 
       <BriefSeedDialog
         open={seedOpen}
@@ -208,23 +225,19 @@ export function ContextSection({ project }: ContextSectionProps) {
         isPending={ensureBrief.isPending}
       />
 
-      <RefreshPreviewDialog
-        open={preview !== null}
-        onClose={() => setPreview(null)}
-        originalBody={brief?.content ?? ""}
-        result={preview}
-        onApply={handleApply}
-        onRetry={handleRefresh}
-        isApplying={applyBrief.isPending}
-        isRefreshing={refreshBrief.isPending}
+      <NewContextFileDialog
+        open={newFileOpen}
+        onClose={() => setNewFileOpen(false)}
+        onSubmit={handleCreateContextFile}
+        isPending={createContextDoc.isPending}
       />
     </section>
   );
 }
 
 /**
- * "Reviewed", never "verified": any save stamps `updated`, so this says when the brief was last
- * touched relative to the records, not that its contents are true.
+ * "Reviewed", never "verified": any save stamps `updated`, so this says when the state file was
+ * last written relative to the records, not that its contents are true.
  */
 function FreshnessPill({
   freshness,
@@ -234,19 +247,73 @@ function FreshnessPill({
   const { t } = useTranslation();
   if (freshness.status === "empty") return null;
 
-  const stale = freshness.status === "stale";
+  const label =
+    freshness.status === "never"
+      ? t("pages.projects.home.context.neverReviewed")
+      : freshness.status === "stale"
+        ? t("pages.projects.home.context.stale", { count: freshness.changedSince })
+        : t("pages.projects.home.context.fresh");
+
   return (
     <span
       className={cn(
         "rounded-full px-1.5 py-0.5 text-[10px] font-medium normal-case",
-        stale
-          ? "bg-amber-500/10 text-amber-600 dark:text-amber-500"
-          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        freshness.status === "fresh"
+          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          : "bg-amber-500/10 text-amber-600 dark:text-amber-500",
       )}
     >
-      {stale
-        ? t("pages.projects.home.context.stale", { count: freshness.changedSince })
-        : t("pages.projects.home.context.fresh")}
+      {label}
     </span>
+  );
+}
+
+function NewContextFileDialog({
+  open,
+  onClose,
+  onSubmit,
+  isPending,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (title: string) => void;
+  isPending: boolean;
+}) {
+  const { t } = useTranslation();
+  const [title, setTitle] = useState("");
+
+  const submit = () => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed);
+    setTitle("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t("modals.newContextFile.title")}</DialogTitle>
+        </DialogHeader>
+        <FormField id="context-file-title" label={t("modals.newContextFile.nameLabel")}>
+          <Input
+            id="context-file-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            autoFocus
+          />
+        </FormField>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            {t("common.buttons.cancel")}
+          </Button>
+          <Button onClick={submit} disabled={!title.trim() || isPending}>
+            {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+            {t("modals.newContextFile.submit")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -3,7 +3,7 @@ import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES, DESK_SPACE_NORMS } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
-import { useContextStore } from "@/stores/context";
+import { useAgentSettingsStore } from "@/stores/agent-settings";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 import type { Workspace, Project } from "@desk/core/types";
 
@@ -89,19 +89,11 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   );
   lines.push("");
 
-  // Finding things — describe what's available, let the agent choose how
+  // Finding things — the catalog only; the lifecycle conventions live in the norms above.
   lines.push("## Finding things");
   lines.push("");
   lines.push(
-    "Two layers, and you want them in this order. **`context/`** (workspace root, and each project root) is the map: what this is, which systems it touches, what was decided. Start there — it holds the intent and background you cannot reconstruct from the records alone."
-  );
-  lines.push("");
-  lines.push(
-    "Then **`WORKSPACE_CONTEXT.md`**: a one-line-per-file catalog (`path · title · meta · summary`) of every file in the workspace, with a file count at the top. It is the index, not the story — complete and always current, but it will tell you where things are, not what they mean. Scan it for a topic to jump straight to the right file."
-  );
-  lines.push("");
-  lines.push(
-    "The `.md` files are the source of truth. Filenames are date-prefixed slugs and every file carries consistent frontmatter, so they're straightforward to search and read directly when you need full content."
+    "Each workspace has a **`WORKSPACE_CONTEXT.md`**: a one-line-per-file catalog (`path · title · meta · summary`) of every file, with a file count at the top. It is the index, not the story — scan it for a topic to jump straight to the right file. The `.md` files themselves are the source of truth and are straightforward to search and read directly."
   );
   lines.push("");
 
@@ -118,13 +110,13 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("        ├── CLAUDE.md / AGENTS.md / GEMINI.md   # workspace anchor (identical copies)");
   lines.push("        ├── WORKSPACE_CONTEXT.md       # AI-generated file catalog");
   lines.push("        ├── .aiignore                  # sensitive paths to skip");
-  lines.push("        ├── context/                   # the map: evergreen, maintained, co-authored");
+  lines.push("        ├── context/                   # the map: evergreen, maintained");
   lines.push("        ├── docs/                      # records: dated, accumulate, never rewritten");
   lines.push("        ├── _unassigned/               # items without a project (tasks/docs/meetings)");
   lines.push("        ├── _capture/                  # home workspace only (triage inbox for tasks)");
   lines.push("        └── projects/{projectId}/");
   lines.push("            ├── project.md");
-  lines.push("            ├── context/               # the map (per project)");
+  lines.push("            ├── context/               # the map (per project): *-brief.md (user's), *-state.md (app-maintained)");
   lines.push("            ├── docs/                  # records");
   lines.push("            ├── tasks/");
   lines.push("            └── meetings/");
@@ -205,11 +197,7 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("## Creating & Editing Items");
   lines.push("");
   lines.push(
-    "Every item is a single `.md` file. Write one with frontmatter from the schemas above to add it, change the file to edit it, remove it to delete it. The app picks up filesystem changes automatically."
-  );
-  lines.push("");
-  lines.push(
-    "Where to write is covered by **How this space works** above: `context/` is yours to keep current, and a dated record you produce (research, a decision, an analysis) belongs in `docs/` with `author: ai`. New tasks and meetings are the user's call — surface the candidate rather than creating the file yourself."
+    "Every item is a single `.md` file. Write one with frontmatter from the schemas above to add it, change the file to edit it, remove it to delete it. The app picks up filesystem changes automatically. Where to write is covered by **How this space works** above."
   );
   lines.push("");
   lines.push(
@@ -284,7 +272,7 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
 
 /** Map of agent filenames to their corresponding emit-toggle flag in the context store. */
 function enabledAgentFilenames(): string[] {
-  const s = useContextStore.getState();
+  const s = useAgentSettingsStore.getState();
   const out: string[] = [];
   if (s.emitClaudeMd) out.push(FILE_NAMES.CLAUDE_MD);
   if (s.emitAgentsMd) out.push(FILE_NAMES.AGENTS_MD);
@@ -294,7 +282,7 @@ function enabledAgentFilenames(): string[] {
 
 /** All three filenames whose emit-toggle is OFF — these get deleted on write. */
 function disabledAgentFilenames(): string[] {
-  const s = useContextStore.getState();
+  const s = useAgentSettingsStore.getState();
   const out: string[] = [];
   if (!s.emitClaudeMd) out.push(FILE_NAMES.CLAUDE_MD);
   if (!s.emitAgentsMd) out.push(FILE_NAMES.AGENTS_MD);

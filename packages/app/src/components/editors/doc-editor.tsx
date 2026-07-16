@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDoc, useUpdateDoc, useDeleteDoc, useProjects } from "@/stores";
 import { WORKSPACE_LEVEL_PROJECT_ID, SPECIAL_DIRS } from "@desk/core";
-import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -57,22 +56,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id, workspaceId]);
 
-  const handleSaveComplete = useCallback(
-    (path: string, content: string) => {
-      if (!doc) return;
-      indexDocumentOnSave({
-        path,
-        content,
-        workspaceId,
-        contentType: "doc",
-        title: title || doc.title,
-        projectId: doc.projectId,
-        created: doc.created,
-      });
-    },
-    [doc, workspaceId, title]
-  );
-
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.
   const persistBody = useCallback(
@@ -111,7 +94,6 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     // In browser mock mode it is the content the editor shows.
     initialContent: doc?.content ?? "",
     enabled: !!doc,
-    onSaveComplete: handleSaveComplete,
     persistBody,
   });
 

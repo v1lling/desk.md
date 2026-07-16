@@ -7,11 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, Eye, EyeOff, Info, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useAISettingsStore, useAIUsageStore } from "@/stores/ai";
-import { PROVIDER_MODELS, DEFAULT_MODELS } from "@/lib/ai/models";
-import type { AIProviderType } from "@/lib/ai/types";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAISettingsStore } from "@/stores/ai";
+import { useAIMaintenanceSettingsStore } from "@/stores/ai-maintenance-settings";
+import { useAIMaintenanceInfo } from "@/hooks/use-ai-maintenance-info";
+import { aiMaintenanceKeys } from "@/lib/query-client";
+import { PROVIDER_MODELS, DEFAULT_MODELS, getDeskService } from "@desk/core";
+import type { AIProviderType, AIUsageRecord } from "@desk/core";
 import { BrowserModeError, getSecret, setSecret } from "@/lib/ai/secrets";
 import { isTauri } from "@desk/core";
+import { isDomainRemote } from "@/lib/connection";
 import { SmartIndexSection } from "./smart-index-section";
 
 function linuxKeyringHint(message: string, t: (key: string) => string): string | null {
@@ -22,10 +27,26 @@ function linuxKeyringHint(message: string, t: (key: string) => string): string |
   return null;
 }
 
+/**
+ * Usage is read through DeskService so the panel shows whichever host actually ran the AI —
+ * the app in local mode, the server in hosted mode.
+ */
 function AIUsageStats() {
   const { t } = useTranslation();
-  const { getStats, clearRecords, records } = useAIUsageStore();
-  const stats = getStats();
+  const queryClient = useQueryClient();
+  const { data: records = [] } = useQuery<AIUsageRecord[]>({
+    queryKey: ["ai-usage"],
+    queryFn: () => getDeskService().getAIUsage(),
+  });
+  const clearUsage = useMutation({
+    mutationFn: () => getDeskService().clearAIUsage(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ai-usage"] }),
+  });
+
+  const stats = {
+    totalTokens: records.reduce((sum, r) => sum + r.usage.totalTokens, 0),
+    totalRequests: records.length,
+  };
 
   const formatNumber = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
@@ -39,8 +60,9 @@ function AIUsageStats() {
         <Label>{t("settings.ai.usage.title")}</Label>
         {records.length > 0 && (
           <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
-            clearRecords();
-            toast.success(t("toasts.settings.usageCleared"));
+            clearUsage.mutate(undefined, {
+              onSuccess: () => toast.success(t("toasts.settings.usageCleared")),
+            });
           }}>
             {t("settings.ai.usage.clear")}
           </Button>
@@ -67,16 +89,13 @@ function AIUsageStats() {
 
 export function AITab() {
   const { t } = useTranslation();
-  const {
-    providerType,
-    providerConfigured,
-    modelByProvider,
-    aiConsentGiven,
-    setProviderType,
-    setProviderConfigured,
-    setModelForProvider,
-    setAIConsentGiven,
-  } = useAISettingsStore();
+  // DEVICE state: privacy consent (per machine). Whether a provider key exists is read live
+  // from the host that owns the data (useAIMaintenanceInfo), not mirrored here. USER state
+  // (provider/model selection): shared settings file, so the server engine follows the choice.
+  const { aiConsentGiven, setAIConsentGiven } = useAISettingsStore();
+  const { providerType, modelByProvider, setProviderType, setModelForProvider } =
+    useAIMaintenanceSettingsStore();
+  const queryClient = useQueryClient();
 
   const safeProviderType: AIProviderType =
     providerType in PROVIDER_MODELS ? providerType : "openai";
@@ -87,6 +106,11 @@ export function AITab() {
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const browserMode = !isTauri();
+
+  // Which providers have a resolvable key on the host that owns the data (this machine's
+  // Keychain locally, the server's env in hosted mode). One source of truth for both.
+  const remote = isDomainRemote();
+  const { data: maintenanceInfo } = useAIMaintenanceInfo();
 
   const providerLabel = (p: AIProviderType): string =>
     p === "openai" ? t("settings.ai.providers.openai") : t("settings.ai.providers.anthropic");
@@ -128,7 +152,8 @@ export function AITab() {
     try {
       const keyRef = safeProviderType === "openai" ? "ai.openai" : "ai.anthropic";
       await setSecret(keyRef, trimmed);
-      setProviderConfigured(safeProviderType, true);
+      // The key now resolves from the Keychain; re-ask the host so every "configured?" reader updates.
+      await queryClient.invalidateQueries({ queryKey: aiMaintenanceKeys.info });
       setLoadError(null);
       toast.success(t("toasts.settings.apiKeySaved", { provider: providerLabel(safeProviderType) }));
     } catch (error) {
@@ -200,6 +225,30 @@ export function AITab() {
             </Select>
           </div>
 
+          {remote ? (
+            // Remote mode: keys live on the SERVER (env vars) — the local Keychain plays no
+            // part. Show the server's truthful per-provider state instead of a key input.
+            <div className="space-y-2 py-3">
+              <Label className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4" />
+                {t("settings.ai.serverMode.title")}
+              </Label>
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.ai.serverMode.description")}
+                </p>
+                <p className="text-sm">
+                  {maintenanceInfo?.providerConfigured[safeProviderType]
+                    ? t("settings.ai.serverMode.providerConfigured", {
+                        provider: providerLabel(safeProviderType),
+                      })
+                    : t("settings.ai.serverMode.providerNotConfigured", {
+                        provider: providerLabel(safeProviderType),
+                      })}
+                </p>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-2 py-3">
             <Label htmlFor="api-key" className="flex items-center gap-2">
               <KeyRound className="h-4 w-4" />
@@ -279,12 +328,15 @@ export function AITab() {
             <p className="text-xs text-muted-foreground">
               {t("settings.ai.apiKey.storedNotice")}
             </p>
-            {!browserMode && !loadError && !providerConfigured[safeProviderType] && (
+            {/* Only warn once the info has LOADED — `!undefined` while the query is in flight
+                would flash a false "not configured" line on every mount. */}
+            {!browserMode && !loadError && maintenanceInfo && !maintenanceInfo.providerConfigured[safeProviderType] && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 {t("settings.ai.apiKey.notConfigured")}
               </p>
             )}
           </div>
+          )}
 
           <div className="py-3">
             <AIUsageStats />

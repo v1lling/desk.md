@@ -10,6 +10,7 @@ import type { Workspace, WorkspaceUpdate } from "../types";
 import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
+import { removeDirectoryWithContents } from "./file-operations";
 import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 import { getAgentContextWriter } from "./agent-context-writer";
@@ -299,9 +300,10 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId);
 
   try {
-    await getStorage().removeDir(workspacePath);
+    // Through the funnel — see deleteProject.
+    const removed = await removeDirectoryWithContents(workspacePath);
     clearHomeWorkspaceCache();
-    return true;
+    return removed;
   } catch {
     return false;
   }

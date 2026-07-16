@@ -18,8 +18,7 @@ export type ArboristNodeKind =
   | "folder"
   | "doc"
   | "asset"
-  | "section-header"
-  | "context-empty";
+  | "section-header";
 
 export interface ArboristNode {
   /** Unique id within the tree. */
@@ -52,32 +51,11 @@ function isContextRootPath(folderPath: string): boolean {
 }
 
 /**
- * The row shown inside an empty Context. Emptiness is the normal starting state, and a folder
- * you cannot obviously fill is how the old `ai-docs/` stayed empty forever, so it renders as a
- * call to action rather than a silent void.
- */
-function makeContextEmpty(contextTreePath: string): ArboristNode {
-  return {
-    id: buildId("context-empty", contextTreePath),
-    name: "",
-    kind: "context-empty",
-    treePath: `${contextTreePath}/__empty__`,
-    parentTreePath: contextTreePath,
-    node: { type: "folder", folder: { name: "", path: contextTreePath, children: [] } } as FileTreeNode,
-    children: undefined,
-  };
-}
-
-/**
  * Recursively map FileTreeNode[] to ArboristNode[]. The `parentTreePath` is "" for the root call.
- *
- * `showContextEmptyState` must be off while a search or an author filter is narrowing the tree:
- * an emptied-by-filter Context is not an empty Context, and the CTA would be a lie.
  */
 export function nodesToArborist(
   nodes: FileTreeNode[],
   parentTreePath: string = "",
-  showContextEmptyState: boolean = true,
 ): ArboristNode[] {
   return nodes.map((node, idx) => {
     // Close the Context band off from the records that follow it. At the root this is handled by
@@ -102,10 +80,7 @@ export function nodesToArborist(
             folder: { ...node.folder, name: i18next.t("pages.docs.tree.contextFolder") },
           }
         : node;
-      const children =
-        isCtxRoot && node.folder.children.length === 0 && showContextEmptyState
-          ? [makeContextEmpty(folderPath)]
-          : nodesToArborist(node.folder.children, folderPath, showContextEmptyState);
+      const children = nodesToArborist(node.folder.children, folderPath);
       return {
         id: buildId("folder", folderPath),
         name: folderNode.type === "folder" ? folderNode.folder.name : "",
@@ -212,8 +187,6 @@ function makeSectionHeader(id: string, label: string, showDivider: boolean): Arb
  * True when a node is the synthetic "Context" folder (top of the context subtree).
  */
 export function isContextRoot(node: ArboristNode): boolean {
-  // Kind-guarded: the "context-empty" placeholder carries the Context root's own folder in
-  // `node.node`, so a path-only check would report it as the root too.
   if (node.kind !== "folder" || node.node.type !== "folder") return false;
   return isContextRootPath(node.node.folder.path);
 }
@@ -222,13 +195,11 @@ export function isContextRoot(node: ArboristNode): boolean {
  * Whether dragging this node is allowed.
  * - Project stubs: not draggable (they represent projects, not real folders).
  * - Context synthetic folder: not draggable.
- * - The empty-Context placeholder: not a file, nothing to drag.
  * - Everything else: draggable.
  */
 export function isDraggable(node: ArboristNode): boolean {
   if (isProjectStub(node)) return false;
   if (isContextRoot(node)) return false;
-  if (node.kind === "context-empty") return false;
   return true;
 }
 

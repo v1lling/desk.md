@@ -1,12 +1,17 @@
 /**
- * Context freshness: has the map drifted from the records?
+ * Context freshness: has the state file drifted from the records?
  *
  * Pure — no I/O, no clock. The answer depends only on the stamps handed in, so it is
  * deterministic and reasonable-about.
  *
- * The signal is **causal, not chronological**: "N records changed since the context was last
- * touched", never "the context is 14 days old". Age is not evidence of drift. A stable project
- * with a six-month-old brief is fine; a busy one with a two-week-old brief is not.
+ * The signal is **causal, not chronological**: "N records changed since the state file was last
+ * written", never "the state is 14 days old". Age is not evidence of drift. A stable project with
+ * a six-month-old state is fine; a busy one with a two-week-old state is not.
+ *
+ * Freshness is scoped to the STATE FILE alone, not to all of `context/`. The user's own context
+ * files (the brief, hand-written notes) carry no maintenance promise, so their stamps say nothing
+ * about whether the AI snapshot has seen the records — and counting them let editing an unrelated
+ * context file mark a rotting state "fresh".
  */
 
 /** Anything carrying the two frontmatter stamps: Doc, Task, Meeting. */
@@ -15,15 +20,14 @@ export interface Stamped {
   created?: string;
 }
 
-export type ContextFreshnessStatus = "empty" | "fresh" | "stale";
+export type ContextFreshnessStatus = "empty" | "never" | "fresh" | "stale";
 
 export interface ContextFreshness {
   status: ContextFreshnessStatus;
-  /** Newest raw context stamp. For display only — never compare this lexicographically. */
+  /** The state file's raw stamp. For display only — never compare this lexicographically. */
   contextUpdated?: string;
-  /** Records provably newer than the context. */
+  /** Records provably newer than the state file (all of them, when no state exists yet). */
   changedSince: number;
-  fileCount: number;
 }
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -39,11 +43,11 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
  * Comparing them as strings is unsound in BOTH directions:
  *
  *  - A date-only string is a *prefix* of a datetime, so `"2026-07-13" < "2026-07-13T09:00Z"`.
- *    A record written at 18:00 carrying only `created` would read as older than a context
+ *    A record written at 18:00 carrying only `created` would read as older than a state file
  *    refreshed at 09:00 — drift silently reported as fresh. This is the dangerous direction.
  *  - At UTC+2, a record created 00:30 local on the 14th (`created: "2026-07-14"`, real instant
- *    `2026-07-13T22:30Z`) sorts after a context refreshed at `"2026-07-13T23:00Z"` — stale,
- *    though the map is current.
+ *    `2026-07-13T22:30Z`) sorts after a state refreshed at `"2026-07-13T23:00Z"` — stale,
+ *    though the snapshot is current.
  *
  * So a date-only stamp is treated as what it actually denotes: a whole **local** calendar day,
  * an interval rather than an instant. Callers then coerce each side to the bound that keeps the
@@ -66,101 +70,72 @@ function bounds(stamp?: string): { lo: number; hi: number } | undefined {
 const stampOf = (x: Stamped): string | undefined => x.updated ?? x.created;
 
 /**
- * When the map was last touched: the newest lower bound across the context files, plus the raw
- * stamp that produced it (for display).
+ * The records provably newer than the state file, newest first — or ALL stamped records when no
+ * state file exists yet (a project adopting the feature has a full history the first snapshot
+ * must reconcile, not an empty diff).
  *
- * `lo` is undefined when no context file carries a usable stamp — an undated map, which cannot
- * be verified against anything.
- */
-function contextThreshold(contextDocs: readonly Stamped[]): { lo?: number; stamp?: string } {
-  let lo: number | undefined;
-  let stamp: string | undefined;
-
-  for (const doc of contextDocs) {
-    const raw = stampOf(doc);
-    const b = bounds(raw);
-    if (!b) continue;
-    if (lo === undefined || b.lo > lo) {
-      lo = b.lo;
-      stamp = raw;
-    }
-  }
-
-  return { lo, stamp };
-}
-
-/**
- * The records provably newer than the context, newest first.
- *
- * This is the single definition of "changed since the map was last touched": the freshness count
- * below is this list's length, and the AI refresh sends this list's head to the model. Deriving
- * both from one function is what stops the number the user sees from disagreeing with the records
- * the model actually reconciles against.
+ * This is the single definition of "changed since the snapshot": the freshness count below is
+ * this list's length, and the refresh sends this list's head to the model. Deriving both from one
+ * function is what stops the number the user sees from disagreeing with the records the model
+ * actually reconciles against.
  *
  * `records` must contain **tasks, meetings and docs of kind `doc` only** — see
  * `computeContextFreshness`.
  *
- * Bias: a date-only *record* is taken at its **upper** bound and a date-only *context* stamp at
+ * Bias: a date-only *record* is taken at its **upper** bound and a date-only *state* stamp at
  * its **lower** bound, so ambiguity always resolves toward "changed". A record surfaced
  * needlessly costs the model a few tokens; one withheld hides the drift this feature exists to
  * surface.
  */
 export function selectChangedRecords<T extends Stamped>(
-  contextDocs: readonly Stamped[],
+  state: Stamped | undefined,
   records: readonly T[],
 ): T[] {
-  // No map at all: there is nothing to reconcile against, so nothing has "changed since" it.
-  if (contextDocs.length === 0) return [];
-
-  const { lo } = contextThreshold(contextDocs);
-
   // Records with no stamp at all are excluded rather than assigned a date. "No date" is
   // representable in this data model, and fabricating one would be a lie.
   const stamped = records
     .map((record) => ({ record, at: bounds(stampOf(record)) }))
     .filter((entry): entry is { record: T; at: { lo: number; hi: number } } => entry.at !== undefined);
 
-  // An undated map cannot be verified against anything, so every record counts as newer.
+  // No state file, or an undated one: nothing has been reconciled, so everything counts.
+  const lo = state ? bounds(stampOf(state))?.lo : undefined;
   const changed = lo === undefined ? stamped : stamped.filter((entry) => entry.at.hi > lo);
 
   return changed.sort((a, b) => b.at.hi - a.at.hi).map((entry) => entry.record);
 }
 
 /**
- * Compare context docs against the records they are supposed to summarize.
+ * Compare the state file against the records it is supposed to summarize.
  *
  * `records` must contain **tasks, meetings and docs of kind `doc` only**. If context docs leak
- * in, the map ends up compared against itself and the result is meaningless.
+ * in, the snapshot ends up compared against itself and the result is meaningless.
  *
- * Two limits worth knowing rather than pretending away:
- *  - The newest stamp across *all* context files is used, so editing an unrelated context file
- *    marks the map fresh while the brief itself rots. Harmless while a project has ~1 context
- *    file; compute per-doc if that stops being true.
- *  - Any save stamps `updated`, so a typo fix in the brief reads as a review. Freshness is a
- *    heuristic about reconciliation and can be gamed by a keystroke. UI copy must therefore say
- *    "Reviewed 3 days ago", never "Verified accurate".
+ * One limit worth knowing rather than pretending away: any save stamps `updated`, so a typo fix
+ * in the state file reads as a review. Freshness is a heuristic about reconciliation and can be
+ * gamed by a keystroke. UI copy must therefore say "Reviewed 3 days ago", never "Verified
+ * accurate".
  */
 export function computeContextFreshness(
-  contextDocs: readonly Stamped[],
+  state: Stamped | undefined,
   records: readonly Stamped[],
 ): ContextFreshness {
-  const fileCount = contextDocs.length;
-  if (fileCount === 0) {
-    return { status: "empty", changedSince: 0, fileCount: 0 };
+  const changedSince = selectChangedRecords(state, records).length;
+
+  if (!state) {
+    // No snapshot yet. With records present this is the adoption case — the map has never seen
+    // the work — which must read as actionable, not as "up to date".
+    return { status: changedSince > 0 ? "never" : "empty", changedSince };
   }
 
-  const { lo, stamp } = contextThreshold(contextDocs);
-  const changedSince = selectChangedRecords(contextDocs, records).length;
-
-  // An undated map cannot be verified against anything, so treat it as stale.
-  if (lo === undefined) {
-    return { status: "stale", changedSince, fileCount };
+  const stamp = stampOf(state);
+  if (bounds(stamp) === undefined) {
+    // An undated snapshot cannot be verified against anything, so treat it as stale.
+    return { status: "stale", changedSince };
   }
 
   return {
     status: changedSince > 0 ? "stale" : "fresh",
     contextUpdated: stamp,
     changedSince,
-    fileCount,
   };
 }

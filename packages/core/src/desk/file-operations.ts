@@ -13,8 +13,9 @@ import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import { parseMarkdown, serializeMarkdown, filenameToId, nowISO } from "./parser";
 import { publishPathChange, publishDeleted } from "./editor-event-bus";
+import { publishDomainWrite } from "./domain-write-bus";
 import { getEditorNotifier } from "./editor-notifier";
-import { getFileTreeService, getContentCache } from "./file-cache";
+import { getContentCache } from "./file-cache";
 
 // =============================================================================
 // TYPES
@@ -30,89 +31,9 @@ export interface ParsedFile<T> {
   content: string;
 }
 
-/**
- * Options for reading markdown files from a directory
- */
-export interface ReadFilesOptions {
-  /** File extension filter (default: ".md") */
-  extension?: string;
-  /** Use file cache for reading (default: true) */
-  useCache?: boolean;
-}
-
 // =============================================================================
 // READ OPERATIONS
 // =============================================================================
-
-/**
- * Read all markdown files from a directory
- *
- * @param dirPath - Absolute path to directory
- * @param options - Optional configuration
- * @returns Array of parsed files with id, filePath, frontmatter, and content
- *
- * @example
- * const files = await readMarkdownFiles<TaskFrontmatter>(tasksPath);
- * const tasks = files.map(f => ({
- *   id: f.id,
- *   ...f.frontmatter,
- *   content: f.content,
- *   filePath: f.filePath,
- * }));
- */
-export async function readMarkdownFiles<T>(
-  dirPath: string,
-  options: ReadFilesOptions = {}
-): Promise<ParsedFile<T>[]> {
-  const { extension = ".md", useCache = true } = options;
-
-  if (!(await getStorage().exists(dirPath))) {
-    return [];
-  }
-
-  const entries = await getStorage().readDir(dirPath);
-  const results: ParsedFile<T>[] = [];
-  const fileTreeService = useCache ? getFileTreeService() : null;
-
-  for (const entry of entries) {
-    if (!entry.isFile || !entry.name.endsWith(extension)) {
-      continue;
-    }
-
-    try {
-      const filePath = await joinPath(dirPath, entry.name);
-
-      // Read content (with or without cache)
-      let rawContent: string;
-      if (fileTreeService) {
-        const cached = await fileTreeService.getContentByAbsolutePath<string>(
-          filePath,
-          (raw) => raw
-        );
-        if (!cached) {
-          console.warn(`[file-ops] No cached content for ${entry.name}`);
-          continue;
-        }
-        rawContent = cached;
-      } else {
-        rawContent = await getStorage().readTextFile(filePath);
-      }
-
-      const { data, content } = parseMarkdown<T>(rawContent);
-
-      results.push({
-        id: filenameToId(entry.name),
-        filePath,
-        frontmatter: data,
-        content,
-      });
-    } catch (e) {
-      console.warn(`[file-ops] Failed to read ${entry.name}:`, e);
-    }
-  }
-
-  return results;
-}
 
 /**
  * Read a single markdown file
@@ -154,6 +75,12 @@ export async function readMarkdownFile<T>(
 export interface WriteFileOptions {
   /** Create parent directories if they don't exist (default: true) */
   createDir?: boolean;
+  /**
+   * Explicit `updated` stamp (ISO datetime) instead of "now". Used by the state refresher to
+   * stamp the snapshot with the time the records were READ — stamping write-time would mark
+   * records written during the AI call as seen when they weren't.
+   */
+  updatedStamp?: string;
 }
 
 /**
@@ -181,9 +108,41 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
 
   // Every caller writes a content file (task/doc/meeting/capture) — workspace.md
   // and project.md are written elsewhere — so the `updated` stamp is unconditional.
-  const fileContent = serializeMarkdown({ ...frontmatter, updated: nowISO() }, content);
+  const fileContent = serializeMarkdown(
+    { ...frontmatter, updated: options.updatedStamp ?? nowISO() },
+    content
+  );
   await getStorage().writeTextFile(filePath, fileContent);
   getContentCache().invalidate(filePath);
+  publishDomainWrite({ kind: "write", filePath });
+}
+
+/**
+ * Save an editor's body into an existing markdown file, preserving its frontmatter.
+ *
+ * The editor-save funnel: reads the current frontmatter off disk (the on-disk copy wins over
+ * whatever the editor session last saw — metadata mutations land there first), stamps
+ * `updated`, writes, and publishes on the domain-write bus like every other record write.
+ * Returns the full serialized content and the frontmatter it preserved.
+ *
+ * Throws when the file can't be read: writing anyway would replace the record's frontmatter
+ * (title, status, dates) with `{}`. The editor keeps the unsaved text, so aborting loses
+ * nothing and the save can be retried.
+ */
+export async function saveMarkdownBody(
+  filePath: string,
+  body: string,
+): Promise<{ fullContent: string; frontmatter: Record<string, unknown> }> {
+  const raw = await getStorage().readTextFile(filePath);
+  const frontmatter = parseMarkdown<Record<string, unknown>>(raw).data;
+
+  const stamped = { ...frontmatter, updated: nowISO() };
+  const fullContent = serializeMarkdown(stamped, body);
+  await getStorage().writeTextFile(filePath, fullContent);
+  getContentCache().invalidate(filePath);
+  publishDomainWrite({ kind: "update", filePath });
+
+  return { fullContent, frontmatter: stamped };
 }
 
 /**
@@ -201,6 +160,8 @@ export interface UpdateResult<T> {
 export interface UpdateFileOptions {
   /** Notify open editors about the update (default: true) */
   notifyEditors?: boolean;
+  /** Explicit `updated` stamp (ISO datetime) instead of "now" — see WriteFileOptions. */
+  updatedStamp?: string;
 }
 
 /**
@@ -235,11 +196,12 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
 
     const updated = updater(data, content);
     // Stamp after the updater so it can't be overwritten with a stale value.
-    const frontmatter = { ...updated.frontmatter, updated: nowISO() };
+    const frontmatter = { ...updated.frontmatter, updated: options.updatedStamp ?? nowISO() };
     const fileContent = serializeMarkdown(frontmatter, updated.content);
     await getStorage().writeTextFile(filePath, fileContent);
 
     getContentCache().invalidate(filePath);
+    publishDomainWrite({ kind: "update", filePath });
 
     if (notifyEditors) {
       const registry = getEditorNotifier();
@@ -292,6 +254,7 @@ export async function deleteMarkdownFile(
 
   await getStorage().removeFile(filePath);
   getContentCache().invalidate(filePath);
+  publishDomainWrite({ kind: "delete", filePath });
 
   if (notifyEditors) {
     const registry = getEditorNotifier();
@@ -350,6 +313,7 @@ export async function moveMarkdownFile(
 
   getContentCache().invalidate(sourcePath);
   getContentCache().invalidate(targetPath);
+  publishDomainWrite({ kind: "move", filePath: sourcePath, targetPath });
 
   if (notifyEditors) {
     const registry = getEditorNotifier();
@@ -366,49 +330,77 @@ export async function moveMarkdownFile(
 // DIRECTORY OPERATIONS
 // =============================================================================
 
-/**
- * Ensure a directory exists
- *
- * @param dirPath - Absolute path to directory
- */
-export async function ensureDir(dirPath: string): Promise<void> {
-  await getStorage().mkdir(dirPath);
+/** Recursively list absolute file paths under a directory. Empty when the dir is missing. */
+async function listFilesRecursive(dirPath: string): Promise<string[]> {
+  if (!(await getStorage().exists(dirPath))) return [];
+  const out: string[] = [];
+  const entries = await getStorage().readDir(dirPath);
+  for (const entry of entries) {
+    const p = await joinPath(dirPath, entry.name);
+    if (entry.isDirectory) {
+      out.push(...(await listFilesRecursive(p)));
+    } else if (entry.isFile) {
+      out.push(p);
+    }
+  }
+  return out;
 }
 
 /**
- * Check if a directory has any markdown files
- *
- * @param dirPath - Absolute path to directory
- * @param extension - File extension to check (default: ".md")
+ * Move a directory through the funnel. The storage rename stays one atomic op; the contained
+ * files are enumerated BEFORE it so each markdown record publishes its own move event —
+ * otherwise a folder rename would leave the Smart Index full of dead paths and freshness
+ * blind to the change. Caches invalidate and open editors re-point per file, matching
+ * `moveMarkdownFile`.
  */
-export async function hasMarkdownFiles(
-  dirPath: string,
-  extension: string = ".md"
+export async function moveDirectoryWithContents(
+  sourcePath: string,
+  targetPath: string
 ): Promise<boolean> {
-  if (!(await getStorage().exists(dirPath))) {
-    return false;
-  }
+  if (!(await getStorage().exists(sourcePath))) return false;
 
-  const entries = await getStorage().readDir(dirPath);
-  return entries.some((e) => e.isFile && e.name.endsWith(extension));
+  const files = await listFilesRecursive(sourcePath);
+  await getStorage().rename(sourcePath, targetPath);
+
+  const registry = getEditorNotifier();
+  for (const oldPath of files) {
+    const newPath = targetPath + oldPath.slice(sourcePath.length);
+    getContentCache().invalidate(oldPath);
+    getContentCache().invalidate(newPath);
+    if (oldPath.endsWith(".md")) {
+      publishDomainWrite({ kind: "move", filePath: oldPath, targetPath: newPath });
+    }
+    if (registry.isOpen(oldPath)) {
+      registry.handlePathChange(oldPath, newPath);
+    }
+    publishPathChange(oldPath, newPath);
+  }
+  return true;
 }
 
 /**
- * List subdirectories in a directory
- * Excludes hidden directories (starting with .)
- *
- * @param dirPath - Absolute path to directory
- * @returns Array of directory names
+ * Delete a directory through the funnel: per-file delete events for every contained markdown
+ * record (see `moveDirectoryWithContents` for why), cache invalidation, and editor
+ * deleted-notifications, matching `deleteMarkdownFile`.
  */
-export async function listSubdirectories(dirPath: string): Promise<string[]> {
-  if (!(await getStorage().exists(dirPath))) {
-    return [];
-  }
+export async function removeDirectoryWithContents(dirPath: string): Promise<boolean> {
+  if (!(await getStorage().exists(dirPath))) return false;
 
-  const entries = await getStorage().readDir(dirPath);
-  return entries
-    .filter((e) => e.isDirectory && !e.name.startsWith("."))
-    .map((e) => e.name);
+  const files = await listFilesRecursive(dirPath);
+  await getStorage().removeDir(dirPath);
+
+  const registry = getEditorNotifier();
+  for (const filePath of files) {
+    getContentCache().invalidate(filePath);
+    if (filePath.endsWith(".md")) {
+      publishDomainWrite({ kind: "delete", filePath });
+    }
+    if (registry.isOpen(filePath)) {
+      registry.handlePathDeleted(filePath);
+    }
+    publishDeleted(filePath);
+  }
+  return true;
 }
 
 // =============================================================================

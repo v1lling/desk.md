@@ -123,8 +123,7 @@
     },
     "docs": {
       "dropZone": {
-        "title": "Drop files to import",
-        "subtitle": "Any file type supported"
+        "title": "Drop files to import"
       },
       "convertDialog": {
         "title": "Import office files",
@@ -143,7 +142,6 @@
         "fileCount_one": "{{count}} file",
         "fileCount_other": "{{count}} files",
         "contextFolder": "Context",
-        "contextEmpty": "No context yet. Describe what this is",
         "newContextFile": "New context file",
         "sections": {
           "workspace": "Workspace",
@@ -247,14 +245,15 @@
         },
         "context": {
           "heading": "Context",
-          "refresh": "Refresh",
-          "copyPrompt": "Copy refresh prompt",
-          "copyPromptHint": "No AI key configured. Copy the prompt and paste it into your AI agent.",
           "fresh": "Up to date",
           "stale_one": "{{count}} record changed since",
           "stale_other": "{{count}} records changed since",
+          "neverReviewed": "Not yet reviewed",
           "reviewed": "Reviewed {{when}}",
-          "addBrief": "Add a brief"
+          "refreshState": "Refresh now",
+          "generateState": "Generate current state",
+          "writeBrief": "Write the brief",
+          "newContextFile": "New context file"
         }
       },
       "browse": {
@@ -404,6 +403,12 @@
       "browserMode": {
         "title": "AI keys are managed in the desktop app",
         "description": "Your AI provider key is stored securely on your device by the desktop app, so it can't be set from the browser. Open desk.md on your desktop to add or change it."
+      },
+      "serverMode": {
+        "title": "AI runs on your server",
+        "description": "Your desk is hosted, so AI maintenance (Smart Index, project state) runs on the server with keys from its environment (ANTHROPIC_API_KEY / OPENAI_API_KEY in the deploy .env). Setting a key there is the operator's consent.",
+        "providerConfigured": "{{provider}}: key configured on the server.",
+        "providerNotConfigured": "{{provider}}: no key on the server yet. Add it to the deploy .env and restart."
       },
       "keychainError": {
         "title": "Couldn't read the keychain",
@@ -600,15 +605,14 @@
         "title_other": "Errors ({{count}})"
       },
       "results": {
-        "success": "{{summarized}} summarized, {{reused}} reused",
-        "successWithExcluded": "{{summarized}} summarized, {{reused}} reused, {{excluded}} excluded",
         "lastRebuild": "Last rebuild {{time}}: {{summarized}} summarized, {{reused}} reused",
         "lastRebuildWithExcluded": "Last rebuild {{time}}: {{summarized}} summarized, {{reused}} reused, {{excluded}} excluded by .aiignore"
       },
       "info": {
         "oneCatalog": "When any agent file is enabled (Settings → Agents) the Smart Index is written as Markdown alongside it so external agents (Claude Code, Codex, Gemini CLI) read it with no setup.",
         "noProvider": "No AI provider configured. The catalog still lists every file with full metadata; files just have no AI summary yet. Add a key in Settings → AI and rebuild to summarize them.",
-        "desktopOnly": "AI summaries are generated in the desktop app using your locally stored key. The catalog itself is always available to agents over MCP, even here in the browser, with metadata for every file.",
+        "desktopOnly": "The Smart Index is built by whichever host owns your data. This browser preview has none, so building is disabled here.",
+        "serverSide": "Your server builds and maintains the index with its own API key. Background updates run there as records change.",
         "incremental": "Rebuild is incremental: unchanged files reuse their summary, so only new or edited files use the AI.",
         "offlineChanges": "Files changed outside the desk app (another device, direct edits) appear in the catalog immediately; their summaries refresh on the next rebuild."
       },
@@ -620,6 +624,10 @@
         "label": "Auto-summarize on save",
         "description": "Keep summaries fresh as you edit, and add new files to the index on first save.",
         "activeWarning": "~5 seconds after your last save, each file whose body actually changed is re-summarized (one API call per file). Metadata-only saves don't trigger a call."
+      },
+      "autoRefreshState": {
+        "label": "Keep project state files current",
+        "description": "After tasks, docs, or meetings change, Desk asks the AI to rewrite that project's Current state file (context) in the background."
       },
       "detail": {
         "label": "Summary detail level",
@@ -751,32 +759,10 @@
       "systemsPlaceholder": "Which services, repos, or tools does this touch?",
       "submit": "Create brief"
     },
-    "refreshBrief": {
-      "title": "Review the refresh",
-      "description": "Your own sections are kept as written. Choose which of the rest to accept.",
-      "apply": "Apply",
-      "retry": "Try again",
-      "unusable": "The model did not return a usable brief. Nothing was changed.",
-      "emptySection": "(empty)",
-      "showPrevious": "Show previous",
-      "hidePrevious": "Hide previous",
-      "status": {
-        "unchanged": "Unchanged",
-        "rewritten": "Rewritten",
-        "added": "Added",
-        "kept": "Kept",
-        "yours": "Yours"
-      },
-      "warnings": {
-        "linesRestored_one": "{{count}} line the model dropped was restored.",
-        "linesRestored_other": "{{count}} lines the model dropped were restored.",
-        "humanProtected_one": "{{count}} section you own was protected from rewriting.",
-        "humanProtected_other": "{{count}} sections you own were protected from rewriting.",
-        "sectionsKept_one": "{{count}} section came back empty and was kept as it was.",
-        "sectionsKept_other": "{{count}} sections came back empty and were kept as they were.",
-        "unknownDropped_one": "{{count}} heading the model invented was dropped.",
-        "unknownDropped_other": "{{count}} headings the model invented were dropped."
-      }
+    "newContextFile": {
+      "title": "New context file",
+      "nameLabel": "Title",
+      "submit": "Create"
     }
   },
   "editors": {
@@ -865,14 +851,6 @@
     "tasks": {
       "noResults": {
         "title": "No tasks found"
-      },
-      "noActive": {
-        "title": "No active tasks",
-        "description": "Tasks from all workspaces will appear here"
-      },
-      "inWorkspace": {
-        "title": "No tasks in {{workspace}}",
-        "description": "Tasks assigned to this workspace will appear here"
       }
     },
     "docs": {
@@ -886,11 +864,6 @@
         "title": "No meetings yet",
         "description": "Create your first meeting note to get started"
       }
-    },
-    "brief": {
-      "title": "No brief yet",
-      "description": "Describe what this project is and what it runs on. Everything else in the map is reconciled from your tasks, docs, and meetings, but this part only you can write.",
-      "action": "Write the brief"
     }
   },
   "toasts": {
@@ -903,8 +876,6 @@
       "modelSet": "Model set to {{model}}",
       "usageCleared": "Usage history cleared",
       "privacyAcknowledgementReset": "AI privacy acknowledgement reset",
-      "toolDetailsShown": "Tool details will be shown",
-      "toolDetailsHidden": "Tool details hidden",
       "agentFileEnabled": "{{file}} enabled",
       "agentFileRemoved": "{{file}} removed",
       "indexBuilt": "Index built: {{files}} files across {{workspaces}} workspaces",
@@ -953,6 +924,7 @@
     "doc": {
       "created": "Doc created",
       "pathCopied": "Path copied to clipboard",
+      "createError": "Could not create the file",
       "importDocs_one": "Imported {{count}} doc",
       "importDocs_other": "Imported {{count}} docs",
       "importFiles_one": "Imported {{count}} file",
@@ -990,15 +962,13 @@
     "brief": {
       "create": {
         "error": "Could not create the brief"
-      },
+      }
+    },
+    "state": {
       "refresh": {
-        "error": "Could not refresh the brief",
-        "success": "Brief updated"
-      },
-      "apply": {
-        "error": "Could not save the brief"
-      },
-      "promptCopied": "Refresh prompt copied"
+        "error": "Could not refresh the project state",
+        "success": "Current state updated"
+      }
     }
   },
   "errors": {
@@ -1069,6 +1039,14 @@
     "update": {
       "checkFailed": "Update check failed",
       "installFailed": "Update install failed"
+    },
+    "ai": {
+      "quota": "Quota exceeded. Check your plan and billing with the provider.",
+      "auth": "The API key was rejected. Check that it's valid.",
+      "rate-limit": "Rate limit reached. Try again shortly.",
+      "network": "Couldn't reach the AI provider. Check your connection.",
+      "model-not-found": "The selected model isn't available.",
+      "unknown": "The AI request failed."
     }
   },
   "email": {
@@ -1216,7 +1194,6 @@
     },
     "docContextMenu": {
       "moveTo": "Move to...",
-      "moveToRoot": "Root",
       "workspaceLevel": "Workspace docs"
     },
     "folderContextMenu": {

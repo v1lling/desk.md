@@ -25,6 +25,10 @@ services:
       # Required. Stable secret that signs sessions — `openssl rand -base64 33`.
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET}"
       DESK_DATA_ROOT: "/data"
+      # Optional AI provider keys for server-side AI maintenance (Smart Index + project
+      # state). Setting one is the operator's consent to send file previews to that provider.
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       PORT: "8787"
       # Optional extra trusted origins (comma-separated), e.g. to log in from a native
       # `npm run tauri:dev` client. Blank in normal use.

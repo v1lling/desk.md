@@ -24,6 +24,8 @@ import * as agentQueriesApi from "../agent-queries";
 import * as catalogApi from "../catalog";
 import * as indexCacheApi from "../index-cache";
 import * as aiignoreApi from "../aiignore";
+import * as aiUsageApi from "../ai-usage";
+import * as maintenanceApi from "../maintenance";
 import type { DeskService } from "./deskservice";
 
 export const localDeskService: DeskService = {
@@ -91,7 +93,7 @@ export const localDeskService: DeskService = {
   moveFolder: contentApi.moveFolder,
   deleteFolder: contentApi.deleteFolder,
 
-  // Project brief (context/)
+  // Project brief + state (context/)
   ensureProjectBrief: projectBriefApi.ensureProjectBrief,
 
   // Content import / move
@@ -128,11 +130,19 @@ export const localDeskService: DeskService = {
 
   // Smart Index cache (.desk/index/indexes.json)
   getIndexCache: indexCacheApi.getIndexCache,
-  setIndexCache: indexCacheApi.setIndexCache,
+
+  // AI usage log
+  getAIUsage: aiUsageApi.getAIUsage,
+  clearAIUsage: aiUsageApi.clearAIUsage,
+
+  // AI maintenance
+  refreshProjectState: maintenanceApi.runStateRefreshNow,
+  rebuildSmartIndex: maintenanceApi.rebuildSmartIndex,
+  removeFromSmartIndex: maintenanceApi.removeIndexEntry,
+  clearSmartIndex: maintenanceApi.clearWorkspaceIndex,
+  getAIMaintenanceInfo: maintenanceApi.getAIMaintenanceInfo,
 
   // .aiignore management (per-workspace AI exclusions)
-  loadAIIgnoreEntries: aiignoreApi.loadAIIgnoreEntries,
-  getAIInclusion: aiignoreApi.getAIInclusion,
   setAIInclusion: aiignoreApi.setAIInclusion,
   getAiExclusionState: aiignoreApi.getAiExclusionState,
   getFolderAIInclusion: aiignoreApi.getFolderAIInclusion,

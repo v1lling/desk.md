@@ -34,6 +34,8 @@ import type * as agentQueriesApi from "../agent-queries";
 import type * as catalogApi from "../catalog";
 import type * as indexCacheApi from "../index-cache";
 import type * as aiignoreApi from "../aiignore";
+import type * as aiUsageApi from "../ai-usage";
+import type * as maintenanceApi from "../maintenance";
 
 export interface DeskService {
   // ── Tasks ───────────────────────────────────────────────────────────
@@ -100,9 +102,10 @@ export interface DeskService {
   moveFolder: typeof contentApi.moveFolder;
   deleteFolder: typeof contentApi.deleteFolder;
 
-  // ── Project brief (context/) ────────────────────────────────────────
-  // The one definition of "which file is the brief" — shared by the Context panel, the AI
-  // refresh, and a future entity-shaped MCP `desk_project`.
+  // ── Project brief + state (context/) ────────────────────────────────
+  // The one definition of "which file is the brief" — shared by the Context panel and a
+  // future entity-shaped MCP `desk_orient`. (The state file is written by the maintenance
+  // engine in-process, never over RPC — see refreshProjectState below.)
   ensureProjectBrief: typeof projectBriefApi.ensureProjectBrief;
 
   // ── Content import / move ───────────────────────────────────────────
@@ -148,17 +151,28 @@ export interface DeskService {
   buildWorkspaceCatalog: typeof catalogApi.buildWorkspaceCatalog;
 
   // ── Smart Index cache (.desk/index/indexes.json) — DERIVED, but routed through
-  // the service so the catalog follows the domain (server-side in hosted mode,
-  // where the catalog tool / MCP read it).
+  // the service so the catalog follows the domain (server-side in hosted mode, where the
+  // catalog tool / MCP read it). Read-only over the service: core is the sole writer, in-process
+  // on the host that owns the data (maintenance engine + local rebuild), never over RPC.
   getIndexCache: typeof indexCacheApi.getIndexCache;
-  setIndexCache: typeof indexCacheApi.setIndexCache;
+
+  // ── AI usage log (.desk/usage/ai-usage.json) — appended in-process by whichever
+  // host runs the AI; the service only exposes the reads the Usage panel needs.
+  getAIUsage: typeof aiUsageApi.getAIUsage;
+  clearAIUsage: typeof aiUsageApi.clearAIUsage;
+
+  // ── AI maintenance (runs where the data lives) — remote clients invoke the
+  // SERVER's engine/keys through these; local mode resolves them in-process.
+  refreshProjectState: typeof maintenanceApi.runStateRefreshNow;
+  rebuildSmartIndex: typeof maintenanceApi.rebuildSmartIndex;
+  removeFromSmartIndex: typeof maintenanceApi.removeIndexEntry;
+  clearSmartIndex: typeof maintenanceApi.clearWorkspaceIndex;
+  getAIMaintenanceInfo: typeof maintenanceApi.getAIMaintenanceInfo;
 
   // ── .aiignore management (per-workspace AI exclusions) — routed through the
   // service so the UI toggles + index reads operate on the *server's* .aiignore in
   // hosted mode. Enforcement itself lives in agent-queries (read side); these are
   // the read/write management ops. (isPathExcludedByAIIgnore stays a pure import.)
-  loadAIIgnoreEntries: typeof aiignoreApi.loadAIIgnoreEntries;
-  getAIInclusion: typeof aiignoreApi.getAIInclusion;
   setAIInclusion: typeof aiignoreApi.setAIInclusion;
   getAiExclusionState: typeof aiignoreApi.getAiExclusionState;
   getFolderAIInclusion: typeof aiignoreApi.getFolderAIInclusion;

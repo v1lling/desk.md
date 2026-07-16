@@ -18,8 +18,8 @@ import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { isLocalDisk, isDomainRemote } from "@/lib/connection";
-import { writeMarkdownFile } from "@desk/core";
-import { parseMarkdown, serializeMarkdown, nowISO } from "@desk/core";
+import { writeMarkdownFile, saveMarkdownBody } from "@desk/core";
+import { parseMarkdown } from "@desk/core";
 import type { EditorType } from "@/stores/open-editor-registry";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +62,6 @@ interface UseEditorSessionOptions {
   initialContent: string;
   enabled: boolean;
   /** Called after successful save with the path and content that was saved */
-  onSaveComplete?: (path: string, content: string) => void;
   /**
    * Hosted/web mode persistence. In Tauri the body is written straight to disk
    * via getStorage(); on the web client getStorage() is the mock BrowserProvider,
@@ -109,7 +108,6 @@ export function useEditorSession({
   filePath,
   initialContent,
   enabled,
-  onSaveComplete,
   persistBody,
 }: UseEditorSessionOptions): UseEditorSessionReturn {
   // Use getState() for imperative operations to avoid re-render loops
@@ -293,26 +291,7 @@ export function useEditorSession({
         getRegistry().updateLastSaved(path, contentToSave);
         setIsDirty(false);
         setSaveStatus("idle");
-        onSaveComplete?.(path, contentToSave);
         return true;
-      }
-
-      // Preserve frontmatter by reading existing file, updating body, and rewriting
-      let fullContent = contentToSave;
-      if (isLocalDisk()) {
-        try {
-          const existingContent = await getStorage().readTextFile(path);
-          const { data: frontmatter } = parseMarkdown<Record<string, unknown>>(existingContent);
-          // This local-disk save bypasses the domain write helpers, so stamp
-          // `updated` here (the recover path below goes through writeMarkdownFile,
-          // which stamps it itself).
-          frontmatter.updated = nowISO();
-          lastFrontmatterRef.current = frontmatter;
-          fullContent = serializeMarkdown(frontmatter, contentToSave);
-        } catch {
-          // File might not exist yet or read failed - just save body
-          fullContent = contentToSave;
-        }
       }
 
       if (isDomainRemote()) {
@@ -325,15 +304,17 @@ export function useEditorSession({
         return false;
       }
 
-      await getStorage().writeTextFile(path, fullContent);
+      // Local disk (and browser mock): save through the core funnel, which preserves the
+      // on-disk frontmatter, stamps `updated`, and publishes on the domain-write bus like
+      // every other record write — the maintenance engine's trigger.
+      const { frontmatter } = await saveMarkdownBody(path, contentToSave);
+      lastFrontmatterRef.current = frontmatter; // Snapshot for delete-recovery
       lastSavedRef.current = contentToSave;
       // Update registry so file watcher knows this was our save
       getRegistry().updateLastSaved(path, contentToSave);
       setIsDirty(false);
       setSaveStatus("idle");
 
-      // Trigger post-save callback (e.g., for catalog indexing)
-      onSaveComplete?.(path, fullContent);
       return true;
     } catch (error) {
       console.error("[editor-session] Save failed:", error);
@@ -342,7 +323,7 @@ export function useEditorSession({
     } finally {
       savingRef.current = false;
     }
-  }, [getRegistry, fileDeleted, pathChanged, onSaveComplete, persistBody]);
+  }, [getRegistry, fileDeleted, pathChanged, persistBody]);
 
   // Recover: file was deleted externally but we still have unsaved edits.
   // Re-create the file at the original path with the last-known frontmatter

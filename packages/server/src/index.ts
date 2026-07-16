@@ -1,9 +1,9 @@
 /**
- * desk.md server — domain API + auth (steps 2-3b).
+ * desk.md server.
  *
- * A Node 22 + Hono app that boots the @desk/core domain on a NodeFsProvider and
- * exposes it over HTTP behind a Better Auth session gate, plus the SPA. NO MCP,
- * NO OAuth Authorization Server yet — those are steps 4-5.
+ * A Node 22 + Hono app that boots the @desk/core domain on a NodeFsProvider and exposes it
+ * over HTTP behind a Better Auth session gate, plus the SPA, the OAuth-protected MCP endpoint,
+ * and the in-process maintenance engine (AI maintenance runs where the data lives).
  */
 import { relative } from "node:path";
 import { serve } from "@hono/node-server";
@@ -14,8 +14,15 @@ import { boot } from "./boot";
 import { registerDeskApi } from "./desk-api";
 import { registerMcp } from "./mcp";
 import { auth, hasUsers, migrateAuth } from "./auth";
+import { startMaintenanceEngine } from "@desk/core";
 
 boot();
+
+// AI maintenance runs where the data lives — here. Every record write arriving through the
+// domain API (RPC from web/native-remote clients, future MCP write tools) fires the
+// domain-write bus, and this engine reacts: Smart Index entry updates + project state
+// refreshes, with keys from the environment (no key → the engine no-ops per call).
+startMaintenanceEngine();
 
 const app = new Hono();
 

@@ -1,37 +1,30 @@
 import { useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   getDeskService,
-  isTauri,
   extractDocs,
   findProjectBrief,
+  findProjectState,
   computeContextFreshness,
   selectChangedRecords,
-  mergeAISections,
-  BRIEF_SECTIONS,
   type BriefSeed,
-  type SectionMergeResult,
 } from "@desk/core";
-import type { Doc } from "@desk/core/types";
 import { useContentTree, contentKeys } from "./content";
 import { useProjectTasks } from "./tasks";
 import { useProjectMeetings } from "./meetings";
-import { useAISettingsStore, useAIUsageStore } from "./ai";
+import { useAIMaintenanceSettingsStore } from "./ai-maintenance-settings";
+import { useProviderConfigured } from "@/hooks/use-ai-maintenance-info";
 import { ensureAIConsent } from "./ai-consent";
-import { createAIService } from "@/lib/ai/service";
-import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
-
-/** The brief needs signal, not the full corpus, so only the head of `records` is sent. */
-const MAX_RECORDS = 25;
-const MAX_RECORD_CHARS = 400;
+import { isLocalDisk } from "@/lib/connection";
 
 /**
  * Everything the Context panel needs for one project, from the four queries Project Home
  * already mounts plus one new context-tree read.
  *
- * `records` is the panel's ONE definition of "what changed since the map was last touched" —
- * both the freshness count and the AI refresh payload derive from it, so the number the user
- * sees and the records the model reconciles against cannot drift apart.
+ * `records` is the panel's ONE definition of "what changed since the state file was last
+ * written" — both the freshness count and the background refresh payload derive from the same
+ * core functions, so the number the user sees and the records the model reconciles against
+ * cannot drift apart.
  */
 export function useProjectContext(workspaceId: string, projectId: string) {
   const { data: contextTree = [], isLoading } = useContentTree(
@@ -54,22 +47,25 @@ export function useProjectContext(workspaceId: string, projectId: string) {
     [tasks, meetings, docs],
   );
 
+  const brief = useMemo(() => findProjectBrief(contextDocs), [contextDocs]);
+  const state = useMemo(() => findProjectState(contextDocs), [contextDocs]);
+  const others = useMemo(
+    () => contextDocs.filter((doc) => doc.id !== brief?.id && doc.id !== state?.id),
+    [contextDocs, brief, state],
+  );
+
+  // Freshness is scoped to the STATE file, not all of context/ — editing the brief or a
+  // hand-written context file says nothing about whether the AI snapshot has seen the records.
   const freshness = useMemo(
-    () => computeContextFreshness(contextDocs, allRecords),
-    [contextDocs, allRecords],
+    () => computeContextFreshness(state, allRecords),
+    [state, allRecords],
   );
   const records = useMemo(
-    () => selectChangedRecords(contextDocs, allRecords),
-    [contextDocs, allRecords],
+    () => selectChangedRecords(state, allRecords),
+    [state, allRecords],
   );
 
-  const brief = useMemo(() => findProjectBrief(contextDocs), [contextDocs]);
-  const others = useMemo(
-    () => contextDocs.filter((doc) => doc.id !== brief?.id),
-    [contextDocs, brief],
-  );
-
-  return { brief, others, contextDocs, records, freshness, isLoading };
+  return { brief, state, others, contextDocs, records, freshness, isLoading };
 }
 
 /** Create the project's brief, or return the one already there. Never overwrites. */
@@ -93,10 +89,11 @@ export function useEnsureProjectBrief() {
  * `useUpdateDoc` does not invalidate tree queries — it only `setQueriesData`s over `Doc[]`
  * caches, and a tree query's cached value is `FileTreeNode[]`, so the updater is a no-op there.
  * Every context write must therefore invalidate these keys by hand or the panel keeps showing
- * the pre-write body and the old freshness verdict.
+ * the pre-write body and the old freshness verdict. Exported: the background state refresh
+ * (state-refresh.ts, via the watcher wiring) needs the same invalidation after its write.
  */
-function invalidateContext(
-  queryClient: ReturnType<typeof useQueryClient>,
+export function invalidateContext(
+  queryClient: QueryClient,
   workspaceId: string,
   projectId: string,
 ) {
@@ -109,97 +106,34 @@ function invalidateContext(
   queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(workspaceId) });
 }
 
-interface RecordLike {
-  title: string;
-  content?: string;
-  updated?: string;
-  created?: string;
-}
-
 /**
- * `records` must already be the changed-since set, newest first (`selectChangedRecords`). This
- * only truncates it, so the cut keeps the most recent work rather than an arbitrary prefix — and
- * the header below is then true of what it labels.
+ * True when an AI refresh can actually run, on whichever host owns the data — a key for the
+ * selected provider resolves there (this machine's Keychain locally, the server's env in hosted
+ * mode). One source of truth: `getAIMaintenanceInfo`, via the shared hook.
  */
-function buildRefreshPayload(brief: Doc, records: RecordLike[]): string {
-  const recent = records
-    .slice(0, MAX_RECORDS)
-    .map((r) => {
-      const body = (r.content ?? "").trim().slice(0, MAX_RECORD_CHARS);
-      const stamp = r.updated ?? r.created ?? "";
-      return `### ${r.title}${stamp ? ` (${stamp})` : ""}\n${body}`;
-    })
-    .join("\n\n");
-
-  return [
-    "# Current brief",
-    "",
-    brief.content ?? "",
-    "",
-    "# Records changed since the brief was last touched",
-    "",
-    recent || "(none)",
-  ].join("\n");
-}
-
-/** True when an AI refresh can actually run: a key lives in the OS Keychain, so Tauri only. */
 export function useCanRunAI(): boolean {
-  const providerType = useAISettingsStore((s) => s.providerType);
-  const providerConfigured = useAISettingsStore((s) => s.providerConfigured);
-  return isTauri() && providerConfigured[providerType];
+  const providerType = useAIMaintenanceSettingsStore((s) => s.providerType);
+  return useProviderConfigured(providerType);
 }
 
 /**
- * Ask the model to reconcile the brief against the records that changed since, then merge its
- * answer through `mergeAISections` — which rebuilds the document from the ORIGINAL's headings,
- * so the user's own sections cannot be rewritten and a decision cannot be dropped, whatever the
- * model returns.
- *
- * This mutation does NOT write. It returns a merge result for the preview dialog to show; the
- * dialog applies it.
+ * Manual "refresh now" for the state file, executed by whichever host owns the data (the
+ * service call runs the engine in-process locally, on the server in hosted mode). The
+ * background engine is the normal path; this exists for impatience. Consent prompts only in
+ * local mode — on a server, the operator consented by configuring a key in the environment.
  */
-export function useRefreshBrief() {
-  return useMutation<SectionMergeResult, Error, { brief: Doc; records: RecordLike[] }>({
-    mutationFn: async ({ brief, records }) => {
-      if (!(await ensureAIConsent())) {
-        throw new Error("AI consent declined");
-      }
-      const { providerType, modelByProvider } = useAISettingsStore.getState();
-      const service = createAIService({
-        providerType,
-        model: modelByProvider[providerType] || undefined,
-        onUsage: (usage) =>
-          useAIUsageStore.getState().addRecord({
-            purpose: "context-refresh",
-            provider: providerType,
-            usage,
-          }),
-      });
-
-      const { message } = await service.custom(
-        SYSTEM_PROMPTS.refreshBrief,
-        buildRefreshPayload(brief, records),
-      );
-
-      return mergeAISections(brief.content ?? "", message, BRIEF_SECTIONS);
-    },
-  });
-}
-
-/** Write an accepted merge back to the brief. */
-export function useApplyBrief() {
+export function useRefreshState() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ brief, content }: { brief: Doc; content: string }) =>
-      getDeskService().updateDoc(brief, { content }),
-    onSuccess: (_doc, vars) => {
-      invalidateContext(queryClient, vars.brief.workspaceId, vars.brief.projectId);
+    mutationFn: async (vars: { workspaceId: string; projectId: string }) => {
+      if (isLocalDisk() && !(await ensureAIConsent())) {
+        throw new Error("AI consent declined");
+      }
+      return getDeskService().refreshProjectState(vars.workspaceId, vars.projectId);
+    },
+    onSuccess: (_result, vars) => {
+      invalidateContext(queryClient, vars.workspaceId, vars.projectId);
     },
   });
-}
-
-/** The prompt + payload as plain text, for the no-key path (paste into an MCP agent). */
-export function buildRefreshPromptText(brief: Doc, records: RecordLike[]): string {
-  return `${SYSTEM_PROMPTS.refreshBrief}\n\n---\n\n${buildRefreshPayload(brief, records)}`;
 }

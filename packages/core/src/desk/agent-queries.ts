@@ -4,7 +4,7 @@
  * These mirror the (now-removed) Rust desk_* read commands, but run purely on
  * the StorageProvider so they work identically on the desktop and on a future
  * server. Output shapes match what the assistant tool layer expects:
- *   - deskWorkspaceInfo → { data_root, workspaces:[{ id, name, projects:[{ id, name }] }] }
+ *   - deskWorkspaceInfo → { workspaces:[{ id, name, projects:[{ id, name }] }] }
  *   - deskTree          → { workspace_id, projects:[{ id, name }], total, truncated, entries[] }
  *   - deskReadFile      → { path, content, total_chars, truncated }
  *   - deskFullTextSearch→ { query, terms, path, total_files_scanned, truncated, matches[] }
@@ -146,7 +146,6 @@ export interface DeskSearchResult {
 }
 
 export interface DeskWorkspaceInfoResult {
-  data_root: string;
   workspaces: { id: string; name: string; projects: { id: string; name: string }[] }[];
 }
 
@@ -196,7 +195,6 @@ async function safeReadDir(absPath: string) {
  * List all workspaces with their project names (no filesystem walk beyond CRUD).
  */
 export async function deskWorkspaceInfo(): Promise<DeskWorkspaceInfoResult> {
-  const dataRoot = await getDeskPath();
   const workspaces = await getWorkspaces();
 
   const result = await Promise.all(
@@ -212,7 +210,9 @@ export async function deskWorkspaceInfo(): Promise<DeskWorkspaceInfoResult> {
     })
   );
 
-  return { data_root: dataRoot, workspaces: result };
+  // No data_root here, deliberately: this result goes verbatim to external agents (MCP),
+  // and the host's absolute filesystem layout is not theirs to see.
+  return { workspaces: result };
 }
 
 /**
@@ -291,6 +291,14 @@ export async function deskReadFile(relPath: string): Promise<DeskReadResult> {
   const deskPath = await getDeskPath();
   const normalized = normalizeRelative(relPath);
 
+  // Hidden/internal files are off-limits, matching what deskTree exposes. This is a security
+  // boundary, not just symmetry: `normalizeRelative` pins paths inside the DATA ROOT, so
+  // without this check `workspaces/<id>/../../.desk/auth.sqlite` normalizes to `.desk/...`
+  // and hands an agent the auth DB, settings, and usage log.
+  if (normalized.split("/").some((segment) => segment.startsWith("."))) {
+    throw new Error("Hidden and internal files are not readable");
+  }
+
   // Block files the workspace's .aiignore excludes — before any read.
   const split = splitWorkspacePath(normalized);
   if (split && split.relative) {
@@ -351,6 +359,13 @@ export async function deskFullTextSearch(
 
   const deskPath = await getDeskPath();
   const scope = normalizeRelative(scopeRel ?? ".");
+
+  // Same boundary as deskReadFile: a scope like `workspaces/<id>/../../.desk` normalizes to
+  // `.desk`, and the walk's dot-skip only applies to entries INSIDE the scope, not to the
+  // scope itself. Hidden/internal directories are not searchable.
+  if (scope.split("/").some((segment) => segment.startsWith("."))) {
+    throw new Error("Hidden and internal paths are not searchable");
+  }
 
   const matches: SearchMatch[] = [];
   let filesScanned = 0;

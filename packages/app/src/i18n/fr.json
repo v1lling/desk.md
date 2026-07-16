@@ -124,15 +124,13 @@
     },
     "docs": {
       "dropZone": {
-        "title": "Déposez des fichiers pour les importer",
-        "subtitle": "Tous les types de fichiers sont pris en charge"
+        "title": "Déposez des fichiers pour les importer"
       },
       "tree": {
         "searchPlaceholder": "Rechercher des documents…",
         "fileCount_one": "{{count}} fichier",
         "fileCount_other": "{{count}} fichiers",
         "contextFolder": "Contexte",
-        "contextEmpty": "Pas encore de contexte. Décrivez de quoi il s'agit",
         "newContextFile": "Nouveau fichier de contexte",
         "sections": {
           "workspace": "Espace",
@@ -236,14 +234,15 @@
         },
         "context": {
           "heading": "Contexte",
-          "refresh": "Actualiser",
-          "copyPrompt": "Copier le prompt",
-          "copyPromptHint": "Aucune clé IA configurée. Copiez le prompt et collez-le dans votre agent IA.",
           "fresh": "À jour",
           "stale_one": "{{count}} élément modifié depuis",
           "stale_other": "{{count}} éléments modifiés depuis",
+          "neverReviewed": "Pas encore passé en revue",
           "reviewed": "Revu {{when}}",
-          "addBrief": "Ajouter une synthèse"
+          "refreshState": "Actualiser maintenant",
+          "generateState": "Générer l'état actuel",
+          "writeBrief": "Écrire la synthèse",
+          "newContextFile": "Nouveau fichier de contexte"
         }
       },
       "browse": {
@@ -422,6 +421,12 @@
           "notGiven": "Affichée une fois avant votre première requête d'IA.",
           "revoke": "Révoquer"
         }
+      },
+      "serverMode": {
+        "title": "L'IA s'exécute sur votre serveur",
+        "description": "Votre desk est hébergé : la maintenance IA (Smart Index, état du projet) s'exécute sur le serveur avec des clés issues de son environnement (ANTHROPIC_API_KEY / OPENAI_API_KEY dans le .env de déploiement). Y définir une clé vaut consentement de l'opérateur.",
+        "providerConfigured": "{{provider}} : clé configurée sur le serveur.",
+        "providerNotConfigured": "{{provider}} : pas encore de clé sur le serveur. Ajoutez-la au .env de déploiement et redémarrez."
       }
     },
     "agents": {
@@ -589,17 +594,16 @@
         "title_other": "Erreurs ({{count}})"
       },
       "results": {
-        "success": "{{summarized}} résumé(s), {{reused}} réutilisé(s)",
-        "successWithExcluded": "{{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s)",
         "lastRebuild": "Dernière reconstruction {{time}} : {{summarized}} résumé(s), {{reused}} réutilisé(s)",
         "lastRebuildWithExcluded": "Dernière reconstruction {{time}} : {{summarized}} résumé(s), {{reused}} réutilisé(s), {{excluded}} exclu(s) par .aiignore"
       },
       "info": {
         "oneCatalog": "Quand un fichier d'agent est activé (Paramètres → Agents), le Smart Index est écrit en Markdown à côté pour que les agents externes (Claude Code, Codex, Gemini CLI) le lisent sans configuration.",
         "noProvider": "Aucun fournisseur d'IA configuré. Le catalogue liste toujours chaque fichier avec ses métadonnées complètes ; il manque seulement le résumé IA. Ajoutez une clé dans Paramètres → IA et reconstruisez pour les résumer.",
-        "desktopOnly": "Les résumés IA sont générés dans l'application de bureau avec votre clé stockée localement. Le catalogue lui-même reste accessible aux agents via MCP, même ici dans le navigateur, avec les métadonnées de chaque fichier.",
+        "desktopOnly": "Le Smart Index est construit par l'hôte qui possède vos données. Cet aperçu navigateur n'en a pas, la construction est donc désactivée ici.",
         "incremental": "La reconstruction est incrémentale : les fichiers inchangés réutilisent leur résumé, seuls les fichiers nouveaux ou modifiés utilisent l'IA.",
-        "offlineChanges": "Les fichiers modifiés hors de l'app desk (autre appareil, édition directe) apparaissent immédiatement dans le catalogue ; leurs résumés sont actualisés à la prochaine reconstruction."
+        "offlineChanges": "Les fichiers modifiés hors de l'app desk (autre appareil, édition directe) apparaissent immédiatement dans le catalogue ; leurs résumés sont actualisés à la prochaine reconstruction.",
+        "serverSide": "Votre serveur construit et maintient l'index avec sa propre clé API. Les mises à jour en arrière-plan s'y exécutent quand des éléments changent."
       },
       "config": {
         "title": "Paramètres du catalogue",
@@ -633,6 +637,10 @@
         "hoursAgo_other": "il y a {{count}} heures",
         "daysAgo_one": "il y a {{count}} jour",
         "daysAgo_other": "il y a {{count}} jours"
+      },
+      "autoRefreshState": {
+        "label": "Maintenir l'état des projets à jour",
+        "description": "Après des changements de tâches, docs ou réunions, Desk demande à l'IA de réécrire le fichier « État actuel » du projet en arrière-plan."
       }
     }
   },
@@ -740,32 +748,10 @@
       "systemsPlaceholder": "Quels services, dépôts ou outils sont concernés ?",
       "submit": "Créer la synthèse"
     },
-    "refreshBrief": {
-      "title": "Vérifier la mise à jour",
-      "description": "Vos propres sections restent telles quelles. Choisissez ce que vous acceptez du reste.",
-      "apply": "Appliquer",
-      "retry": "Réessayer",
-      "unusable": "Le modèle n'a pas renvoyé de synthèse exploitable. Rien n'a été modifié.",
-      "emptySection": "(vide)",
-      "showPrevious": "Afficher la version précédente",
-      "hidePrevious": "Masquer la version précédente",
-      "status": {
-        "unchanged": "Inchangé",
-        "rewritten": "Réécrit",
-        "added": "Ajouté",
-        "kept": "Conservé",
-        "yours": "À vous"
-      },
-      "warnings": {
-        "linesRestored_one": "{{count}} ligne supprimée par le modèle a été restaurée.",
-        "linesRestored_other": "{{count}} lignes supprimées par le modèle ont été restaurées.",
-        "humanProtected_one": "{{count}} section vous appartenant a été protégée de la réécriture.",
-        "humanProtected_other": "{{count}} sections vous appartenant ont été protégées de la réécriture.",
-        "sectionsKept_one": "{{count}} section est revenue vide et a été conservée telle quelle.",
-        "sectionsKept_other": "{{count}} sections sont revenues vides et ont été conservées telles quelles.",
-        "unknownDropped_one": "{{count}} titre inventé par le modèle a été écarté.",
-        "unknownDropped_other": "{{count}} titres inventés par le modèle ont été écartés."
-      }
+    "newContextFile": {
+      "title": "Nouveau fichier de contexte",
+      "nameLabel": "Titre",
+      "submit": "Créer"
     }
   },
   "editors": {
@@ -854,14 +840,6 @@
     "tasks": {
       "noResults": {
         "title": "Aucune tâche trouvée"
-      },
-      "noActive": {
-        "title": "Aucune tâche active",
-        "description": "Les tâches de tous les espaces apparaîtront ici"
-      },
-      "inWorkspace": {
-        "title": "Aucune tâche dans {{workspace}}",
-        "description": "Les tâches assignées à cet espace apparaîtront ici"
       }
     },
     "docs": {
@@ -875,11 +853,6 @@
         "title": "Aucune réunion pour l'instant",
         "description": "Créez votre première note de réunion pour commencer"
       }
-    },
-    "brief": {
-      "title": "Pas encore de synthèse",
-      "description": "Décrivez ce qu'est ce projet et sur quoi il repose. Tout le reste se déduit de vos tâches, documents et réunions, mais cette partie, vous seul pouvez l'écrire.",
-      "action": "Rédiger la synthèse"
     }
   },
   "toasts": {
@@ -892,8 +865,6 @@
       "modelSet": "Modèle défini sur {{model}}",
       "usageCleared": "Historique d'utilisation effacé",
       "privacyAcknowledgementReset": "Acceptation de confidentialité IA réinitialisée",
-      "toolDetailsShown": "Détails des outils affichés",
-      "toolDetailsHidden": "Détails des outils masqués",
       "agentFileEnabled": "{{file}} activé",
       "agentFileRemoved": "{{file}} retiré",
       "indexBuilt": "Index construit : {{files}} fichiers dans {{workspaces}} espaces",
@@ -946,7 +917,8 @@
       "importDocs_other": "{{count}} documents importés",
       "importFiles_one": "{{count}} fichier importé",
       "importFiles_other": "{{count}} fichiers importés",
-      "importMixed": "{{docs}} documents et {{files}} fichiers importés"
+      "importMixed": "{{docs}} documents et {{files}} fichiers importés",
+      "createError": "Impossible de créer le fichier"
     },
     "meeting": {
       "created": "Réunion créée",
@@ -977,15 +949,13 @@
     "brief": {
       "create": {
         "error": "Impossible de créer la synthèse"
-      },
+      }
+    },
+    "state": {
       "refresh": {
-        "error": "Impossible d'actualiser la synthèse",
-        "success": "Synthèse mise à jour"
-      },
-      "apply": {
-        "error": "Impossible d'enregistrer la synthèse"
-      },
-      "promptCopied": "Prompt copié"
+        "error": "Impossible d'actualiser l'état du projet",
+        "success": "État actuel mis à jour"
+      }
     }
   },
   "errors": {
@@ -1053,6 +1023,14 @@
     "update": {
       "checkFailed": "Échec de la vérification des mises à jour",
       "installFailed": "Échec de l'installation de la mise à jour"
+    },
+    "ai": {
+      "quota": "Quota dépassé. Vérifiez votre offre et votre facturation chez le fournisseur.",
+      "auth": "La clé API a été refusée. Vérifiez qu'elle est valide.",
+      "rate-limit": "Limite de débit atteinte. Réessayez dans un instant.",
+      "network": "Impossible de joindre le fournisseur d'IA. Vérifiez votre connexion.",
+      "model-not-found": "Le modèle sélectionné n'est pas disponible.",
+      "unknown": "La requête IA a échoué."
     }
   },
   "email": {
@@ -1142,7 +1120,6 @@
     },
     "docContextMenu": {
       "moveTo": "Déplacer vers...",
-      "moveToRoot": "Racine",
       "workspaceLevel": "Documents de l'espace"
     },
     "folderContextMenu": {

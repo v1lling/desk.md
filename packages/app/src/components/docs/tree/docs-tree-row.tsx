@@ -83,7 +83,6 @@ interface DocsTreeRowProps {
 export function DocsTreeRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
   if (data.kind === "section-header") return <SectionHeaderRow node={node} style={style} />;
-  if (data.kind === "context-empty") return <ContextEmptyRow node={node} style={style} />;
   if (data.kind === "folder") {
     // Context is a layer, not a folder inside Docs: on disk `context/` is a *sibling* of
     // `docs/`, so it renders as a band (section typography) rather than folder chrome.
@@ -174,34 +173,6 @@ function ContextSectionRow({ node, style }: DocsTreeRowProps) {
         </button>
       </div>
     </TreeItemMenus>
-  );
-}
-
-/**
- * Shown when Context has no files. Emptiness is the normal starting state, so it is a prompt,
- * not a void: the previous `ai-docs/` folder was silently empty and therefore never filled.
- */
-function ContextEmptyRow({ node, style }: DocsTreeRowProps) {
-  const data = node.data;
-  const handlers = useTreeHandlers();
-  const { t } = useTranslation();
-
-  const handleClick = useCallback(() => {
-    handlers.onCreateDocIn(data.parentTreePath);
-  }, [handlers, data.parentTreePath]);
-
-  return (
-    <div
-      style={style}
-      className="flex items-center gap-1.5 px-2 h-7 cursor-pointer select-none rounded-sm hover:bg-accent/30"
-      onClick={handleClick}
-    >
-      <span className="size-3 shrink-0" />
-      <Plus className="size-3.5 shrink-0 text-muted-foreground/40" />
-      <span className="text-xs truncate text-muted-foreground/60">
-        {t("pages.docs.tree.contextEmpty")}
-      </span>
-    </div>
   );
 }
 

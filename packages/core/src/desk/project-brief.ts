@@ -1,16 +1,16 @@
 /**
  * The project brief — `context/<date>-brief.md`.
  *
- * The brief is the seed of the map: what this project is, which systems it touches, why it
- * exists. None of that is recoverable from the records, which is why the human writes it once
- * and the AI only ever reconciles it against what has happened since.
+ * The brief is the human's half of a project's map: what this project is, which systems it
+ * touches, why it exists. None of that is recoverable from the records, which is why the user
+ * writes it — and why AI never touches this file. The AI-maintained half is the state file
+ * (`project-state.ts`), a sibling in the same `context/` folder.
  *
- * This module owns the brief's *identity* and its *template*. Both the Context panel, the AI
- * refresh, and (later) an entity-shaped MCP `desk_project` tool resolve the brief through
- * `findProjectBrief`, so there is exactly one definition of "which file is the brief".
+ * This module owns the brief's *identity* and its *template*. The Context panel and (later) an
+ * entity-shaped MCP `desk_orient` resolve the brief through `findProjectBrief`, so there is
+ * exactly one definition of "which file is the brief".
  */
 import type { Doc } from "../types";
-import type { SectionSpec } from "./doc-sections";
 import { formatLocalISODate } from "./parser";
 import { getAllDocs } from "./content-tree";
 import { createDocInFolder } from "./content-import";
@@ -21,12 +21,12 @@ import { createDocInFolder } from "./content-import";
  * of "Project Brief" (or a localized one) would silently produce `…-project-brief.md` and break
  * identity forever. Filenames are frozen once written, so this constant is the stable handle.
  */
-export const BRIEF_SLUG = "brief";
+const BRIEF_SLUG = "brief";
 
 /** The brief's display title. Free to change; it is never used to locate the file. */
-export const BRIEF_TITLE = "Brief";
+const BRIEF_TITLE = "Brief";
 
-export function briefFilename(date?: Date): string {
+function briefFilename(date?: Date): string {
   return `${formatLocalISODate(date ?? new Date())}-${BRIEF_SLUG}.md`;
 }
 
@@ -34,7 +34,7 @@ export function briefFilename(date?: Date): string {
  * Is this doc id the brief? Matches the frozen `YYYY-MM-DD-brief` filename, at the context
  * root only — a `context/archive/2026-01-01-brief.md` is an old copy, not the live map.
  */
-export function isBriefId(idOrPath: string): boolean {
+function isBriefId(idOrPath: string): boolean {
   const id = idOrPath.replace(/\.md$/, "");
   if (id.includes("/")) return false;
   return new RegExp(`^\\d{4}-\\d{2}-\\d{2}-${BRIEF_SLUG}$`).test(id);
@@ -53,27 +53,12 @@ export function findProjectBrief(contextDocs: readonly Doc[]): Doc | undefined {
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
 }
 
-/**
- * Section ownership for the brief. Consumed by `mergeAISections`, which treats anything NOT
- * listed here as human-owned — so a section the user hand-adds is untouchable by default.
- */
-export const BRIEF_SECTIONS: readonly SectionSpec[] = [
-  { heading: "What this is", owner: "human" },
-  { heading: "Systems & stack", owner: "human" },
-  { heading: "Current state", owner: "ai" },
-  // Append-only: a model that does not see a decision in the recent records would otherwise
-  // delete it. A decision vanishing from the map because nobody mentioned it lately is the
-  // worst data loss this app could produce.
-  { heading: "Decisions", owner: "ai-append" },
-  { heading: "Open questions", owner: "ai" },
-];
-
 export interface BriefSeed {
   description?: string;
   systems?: string;
 }
 
-export function briefTemplate(projectName: string, seed: BriefSeed = {}): string {
+function briefTemplate(projectName: string, seed: BriefSeed = {}): string {
   const what = seed.description?.trim() || "";
   const systems = seed.systems?.trim() || "";
   return [
@@ -86,12 +71,6 @@ export function briefTemplate(projectName: string, seed: BriefSeed = {}): string
     "## Systems & stack",
     "",
     systems,
-    "",
-    "## Current state",
-    "",
-    "## Decisions",
-    "",
-    "## Open questions",
     "",
   ].join("\n");
 }
@@ -106,7 +85,7 @@ export function hasSeedContent(seed: BriefSeed): boolean {
  *
  * **Idempotent by necessity**, not by politeness: `writeMarkdownFile` does not check for an
  * existing file, so seeding twice on the same day would write the same filename and silently
- * destroy the brief. This reads first. Refresh must never create.
+ * destroy the brief. This reads first.
  */
 export async function ensureProjectBrief(data: {
   workspaceId: string;

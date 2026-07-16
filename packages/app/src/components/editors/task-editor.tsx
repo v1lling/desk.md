@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTask, useUpdateTask, useDeleteTask, useMoveTaskToProject, useProjects, useRemoveTaskFromOrder } from "@/stores";
-import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -64,22 +63,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id, workspaceId]);
 
-  const handleSaveComplete = useCallback(
-    (path: string, content: string) => {
-      if (!task) return;
-      indexDocumentOnSave({
-        path,
-        content,
-        workspaceId,
-        contentType: "task",
-        title: title || task.title,
-        projectId: task.projectId,
-        created: task.created,
-      });
-    },
-    [task, workspaceId, title]
-  );
-
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.
   const persistBody = useCallback(
@@ -124,7 +107,6 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     // editor shows in browser/hosted mode (from getTask()).
     initialContent: task?.content ?? "",
     enabled: !!task,
-    onSaveComplete: handleSaveComplete,
     persistBody,
   });
 

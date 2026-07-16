@@ -1,8 +1,9 @@
-import { createProvider } from './provider';
+import { runChat } from './transport';
 import { getProviderDefinition } from './provider-registry';
-import { getSecret } from './secrets';
+import { getAIKeyResolver } from './key-resolver';
+import { AIProviderError } from './errors';
 import { BASE_CONTEXT } from './prompts';
-import { todayISO } from '@desk/core';
+import { todayISO } from '../parser';
 import type {
   AIUsage,
   AIProviderType,
@@ -48,20 +49,27 @@ export class AIService {
     message: string,
   ): Promise<AIServiceResponse> {
     const providerDef = getProviderDefinition(this.config.providerType);
-    const resolvedKey = this.config.apiKey ?? await getSecret(providerDef.keyRef) ?? undefined;
-
-    const provider = createProvider({
-      type: this.config.providerType,
-      apiKey: resolvedKey,
-      model: this.config.model,
-    });
+    // Key comes from the injectable host seam (Keychain on the app, env on the server)
+    // unless the caller supplies one explicitly.
+    const resolvedKey =
+      this.config.apiKey ?? (await getAIKeyResolver()(providerDef.keyRef)) ?? undefined;
+    if (!resolvedKey) {
+      throw new AIProviderError(
+        "auth",
+        this.config.providerType,
+        `No ${providerDef.label} API key configured.`,
+      );
+    }
 
     const today = todayISO();
     const fullPrompt = `Today's date: ${today}.\n\n${BASE_CONTEXT}\n\n${systemPrompt}`;
 
-    const response = await provider.chat({
-      message,
+    const response = await runChat({
+      provider: this.config.providerType,
+      apiKey: resolvedKey,
+      model: this.config.model,
       systemPrompt: fullPrompt,
+      message,
     });
 
     if (response.usage && this.config.onUsage) {

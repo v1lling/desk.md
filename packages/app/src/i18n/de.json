@@ -124,15 +124,13 @@
     },
     "docs": {
       "dropZone": {
-        "title": "Dateien zum Importieren ablegen",
-        "subtitle": "Alle Dateitypen unterstützt"
+        "title": "Dateien zum Importieren ablegen"
       },
       "tree": {
         "searchPlaceholder": "Dokumente durchsuchen…",
         "fileCount_one": "{{count}} Datei",
         "fileCount_other": "{{count}} Dateien",
         "contextFolder": "Kontext",
-        "contextEmpty": "Noch kein Kontext. Beschreibe, worum es hier geht",
         "newContextFile": "Neue Kontextdatei",
         "sections": {
           "workspace": "Arbeitsbereich",
@@ -236,14 +234,15 @@
         },
         "context": {
           "heading": "Kontext",
-          "refresh": "Aktualisieren",
-          "copyPrompt": "Prompt kopieren",
-          "copyPromptHint": "Kein AI-Schlüssel hinterlegt. Kopiere den Prompt und füge ihn in deinen AI-Agenten ein.",
           "fresh": "Aktuell",
           "stale_one": "{{count}} Eintrag seither geändert",
           "stale_other": "{{count}} Einträge seither geändert",
+          "neverReviewed": "Noch nicht abgeglichen",
           "reviewed": "Zuletzt geprüft {{when}}",
-          "addBrief": "Briefing hinzufügen"
+          "refreshState": "Jetzt aktualisieren",
+          "generateState": "Aktuellen Stand erstellen",
+          "writeBrief": "Briefing schreiben",
+          "newContextFile": "Neue Kontext-Datei"
         }
       },
       "browse": {
@@ -422,6 +421,12 @@
           "notGiven": "Wird einmalig vor deiner ersten KI-Anfrage angezeigt.",
           "revoke": "Widerrufen"
         }
+      },
+      "serverMode": {
+        "title": "AI läuft auf deinem Server",
+        "description": "Dein Desk ist gehostet, daher läuft die AI-Pflege (Smart Index, Projektstand) auf dem Server mit Schlüsseln aus dessen Umgebung (ANTHROPIC_API_KEY / OPENAI_API_KEY in der Deploy-.env). Einen Schlüssel dort zu setzen ist die Zustimmung des Betreibers.",
+        "providerConfigured": "{{provider}}: Schlüssel auf dem Server konfiguriert.",
+        "providerNotConfigured": "{{provider}}: Noch kein Schlüssel auf dem Server. In der Deploy-.env eintragen und neu starten."
       }
     },
     "agents": {
@@ -589,17 +594,16 @@
         "title_other": "Fehler ({{count}})"
       },
       "results": {
-        "success": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet",
-        "successWithExcluded": "{{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} ausgeschlossen",
         "lastRebuild": "Letzter Neuaufbau {{time}}: {{summarized}} zusammengefasst, {{reused}} wiederverwendet",
         "lastRebuildWithExcluded": "Letzter Neuaufbau {{time}}: {{summarized}} zusammengefasst, {{reused}} wiederverwendet, {{excluded}} durch .aiignore ausgeschlossen"
       },
       "info": {
         "oneCatalog": "Wenn eine Agenten-Datei aktiv ist (Einstellungen → Agenten), wird der Smart Index daneben als Markdown geschrieben, damit externe Agenten (Claude Code, Codex, Gemini CLI) ihn ohne Einrichtung lesen können.",
         "noProvider": "Kein KI-Anbieter konfiguriert. Der Katalog listet weiterhin jede Datei mit vollständigen Metadaten; den Dateien fehlt nur noch die KI-Zusammenfassung. Füge unter Einstellungen → KI einen Schlüssel hinzu und baue neu auf, um sie zusammenzufassen.",
-        "desktopOnly": "KI-Zusammenfassungen werden in der Desktop-App mit deinem lokal gespeicherten Schlüssel erzeugt. Der Katalog selbst ist Agenten jederzeit über MCP verfügbar, auch hier im Browser, mit Metadaten für jede Datei.",
+        "desktopOnly": "Der Smart Index wird von dem Host gebaut, dem deine Daten gehören. Diese Browser-Vorschau hat keinen, daher ist das Bauen hier deaktiviert.",
         "incremental": "Der Neuaufbau ist inkrementell: Unveränderte Dateien verwenden ihre Zusammenfassung weiter, nur neue oder geänderte Dateien nutzen die KI.",
-        "offlineChanges": "Dateien, die außerhalb der Desk-App geändert wurden (anderes Gerät, direkte Bearbeitung), erscheinen sofort im Katalog; ihre Zusammenfassungen werden beim nächsten Neuaufbau aktualisiert."
+        "offlineChanges": "Dateien, die außerhalb der Desk-App geändert wurden (anderes Gerät, direkte Bearbeitung), erscheinen sofort im Katalog; ihre Zusammenfassungen werden beim nächsten Neuaufbau aktualisiert.",
+        "serverSide": "Dein Server baut und pflegt den Index mit seinem eigenen API-Schlüssel. Hintergrund-Updates laufen dort, sobald sich Einträge ändern."
       },
       "config": {
         "title": "Katalog-Einstellungen",
@@ -633,6 +637,10 @@
         "hoursAgo_other": "vor {{count}} Stunden",
         "daysAgo_one": "vor {{count}} Tag",
         "daysAgo_other": "vor {{count}} Tagen"
+      },
+      "autoRefreshState": {
+        "label": "Projektstand aktuell halten",
+        "description": "Nach Änderungen an Aufgaben, Docs oder Meetings lässt Desk die Datei „Aktueller Stand“ des Projekts im Hintergrund neu schreiben."
       }
     }
   },
@@ -740,32 +748,10 @@
       "systemsPlaceholder": "Welche Services, Repos oder Tools sind betroffen?",
       "submit": "Briefing erstellen"
     },
-    "refreshBrief": {
-      "title": "Aktualisierung prüfen",
-      "description": "Deine eigenen Abschnitte bleiben unverändert. Wähle, was du vom Rest übernimmst.",
-      "apply": "Übernehmen",
-      "retry": "Erneut versuchen",
-      "unusable": "Das Modell hat kein brauchbares Briefing geliefert. Es wurde nichts geändert.",
-      "emptySection": "(leer)",
-      "showPrevious": "Vorherige Fassung zeigen",
-      "hidePrevious": "Vorherige Fassung ausblenden",
-      "status": {
-        "unchanged": "Unverändert",
-        "rewritten": "Neu geschrieben",
-        "added": "Hinzugefügt",
-        "kept": "Beibehalten",
-        "yours": "Von dir"
-      },
-      "warnings": {
-        "linesRestored_one": "{{count}} vom Modell gelöschte Zeile wurde wiederhergestellt.",
-        "linesRestored_other": "{{count}} vom Modell gelöschte Zeilen wurden wiederhergestellt.",
-        "humanProtected_one": "{{count}} eigener Abschnitt wurde vor dem Überschreiben geschützt.",
-        "humanProtected_other": "{{count}} eigene Abschnitte wurden vor dem Überschreiben geschützt.",
-        "sectionsKept_one": "{{count}} Abschnitt kam leer zurück und blieb unverändert.",
-        "sectionsKept_other": "{{count}} Abschnitte kamen leer zurück und blieben unverändert.",
-        "unknownDropped_one": "{{count}} vom Modell erfundene Überschrift wurde verworfen.",
-        "unknownDropped_other": "{{count}} vom Modell erfundene Überschriften wurden verworfen."
-      }
+    "newContextFile": {
+      "title": "Neue Kontext-Datei",
+      "nameLabel": "Titel",
+      "submit": "Erstellen"
     }
   },
   "editors": {
@@ -854,14 +840,6 @@
     "tasks": {
       "noResults": {
         "title": "Keine Aufgaben gefunden"
-      },
-      "noActive": {
-        "title": "Keine aktiven Aufgaben",
-        "description": "Aufgaben aus allen Arbeitsbereichen erscheinen hier"
-      },
-      "inWorkspace": {
-        "title": "Keine Aufgaben in {{workspace}}",
-        "description": "Aufgaben, die diesem Arbeitsbereich zugewiesen sind, erscheinen hier"
       }
     },
     "docs": {
@@ -875,11 +853,6 @@
         "title": "Noch keine Meetings",
         "description": "Erstelle deine erste Meeting-Notiz, um loszulegen"
       }
-    },
-    "brief": {
-      "title": "Noch kein Briefing",
-      "description": "Beschreibe, worum es in diesem Projekt geht und worauf es läuft. Alles Übrige wird aus deinen Aufgaben, Dokumenten und Meetings abgeleitet, aber diesen Teil kannst nur du schreiben.",
-      "action": "Briefing schreiben"
     }
   },
   "toasts": {
@@ -892,8 +865,6 @@
       "modelSet": "Modell auf {{model}} gesetzt",
       "usageCleared": "Nutzungsverlauf gelöscht",
       "privacyAcknowledgementReset": "KI-Datenschutz-Bestätigung zurückgesetzt",
-      "toolDetailsShown": "Tool-Details werden angezeigt",
-      "toolDetailsHidden": "Tool-Details werden ausgeblendet",
       "agentFileEnabled": "{{file}} aktiviert",
       "agentFileRemoved": "{{file}} entfernt",
       "indexBuilt": "Index erstellt: {{files}} Dateien in {{workspaces}} Arbeitsbereichen",
@@ -946,7 +917,8 @@
       "importDocs_other": "{{count}} Dokumente importiert",
       "importFiles_one": "{{count}} Datei importiert",
       "importFiles_other": "{{count}} Dateien importiert",
-      "importMixed": "{{docs}} Dokumente und {{files}} Dateien importiert"
+      "importMixed": "{{docs}} Dokumente und {{files}} Dateien importiert",
+      "createError": "Datei konnte nicht erstellt werden"
     },
     "meeting": {
       "created": "Meeting erstellt",
@@ -977,15 +949,13 @@
     "brief": {
       "create": {
         "error": "Briefing konnte nicht erstellt werden"
-      },
+      }
+    },
+    "state": {
       "refresh": {
-        "error": "Briefing konnte nicht aktualisiert werden",
-        "success": "Briefing aktualisiert"
-      },
-      "apply": {
-        "error": "Briefing konnte nicht gespeichert werden"
-      },
-      "promptCopied": "Prompt kopiert"
+        "error": "Projektstand konnte nicht aktualisiert werden",
+        "success": "Aktueller Stand aktualisiert"
+      }
     }
   },
   "errors": {
@@ -1053,6 +1023,14 @@
     "update": {
       "checkFailed": "Update-Prüfung fehlgeschlagen",
       "installFailed": "Update-Installation fehlgeschlagen"
+    },
+    "ai": {
+      "quota": "Kontingent aufgebraucht. Prüfe deinen Tarif und die Abrechnung beim Anbieter.",
+      "auth": "Der API-Schlüssel wurde abgelehnt. Prüfe, ob er gültig ist.",
+      "rate-limit": "Ratenlimit erreicht. Versuche es gleich noch einmal.",
+      "network": "Der AI-Anbieter war nicht erreichbar. Prüfe deine Verbindung.",
+      "model-not-found": "Das gewählte Modell ist nicht verfügbar.",
+      "unknown": "Die AI-Anfrage ist fehlgeschlagen."
     }
   },
   "email": {
@@ -1142,7 +1120,6 @@
     },
     "docContextMenu": {
       "moveTo": "Verschieben nach...",
-      "moveToRoot": "Stammverzeichnis",
       "workspaceLevel": "Workspace-Dokumente"
     },
     "folderContextMenu": {

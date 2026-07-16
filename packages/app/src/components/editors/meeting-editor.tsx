@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, useMoveMeetingToProject, useProjects } from "@/stores";
-import { indexDocumentOnSave } from "@/lib/context-index/indexer";
 import { useEditorSession, useEditorTab, useEditorSaveShortcut, useEditorSaveAndClose, useEditorProjectMove, useEditorAIInclusion } from "@/hooks/editor";
 import { useInternalLinkHandler } from "@/hooks";
 import { EditorHeader } from "./editor-header";
@@ -57,22 +56,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meeting?.id, workspaceId]);
 
-  const handleSaveComplete = useCallback(
-    (path: string, content: string) => {
-      if (!meeting) return;
-      indexDocumentOnSave({
-        path,
-        content,
-        workspaceId,
-        contentType: "meeting",
-        title: title || meeting.title,
-        projectId: meeting.projectId,
-        created: meeting.created,
-      });
-    },
-    [meeting, workspaceId, title]
-  );
-
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.
   const persistBody = useCallback(
@@ -117,7 +100,6 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     // In browser mock mode it is the content the editor shows.
     initialContent: meeting?.content ?? "",
     enabled: !!meeting,
-    onSaveComplete: handleSaveComplete,
     persistBody,
   });
 

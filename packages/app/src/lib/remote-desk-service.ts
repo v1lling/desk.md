@@ -12,8 +12,8 @@
  * (base64 for the one Uint8Array arg in importFiles); errors thrown here surface
  * through React Query unchanged.
  */
-import { encode, decode } from "@desk/core";
-import type { DeskService } from "@desk/core";
+import { encode, decode, AIProviderError, type AIErrorCode } from "@desk/core";
+import type { DeskService, AIProviderType } from "@desk/core";
 
 // Compile-time invariant: every DeskService method must return a Promise. The
 // Proxy below always wraps calls in a Promise, so a synchronous method would
@@ -63,11 +63,25 @@ export function createRemoteDeskService(
     const text = await res.text();
     if (!res.ok) {
       let message = `desk RPC ${op} failed (${res.status})`;
+      let code: string | undefined;
+      let provider: string | undefined;
       try {
-        const body = JSON.parse(text) as { error?: { message?: string } };
+        const body = JSON.parse(text) as {
+          error?: { message?: string; code?: string; provider?: string };
+        };
         if (body?.error?.message) message = body.error.message;
+        code = body?.error?.code;
+        provider = body?.error?.provider;
       } catch {
         /* non-JSON error body — keep the generic message */
+      }
+      // Reconstruct a typed AI error so the UI maps it exactly like a local (in-process) one.
+      if (code?.startsWith("ai/")) {
+        throw new AIProviderError(
+          code.slice(3) as AIErrorCode,
+          (provider as AIProviderType) ?? "openai",
+          message,
+        );
       }
       throw new Error(message);
     }

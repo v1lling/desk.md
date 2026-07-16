@@ -42,6 +42,7 @@ couplings are injectable registries (set/get) that the host wires before any dom
 | Storage | `setStorage` | `TauriProvider` / `BrowserProvider` | `NodeFsProvider` |
 | Editor notify | `setEditorNotifier` | open-editor registry | no-op default |
 | Agent-context write | `setAgentContextWriter` | `lib/context-index` | no-op default |
+| AI key | `setAIKeyResolver` | OS Keychain (`lib/ai/secrets`) | env (`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`) |
 
 The app wires these in [packages/app/src/main.tsx](packages/app/src/main.tsx); the server in [packages/server/src/boot.ts](packages/server/src/boot.ts).
 
@@ -95,6 +96,44 @@ Context is the *narrative* (small, judged, maintained) and answers "what is goin
 agent can read a 227-line `WORKSPACE_CONTEXT.md` and still not know what the workspace *is*. Ship
 both, composed: context first, index below.
 
+### The brief and the state file
+
+A project's map is **two files, split by author** — the split IS the safety mechanism, replacing
+the old section-merge machinery (`mergeAISections`, deleted) with a structural guarantee: AI only
+ever writes its own file, so the user's words are never in an AI write path at all.
+
+- **The brief** (`context/YYYY-MM-DD-brief.md`) is **fully human**. Two seeded sections, `What
+  this is` and `Systems & stack` — the intent that cannot be derived from records. AI never
+  writes it (the norms tell agents it is read-only). A project with nothing seeded gets **no
+  file**: an empty brief of bare headings looks done and is noise to an agent.
+- **The state file** (`context/YYYY-MM-DD-state.md`, title "Current state", `author: ai`) is
+  **fully AI-maintained**. The app owns its lifecycle — path, filename, frontmatter — via
+  `writeProjectState` ([packages/core/src/desk/project-state.ts](packages/core/src/desk/project-state.ts));
+  the model only supplies the body, rewritten wholesale ("reconcile, don't append").
+- **Identity is the frozen slug, never the title** for both files. `findProjectBrief` /
+  `findProjectState` resolve by filename ([packages/core/src/desk/project-brief.ts](packages/core/src/desk/project-brief.ts));
+  the title is display-only. Never locate either with `generateFilename(title)`. A
+  `context/archive/…-state.md` is an old copy, not the live file (slash guard).
+
+**The refresh runs itself — via the maintenance engine.** Every record write funnels through
+core `file-operations.ts`, which publishes on the **domain-write bus**
+([packages/core/src/desk/domain-write-bus.ts](packages/core/src/desk/domain-write-bus.ts)); the
+**maintenance engine** ([packages/core/src/desk/maintenance/](packages/core/src/desk/maintenance/))
+subscribes and schedules a per-project debounced (90s) state refresh plus a per-path debounced
+(5s) Smart Index update. The engine runs on whichever host owns the data (app in local mode,
+server in hosted mode); in local mode the Tauri watcher additionally feeds external file edits
+into it (`notifyExternalChanges`). Gated at fire time by consent/env-key + the
+`autoRefreshProjectState` toggle + `changedSince > 0`, which makes it self-terminating: writing
+the state file zeroes the count. Context paths never schedule. The Context panel keeps a manual
+refresh icon (`DeskService.refreshProjectState` — server-executed in hosted mode).
+
+**Freshness is drift, not age — and it is scoped to the state file.** `computeContextFreshness`
+([packages/core/src/desk/context-freshness.ts](packages/core/src/desk/context-freshness.ts)) counts
+records newer than the state file's stamp. No day-count threshold: a stable project with a
+six-month-old state is fine. **No state file + records = status `"never"`** and the whole history
+becomes the reconcile set — a fresh brief on an old project must never read "up to date". The UI
+says "reviewed", never "verified" (any save stamps `updated`).
+
 ## Tech Stack
 
 - **Frontend**: Vite, React 19, React Router, TypeScript, Tailwind CSS, shadcn/ui
@@ -108,7 +147,7 @@ both, composed: context first, index below.
 ## Data Models
 
 ```typescript
-type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done';
+type TaskStatus = 'backlog' | 'todo' | 'doing' | 'waiting' | 'done';
 type TaskPriority = 'low' | 'medium' | 'high';
 type ProjectStatus = 'active' | 'paused' | 'completed' | 'archived';
 type ContentScope = 'personal' | 'workspace' | 'project';
@@ -135,6 +174,14 @@ type ContentScope = 'personal' | 'workspace' | 'project';
   `formatLocaleDate` (both local); never `new Date("YYYY-MM-DD")` (UTC midnight → previous day in
   negative-offset zones). Compare due/created dates as **strings** (`a < b` is chronological for this
   format), e.g. `isOverdue` in `lib/format.ts`.
+- **Never compare stamps of mixed precision as strings.** The rule above holds only *within* one
+  format. `updated` is a UTC **datetime** and `created` is a local **date-only** day, and a date-only
+  string is a *prefix* of a datetime, so it sorts **less**: `"2026-07-13" < "2026-07-13T09:00Z"`. A
+  record created at 18:00 therefore reads as *older* than a brief refreshed at 09:00, which silently
+  hides drift. `computeContextFreshness` compares **interval bounds** instead (a date-only value is a
+  whole local day), taking records at their upper bound and context at its lower bound so ambiguity
+  always resolves toward "stale". `compareDatesDesc` is fine for sorting display lists; it is not a
+  soundness tool.
 
 ## Key Directories
 
@@ -148,14 +195,20 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `desk/env.ts` | Data-root resolution, path joining, bootstrap (not I/O) |
 | `desk/platform.ts` | Pure runtime checks (`isTauri`/`isMacOS`), dependency-free to avoid import cycles |
 | `desk/agent-queries.ts` | Read-side queries (tree/read/search) for MCP + the Smart Index, backed by `StorageProvider` |
+| `desk/project-brief.ts` | The brief (human): frozen-slug identity (`findProjectBrief`), idempotent `ensureProjectBrief` |
+| `desk/project-state.ts` | The state file (AI): `findProjectState`, app-owned `writeProjectState` (model supplies only the body) |
+| `desk/context-freshness.ts` | Has the state file drifted from the records? Pure, no clock, interval-bounds comparison, `"never"` for the adoption case |
 | `desk/file-cache/` | File tree cache for list views (LRU cache) — pure logic only |
+| `desk/ai/` | Runtime-agnostic AI layer: providers, `AIService`, prompts, `setAIKeyResolver` seam |
+| `desk/maintenance/` | The maintenance engine: domain-write-bus subscriber, Smart Index updater/rebuild, state refresher |
+| `desk/domain-write-bus.ts` + `desk/path-identity.ts` | The ONE maintenance trigger (published from `file-operations.ts`) + path classification |
 | `desk/{data-root,editor-notifier,agent-context-writer}.ts` | The injectable host seams (see Monorepo Layout) |
 
 **`@desk/app` (`packages/app/src/`) — UI layer:**
 
 | Directory | Purpose |
 |-----------|---------|
-| `lib/ai/` | AI integration (see [README](packages/app/src/lib/ai/README.md)) |
+| `lib/ai/` | OS-Keychain secrets only — the AI layer itself is core `desk/ai/` (see [README](packages/app/src/lib/ai/README.md)) |
 | `lib/context-index/` | Smart Index: AI-summarized file catalog for context retrieval |
 | `lib/email/` | `.eml` parsing + email tab data shapes |
 | `lib/{file-tree-hooks,cache-invalidator,desk-watcher}.ts` | React/query-coupled file-cache glue |
@@ -169,7 +222,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `app/` | App shell, providers, globals.css |
 | `../src-tauri/` (i.e. `packages/app/src-tauri/`) | Tauri 2 Rust shell (commands, drop overlay, icons, `tauri.conf.json`) |
 
-## Current State: v0.9
+## Current State: v0.10
 
 > The source of truth for the version is `packages/app/package.json` / `packages/app/src-tauri/tauri.conf.json`. All workspace packages (`core`, `app`, `server`) are versioned in lockstep — the release workflow enforces this. Keep this heading in sync when bumping.
 
@@ -180,9 +233,14 @@ Key features:
 - Workspaces with color coding (home workspace defaults to indigo)
 - Projects Hub at `/projects`: secondary-sidebar project list + an overview dashboard
   (inline status/description edit, task stats, quick links to Tasks/Docs/Meetings)
+- **Project brief + state file**: a seeded, fully-human `context/YYYY-MM-DD-brief.md` per project
+  plus an AI-owned `context/YYYY-MM-DD-state.md` ("Current state", `author: ai`), rewritten in the
+  background as records change (watcher-triggered, debounced, freshness-gated). The Context panel
+  on Project Home shows both and whether the snapshot has drifted. No progress bars anywhere:
+  counts have no denominator and cannot lie.
 - **Docs**: Tree structure with folders; drag-drop import converts Word/PDF/Excel/CSV/HTML
   to Markdown (mammoth, pdfjs-dist, read-excel-file, papaparse, turndown), targeting the drop folder
-- **Smart Index (AI catalog)**: AI-summarized file catalog (Anthropic/OpenAI key in the OS Keychain) for context retrieval; external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local).
+- **Smart Index (AI catalog)**: AI-summarized file catalog for context retrieval, maintained by the engine on whichever host owns the data (local: Keychain key; hosted: server env key — web clients get it too); external agents connect over **MCP** (hosted) or the generated `CLAUDE.md`/`AGENTS.md` (local).
 - **i18n**: all UI copy via i18next/react-i18next from [packages/app/src/i18n/en.json](packages/app/src/i18n/en.json)
 - Cross-platform: macOS, Windows, and Linux (email drag-drop overlay is macOS-only)
 - Global search (Cmd+K)
@@ -233,16 +291,26 @@ interface IncomingEmail {
 
 The Smart Index builds an AI-summarized file catalog per workspace. There is no in-app chat assistant — external agents reach desk over **MCP** (`@desk/server`, read-only tools `desk_workspace_info`/`desk_tree`/`desk_read`/`desk_search`/`desk_catalog`, plus the `draft-email-reply` prompt) in hosted mode, and over generated `CLAUDE.md`/`AGENTS.md` in local mode. There are no Rust `desk_*` commands.
 
-**Read layer routes through `DeskService`, not bare `getStorage()`.** The read queries (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) plus the Smart Index build reads and its cache (`getIndexCache`/`setIndexCache` → `.desk/index/indexes.json`) all go through `getDeskService()`. So in hosted mode they run on the **server** (the catalog lives server-side for MCP), not the client's local disk. The MCP tools on the server read through the same `DeskService`.
+**Read layer routes through `DeskService`, not bare `getStorage()`.** The read queries (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) plus the Smart Index read (`getIndexCache` → `.desk/index/indexes.json`; writes are core-internal via the maintenance engine's `index-store-io`) all go through `getDeskService()`. So in hosted mode they run on the **server** (the catalog lives server-side for MCP), not the client's local disk. The MCP tools on the server read through the same `DeskService`.
 
-**AI compute runs where the local key is.** The Smart Index model runs client-side on the local Keychain key (so native-remote indexes the server's files using the locally-typed key; web-hosted has no key → index off until a future server-side-AI step). Catalog/indexer AI calls log token usage to the AI settings **Usage** panel (`purpose: 'index'`). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`) are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the external-agent interface, not generated markdown.
+**AI maintenance runs where the data lives.** The AI layer (providers, `AIService`, prompts) is
+core (`desk/ai/`, key via the `setAIKeyResolver` seam); the maintenance engine (`desk/maintenance/`)
+runs in-process on whichever host owns the domain — the app in local mode (Keychain key, consent
+dialog), the **server** in hosted mode (env keys; setting one is the operator's consent), so hosted
+web clients get the Smart Index too. Provider/model + toggles are USER settings in
+`.desk/settings/ai-maintenance.json` (shared with the server engine); usage is appended in-process
+by whichever host runs the AI (core `appendAIUsage`) to `.desk/usage/ai-usage.json`, and read back
+via `DeskService.getAIUsage` (the Usage panel works in every mode). The generated agent files (`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/`WORKSPACE_CONTEXT.md`)
+are a **local-mode feature** — skipped when `isRemoteMode()`; in hosted mode **MCP** is the
+external-agent interface, not generated markdown.
 
 **Key files:**
 | Directory | Purpose |
 |-----------|---------|
 | `packages/app/src/lib/context-index/` | Smart Index: builder, indexer, artifacts, agent context |
 | `packages/app/src/lib/context-index/agent-context.ts` | Generates CLAUDE.md + AGENTS.md for external agents |
-| `packages/app/src/stores/context.ts` | Context settings (Zustand, persisted) |
+| `packages/app/src/stores/agent-settings.ts` | Agent-file emit toggles + background-AI settings (Zustand, persisted) |
+| `packages/core/src/desk/maintenance/` | Background engine: state refresh + index updates (bus-triggered, debounced) |
 | `packages/app/src/stores/context-index.ts` | Smart Index data store |
 
 ## UI Patterns
@@ -264,7 +332,7 @@ toast.success(i18next.t("toasts.workspace.create.success"));
 
 Namespace tree (top-level keys in `en.json`): `common`, `nav`, `pages.*`, `settings.*`, `modals.*`, `editors.*`, `entities.*`, `emptyStates`, `toasts`, `errors`, `email`, `search`, `smartIndex`, `setup`, `tooltips`, `menus`. Feature-specific copy goes under `pages.*` or `settings.*`; reusable strings (buttons, status labels) under `common` or `entities.*`. Interpolate with `{{name}}` and use `count` for plurals (i18next handles `_one` / `_other` suffixes automatically).
 
-**Out of scope for translation** — these stay English in source: AI system prompts ([packages/app/src/lib/ai/prompts.ts](packages/app/src/lib/ai/prompts.ts)), MCP tool/prompt descriptions ([packages/server/src/mcp.ts](packages/server/src/mcp.ts)), generated agent files ([packages/app/src/lib/context-index/agent-context.ts](packages/app/src/lib/context-index/agent-context.ts), [packages/app/src/lib/context-index/artifacts.ts](packages/app/src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` (within `@desk/app`) only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
+**Out of scope for translation** — these stay English in source: AI system prompts ([packages/core/src/desk/ai/prompts.ts](packages/core/src/desk/ai/prompts.ts)), MCP tool/prompt descriptions ([packages/server/src/mcp.ts](packages/server/src/mcp.ts)), generated agent files ([packages/app/src/lib/context-index/agent-context.ts](packages/app/src/lib/context-index/agent-context.ts), [packages/app/src/lib/context-index/artifacts.ts](packages/app/src/lib/context-index/artifacts.ts)), `console.*` debug strings, file paths, localStorage keys, frontmatter field names, status enum *values*. The ESLint rule `i18next/no-literal-string` is scoped to `src/components/**` and `src/pages/**` (within `@desk/app`) only — it will flag bare strings; fix them by adding a key to `en.json` and using `t()`.
 
 ### Scrolling
 Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable content. It uses OverlayScrollbars for consistent styling across platforms (including Tauri/macOS).
@@ -371,23 +439,26 @@ needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri
 |-------|-------|------|-------------|
 | Tasks / docs / meetings / projects / workspaces | USER | markdown files | `getDeskService()` |
 | View state (`.view.json`: task order, view mode, expanded folders, highlights, hidden statuses) | USER | `.view.json` | `getDeskService().getViewState/…` |
-| Templates, agent-instructions, week planner | USER | `.desk/settings/*.json` | `getDeskService().getSetting/setSetting` (via `createRemoteSettingStorage`) |
-| Smart/context index, AI usage | DERIVED | `.desk/index`, `.desk/usage` | `createFileStorage` (local) |
+| Templates, agent-instructions, week planner, **AI maintenance settings** (provider/model + auto-summarize/auto-refresh toggles) | USER | `.desk/settings/*.json` (plain JSON — the zustand persist envelope is contained in `createRemoteSettingStorage`) | `getDeskService().getSetting/setSetting` |
+| Smart/context index | DERIVED | `.desk/index/indexes.json` (plain `{indexes}`) | **core is the sole writer** (maintenance engine + local rebuild via `writeWorkspaceIndex`); the app reads only, through a TanStack query over `getIndexCache` (`useSmartIndex`) |
+| AI usage log | DERIVED (telemetry) | `.desk/usage/ai-usage.json` | core `appendAIUsage` (in-process write) + `getDeskService().getAIUsage` (read) |
 | Preferences (theme, language, sidebar widths, workday hours, dismissedUpdate) | DEVICE | localStorage `desk-preferences` | zustand persist |
 | Navigation (current workspace), tabs | DEVICE | localStorage | zustand persist |
 | Boot (dataPath, setupCompleted, connectionMode, serverUrl) | DEVICE | localStorage `desk-boot` + Rust `config.json` | boot store / Rust |
-| AI provider/model selection + consent | DEVICE | localStorage `desk-ai-settings-v2` | zustand persist |
+| AI key presence + consent | DEVICE | localStorage `desk-ai-settings-v2` | zustand persist |
 | AI keys, remote session token | DEVICE | OS Keychain | `secret_*` Tauri commands |
 | Auth (users, sessions) | AUTH | SQLite (hosted only) | Better Auth |
 
-> Known not-yet-moved: `ai.ts` custom/per-type instructions and `context.ts` emit-flags are
-> conceptually USER but live in stores that also hold DEVICE fields; splitting them is a follow-up.
+> The `agent-settings.ts` emit-flags stay DEVICE deliberately: generated agent files only exist
+> on a local disk, so the toggles are per-machine by nature.
 
 **Rules:**
 - A new **user-level** setting → a `.desk/settings/<key>.json` via `createRemoteSettingStorage(key)`
   (app store) which routes through `DeskService.getSetting/setSetting`. Never bare `localStorage`.
 - A new **device-level** UI preference → `localStorage` (plain zustand persist). Never a file.
-- A **derived cache** → `createFileStorage` (`.desk/`); do not sync large caches over RPC.
+- A **derived cache** → a file under `.desk/` written by core (the Smart Index via
+  `index-store-io`; the app reads it through `DeskService.getIndexCache` / `useSmartIndex`);
+  do not sync large caches over RPC.
 - **Format**: JSON for structured data, plain text for lists (`.aiignore`).
 
 **No Backwards Compatibility:** Single user, no migration code. Moving a setting's home just

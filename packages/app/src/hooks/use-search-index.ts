@@ -17,11 +17,9 @@ import {
 } from "@desk/core";
 import {
   onFileChange,
-  getWorkspaceIdFromPath,
   type WatchEvent,
 } from "@/lib/desk-watcher";
-import { isTauri } from "@desk/core";
-import { getDeskService } from "@desk/core";
+import { isTauri, getWorkspaceIdFromPath, getDeskService } from "@desk/core";
 
 /**
  * Hook to initialize and maintain the search index

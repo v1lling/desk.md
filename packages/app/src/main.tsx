@@ -25,8 +25,8 @@ async function bootstrap() {
   const { useBootStore } = await import("./stores/boot");
   setDataRootResolver(async () => useBootStore.getState().dataPath || "~/Desk");
 
-  // Set the Tauri FS scope BEFORE any store module is evaluated. Zustand
-  // `persist` stores backed by createFileStorage read the filesystem during
+  // Set the Tauri FS scope BEFORE any store module is evaluated. File-backed
+  // zustand stores (createRemoteSettingStorage & co.) read the filesystem during
   // hydration at module-eval time — that must happen after the scope is set,
   // otherwise the narrowed capability denies the read and the store hydrates
   // empty. expandFsScope() is a no-op in browser mode (isTauri() guard inside).
@@ -35,7 +35,7 @@ async function bootstrap() {
     await expandFsScope(); // no arg → getDeskPath() → data-root resolver → boot store
   } catch (error) {
     // Never block launch on a scope failure — fs calls will just be denied,
-    // and createFileStorage.getItem already catches & returns null.
+    // and the file-backed store adapters already catch & return null.
     console.error("[Desk] expandFsScope failed at bootstrap:", error);
   }
 
@@ -55,6 +55,18 @@ async function bootstrap() {
   setAgentContextWriter({
     writePerWorkspace: writePerWorkspaceAgentFiles,
     writeTopLevel: writeTopLevelAgentFiles,
+  });
+
+  // AI key seam: the app resolves provider keys from the OS Keychain. Outside Tauri the
+  // secrets module throws BrowserModeError — mapped to "no key", which every caller handles.
+  const { setAIKeyResolver } = await import("@desk/core");
+  setAIKeyResolver(async (ref) => {
+    try {
+      const { getSecret } = await import("./lib/ai/secrets");
+      return await getSecret(ref);
+    } catch {
+      return null;
+    }
   });
 
   // Hosted mode (step 3a): when this bundle is built for the server
@@ -96,6 +108,11 @@ async function bootstrap() {
       );
     }
   }
+
+  // AI maintenance runs where the data lives: start the engine only when this app owns the
+  // data (local disk). In remote mode the server runs it. No-ops internally otherwise.
+  const { startAppMaintenanceEngine } = await import("./lib/maintenance");
+  await startAppMaintenanceEngine();
 
   // Dynamic import: the App module graph (and every store with persist) is
   // only evaluated now, after the FS scope is in place.

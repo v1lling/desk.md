@@ -32,14 +32,21 @@ export * from "./norms";
 
 // ── Docs tree + queries + planner ───────────────────────────────────
 export * from "./content-tree";
-export * from "./doc-sections";
 export * from "./context-freshness";
 export * from "./project-brief";
+export * from "./project-state";
 export * from "./agent-queries";
 export * from "./planner";
 
 // ── Catalog (always-complete, AI-free metadata index) ───────────────
 export * from "./catalog";
+
+// ── AI (runtime-agnostic provider/service layer; key via injectable seam) ──
+export * from "./ai";
+export * from "./ai-usage";
+
+// ── Maintenance engine (Smart Index + project state; runs where the data lives) ──
+export * from "./maintenance";
 
 // ── Search ──────────────────────────────────────────────────────────
 export * from "./search";
@@ -60,6 +67,10 @@ export * from "./agent-context-writer";
 
 // ── Pub/sub for editor sync (pure; wired to the watcher by the app) ──
 export * from "./editor-event-bus";
+
+// ── Domain-write bus + path classification (the maintenance trigger) ──
+export * from "./domain-write-bus";
+export * from "./path-identity";
 
 // ── Infrastructure ──────────────────────────────────────────────────
 // Note: the file watcher and the React file-tree hooks are UI/Tauri glue and

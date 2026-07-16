@@ -118,54 +118,6 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Open a terminal at a specific directory
-#[tauri::command]
-fn open_in_terminal(path: String) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        Command::new("open")
-            .args(["-a", "Terminal", &path])
-            .spawn()
-            .map_err(|e| format!("Failed to open terminal: {}", e))?;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        Command::new("cmd")
-            .args(["/C", "start", "cmd", "/K", &format!("cd /d \"{}\"", path)])
-            .spawn()
-            .map_err(|e| format!("Failed to open terminal: {}", e))?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        // x-terminal-emulator is a Debian alternative and isn't present on
-        // every distro — try a series of common terminal emulators.
-        let terminals = [
-            "x-terminal-emulator",
-            "gnome-terminal",
-            "konsole",
-            "xfce4-terminal",
-            "xterm",
-        ];
-        let mut opened = false;
-        for term in terminals {
-            if Command::new(term).current_dir(&path).spawn().is_ok() {
-                opened = true;
-                break;
-            }
-        }
-        if !opened {
-            return Err(
-                "No terminal emulator found. Install one of: gnome-terminal, konsole, xterm."
-                    .to_string(),
-            );
-        }
-    }
-
-    Ok(())
-}
-
 /// Dynamically expand the file system scope to allow access to a directory.
 /// Called by the frontend on startup with the user's configured data path.
 #[tauri::command]
@@ -273,7 +225,6 @@ pub fn run() {
             delete_dropped_file,
             open_file_with_default_app,
             reveal_in_finder,
-            open_in_terminal,
             secrets::secret_get,
             secrets::secret_set,
             secrets::secret_delete,

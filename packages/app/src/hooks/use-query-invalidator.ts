@@ -15,12 +15,14 @@ import {
   startWatching,
   stopWatching,
   onFileChange,
+  type WatchEvent,
+} from "@/lib/desk-watcher";
+import {
   getItemTypeFromPath,
   getWorkspaceIdFromPath,
   getProjectIdFromPath,
   isCapturePath,
-  type WatchEvent,
-} from "@/lib/desk-watcher";
+} from "@desk/core";
 import {
   taskKeys,
   contentKeys,
@@ -41,6 +43,7 @@ import { publishContentUpdate, publishDeleted } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { parseMarkdown } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
+import { notifyExternalChanges } from "@desk/core";
 
 /**
  * Hook to initialize file watching and route events
@@ -109,6 +112,12 @@ async function handleFileChange(
   // views refetch. (Editor-handled paths are synced above; the extra background
   // list refetch here is harmless and keeps list views consistent.)
   invalidateQueriesForPaths(event.paths, queryClient);
+
+  // Feed the change into the maintenance engine (core desk/maintenance). The engine gets the
+  // app's own writes from the domain-write bus already; this covers EXTERNAL edits — an agent
+  // or script writing into the folder gets the same index update + state refresh. The double
+  // arrival of our own writes is absorbed by the engine's debounces.
+  notifyExternalChanges(event.paths, event.kind === "remove" ? "remove" : "modify");
 }
 
 /**
@@ -293,6 +302,29 @@ function invalidateQueriesForChanges(
           queryClient.invalidateQueries({
             queryKey: meetingKeys.byWorkspace(workspaceId),
           });
+        }
+        break;
+
+      case "context":
+        // Context files (workspace- and project-level). Before this case existed they fell
+        // into "unknown", so an external context edit never refreshed the context tree the
+        // panel reads — and the background state write needs this to show up.
+        for (const workspaceId of affectedWorkspaces) {
+          queryClient.invalidateQueries({
+            queryKey: contentKeys.tree("workspace", workspaceId, undefined, "context"),
+          });
+          queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(workspaceId) });
+          const projects = affectedProjects.get(workspaceId);
+          if (projects) {
+            for (const projectId of projects) {
+              queryClient.invalidateQueries({
+                queryKey: contentKeys.tree("project", workspaceId, projectId, "context"),
+              });
+              queryClient.invalidateQueries({
+                queryKey: contentKeys.mergedTree("project", workspaceId, projectId),
+              });
+            }
+          }
         }
         break;
 

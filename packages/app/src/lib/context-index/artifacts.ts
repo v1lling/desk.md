@@ -1,10 +1,10 @@
 import { joinPath } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
-import type { WorkspaceIndex } from "./types";
+import type { WorkspaceIndex } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
-import { anyAgentFileEnabled } from "@/stores/context";
+import { anyAgentFileEnabled } from "@/stores/agent-settings";
 
 /** Collapse whitespace so a value is safe to place on a single catalog line. */
 function oneLine(value: string): string {

@@ -63,6 +63,15 @@ key to manage — it's the standard OAuth grant.
 > Don't put the server behind a separate SSO/zero-trust gate (Cloudflare Access, etc.).
 > desk.md's own OAuth is the access control; an extra login in front breaks the connector grant.
 
+## Server-side AI
+
+Add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` to `.env` and the server runs the AI maintenance
+itself: Smart Index summaries and each project's Current state file stay fresh as records
+change, with no desktop app involved — hosted web clients get the full Smart Index. Setting a
+key is your consent to send file previews to that provider. Provider and model selection come
+from the shared app settings (Settings → AI in any client); without a key everything still
+works, files just carry metadata without AI summaries.
+
 ## Use the desktop app against your server
 
 The native desktop app can point at your server instead of local disk (Settings →
@@ -74,7 +83,7 @@ For developing the client from source against a live server (`npm run tauri:dev`
 
 See [.env.example](.env.example) for the full list. Required: `BETTER_AUTH_SECRET`. For
 production also set `DESK_PUBLIC_URL`. Optional: `DESK_DATA_DIR`, `DESK_PORT`,
-`DESK_TRUSTED_ORIGINS`.
+`DESK_TRUSTED_ORIGINS`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
 
 ---
 

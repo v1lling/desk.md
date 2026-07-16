@@ -1,13 +1,3 @@
-import { useAISettingsStore } from "@/stores/ai";
-
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
 type TFunction = (key: string, options?: Record<string, unknown>) => string;
 
 /**
@@ -28,13 +18,4 @@ export function formatRelativeTime(dateStr: string | null, t: TFunction): string
   if (minutes < 60) return t("settings.smartIndex.relativeTime.minutesAgo", { count: minutes });
   if (hours < 24) return t("settings.smartIndex.relativeTime.hoursAgo", { count: hours });
   return t("settings.smartIndex.relativeTime.daysAgo", { count: days });
-}
-
-/**
- * Check if AI provider is configured for Smart Index.
- * OpenAI and Anthropic both require API keys.
- */
-export function isAIProviderConfigured(): boolean {
-  const { providerType, providerConfigured } = useAISettingsStore.getState();
-  return !!providerConfigured[providerType];
 }

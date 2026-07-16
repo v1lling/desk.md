@@ -2,7 +2,7 @@
  * Zustand persist storage for user-level settings that should follow the user
  * across devices (templates, agent instructions, the week planner).
  *
- * Unlike `file-storage.ts` (which writes via the local `getStorage()` and so stays
+ * Unlike a plain local-file zustand storage (which would write via the local getStorage() and stay
  * on *this* machine even in hosted mode), this adapter routes through
  * `getDeskService().getSetting/setSetting`. So the data lands wherever the domain
  * runs: the server's `.desk/settings/<key>.json` in hosted mode (shared), the local
@@ -14,72 +14,47 @@
  * RemoteDeskService and uses it.
  */
 import { getDeskService, isTauri } from "@desk/core";
-import type { PersistStorage } from "zustand/middleware";
+import type { PersistStorage, StorageValue } from "zustand/middleware";
 
 const isBrowserMock = !isTauri() && !import.meta.env.VITE_DESK_HOSTED;
 
-export function createRemoteSettingStorage<T>(key: string): PersistStorage<T> {
-  return {
-    getItem: async (name) => {
-      if (isBrowserMock) {
-        const str = localStorage.getItem(name);
-        return str ? JSON.parse(str) : null;
-      }
-      const raw = await getDeskService().getSetting(key);
-      return raw ? JSON.parse(raw) : null;
-    },
-
-    setItem: async (name, value) => {
-      if (isBrowserMock) {
-        localStorage.setItem(name, JSON.stringify(value));
-        return;
-      }
-      await getDeskService().setSetting(key, JSON.stringify(value));
-    },
-
-    removeItem: async (name) => {
-      if (isBrowserMock) {
-        localStorage.removeItem(name);
-        return;
-      }
-      // No hard delete on the seam; an empty value reads back as "no state".
-      await getDeskService().setSetting(key, JSON.stringify(null));
-    },
-  };
+/**
+ * The zustand persist envelope (`{state, version}`) stays contained HERE: `.desk/settings/*.json`
+ * on disk is plain state, so a core reader (the maintenance engine's `config.ts`) sees a plain
+ * object, not a UI library's persistence format. We unwrap on write and re-wrap on read; a legacy
+ * enveloped file is tolerated on read so nothing has to migrate.
+ */
+async function readRaw(name: string, key: string): Promise<string | null> {
+  return isBrowserMock ? localStorage.getItem(name) : getDeskService().getSetting(key);
 }
 
-/**
- * Like {@link createRemoteSettingStorage} but for the Smart Index cache, which has
- * its own DeskService method pair (`getIndexCache`/`setIndexCache` →
- * `.desk/index/indexes.json`) so the catalog follows the domain server-side in
- * hosted mode. DERIVED, not a user setting — kept on its own seam, same browser-
- * mock localStorage fallback for the dev loop.
- */
-export function createRemoteIndexStorage<T>(): PersistStorage<T> {
+async function writeRaw(name: string, key: string, value: string): Promise<void> {
+  if (isBrowserMock) localStorage.setItem(name, value);
+  else await getDeskService().setSetting(key, value);
+}
+
+export function createRemoteSettingStorage<T>(key: string): PersistStorage<T> {
   return {
-    getItem: async (name) => {
-      if (isBrowserMock) {
-        const str = localStorage.getItem(name);
-        return str ? JSON.parse(str) : null;
+    getItem: async (name): Promise<StorageValue<T> | null> => {
+      const raw = await readRaw(name, key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed === null) return null; // removed / empty
+      // Plain state now; tolerate a legacy `{state, version}` envelope still on disk.
+      if (typeof parsed === "object" && "state" in parsed) {
+        return parsed as StorageValue<T>;
       }
-      const raw = await getDeskService().getIndexCache();
-      return raw ? JSON.parse(raw) : null;
+      return { state: parsed as T, version: 0 };
     },
 
     setItem: async (name, value) => {
-      if (isBrowserMock) {
-        localStorage.setItem(name, JSON.stringify(value));
-        return;
-      }
-      await getDeskService().setIndexCache(JSON.stringify(value));
+      // Store just the state — the envelope is a persist detail that must not leak to disk.
+      await writeRaw(name, key, JSON.stringify(value.state));
     },
 
     removeItem: async (name) => {
-      if (isBrowserMock) {
-        localStorage.removeItem(name);
-        return;
-      }
-      await getDeskService().setIndexCache(JSON.stringify(null));
+      // No hard delete on the seam; an empty value reads back as "no state".
+      await writeRaw(name, key, JSON.stringify(null));
     },
   };
 }

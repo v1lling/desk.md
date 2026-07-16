@@ -233,12 +233,9 @@ export function DocsTree({
   }, [composedTree, authorFilter, searchQuery, sortBy, sortDir]);
 
   // Adapt to arborist, then splice in Workspace/Projects section headers at the boundary.
-  // The empty-Context call to action is suppressed while a search or author filter is narrowing
-  // the tree: a Context emptied by a filter is not an empty Context, and the prompt would lie.
-  const showContextEmptyState = !searchQuery.trim() && authorFilter === "all";
   const arboristData = useMemo(
-    () => insertSectionHeaders(nodesToArborist(filteredTree, "", showContextEmptyState)),
-    [filteredTree, showContextEmptyState],
+    () => insertSectionHeaders(nodesToArborist(filteredTree, "")),
+    [filteredTree],
   );
 
   // Folder AI states — feed both top-level paths (for the toggle) and project paths

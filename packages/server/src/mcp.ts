@@ -15,8 +15,9 @@
  * the spec requires, which is how a connector discovers the AS and starts the OAuth dance.
  *
  * Transport: the MCP SDK's web-standard Streamable HTTP transport (Fetch Request/Response),
- * stateless + JSON responses, so it drops straight onto a Hono route with no Node req/res
- * bridging. Writes are intentionally NOT exposed yet (read-only v1).
+ * with JSON responses, so it drops straight onto a Hono route with no Node req/res bridging.
+ * Sessions are STATEFUL (`initialize` mints an mcp-session-id; see registerMcp), auth stays
+ * per-request. Writes are intentionally NOT exposed yet (read-only v1).
  */
 import { randomUUID } from "node:crypto";
 import type { Hono } from "hono";
@@ -24,7 +25,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
-import { getDeskService, PATH_SEGMENTS, DESK_SPACE_NORMS } from "@desk/core";
+import { getDeskService, readWorkspaceIndex, PATH_SEGMENTS, DESK_SPACE_NORMS } from "@desk/core";
 import type { WorkspaceCatalog } from "@desk/core";
 import { auth, baseURL, MCP_RESOURCE, OAUTH_ISSUER, OAUTH_JWKS_URL } from "./auth";
 
@@ -62,11 +63,11 @@ Write like a person, not an AI. Avoid the tells that make text read as machine-g
 - No padded enthusiasm or "Hope this helps!" / "Feel free to reach out!" closers unless the original tone warrants it.
 - Don't over-explain or hedge. Say what's needed and stop. Vary sentence length so it doesn't read as uniform AI prose.
 
-If drafting the reply would benefit from workspace context (a referenced doc, task, or meeting), use this connector's desk_workspace_info / desk_tree / desk_search / desk_read tools to pull it before writing.`;
+If drafting the reply would benefit from workspace context (a referenced doc, task, or meeting), use this connector's desk_workspace_info / desk_catalog / desk_tree / desk_search / desk_read tools to pull it before writing.`;
 
 /**
- * Build a fresh MCP server with the read-only tool set. Created per request (stateless
- * transport), so there is no shared session state to leak between connectors.
+ * Build a fresh MCP server with the read-only tool set. Created once per SESSION (each new
+ * transport in registerMcp gets its own instance), so no state leaks between connectors.
  */
 function buildServer(): McpServer {
   // `instructions` reaches the client in the `initialize` response and is surfaced as
@@ -94,7 +95,7 @@ function buildServer(): McpServer {
     "desk_tree",
     {
       description:
-        "Structural fallback: a workspace's raw file tree as a flat list of workspace-relative paths, including assets and non-content files. Prefer desk_catalog to understand a workspace's content; use desk_tree to see structure or find a file the catalog doesn't list. Omit path for the full tree; pass path to drill in when truncated. `context/` directories (at the workspace root and each project root) hold the maintained orientation map — read those first; `docs/`, `tasks/`, and `meetings/` hold dated records.",
+        "A workspace's raw file tree as a flat list of workspace-relative paths, including assets and non-content files. Prefer desk_catalog for content; use this for structure or files the catalog doesn't list. Omit path for the full tree; pass path to drill in when truncated.",
       inputSchema: { workspace_id: z.string().min(1), path: z.string().optional() },
     },
     async ({ workspace_id, path }) => json(await svc.deskTree(workspace_id, path))
@@ -114,7 +115,7 @@ function buildServer(): McpServer {
     "desk_search",
     {
       description:
-        "Full-text search across a workspace's SOURCE files. By default the query is split into words and a file matches only when EVERY word appears somewhere in it (good for multi-word research); words match punctuation-insensitively (edu-id = eduid). Wrap the query in double quotes for an exact-phrase match. Snippets are capped; generated agent files are skipped. Note: this searches source content only — a concept that exists only in an AI summary won't appear here, so fall back to desk_catalog for summary-level discovery.",
+        "Full-text search across a workspace's source files. The query is split into words; a file matches only when EVERY word appears in it, punctuation-insensitively (edu-id = eduid). Wrap the query in double quotes for an exact-phrase match. Snippets are capped. Searches source content only — for summary-level discovery use desk_catalog.",
       inputSchema: {
         workspace_id: z.string().min(1),
         query: z.string().min(1),
@@ -129,16 +130,11 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Start here: the workspace's content catalog — every context file, doc, task, and meeting with path, type, title, author, status/date, last-updated timestamp, and an AI summary when one has been generated (summary may be absent until then). Always populated, most recently updated first. `type` is a lifecycle distinction, not an authorship one: `context` is the evergreen, maintained map (what this is, which systems it touches, what was decided — filter to it first to orient yourself), while `doc`/`task`/`meeting` are dated records that accumulate and are never rewritten. `author: ai` marks a file an agent wrote; absent means the user wrote it. Returns one page; narrow with project_id/type/status/since and page with limit/offset (response has total + has_more). Use desk_read to open specific files; use desk_tree only for raw structure.",
+        "Start here: the workspace's content catalog — every context file, doc, task, and meeting with path, type, title, author, status/date, last-updated timestamp, and an AI summary when available. Most recently updated first. Narrow with project_id/type/status/since; page with limit/offset (response has total + has_more). Use desk_read to open files.",
       inputSchema: {
         workspace_id: z.string().min(1),
         project_id: z.string().optional(),
-        type: z
-          .enum(["doc", "context", "task", "meeting"])
-          .optional()
-          .describe(
-            "context = the evergreen maintained map (read first); doc/task/meeting = dated records."
-          ),
+        type: z.enum(["doc", "context", "task", "meeting"]).optional(),
         status: z.string().optional(),
         since: z
           .string()
@@ -191,9 +187,10 @@ function buildServer(): McpServer {
  * (so it's never empty just because no AI key exists), with AI summaries merged in by path.
  *
  * Metadata comes fresh from the core catalog builder (`.aiignore` already applied there);
- * summaries come from the persisted Smart Index cache (.desk/index/indexes.json), which a
- * key-bearing desktop client contributes. A short in-process TTL memo absorbs bursty agent
- * calls; if no cache exists, every summary is just absent and the metadata stands alone.
+ * summaries come from the persisted Smart Index (.desk/index/indexes.json), written by the
+ * maintenance engine running on this host (env AI keys). A short in-process TTL memo absorbs
+ * bursty agent calls; if no index exists, every summary is just absent and the metadata
+ * stands alone.
  *
  * The full catalog is built/memoized once; filtering (project/type/status/since), newest-first
  * sorting and limit/offset paging are applied per-request on top, so a large workspace returns a
@@ -210,23 +207,19 @@ async function getCachedCatalog(workspaceId: string): Promise<WorkspaceCatalog> 
   return value;
 }
 
-/** Parse the zustand-persist envelope and extract path → AI summary (real summaries only). */
+/** Extract path → AI summary (real summaries only) from the persisted Smart Index. */
 async function loadSummaryMap(workspaceId: string): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  const raw = await getDeskService().getIndexCache();
-  if (!raw) return map;
   try {
-    const parsed = JSON.parse(raw) as {
-      state?: { indexes?: Record<string, { entries?: Array<Record<string, unknown>> }> };
-    };
-    const entries = parsed.state?.indexes?.[workspaceId]?.entries ?? [];
-    for (const e of entries) {
-      const path = typeof e.path === "string" ? e.path : "";
-      const summary = typeof e.summary === "string" ? e.summary : "";
-      if (path && summary) map.set(path, summary);
+    // Read through core's index reader — the one place that knows the on-disk shape
+    // (plain `{ indexes }`, with legacy-envelope tolerance). Never re-parse the raw JSON
+    // here: a shape drift between writer and a second parser silently blanks every summary.
+    const index = await readWorkspaceIndex(workspaceId);
+    for (const e of index?.entries ?? []) {
+      if (e.path && e.summary) map.set(e.path, e.summary);
     }
   } catch {
-    // Malformed cache — summaries just stay absent.
+    // Unreadable cache — summaries just stay absent.
   }
   return map;
 }
@@ -347,23 +340,47 @@ export function registerMcp(app: Hono): void {
     // This is the handshake Claude/ChatGPT connectors drive (a stateless server would
     // reject tools/list as "not initialized").
     const sessionId = c.req.header("mcp-session-id");
-    let transport = sessionId ? sessions.get(sessionId) : undefined;
+    const existing = sessionId ? sessions.get(sessionId) : undefined;
+    if (existing) existing.lastSeen = Date.now();
+    let transport = existing?.transport;
     if (!transport) {
-      transport = new WebStandardStreamableHTTPServerTransport({
+      const created = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         enableJsonResponse: true,
         onsessioninitialized: (sid) => {
-          sessions.set(sid, transport!);
+          sessions.set(sid, { transport: created, lastSeen: Date.now() });
         },
         onsessionclosed: (sid) => {
           sessions.delete(sid);
         },
       });
-      await buildServer().connect(transport);
+      await buildServer().connect(created);
+      transport = created;
     }
     return transport.handleRequest(c.req.raw);
   });
 }
 
-// Live MCP sessions keyed by mcp-session-id. Entries are removed on session close (DELETE).
-const sessions = new Map<string, WebStandardStreamableHTTPServerTransport>();
+// Live MCP sessions keyed by mcp-session-id, stamped with last activity. An explicit close
+// (DELETE) removes an entry via onsessionclosed, but the common failure mode is a connector
+// that just vanishes (tab closed, network drop) — without eviction each abandoned session
+// pins a transport + McpServer pair forever, and any valid-token holder can mint unlimited
+// sessions by re-initializing.
+const sessions = new Map<string, { transport: WebStandardStreamableHTTPServerTransport; lastSeen: number }>();
+
+const SESSION_IDLE_MS = 30 * 60_000;
+const SESSION_SWEEP_INTERVAL_MS = 5 * 60_000;
+
+function sweepIdleSessions(): void {
+  const cutoff = Date.now() - SESSION_IDLE_MS;
+  for (const [sid, session] of sessions) {
+    if (session.lastSeen < cutoff) {
+      sessions.delete(sid);
+      // close() also fires onsessionclosed → delete again; harmless.
+      void session.transport.close().catch(() => {});
+    }
+  }
+}
+
+// unref: the sweep must never keep the process alive on shutdown.
+setInterval(sweepIdleSessions, SESSION_SWEEP_INTERVAL_MS).unref();

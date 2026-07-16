@@ -4,6 +4,7 @@
 import type { ContentFolder, ContentScope, DocKind } from "../types";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
+import { moveDirectoryWithContents, removeDirectoryWithContents } from "./file-operations";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath, getContextPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
@@ -65,7 +66,7 @@ export async function renameFolder(
     return { name: newName, path: newPath, children: [] };
   }
 
-  await getStorage().rename(oldFullPath, newFullPath);
+  await moveDirectoryWithContents(oldFullPath, newFullPath);
 
   // Rebuild children by fetching the tree for the renamed folder's scope
   // We get the full tree and extract the renamed folder's children
@@ -140,8 +141,7 @@ export async function moveFolder(
     }
   }
 
-  await getStorage().rename(oldFullPath, newFullPath);
-  return true;
+  return moveDirectoryWithContents(oldFullPath, newFullPath);
 }
 
 /**
@@ -161,10 +161,5 @@ export async function deleteFolder(
   const basePath = await getBasePath(kind, scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
-  if (!(await getStorage().exists(fullPath))) {
-    return false;
-  }
-
-  await getStorage().removeDir(fullPath);
-  return true;
+  return removeDirectoryWithContents(fullPath);
 }

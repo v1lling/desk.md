@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@desk/core";
+import type { AIKeyRef } from "@desk/core";
 
-export type SecretKeyRef =
-  | "ai.openai"
-  | "ai.anthropic";
+/** Local alias: the key namespace is owned by core's AI key-resolver seam. */
+export type SecretKeyRef = AIKeyRef;
 
 const SECRET_SERVICE: Record<SecretKeyRef, string> = {
   "ai.openai": "desk.ai.openai",
@@ -50,27 +50,3 @@ export async function setSecret(key: SecretKeyRef, value: string): Promise<void>
   await invoke("secret_set", { service, value });
 }
 
-/**
- * Delete a secret from the OS keychain. Throws `BrowserModeError` outside Tauri.
- */
-export async function deleteSecret(key: SecretKeyRef): Promise<void> {
-  if (!isTauri()) {
-    throw new BrowserModeError();
-  }
-  const service = SECRET_SERVICE[key];
-  await invoke("secret_delete", { service });
-}
-
-/**
- * Returns true if the key is present and non-empty.
- * Returns false on any error (including browser mode) — callers that need to
- * distinguish "no key" from "keychain failed" should call `getSecret` directly.
- */
-export async function hasSecret(key: SecretKeyRef): Promise<boolean> {
-  try {
-    const value = await getSecret(key);
-    return !!value?.trim();
-  } catch {
-    return false;
-  }
-}

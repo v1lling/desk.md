@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { SummaryDetail } from "@/lib/context-index/constants";
+import type { SummaryDetail } from "@desk/core";
 import {
   Loader2,
   AlertCircle,
@@ -24,47 +25,57 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useContextStore } from "@/stores/context";
-import { useContextIndexStore } from "@/stores/context-index";
-import { useAISettingsStore } from "@/stores/ai";
+import { useAIMaintenanceSettingsStore } from "@/stores/ai-maintenance-settings";
+import { useSmartIndex } from "@/hooks/use-smart-index";
+import { useProviderConfigured } from "@/hooks/use-ai-maintenance-info";
+import { describeAIError } from "@/lib/ai-error";
 import { ensureAIConsent } from "@/stores/ai-consent";
 import { useWorkspaces } from "@/stores";
-import { buildWorkspaceIndex } from "@/lib/context-index/builder";
+import { rebuildWorkspaceIndex, readWorkspaceIndex, writeRebuiltWorkspaceIndex } from "@desk/core";
+import { smartIndexKeys } from "@/lib/query-client";
+import { isLocalDisk, isDomainRemote } from "@/lib/connection";
 import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
 import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
   deleteGeneratedAgentFiles,
 } from "@/lib/context-index/agent-context";
-import { getDeskService, isTauri } from "@desk/core";
-import type { BuildIndexProgress, BuildIndexResult } from "@/lib/context-index/types";
+import { getDeskService } from "@desk/core";
+import type { BuildIndexProgress, BuildIndexResult } from "@desk/core";
 import { formatRelativeTime } from "./context-tab-utils";
+
+/** Last full-rebuild result plus when it ran — ephemeral UI state, not persisted. */
+type LastBuildResult = BuildIndexResult & { at: string };
 
 export function SmartIndexSection() {
   const { t } = useTranslation();
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
+    autoRefreshProjectState,
+    setAutoRefreshProjectState,
     summaryDetail,
     setSummaryDetail,
-  } = useContextStore();
+    providerType,
+  } = useAIMaintenanceSettingsStore();
 
-  // True when the active provider has an API key saved. Without one, the catalog still
-  // builds with full metadata — files just have no AI summary until a key is added.
-  const aiKeyConfigured = useAISettingsStore(
-    (s) => s.providerConfigured[s.providerType]
-  );
+  // Whether the host that owns the data can summarize — one source of truth, truthful in both
+  // modes (this machine's Keychain locally, the server's env in hosted mode).
+  const aiKeyConfigured = useProviderConfigured(providerType);
+  const remote = isDomainRemote();
 
-  // The Smart Index is built client-side using the locally stored AI key (OS Keychain),
-  // so it only runs in the desktop app — including native-remote, which indexes the
-  // server's files with the local key. In the browser (hosted web) there's no Keychain,
-  // so building would silently no-op; disable the controls and explain instead.
-  const canBuild = isTauri();
+  // AI maintenance runs where the data lives: in-process on local disk, on the server in
+  // remote mode. Only the browser-mock dev loop has no host that could build.
+  const canBuild = isLocalDisk() || remote;
 
-  const { indexes, setIndex, isBuilding, setIsBuilding, lastResult, setLastResult } =
-    useContextIndexStore();
+  // Core owns .desk/index/indexes.json; the UI only reads it (one writer). Build progress and
+  // the last-run summary are ephemeral UI state, never persisted into the index file.
+  const queryClient = useQueryClient();
+  const { data: indexes = {} } = useSmartIndex();
   const { data: workspaces = [] } = useWorkspaces();
 
+  const [isBuilding, setIsBuilding] = useState(false);
+  const [lastResult, setLastResult] = useState<LastBuildResult | null>(null);
   const [indexProgress, setIndexProgress] = useState<BuildIndexProgress | null>(null);
   const [indexResult, setIndexResult] = useState<BuildIndexResult | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -88,9 +99,9 @@ export function SmartIndexSection() {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleBuildIndex = async () => {
-    // Privacy gate: only when a provider key is configured does the build send
-    // file previews externally. A keyless build is local-only — no consent needed.
-    if (aiKeyConfigured && !(await ensureAIConsent())) return;
+    // Privacy gate (local mode): only when a provider key is configured does the build send
+    // file previews externally. In remote mode the server's env key is the operator's consent.
+    if (!remote && aiKeyConfigured && !(await ensureAIConsent())) return;
 
     setIsBuilding(true);
     setIndexProgress(null);
@@ -100,19 +111,30 @@ export function SmartIndexSection() {
       let accumulatedResult: BuildIndexResult | null = null;
 
       for (const workspace of workspaces) {
-        const existingIndex = indexes[workspace.id];
-        const { index, result } = await buildWorkspaceIndex(
-          workspace.id,
-          workspace.name,
-          existingIndex,
-          setIndexProgress
-        );
-        setIndex(workspace.id, index);
-        await writeWorkspaceContextArtifact(index);
-        // Refresh per-workspace agent files (project list may have changed)
-        getDeskService().getProjects(workspace.id).then((projects) =>
-          writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
-        ).catch(() => {});
+        let result: BuildIndexResult;
+        if (remote) {
+          // The SERVER rebuilds and persists its own index (spinner only, no progress over RPC).
+          result = await getDeskService().rebuildSmartIndex(workspace.id);
+        } else {
+          // Pre-rebuild snapshot from DISK, not the TanStack query: the query may not have
+          // resolved yet (summary reuse would silently regenerate everything), and the merge
+          // write below needs the true pre-rebuild state to detect concurrent engine writes.
+          const existingIndex = await readWorkspaceIndex(workspace.id);
+          const { index, result: localResult } = await rebuildWorkspaceIndex(
+            workspace.id,
+            workspace.name,
+            existingIndex,
+            setIndexProgress
+          );
+          result = localResult;
+          // One writer: persist through core (local disk), same path the engine uses.
+          await writeRebuiltWorkspaceIndex(index, existingIndex);
+          await writeWorkspaceContextArtifact(index);
+          // Refresh per-workspace agent files (project list may have changed)
+          getDeskService().getProjects(workspace.id).then((projects) =>
+            writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
+          ).catch(() => {});
+        }
 
         if (!accumulatedResult) {
           accumulatedResult = result;
@@ -140,20 +162,32 @@ export function SmartIndexSection() {
         writeTopLevelAgentFiles(workspaces).catch(() => {});
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = describeAIError(error, t) ?? String(error);
       toast.error(t("errors.settings.indexBuildFailed", { message }));
     } finally {
       setIsBuilding(false);
       setIndexProgress(null);
+      // Re-read the file core just wrote (local or server), so the stats/rows refresh.
+      void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
     }
   };
 
   // Wipe everything: empty the Smart Index and delete the generated
   // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_CONTEXT.md files from disk.
   const handleClearCatalog = async () => {
-    for (const workspace of workspaces) {
-      useContextIndexStore.getState().removeIndex(workspace.id);
+    try {
+      for (const workspace of workspaces) {
+        await getDeskService().clearSmartIndex(workspace.id);
+      }
+    } catch (error) {
+      // In remote mode this is an RPC per workspace — an unreachable server must surface as
+      // a toast, not an unhandled rejection that leaves the confirm dialog hanging.
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(t("errors.settings.catalogClearedPartial", { message }));
+      setShowClearConfirm(false);
+      return;
     }
+    void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
     setIndexResult(null);
     setLastResult(null);
     try {
@@ -297,7 +331,8 @@ export function SmartIndexSection() {
             <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
               <p>{t("settings.smartIndex.info.oneCatalog")}</p>
               {canBuild && <p>{t("settings.smartIndex.info.incremental")}</p>}
-              {canBuild && <p>{t("settings.smartIndex.info.offlineChanges")}</p>}
+              {canBuild && !remote && <p>{t("settings.smartIndex.info.offlineChanges")}</p>}
+              {remote && <p>{t("settings.smartIndex.info.serverSide")}</p>}
               {!canBuild ? (
                 <p>{t("settings.smartIndex.info.desktopOnly")}</p>
               ) : (
@@ -337,6 +372,20 @@ export function SmartIndexSection() {
             {t("settings.smartIndex.autoSummarize.activeWarning")}
           </p>
         )}
+
+        <div className="flex items-center justify-between py-3 border-t border-border/40">
+          <div className="space-y-0.5 pr-4">
+            <Label>{t("settings.smartIndex.autoRefreshState.label")}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.smartIndex.autoRefreshState.description")}
+            </p>
+          </div>
+          <Switch
+            checked={autoRefreshProjectState}
+            onCheckedChange={setAutoRefreshProjectState}
+            disabled={!canBuild}
+          />
+        </div>
 
         <div className="flex items-center justify-between py-3 border-t border-border/40">
           <div className="space-y-0.5 pr-4">

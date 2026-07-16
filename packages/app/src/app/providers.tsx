@@ -1,7 +1,8 @@
 import "@/i18n";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
+import { queryClient } from "@/lib/query-client";
 import { useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@/stores/preferences";
 import { initDeskDirectory, expandFsScope } from "@desk/core";
@@ -10,18 +11,11 @@ import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
 import { useWindowClose } from "@/hooks/use-window-close";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
-import { useContextIndexSync } from "@/hooks/use-context-index-sync";
-import { useSecretHydration } from "@/hooks/use-secret-hydration";
 import { useSuppressContextMenu } from "@/hooks/use-suppress-context-menu";
 import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { EmailDropOverlay } from "@/components/email/email-drop-overlay";
 import { toast } from "sonner";
-
-// Clean up legacy localStorage key from the old monolithic settings store
-localStorage.removeItem("desk-settings");
-// Clean up legacy AI usage from localStorage (now filesystem-backed)
-localStorage.removeItem("desk-ai-usage");
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -107,17 +101,6 @@ function QueryInvalidatorProvider({ children }: { children: React.ReactNode }) {
 // Initialize search index
 function SearchIndexProvider({ children }: { children: React.ReactNode }) {
   useSearchIndex();
-  return <>{children}</>;
-}
-
-// Initialize context index sync
-function ContextIndexProvider({ children }: { children: React.ReactNode }) {
-  useContextIndexSync();
-  return <>{children}</>;
-}
-
-function SecretHydrationProvider({ children }: { children: React.ReactNode }) {
-  useSecretHydration();
   return <>{children}</>;
 }
 
@@ -247,36 +230,20 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: ProvidersProps) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
-
   return (
     <QueryClientProvider client={queryClient}>
       <TauriInitializer>
         <UpdateProvider>
           <QueryInvalidatorProvider>
             <SearchIndexProvider>
-              <SecretHydrationProvider>
-                <ContextIndexProvider>
-                  <WindowCloseProvider>
-                    <ThemeProvider>
-                      <ContextMenuSuppressionProvider>
-                        {children}
-                        <EmailDropOverlay />
-                      </ContextMenuSuppressionProvider>
-                    </ThemeProvider>
-                  </WindowCloseProvider>
-                </ContextIndexProvider>
-              </SecretHydrationProvider>
+              <WindowCloseProvider>
+                <ThemeProvider>
+                  <ContextMenuSuppressionProvider>
+                    {children}
+                    <EmailDropOverlay />
+                  </ContextMenuSuppressionProvider>
+                </ThemeProvider>
+              </WindowCloseProvider>
             </SearchIndexProvider>
           </QueryInvalidatorProvider>
         </UpdateProvider>

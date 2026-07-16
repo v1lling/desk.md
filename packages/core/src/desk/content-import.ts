@@ -20,6 +20,7 @@ interface DocFrontmatter extends Record<string, unknown> {
   created?: string;
   updated?: string;
   source?: string;
+  author?: "ai";
 }
 
 /**
@@ -40,6 +41,10 @@ export async function createDocInFolder(data: {
    * (`project-brief.ts`), so it cannot be renamed by editing the title.
    */
   filename?: string;
+  /** Stamp `author: ai` on app-created AI files (the project state file). Absent = user. */
+  author?: "ai";
+  /** Explicit `updated` stamp — the state refresher's read-time (see `writeProjectState`). */
+  updatedStamp?: string;
 }): Promise<Doc> {
   const kind = data.kind || "doc";
   const filename = data.filename || generateFilename(data.title);
@@ -65,6 +70,7 @@ export async function createDocInFolder(data: {
     created: todayISO(),
     content,
     preview: generatePreview(content),
+    ...(data.author ? { author: data.author } : {}),
   };
 
   if (isMockMode()) {
@@ -93,9 +99,12 @@ export async function createDocInFolder(data: {
   const frontmatter: DocFrontmatter = {
     title: doc.title,
     created: doc.created,
+    ...(data.author ? { author: data.author } : {}),
   };
 
-  await writeMarkdownFile(filePath, frontmatter, doc.content);
+  await writeMarkdownFile(filePath, frontmatter, doc.content, {
+    updatedStamp: data.updatedStamp,
+  });
 
   return doc;
 }

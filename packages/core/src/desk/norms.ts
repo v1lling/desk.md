@@ -11,43 +11,19 @@
  * on a real local disk, so before this constant existed a hosted MCP agent received the
  * taxonomy with none of the norms.
  *
- * Agent-facing prose is deliberately out of scope for i18n (see CLAUDE.md), so this is a
- * plain English constant. It is pure data — no I/O — so it does not violate core's purity.
+ * Nothing else should re-teach these conventions. Tool descriptions describe the tool;
+ * this teaches the space. (Agent-facing prose is deliberately out of scope for i18n.)
  */
 export const DESK_SPACE_NORMS = `## How this space works
 
-Desk is a markdown work-management space: workspaces, projects, tasks, docs, meetings, all
-plain \`.md\` files with YAML frontmatter. You are meant to read across it. Two kinds of
-written material live here, and the difference is **lifecycle, not authorship** — the user
-and AI both write both kinds.
+Desk is a markdown work-management space: workspaces, projects, tasks, docs, meetings — plain \`.md\` files with YAML frontmatter. Two kinds of material live here, split by lifecycle: **records** (\`docs/\`, \`tasks/\`, \`meetings/\`) are dated, accumulate, and are never rewritten; **context** (\`context/\`, at the workspace root and each project root) is the map — evergreen, small, kept current. **Read \`context/\` first.**
 
-**Records** — \`docs/\`, \`tasks/\`, \`meetings/\`. Dated. They accumulate and are never
-rewritten. A meeting note from March stays a March meeting note; research "as of May" stays
-true of May. Because a record only ever claimed to be true of its date, it cannot go stale,
-and it is fine for records to pile up indefinitely.
+When your understanding changes, *update* the relevant context file rather than piling on new ones. A genuinely distinct topic can get its own context file; a pile is no longer a map. Anything dated or append-only — research with sources, a decision record, session notes — is a record and belongs in \`docs/\`.
 
-**Context** — \`context/\`, at the workspace and project root. The map: what this is, which
-systems it touches, what was decided, where things stand. Evergreen, deliberately small, and
-kept current. This is the only layer that can go stale, so it is the only one that gets
-maintained.
+A project's \`context/\` holds a \`*-brief.md\` — the user's own statement of what the project is; treat it as read-only — and may hold a \`*-state.md\` ("Current state"), which Desk maintains automatically. Don't edit the state file; it is overwritten on refresh.
 
-**Read \`context/\` first.** It is the fastest way to orient yourself, and it holds the intent
-and background that cannot be reconstructed from the records alone.
+Stamp \`author: ai\` in the frontmatter of any file you create. Absence means the user wrote it; never write \`author: human\`.
 
-**When your understanding of the space changes** — a decision lands, an architecture shifts,
-a system is renamed — *update* \`context/\` rather than appending a new file to it. Context
-grows by being rewritten, not by accreting. If \`context/\` starts to look like a pile, it has
-stopped being a map.
+Tasks and meetings are committed work items — surface candidates to the user rather than creating them.
 
-**Anything dated or append-only is a record.** Research with sources, a decision record, notes
-from a session, a draft: these belong in \`docs/\` (or \`tasks/\` / \`meetings/\`), not in
-\`context/\`. Their conclusions get distilled *into* context; the documents themselves stay put.
-
-**Stamp \`author: ai\` in the frontmatter of any file you create.** The user filters on it to
-tell your output from their own. Absence means the user wrote it — never write \`author: human\`.
-
-**Tasks and meetings are committed work items.** Treat a new one as the user's call: surface
-the candidate rather than creating the file yourself.
-
-**\`.aiignore\`** at each workspace root lists paths the user has flagged as sensitive
-(gitignore-style patterns). Honor it.`;
+\`.aiignore\` at a workspace root lists paths the user flagged as sensitive (gitignore syntax). Honor it.`;

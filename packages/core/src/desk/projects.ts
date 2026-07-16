@@ -5,6 +5,7 @@ import type { Project, ProjectStatus, ProjectUpdate } from "../types";
 import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
+import { removeDirectoryWithContents } from "./file-operations";
 import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 import { ensureProjectBrief, hasSeedContent, type BriefSeed } from "./project-brief";
@@ -356,8 +357,9 @@ export async function deleteProject(projectId: string, workspaceId?: string): Pr
   const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 
   try {
-    await getStorage().removeDir(projectPath);
-    return true;
+    // Through the funnel: per-file delete events keep the Smart Index honest about the
+    // project's records (a bare removeDir would leave every entry behind).
+    return await removeDirectoryWithContents(projectPath);
   } catch {
     return false;
   }
