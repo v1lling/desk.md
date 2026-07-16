@@ -26,6 +26,8 @@ export interface SearchItem {
   priority?: string;
   due?: string;
   created?: string;
+  /** Provenance: 'ai' when an agent wrote the file (docs only; absent = the user). */
+  author?: "ai";
   // Full path for navigation
   filePath?: string;
 }
@@ -271,6 +273,7 @@ export function docToSearchItem(
     projectId: doc.projectId,
     projectName,
     created: doc.created,
+    author: doc.author,
     filePath: doc.filePath,
   };
 }

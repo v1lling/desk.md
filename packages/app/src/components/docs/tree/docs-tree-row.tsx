@@ -2,15 +2,16 @@ import { createContext, useContext, useCallback, type CSSProperties } from "reac
 import type { NodeApi } from "react-arborist";
 import { useTranslation } from "react-i18next";
 import {
+  BotOff,
   ChevronRight,
   Compass,
   FileText,
   Folder,
   FolderKanban,
   Plus,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AIBadge } from "@/components/ui/ai-badge";
 import { SectionLabel } from "@/components/patterns";
 import type { Doc, Asset } from "@desk/core/types";
 import { extractDocs } from "@desk/core";
@@ -22,7 +23,6 @@ import {
   buildFolderMenuItems,
   getFileIcon,
   openWithDefaultApp,
-  SparklesOff,
   type MenuItem,
 } from "../tree-item-utils";
 import { InlineRenameInput } from "../inline-rename-input";
@@ -258,6 +258,9 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
         className={cn(
           "group relative flex items-center gap-1 px-2 h-7 cursor-pointer rounded-sm",
           "hover:bg-accent/40",
+          // Doc-less projects recede but stay present — quieter, not hidden. Hover or
+          // selection restores full strength.
+          isProject && docCount === 0 && !node.isSelected && "opacity-50 hover:opacity-100",
           node.isSelected && "bg-accent",
           node.willReceiveDrop && "bg-primary/10 ring-1 ring-primary/40",
           "data-[desk-drop-target=true]:bg-primary/10 data-[desk-drop-target=true]:ring-1 data-[desk-drop-target=true]:ring-primary/40",
@@ -291,12 +294,12 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
               {folder.name}
             </span>
             <div className="ml-auto flex items-center gap-1 shrink-0 group-hover:hidden">
+              {isExcludedFromAI && !isProject && (
+                <BotOff className="size-3.5 text-muted-foreground/60" />
+              )}
               {docCount > 0 ? (
                 <span className="text-[11px] text-muted-foreground/40 tabular-nums">{docCount}</span>
               ) : null}
-              {isExcludedFromAI && !isProject && (
-                <SparklesOff className="size-3.5 text-muted-foreground/60" />
-              )}
             </div>
           </>
         )}
@@ -311,7 +314,6 @@ function FolderRow({ node, style, dragHandle }: DocsTreeRowProps) {
 function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
   const handlers = useTreeHandlers();
-  const { t } = useTranslation();
   const doc = data.kind === "doc" && data.node.type === "doc" ? data.node.doc : null;
 
   const handleClick = useCallback(() => {
@@ -361,18 +363,16 @@ function DocRow({ node, style, dragHandle }: DocsTreeRowProps) {
             className="flex-1"
           />
         ) : (
-          <span className="text-sm truncate">{doc.title}</span>
+          <>
+            <span className="text-sm truncate">{doc.title}</span>
+            {/* Provenance, not lifecycle: an AI-written file is still the user's, it just
+                wasn't typed by them. Deliberately quiet — a mark, not a warning. Text chip,
+                not an icon: Bot/BotOff means AI access and Sparkles means AI actions, never
+                authorship. Inline after the title — it describes the title. */}
+            {doc.author === "ai" && <AIBadge />}
+          </>
         )}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          {/* Provenance, not lifecycle: an AI-written file is still the user's, it just
-              wasn't typed by them. Deliberately quiet — a mark, not a warning. */}
-          {doc.author === "ai" && (
-            <Sparkles
-              className="size-3 text-muted-foreground/40 group-hover:hidden"
-              aria-label={t("pages.docs.authorAi")}
-            />
-          )}
-        </div>
+        <div className="ml-auto" />
         <TreeItemDropdown items={menuItems} />
       </div>
     </TreeItemMenus>

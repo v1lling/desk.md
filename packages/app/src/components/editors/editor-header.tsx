@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SaveStatusIndicator, type SaveStatus } from "@/components/ui/save-status";
-import { Trash2, Sparkles, Save } from "lucide-react";
+import { AIBadge } from "@/components/ui/ai-badge";
+import { Trash2, Bot, BotOff, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EditorHeaderProps {
@@ -14,6 +15,8 @@ interface EditorHeaderProps {
   onSave?: () => void;
   isDirty?: boolean;
   onDelete: () => void;
+  /** Provenance: the file carries `author: ai` (display-only mark next to the title) */
+  authorAI?: boolean;
   /** Whether the document is included in AI indexing */
   aiIncluded?: boolean;
   /** Callback when AI inclusion is toggled */
@@ -32,6 +35,7 @@ export function EditorHeader({
   onSave,
   isDirty,
   onDelete,
+  authorAI,
   aiIncluded,
   onAIInclusionChange,
   isInExcludedFolder,
@@ -63,6 +67,7 @@ export function EditorHeader({
           placeholder={resolvedPlaceholder}
           className="text-xl font-semibold border-none shadow-none px-0 h-auto py-1 focus-visible:ring-0 bg-transparent flex-1"
         />
+        {authorAI && <AIBadge />}
         <SaveStatusIndicator status={saveStatus} />
         {onSave && (
           <Button
@@ -98,14 +103,9 @@ export function EditorHeader({
             )}
           >
             {aiIncluded && !isInExcludedFolder ? (
-              <Sparkles className="h-3.5 w-3.5" />
+              <Bot className="h-3.5 w-3.5" />
             ) : (
-              <span className="relative">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="w-[16px] h-[1.5px] bg-current rotate-45 rounded-full" />
-                </span>
-              </span>
+              <BotOff className="h-3.5 w-3.5" />
             )}
           </Button>
         )}

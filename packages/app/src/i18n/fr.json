@@ -43,7 +43,8 @@
       "loading": "Chargement…",
       "tryAgain": "Réessayer",
       "reloadPage": "Recharger la page"
-    }
+    },
+    "aiBadge": "AI"
   },
   "nav": {
     "sidebar": {

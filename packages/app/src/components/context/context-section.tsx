@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { describeAIError } from "@/lib/ai-error";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { SectionLabel, ListRow } from "@/components/patterns";
+import { AIBadge } from "@/components/ui/ai-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -160,13 +161,13 @@ export function ContextSection({ project }: ContextSectionProps) {
           {state && (
             <ListRow
               onClick={() => openDoc(state)}
-              leading={
-                <Sparkles
-                  className="size-3.5 shrink-0 text-muted-foreground/60"
-                  aria-label={t("pages.docs.authorAi")}
-                />
+              leading={<Compass className="size-3.5 shrink-0 text-muted-foreground/60" />}
+              title={
+                <>
+                  {state.title}
+                  <AIBadge className="ml-1.5 align-middle" />
+                </>
               }
-              title={state.title}
               meta={
                 <>
                   {freshness.contextUpdated

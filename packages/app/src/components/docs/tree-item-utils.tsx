@@ -10,7 +10,8 @@ import {
   FileArchive,
   FileCode,
   FileType,
-  Sparkles,
+  Bot,
+  BotOff,
   FolderSearch,
   Copy,
   Trash2,
@@ -21,7 +22,6 @@ import {
   Folder,
   FolderKanban,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { getFileCategory } from "@desk/core";
 import { isTauri } from "@desk/core";
 import { CONTEXT_SENTINEL } from "@desk/core";
@@ -161,17 +161,6 @@ export async function openWithDefaultApp(filePath: string) {
 
 // ── Icons ───────────────────────────────────────────────────────────
 
-export function SparklesOff({ className }: { className?: string }) {
-  return (
-    <span className={cn("relative inline-flex", className)}>
-      <Sparkles className="size-full" />
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="w-[130%] h-[2px] bg-current rotate-45 rounded-full" />
-      </span>
-    </span>
-  );
-}
-
 export function getFileIcon(extension: string) {
   const category = getFileCategory(extension);
   switch (category) {
@@ -261,8 +250,8 @@ export function buildFolderMenuItems(opts: {
   if (opts.onToggleFolderAI) {
     items.push({
       icon: opts.isAIIncluded
-        ? <SparklesOff className="size-4 mr-2" />
-        : <Sparkles className="size-4 mr-2" />,
+        ? <BotOff className="size-4 mr-2" />
+        : <Bot className="size-4 mr-2" />,
       label: opts.isAIIncluded
         ? i18next.t("menus.folderContextMenu.excludeFromAI")
         : i18next.t("menus.folderContextMenu.includeInAI"),

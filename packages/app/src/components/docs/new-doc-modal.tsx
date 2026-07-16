@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Folder, Sparkles } from "lucide-react";
+import { Loader2, Folder, Compass } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
 import type { ContentScope } from "@desk/core/types";
@@ -195,7 +195,8 @@ export function NewDocModal({
           {(isPersonalScope || isWorkspaceScope || isProjectScope) ? (
             friendlyPath && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
-                {isAIDestination ? <Sparkles className="size-4" /> : <Folder className="size-4" />}
+                {/* Compass = context/ (the map), matching the tree and Context panel rows. */}
+                {isAIDestination ? <Compass className="size-4" /> : <Folder className="size-4" />}
                 <span>{t("modals.newDoc.creatingIn", { path: friendlyPath })}</span>
               </div>
             )

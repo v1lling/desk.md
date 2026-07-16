@@ -11,6 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { AIBadge } from "@/components/ui/ai-badge";
 import {
   CheckSquare,
   FileText,
@@ -204,6 +205,7 @@ function SearchResultItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium truncate">{item.title}</span>
+          {item.author === "ai" && <AIBadge />}
           {item.status && (
             <span className="text-xs text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
               {item.status}

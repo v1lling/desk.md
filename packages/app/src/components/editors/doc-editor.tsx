@@ -191,6 +191,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
         onSave={save}
         isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
+        authorAI={doc.author === "ai"}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
         isInExcludedFolder={aiExclusionState.isInExcludedFolder}
