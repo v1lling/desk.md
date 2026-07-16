@@ -50,12 +50,18 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
   const [due, setDue] = useState("");
   const [projectId, setProjectId] = useState(defaultProjectId || SPECIAL_DIRS.UNASSIGNED);
 
-  // Set default project when provided
+  // A dialog stays mounted while closed, so form state would otherwise leak across opens —
+  // and across workspace switches, where a kept projectId points at another workspace's
+  // project (the task would land in projects/<foreign-id>/, inventing a project dir with
+  // no project.md). Reset the whole form on open; it is the single reset.
   useEffect(() => {
-    if (defaultProjectId) {
-      setProjectId(defaultProjectId);
+    if (open) {
+      setTitle("");
+      setPriority("none");
+      setDue("");
+      setProjectId(defaultProjectId || SPECIAL_DIRS.UNASSIGNED);
     }
-  }, [defaultProjectId]);
+  }, [open, defaultProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,10 +90,6 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
 
       toast.success(t("toasts.task.created"));
 
-      // Reset form
-      setTitle("");
-      setPriority("none");
-      setDue("");
       onClose();
 
       // Auto-open in editor tab
@@ -103,15 +105,8 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
     }
   };
 
-  const handleClose = () => {
-    setTitle("");
-    setPriority("none");
-    setDue("");
-    onClose();
-  };
-
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t("modals.newTask.title")}</DialogTitle>
@@ -182,7 +177,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
           </FormGrid>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               {t("common.buttons.cancel")}
             </Button>
             <Button type="submit" disabled={!title.trim() || createTask.isPending}>

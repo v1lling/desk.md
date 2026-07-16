@@ -73,11 +73,16 @@ export function NewDocModal({
   const { kind: destinationKind, subPath: destinationSubPath } = splitTreePathToKind(defaultFolderPath || "");
   const isAIDestination = isContextTreePath(defaultFolderPath || "");
 
+  // A dialog stays mounted while closed, so form state would otherwise leak across opens —
+  // and across workspace switches, where a kept projectId points at another workspace's
+  // project (the doc would land in projects/<foreign-id>/, inventing a project dir with
+  // no project.md). Reset the whole form on open; it is the single reset.
   useEffect(() => {
-    if (defaultProjectId) {
-      setProjectId(defaultProjectId);
+    if (open) {
+      setTitle("");
+      setProjectId(defaultProjectId || "");
     }
-  }, [defaultProjectId]);
+  }, [open, defaultProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,8 +152,6 @@ export function NewDocModal({
 
       toast.success(t("toasts.doc.created"));
 
-      // Reset form
-      setTitle("");
       onClose();
 
       // Auto-open in editor tab
@@ -164,16 +167,11 @@ export function NewDocModal({
     }
   };
 
-  const handleClose = () => {
-    setTitle("");
-    onClose();
-  };
-
   const isPending = createDoc.isPending || createDocInFolder.isPending;
   const friendlyPath = defaultFolderPath ? displayTreePath(defaultFolderPath) : "";
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t("modals.newDoc.title")}</DialogTitle>
@@ -219,7 +217,7 @@ export function NewDocModal({
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               {t("common.buttons.cancel")}
             </Button>
             <Button

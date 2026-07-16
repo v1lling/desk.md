@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -47,6 +47,17 @@ export default function TasksPage() {
       setSearchParams(searchParams, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The project filter is workspace-scoped: reset it on workspace switch (the page stays
+  // mounted), or it keeps filtering by a project of the previous workspace. null → id is
+  // query hydration (cold deep-link load), not a switch — the ?project= init must survive it.
+  const prevWorkspaceRef = useRef(currentWorkspaceId);
+  useEffect(() => {
+    const prev = prevWorkspaceRef.current;
+    prevWorkspaceRef.current = currentWorkspaceId;
+    if (prev === null || prev === currentWorkspaceId) return;
+    setFilterProject("all");
+  }, [currentWorkspaceId]);
 
   // Handle ?open= query param from search navigation
   useOpenFromQuery(tasks, openTask, "/tasks");

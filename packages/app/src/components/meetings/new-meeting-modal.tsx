@@ -49,6 +49,18 @@ export function NewMeetingModal({
   const [date, setDate] = useState(() => todayISO());
   const [projectId, setProjectId] = useState(defaultProjectId || "");
 
+  // A dialog stays mounted while closed, so form state would otherwise leak across opens —
+  // and across workspace switches, where a kept projectId silently points at another
+  // workspace's project (the meeting then lands in projects/<foreign-id>/, inventing a
+  // project dir with no project.md). Reset the whole form on open; it is the single reset.
+  useEffect(() => {
+    if (open) {
+      setTitle("");
+      setDate(todayISO());
+      setProjectId(defaultProjectId || "");
+    }
+  }, [open, defaultProjectId]);
+
   useEffect(() => {
     if (!projectId && projects.length > 0) {
       setProjectId(defaultProjectId || projects[0].id);
@@ -81,9 +93,6 @@ export function NewMeetingModal({
 
       toast.success(t("toasts.meeting.created"));
 
-      // Reset form
-      setTitle("");
-      setDate(todayISO());
       onClose();
 
       // Auto-open in editor tab
@@ -99,14 +108,8 @@ export function NewMeetingModal({
     }
   };
 
-  const handleClose = () => {
-    setTitle("");
-    setDate(todayISO());
-    onClose();
-  };
-
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t("modals.newMeeting.title")}</DialogTitle>
@@ -151,7 +154,7 @@ export function NewMeetingModal({
           </FormGrid>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               {t("common.buttons.cancel")}
             </Button>
             <Button
