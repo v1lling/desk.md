@@ -3,6 +3,7 @@ import { FilterBar, type FilterBarConfig } from "@/components/ui/filter-bar";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { densityClasses, type Density } from "@/lib/enterprise-ui";
 
 interface FilteredListPageProps {
@@ -30,7 +31,8 @@ export function FilteredListPage({
   modal,
   density = "regular",
 }: FilteredListPageProps) {
-  const contentPadding = viewMode === "kanban" ? "px-4 pt-2 pb-4" : densityClasses[density].content;
+  const isKanban = viewMode === "kanban";
+  const contentPadding = isKanban ? "px-4 pt-2 pb-4" : densityClasses[density].content;
 
   const rightElement = (
     <>
@@ -56,8 +58,16 @@ export function FilteredListPage({
         density={density}
       />
 
-      <ScrollArea className="flex-1">
-        <main className={contentPadding}>{children}</main>
+      {/* Kanban fills the viewport: the OverlayScrollbars viewport becomes a flex column and
+          main grows into it, so short boards stretch their lanes to the bottom while tall
+          boards still grow and scroll naturally (grow, not a capped height). */}
+      <ScrollArea
+        className={cn(
+          "flex-1",
+          isKanban && "[&>[data-overlayscrollbars-viewport]]:flex [&>[data-overlayscrollbars-viewport]]:flex-col",
+        )}
+      >
+        <main className={cn(contentPadding, isKanban && "flex grow flex-col")}>{children}</main>
       </ScrollArea>
 
       {modal}

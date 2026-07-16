@@ -4,10 +4,12 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
@@ -31,6 +33,22 @@ import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@desk/core/types";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+/**
+ * What the pointer is inside wins; corner distance is only the fallback.
+ *
+ * closestCorners alone made an empty column between two full ones undroppable: the
+ * stretched empty column is one large rect whose corners are far away, while the
+ * neighbouring columns offer many small card rects with near corners — so the card
+ * always "snapped" sideways and the empty column never became the drop target.
+ * pointerWithin has no size bias (and still resolves a card over its column, the
+ * pointer sits closer to the card's center). closestCorners remains for keyboard
+ * drags (no pointer coordinates) and the gaps between columns.
+ */
+const collisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
+};
 
 interface KanbanBoardProps {
   projectId?: string;
@@ -280,13 +298,21 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <ScrollArea orientation="horizontal" horizontalScrollbarPosition="top">
-        <div className="grid grid-flow-col auto-cols-[280px] gap-3 items-stretch pt-3">
+      {/* grow (never a capped height): in a flex parent the board stretches to fill leftover
+          space so empty lanes reach the bottom, but a tall board still grows past it and
+          scrolls in the page. Inert in non-flex parents. Same flex chain through the
+          OverlayScrollbars viewport down to the grid. */}
+      <ScrollArea
+        orientation="horizontal"
+        horizontalScrollbarPosition="top"
+        className="grow [&>[data-overlayscrollbars-viewport]]:flex [&>[data-overlayscrollbars-viewport]]:flex-col"
+      >
+        <div className="grow grid grid-flow-col auto-cols-[280px] gap-3 items-stretch pt-3">
           {taskStatusOrder.map((status) =>
             hiddenStatuses.has(status) ? null : (
               <KanbanColumn
