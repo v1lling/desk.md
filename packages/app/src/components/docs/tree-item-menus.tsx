@@ -9,19 +9,8 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSubContent,
 } from "@/components/ui/context-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { MenuItem } from "./tree-item-utils";
 
 interface TreeItemMenusProps {
@@ -59,38 +48,37 @@ export function TreeItemMenus({
 }
 
 /**
- * The "..." dropdown button + menu. Render this inside the tree item row.
+ * The "..." button. Render this inside the tree item row.
+ *
+ * Not a separate menu: clicking it opens the row's existing right-click ContextMenu (via a
+ * synthetic `contextmenu` event bubbling to the TreeItemMenus trigger wrapping the row). One
+ * menu system per row on purpose — the previous element-anchored DropdownMenu re-anchored /
+ * fought focus inside the virtualized, drag-enabled arborist rows on WKWebView (the menu
+ * visibly jumped and items were unclickable), while the coordinate-anchored ContextMenu is
+ * stable everywhere.
  */
-export function TreeItemDropdown({
-  items,
-  open,
-  onOpenChange,
-}: {
-  items: MenuItem[];
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}) {
+export function TreeItemDropdown({ items }: { items: MenuItem[] }) {
   // No actionable items → no "..." button (e.g. a project stub).
   if (!hasActionableItems(items)) return null;
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1",
-            open && "opacity-100"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <RenderDropdownMenuItems items={items} />
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+      onClick={(e) => {
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        e.currentTarget.dispatchEvent(
+          new MouseEvent("contextmenu", {
+            bubbles: true,
+            clientX: rect.left,
+            clientY: rect.bottom + 2,
+          }),
+        );
+      }}
+    >
+      <MoreHorizontal className="size-3.5" />
+    </Button>
   );
 }
 
@@ -134,43 +122,3 @@ function RenderContextMenuItems({ items }: { items: MenuItem[] }) {
   );
 }
 
-function RenderDropdownMenuItems({ items }: { items: MenuItem[] }) {
-  return (
-    <>
-      {items.map((item, idx) => {
-        if (item === "separator") return <DropdownMenuSeparator key={idx} />;
-        if (item.submenu) {
-          return (
-            <DropdownMenuSub key={idx}>
-              <DropdownMenuSubTrigger>
-                {item.icon}
-                {item.label}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {item.submenu.map((sub, subIdx) => (
-                  <DropdownMenuItem key={subIdx} onClick={sub.onClick}>
-                    {sub.icon}
-                    {sub.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          );
-        }
-        return (
-          <DropdownMenuItem
-            key={idx}
-            onClick={(e) => {
-              e.stopPropagation();
-              item.onClick();
-            }}
-            className={item.destructive ? "text-destructive focus:text-destructive" : undefined}
-          >
-            {item.icon}
-            {item.label}
-          </DropdownMenuItem>
-        );
-      })}
-    </>
-  );
-}
