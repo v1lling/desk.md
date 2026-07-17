@@ -1,8 +1,15 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, X } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
+import { formatLocalISODate } from "@desk/core";
 import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface DateFieldProps {
   /** ISO date string ("yyyy-mm-dd") or "" when unset. */
@@ -26,9 +33,12 @@ function formatDisplay(value: string): string | null {
 }
 
 /**
- * A date field that renders its own formatted text (so typography matches the
- * app font) while still using the native `<input type="date">` element and the
- * native OS date picker — no calendar library.
+ * A date field opening an in-app calendar in a Popover.
+ *
+ * Deliberately NOT the native `<input type="date">` + showPicker(): WKWebView anchors
+ * that popover to the (hidden) input and its dismissal logic never fires — the OS
+ * calendar stayed open across date picks and page switches, and there is no close API.
+ * The Popover is DOM we own: pick → closes, click outside → closes, unmount → gone.
  */
 export function DateField({
   value,
@@ -41,20 +51,13 @@ export function DateField({
   className,
 }: DateFieldProps) {
   const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
   const display = formatDisplay(value);
   const isChip = variant === "chip";
   const resolvedPlaceholder = placeholder ?? t("ui.dateField.placeholder");
 
-  const openPicker = () => {
-    const el = inputRef.current;
-    if (!el) return;
-    try {
-      el.showPicker();
-    } catch {
-      el.focus();
-    }
-  };
+  const parsed = value ? parseISO(value) : undefined;
+  const selected = parsed && isValid(parsed) ? parsed : undefined;
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,28 +75,43 @@ export function DateField({
         className
       )}
     >
-      <button
-        type="button"
-        id={id}
-        onClick={openPicker}
-        disabled={disabled}
-        className={cn(
-          "flex min-w-0 flex-1 items-center outline-none disabled:cursor-not-allowed",
-          isChip
-            ? "h-full gap-1.5 rounded-md px-1.5 text-xs font-medium focus-visible:bg-accent/50"
-            : "gap-2 text-sm"
-        )}
-      >
-        <Calendar
-          className={cn(
-            "shrink-0 text-muted-foreground",
-            isChip ? "h-2.5 w-2.5" : "h-4 w-4"
-          )}
-        />
-        <span className={cn("truncate", !display && "text-muted-foreground")}>
-          {display ?? resolvedPlaceholder}
-        </span>
-      </button>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            id={id}
+            disabled={disabled}
+            className={cn(
+              "flex min-w-0 flex-1 items-center outline-none disabled:cursor-not-allowed",
+              isChip
+                ? "h-full gap-1.5 rounded-md px-1.5 text-xs font-medium focus-visible:bg-accent/50"
+                : "gap-2 text-sm"
+            )}
+          >
+            <CalendarIcon
+              className={cn(
+                "shrink-0 text-muted-foreground",
+                isChip ? "h-2.5 w-2.5" : "h-4 w-4"
+              )}
+            />
+            <span className={cn("truncate", !display && "text-muted-foreground")}>
+              {display ?? resolvedPlaceholder}
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            defaultMonth={selected}
+            onSelect={(date) => {
+              // Local calendar day, never toISOString (UTC — off by one near midnight).
+              onChange(date ? formatLocalISODate(date) : "");
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
 
       {clearable && display && !disabled && (
         <button
@@ -108,16 +126,6 @@ export function DateField({
           <X className={isChip ? "h-3 w-3" : "h-3.5 w-3.5"} />
         </button>
       )}
-
-      <input
-        ref={inputRef}
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        tabIndex={-1}
-        aria-hidden="true"
-        className="sr-only"
-      />
     </div>
   );
 }
