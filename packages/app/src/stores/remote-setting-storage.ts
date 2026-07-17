@@ -21,8 +21,7 @@ const isBrowserMock = !isTauri() && !import.meta.env.VITE_DESK_HOSTED;
 /**
  * The zustand persist envelope (`{state, version}`) stays contained HERE: `.desk/settings/*.json`
  * on disk is plain state, so a core reader (the maintenance engine's `config.ts`) sees a plain
- * object, not a UI library's persistence format. We unwrap on write and re-wrap on read; a legacy
- * enveloped file is tolerated on read so nothing has to migrate.
+ * object, not a UI library's persistence format. We unwrap on write and re-wrap on read.
  */
 async function readRaw(name: string, key: string): Promise<string | null> {
   return isBrowserMock ? localStorage.getItem(name) : getDeskService().getSetting(key);
@@ -40,10 +39,7 @@ export function createRemoteSettingStorage<T>(key: string): PersistStorage<T> {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as unknown;
       if (parsed === null) return null; // removed / empty
-      // Plain state now; tolerate a legacy `{state, version}` envelope still on disk.
-      if (typeof parsed === "object" && "state" in parsed) {
-        return parsed as StorageValue<T>;
-      }
+      // On disk it's plain state; re-wrap in the persist envelope zustand expects.
       return { state: parsed as T, version: 0 };
     },
 
