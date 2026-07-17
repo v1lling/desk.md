@@ -8,11 +8,11 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface AgentSettings {
-  /** Emit ~/Desk/CLAUDE.md (and per-workspace) for Claude Code. */
+  /** Emit ~/DeskMD/CLAUDE.md (and per-workspace) for Claude Code. */
   emitClaudeMd: boolean;
-  /** Emit ~/Desk/AGENTS.md (and per-workspace) for Codex / OpenAI. */
+  /** Emit ~/DeskMD/AGENTS.md (and per-workspace) for Codex / OpenAI. */
   emitAgentsMd: boolean;
-  /** Emit ~/Desk/GEMINI.md (and per-workspace) for Gemini CLI. */
+  /** Emit ~/DeskMD/GEMINI.md (and per-workspace) for Gemini CLI. */
   emitGeminiMd: boolean;
 }
 

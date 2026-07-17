@@ -6,10 +6,9 @@
  * SQLite file is the derived auth store, at `$DESK_DATA_ROOT/.desk/auth.sqlite`
  * (override with DESK_AUTH_DB), consistent with the `.desk/` metadata convention.
  *
- * Login method: email+password, enabled. Social/OIDC providers are wired but
- * gated on env (off by default). Registration uses "first user wins" — sign-up is
- * allowed only while the user table is empty, then auto-closes forever. No admin
- * script, no env password.
+ * Login method: email+password only (no social/OIDC providers are configured).
+ * Registration uses "first user wins" — sign-up is allowed only while the user
+ * table is empty, then auto-closes forever. No admin script, no env password.
  *
  * Schema: the auth tables are created at boot by `migrateAuth()` (see index.ts),
  * so no manual `@better-auth/cli migrate` step is needed on a fresh deployment.

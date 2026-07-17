@@ -29,7 +29,6 @@ export const PATH_SEGMENTS = {
   DOCS: "docs",
   CONTEXT: "context",
   MEETINGS: "meetings",
-  CAPTURE: "capture",
 } as const;
 
 /**

@@ -52,18 +52,10 @@ export const priorityMeta: Record<
 export const priorityOrder: Priority[] = ["high", "medium", "low"];
 
 // =============================================================================
-// PROJECT STATUS COLORS
-// Used for project status badges - refined with better dark mode support
+// PROJECT STATUS
 // =============================================================================
 
-export const statusColors = {
-  active: "bg-emerald-50 text-emerald-600 border-emerald-200/50 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50",
-  paused: "bg-amber-50 text-amber-600 border-amber-200/50 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50",
-  completed: "bg-blue-50 text-blue-600 border-blue-200/50 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50",
-  archived: "bg-slate-50 text-slate-500 border-slate-200/50 dark:bg-slate-900/50 dark:text-slate-400 dark:border-slate-700/50",
-} as const;
-
-export type ProjectStatus = keyof typeof statusColors;
+export type ProjectStatus = "active" | "paused" | "completed" | "archived";
 
 /** Solid dot colors for project status — `statusColors` are badge bundles, not plain dots. */
 export const projectStatusDotColors: Record<ProjectStatus, string> = {

@@ -5,7 +5,7 @@
  * - Quick capture tasks to be triaged to the home workspace or any other workspace
  *
  * File structure:
- * ~/Desk/workspaces/{homeWorkspaceId}/
+ * ~/DeskMD/workspaces/{homeWorkspaceId}/
  *   ├── _capture/tasks/*.md    # Quick capture (triage inbox)
  *   ├── _unassigned/tasks/*.md # Tasks without a project
  *   ├── projects/              # Projects
@@ -48,7 +48,7 @@ export const mockCaptureTasks: Task[] = [
     id: "2024-01-16-book-dentist",
     projectId: SPECIAL_DIRS.CAPTURE,
     workspaceId: "personal",
-    filePath: "~/Desk/workspaces/personal/_capture/tasks/2024-01-16-book-dentist.md",
+    filePath: "~/DeskMD/workspaces/personal/_capture/tasks/2024-01-16-book-dentist.md",
     title: "Book dentist appointment",
     status: "todo",
     priority: "low",
@@ -150,7 +150,7 @@ export async function createCaptureTask(data: {
   };
 
   if (isMockMode()) {
-    task.filePath = `~/Desk/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
+    task.filePath = `~/DeskMD/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
     mockCaptureTasks.push(task);
     return task;
   }

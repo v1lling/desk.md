@@ -14,7 +14,7 @@ npm run build        # Type-check + production web build — run before committi
 npm run typecheck    # tsc --noEmit across core, app, and server
 npm run lint         # ESLint (flat config in packages/app/eslint.config.mjs)
 npm run tauri:build  # Production desktop build — @desk/app
-npm run dev:server   # Run the @desk/server skeleton (tsx watch)
+npm run dev:server   # Run @desk/server (tsx watch)
 ```
 
 > Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. There is no test runner — there is no `test` script; verify changes via `npm run build` + manual run.
@@ -27,7 +27,7 @@ The codebase is an npm-workspaces monorepo under `packages/`:
 |---------|------|------|
 | `@desk/core` | `packages/core` | **Pure domain layer** — parser, CRUD, file-cache, search, storage. No React / Zustand / Tauri-static imports. Tauri is reached only through guarded dynamic imports declared as optional `peerDependencies`. Runs in the Tauri webview, the browser, or on Node. |
 | `@desk/app` | `packages/app` | **Tauri + React UI.** Owns everything UI-coupled: components, pages, stores, hooks, and the React-bound libs (`lib/ai`, `lib/context-index`, `lib/email`, `lib/i18n`, file-cache React hooks, `desk-watcher`). Consumes `@desk/core` and wires its host seams at boot. |
-| `@desk/server` | `packages/server` | **Node 22 + Hono skeleton** that boots the same `@desk/core` domain on a `NodeFsProvider`. WIP — no auth / MCP / remote service yet. |
+| `@desk/server` | `packages/server` | **Node 22 + Hono server** that boots the same `@desk/core` domain on a `NodeFsProvider`: Better Auth session gate, domain RPC, the OAuth-gated MCP endpoint, and the in-process maintenance engine. |
 
 `@desk/app` resolves `@desk/core` straight to its TypeScript source (no build step):
 a Vite alias in `packages/app/vite.config.ts` and npm-workspace symlinks point at
@@ -142,7 +142,7 @@ says "reviewed", never "verified" (any save stamps `updated`).
 - **Editor**: Tiptap (WYSIWYG markdown)
 - **Drag & Drop**: @dnd-kit
 
-> **Note**: `@desk/app` is a single-page app (SPA) built with Vite. No SSR, no API routes — Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. The `@desk/server` package is the start of a real off-Tauri backend (sync/hosted), running the same `@desk/core` domain on Node; it is a WIP skeleton.
+> **Note**: `@desk/app` is a single-page app (SPA) built with Vite. No SSR, no API routes — Tauri bundles static files only. The "backend" is Tauri's Rust layer for file system access. The `@desk/server` package is the off-Tauri backend (hosted mode), running the same `@desk/core` domain on Node behind auth + RPC + MCP.
 
 ## Data Models
 
@@ -367,7 +367,6 @@ Always use `<ScrollArea>` from `@/components/ui/scroll-area` for scrollable cont
 Use these hooks instead of duplicating logic:
 - `useProjectName(workspaceId)` - Project name lookup by ID
 - `useOpenFromQuery(items, onOpen, path)` - Handle `?open=id` URL params
-- `useGroupedItems(items, getKey)` - Group items by a key function
 - `useEditorTab(tabId, title, isDirty)` - Manage editor tab title/dirty state
 - `useEditorSession(options)` - **Editor state with manual save** (Cmd+S)
 
@@ -540,9 +539,9 @@ pipx install appicongen
 Desk generates `CLAUDE.md` and `AGENTS.md` files automatically so external AI agents (Claude CLI, Codex, etc.) can understand and work with Desk data without any special tooling.
 
 **Generated files:**
-- `~/Desk/CLAUDE.md` — Top-level: lists all workspaces, explains directory structure, frontmatter schemas, how to create/edit items
-- `~/Desk/workspaces/{id}/CLAUDE.md` — Per-workspace: workspace info, project listing, pointer to catalog
-- `~/Desk/workspaces/{id}/WORKSPACE_CONTEXT.md` — AI-generated file catalog with summaries (from Smart Index)
+- `~/DeskMD/CLAUDE.md` — Top-level: lists all workspaces, explains directory structure, frontmatter schemas, how to create/edit items
+- `~/DeskMD/workspaces/{id}/CLAUDE.md` — Per-workspace: workspace info, project listing, pointer to catalog
+- `~/DeskMD/workspaces/{id}/WORKSPACE_CONTEXT.md` — AI-generated file catalog with summaries (from Smart Index)
 
 **Regeneration triggers:** workspace create/update/delete, project create/update/delete, index rebuild, app startup.
 

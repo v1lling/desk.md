@@ -92,7 +92,7 @@ export function useEnsureProjectBrief() {
  * the pre-write body and the old freshness verdict. Exported: the background state refresh
  * (state-refresh.ts, via the watcher wiring) needs the same invalidation after its write.
  */
-export function invalidateContext(
+function invalidateContext(
   queryClient: QueryClient,
   workspaceId: string,
   projectId: string,

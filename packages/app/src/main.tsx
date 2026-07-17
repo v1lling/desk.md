@@ -23,7 +23,7 @@ async function bootstrap() {
   // below, since that resolves the data path through it.
   const { setDataRootResolver } = await import("@desk/core");
   const { useBootStore } = await import("./stores/boot");
-  setDataRootResolver(async () => useBootStore.getState().dataPath || "~/Desk");
+  setDataRootResolver(async () => useBootStore.getState().dataPath || "~/DeskMD");
 
   // Set the Tauri FS scope BEFORE any store module is evaluated. File-backed
   // zustand stores (createRemoteSettingStorage & co.) read the filesystem during

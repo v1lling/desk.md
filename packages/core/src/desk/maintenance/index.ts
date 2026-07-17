@@ -9,7 +9,7 @@ export {
   removeIndexEntries,
   clearWorkspaceIndex,
 } from "./index-store-io";
-export { updateIndexForFile, removeFileFromIndex } from "./index-updater";
+export { updateIndexForFile } from "./index-updater";
 export { performStateRefresh, type StateRefreshResult } from "./state-refresher";
 export { rebuildWorkspaceIndex, rebuildSmartIndex } from "./rebuild";
 export {

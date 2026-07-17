@@ -35,5 +35,4 @@ tauri-plugin-process = "2"
 # connect-src and browser CORS. The reachable origins are scoped in capabilities/default.json.
 tauri-plugin-http = "2"
 
-chrono = { version = "0.4", features = ["serde"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }

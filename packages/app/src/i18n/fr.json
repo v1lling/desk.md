@@ -30,16 +30,10 @@
       "continue": "Continuer",
       "retry": "Réessayer",
       "dontSave": "Ne pas enregistrer",
-      "open": "Ouvrir",
       "create": "Créer",
-      "edit": "Modifier",
       "rename": "Renommer",
-      "duplicate": "Dupliquer",
-      "remove": "Retirer",
       "add": "Ajouter",
-      "search": "Rechercher",
       "all": "Tout",
-      "more": "Plus",
       "loading": "Chargement…",
       "tryAgain": "Réessayer",
       "reloadPage": "Recharger la page"
@@ -499,7 +493,7 @@
         "title": "Stockage des données",
         "description": "Emplacement de vos projets et fichiers",
         "pathLabel": "Chemin du dossier de données",
-        "pathPlaceholder": "~/Desk",
+        "pathPlaceholder": "~/DeskMD",
         "change": "Modifier",
         "helperText": "Tous vos espaces, projets, tâches et notes sont stockés en fichiers Markdown dans ce dossier."
       },
@@ -651,7 +645,7 @@
       "description": "Créez un espace pour séparer un domaine de travail, par exemple un client, un projet annexe ou autre chose",
       "nameLabel": "Nom de l'espace",
       "namePlaceholder": "ex. Acme SAS, Projets annexes, Études",
-      "folderHint": "Dossier : ~/Desk/workspaces/{{folder}}",
+      "folderHint": "Dossier : ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brève description de cet espace...",
       "colorLabel": "Couleur",
@@ -826,11 +820,6 @@
         "low": "Basse"
       },
       "pluralLowercase": "tâches"
-    },
-    "doc": {},
-    "meeting": {},
-    "email": {
-      "defaultTitle": "E-mail"
     }
   },
   "emptyStates": {
@@ -841,12 +830,6 @@
     "tasks": {
       "noResults": {
         "title": "Aucune tâche trouvée"
-      }
-    },
-    "docs": {
-      "none": {
-        "title": "Aucun document pour l'instant",
-        "description": "Créez votre premier document pour commencer"
       }
     },
     "meetings": {
@@ -938,9 +921,6 @@
         "failed": "Échec du déplacement de {{entity}}"
       }
     },
-    "secrets": {
-      "keychainUnavailable": "Impossible d'accéder au trousseau du système. Les fonctionnalités d'IA sont désactivées jusqu'à résolution. Ouvrez Paramètres → IA pour les détails."
-    },
     "link": {
       "notFound": "Note liée introuvable"
     },
@@ -998,7 +978,6 @@
       "cannotRevealBrowser": "Impossible d'afficher les fichiers en mode navigateur",
       "cannotOpenBrowser": "Impossible d'ouvrir les fichiers en mode navigateur",
       "importFailed": "Échec de l'import des fichiers",
-      "reservedName": "« {{name}} » est un nom réservé.",
       "crossScopeMove": "Les déplacements entre portées ne sont pas encore pris en charge. Les déplacements doivent rester dans le même espace ou projet."
     },
     "meeting": {

@@ -280,19 +280,13 @@ ${project.description || ""}
 export async function updateProject(
   projectId: string,
   updates: ProjectUpdate,
-  workspaceId?: string
+  workspaceId: string
 ): Promise<Project | null> {
   if (isMockMode()) {
     const index = mockProjects.findIndex((p) => p.id === projectId);
     if (index === -1) return null;
     mockProjects[index] = { ...mockProjects[index], ...clearNulls(updates) };
     return mockProjects[index];
-  }
-
-  // Need workspaceId for file path
-  if (!workspaceId) {
-    console.warn("updateProject requires workspaceId in Tauri mode");
-    return null;
   }
 
   const deskPath = await getDeskPath();
@@ -340,17 +334,12 @@ export async function updateProject(
 /**
  * Delete a project (removes entire directory)
  */
-export async function deleteProject(projectId: string, workspaceId?: string): Promise<boolean> {
+export async function deleteProject(projectId: string, workspaceId: string): Promise<boolean> {
   if (isMockMode()) {
     const index = mockProjects.findIndex((p) => p.id === projectId);
     if (index === -1) return false;
     mockProjects.splice(index, 1);
     return true;
-  }
-
-  if (!workspaceId) {
-    console.warn("deleteProject requires workspaceId in Tauri mode");
-    return false;
   }
 
   const deskPath = await getDeskPath();

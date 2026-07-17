@@ -3,10 +3,10 @@
  */
 
 // Markdown extensions that should be editable in Desk
-export const MARKDOWN_EXTENSIONS = ['md', 'markdown'] as const;
+const MARKDOWN_EXTENSIONS = ['md', 'markdown'] as const;
 
 // Common file type categories for icon selection
-export const FILE_CATEGORIES = {
+const FILE_CATEGORIES = {
   document: ['doc', 'docx', 'pdf', 'txt', 'rtf', 'odt', 'pages'],
   spreadsheet: ['xls', 'xlsx', 'csv', 'ods', 'numbers'],
   presentation: ['ppt', 'pptx', 'odp', 'key'],
@@ -42,7 +42,7 @@ export function isMarkdownFile(filename: string): boolean {
 // Extensions that file-conversion can turn into a Markdown doc.
 // Kept here (not in FILE_CATEGORIES) because convertibility is a separate concern
 // from icon/category classification.
-export const CONVERTIBLE_EXTENSIONS = [
+const CONVERTIBLE_EXTENSIONS = [
   "docx",
   "pdf",
   "html",

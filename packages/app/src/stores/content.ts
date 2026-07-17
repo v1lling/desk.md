@@ -40,20 +40,6 @@ export function useDocs(workspaceId: string | null) {
 }
 
 /**
- * Hook to fetch docs for a specific project
- */
-export function useProjectDocs(workspaceId: string | null, projectId: string | null) {
-  return useQuery({
-    queryKey: contentKeys.byProject(workspaceId || "", projectId || ""),
-    queryFn: async () => {
-      if (!workspaceId || !projectId) throw new Error("workspaceId and projectId are required");
-      return getDeskService().getDocsByProject(workspaceId, projectId);
-    },
-    enabled: !!workspaceId && !!projectId,
-  });
-}
-
-/**
  * Hook to fetch a single doc
  */
 export function useDoc(workspaceId: string | null, docId: string | null) {
@@ -194,21 +180,6 @@ export function useDeleteAsset() {
         });
       }
     },
-  });
-}
-
-/**
- * Hook to fetch ALL docs for a workspace (includes nested folders)
- * Uses getDocTree internally for proper recursion through folder structures
- */
-export function useAllWorkspaceDocs(workspaceId: string | null) {
-  return useQuery({
-    queryKey: [...contentKeys.byWorkspace(workspaceId || ""), "all-recursive"] as const,
-    queryFn: async () => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      return getDeskService().getAllDocsForWorkspace(workspaceId);
-    },
-    enabled: !!workspaceId,
   });
 }
 

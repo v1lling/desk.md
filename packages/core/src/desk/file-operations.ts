@@ -73,8 +73,6 @@ export async function readMarkdownFile<T>(
  * Options for writing a markdown file
  */
 export interface WriteFileOptions {
-  /** Create parent directories if they don't exist (default: true) */
-  createDir?: boolean;
   /**
    * Explicit `updated` stamp (ISO datetime) instead of "now". Used by the state refresher to
    * stamp the snapshot with the time the records were READ — stamping write-time would mark
@@ -97,14 +95,9 @@ export async function writeMarkdownFile<T extends Record<string, unknown>>(
   content: string,
   options: WriteFileOptions = {}
 ): Promise<void> {
-  const { createDir = true } = options;
-
-  if (createDir) {
-    const parts = filePath.split("/");
-    parts.pop();
-    const dirPath = parts.join("/");
-    await getStorage().mkdir(dirPath);
-  }
+  const parts = filePath.split("/");
+  parts.pop();
+  await getStorage().mkdir(parts.join("/"));
 
   // Every caller writes a content file (task/doc/meeting/capture) — workspace.md
   // and project.md are written elsewhere — so the `updated` stamp is unconditional.
@@ -158,8 +151,6 @@ export interface UpdateResult<T> {
  * Options for updating a markdown file
  */
 export interface UpdateFileOptions {
-  /** Notify open editors about the update (default: true) */
-  notifyEditors?: boolean;
   /** Explicit `updated` stamp (ISO datetime) instead of "now" — see WriteFileOptions. */
   updatedStamp?: string;
 }
@@ -184,8 +175,6 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
   updater: (frontmatter: T, content: string) => { frontmatter: T; content: string },
   options: UpdateFileOptions = {}
 ): Promise<UpdateResult<T> | null> {
-  const { notifyEditors = true } = options;
-
   if (!(await getStorage().exists(filePath))) {
     return null;
   }
@@ -203,11 +192,9 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
     getContentCache().invalidate(filePath);
     publishDomainWrite({ kind: "update", filePath });
 
-    if (notifyEditors) {
-      const registry = getEditorNotifier();
-      if (registry.isOpen(filePath)) {
-        registry.updateLastSaved(filePath, updated.content);
-      }
+    const registry = getEditorNotifier();
+    if (registry.isOpen(filePath)) {
+      registry.updateLastSaved(filePath, updated.content);
     }
 
     return {
@@ -226,14 +213,6 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
 // =============================================================================
 
 /**
- * Options for deleting a file
- */
-export interface DeleteFileOptions {
-  /** Notify open editors about deletion (default: true) */
-  notifyEditors?: boolean;
-}
-
-/**
  * Delete a markdown file
  *
  * Automatically invalidates cache and notifies open editors.
@@ -242,12 +221,7 @@ export interface DeleteFileOptions {
  * @param options - Optional configuration
  * @returns true if deleted, false if not found
  */
-export async function deleteMarkdownFile(
-  filePath: string,
-  options: DeleteFileOptions = {}
-): Promise<boolean> {
-  const { notifyEditors = true } = options;
-
+export async function deleteMarkdownFile(filePath: string): Promise<boolean> {
   if (!(await getStorage().exists(filePath))) {
     return false;
   }
@@ -256,13 +230,11 @@ export async function deleteMarkdownFile(
   getContentCache().invalidate(filePath);
   publishDomainWrite({ kind: "delete", filePath });
 
-  if (notifyEditors) {
-    const registry = getEditorNotifier();
-    if (registry.isOpen(filePath)) {
-      registry.handlePathDeleted(filePath);
-    }
-    publishDeleted(filePath);
+  const registry = getEditorNotifier();
+  if (registry.isOpen(filePath)) {
+    registry.handlePathDeleted(filePath);
   }
+  publishDeleted(filePath);
 
   return true;
 }
@@ -270,16 +242,6 @@ export async function deleteMarkdownFile(
 // =============================================================================
 // MOVE OPERATIONS
 // =============================================================================
-
-/**
- * Options for moving a file
- */
-export interface MoveFileOptions {
-  /** Create target directory if it doesn't exist (default: true) */
-  createDir?: boolean;
-  /** Notify open editors about the move (default: true) */
-  notifyEditors?: boolean;
-}
 
 /**
  * Move a markdown file to a new location
@@ -293,21 +255,15 @@ export interface MoveFileOptions {
  */
 export async function moveMarkdownFile(
   sourcePath: string,
-  targetPath: string,
-  options: MoveFileOptions = {}
+  targetPath: string
 ): Promise<boolean> {
-  const { createDir = true, notifyEditors = true } = options;
-
   if (!(await getStorage().exists(sourcePath))) {
     return false;
   }
 
-  if (createDir) {
-    const parts = targetPath.split("/");
-    parts.pop();
-    const dirPath = parts.join("/");
-    await getStorage().mkdir(dirPath);
-  }
+  const parts = targetPath.split("/");
+  parts.pop();
+  await getStorage().mkdir(parts.join("/"));
 
   await getStorage().rename(sourcePath, targetPath);
 
@@ -315,13 +271,11 @@ export async function moveMarkdownFile(
   getContentCache().invalidate(targetPath);
   publishDomainWrite({ kind: "move", filePath: sourcePath, targetPath });
 
-  if (notifyEditors) {
-    const registry = getEditorNotifier();
-    if (registry.isOpen(sourcePath)) {
-      registry.handlePathChange(sourcePath, targetPath);
-    }
-    publishPathChange(sourcePath, targetPath);
+  const registry = getEditorNotifier();
+  if (registry.isOpen(sourcePath)) {
+    registry.handlePathChange(sourcePath, targetPath);
   }
+  publishPathChange(sourcePath, targetPath);
 
   return true;
 }
@@ -412,13 +366,11 @@ export async function removeDirectoryWithContents(dirPath: string): Promise<bool
  *
  * @param dirPath - Absolute path to directory
  * @param id - File ID (filename without extension)
- * @param extension - File extension (default: ".md")
  * @returns Full file path or null if not found
  */
 export async function findFileById(
   dirPath: string,
-  id: string,
-  extension: string = ".md"
+  id: string
 ): Promise<string | null> {
   if (!(await getStorage().exists(dirPath))) {
     return null;
@@ -426,7 +378,7 @@ export async function findFileById(
 
   const entries = await getStorage().readDir(dirPath);
   for (const entry of entries) {
-    if (entry.isFile && entry.name.endsWith(extension)) {
+    if (entry.isFile && entry.name.endsWith(".md")) {
       if (filenameToId(entry.name) === id) {
         return joinPath(dirPath, entry.name);
       }
@@ -476,10 +428,9 @@ export async function findAndUpdateFile<T extends Record<string, unknown>>(
 export async function findAndDeleteFile(
   dirPath: string,
   id: string,
-  options?: DeleteFileOptions
 ): Promise<string | null> {
   const filePath = await findFileById(dirPath, id);
   if (!filePath) return null;
-  const deleted = await deleteMarkdownFile(filePath, options);
+  const deleted = await deleteMarkdownFile(filePath);
   return deleted ? filePath : null;
 }

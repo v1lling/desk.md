@@ -2,7 +2,7 @@
  * Search Index Service
  *
  * In-memory search index for fast lookups across all items.
- * Built on app startup, updated via file watcher events.
+ * Built on app startup; changes rebuild it wholesale (no incremental API).
  */
 
 import Fuse, { type IFuseOptions } from "fuse.js";
@@ -67,43 +67,6 @@ export function rebuildIndex(newItems: SearchItem[]): void {
   items = newItems;
   fuse = new Fuse(items, FUSE_OPTIONS);
   isInitialized = true;
-}
-
-/**
- * Add or update an item in the index
- */
-export function upsertItem(item: SearchItem): void {
-  const existingIndex = items.findIndex(
-    (i) => i.id === item.id && i.type === item.type
-  );
-
-  if (existingIndex >= 0) {
-    items[existingIndex] = item;
-  } else {
-    items.push(item);
-  }
-
-  // Rebuild Fuse index (it doesn't support incremental updates well)
-  fuse = new Fuse(items, FUSE_OPTIONS);
-}
-
-/**
- * Remove an item from the index
- */
-export function removeItem(id: string, type: SearchItemType): void {
-  const index = items.findIndex((i) => i.id === id && i.type === type);
-  if (index >= 0) {
-    items.splice(index, 1);
-    fuse = new Fuse(items, FUSE_OPTIONS);
-  }
-}
-
-/**
- * Remove all items for a workspace (e.g., when workspace is deleted)
- */
-export function removeWorkspaceItems(workspaceId: string): void {
-  items = items.filter((i) => i.workspaceId !== workspaceId);
-  fuse = new Fuse(items, FUSE_OPTIONS);
 }
 
 /**
@@ -181,32 +144,6 @@ export function getRecentItems(
 }
 
 /**
- * Get index statistics
- */
-export function getIndexStats(): {
-  totalItems: number;
-  byType: Record<SearchItemType, number>;
-  isInitialized: boolean;
-} {
-  const byType: Record<SearchItemType, number> = {
-    task: 0,
-    doc: 0,
-    meeting: 0,
-    project: 0,
-  };
-
-  for (const item of items) {
-    byType[item.type]++;
-  }
-
-  return {
-    totalItems: items.length,
-    byType,
-    isInitialized,
-  };
-}
-
-/**
  * Check if index is ready
  */
 export function isIndexReady(): boolean {
@@ -223,15 +160,6 @@ export function findByTypeAndId(
 ): SearchItem | null {
   if (!isInitialized) return null;
   return items.find((i) => i.type === type && i.id === id) ?? null;
-}
-
-/**
- * Clear the index
- */
-export function clearIndex(): void {
-  items = [];
-  fuse = null;
-  isInitialized = false;
 }
 
 // Helper functions to convert domain objects to SearchItems

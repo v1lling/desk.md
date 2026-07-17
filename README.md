@@ -89,6 +89,24 @@ then lets AI tools read it when you want them to. There's no chat box in the app
 the sparring happens in the tool you already use, with desk.md underneath it as
 the source of truth.
 
+**Records and context.** Your files split by lifecycle. Docs, tasks and meetings are
+**records**: they are dated, they accumulate, and nothing rewrites them. A March
+meeting note stays a March meeting note, so a record cannot go stale. Everything an
+agent needs to actually understand the work lives in **context**, a small folder kept
+current: what this is, which systems it touches, what was decided.
+
+**The brief and the current state.** Each project's context holds two small files with
+a clean line between them. The **brief** is yours: what this project is and what it runs
+on, the part no AI can work out for itself. The **current state** is the AI's: a short
+snapshot of where the project stands, rewritten in the background as your tasks, docs,
+and meetings change, and marked as AI-written right in the file. This runs wherever your
+data lives: on your desktop with your local key, or on your own server when self-hosted.
+desk.md tracks how many records the snapshot hasn't seen yet, so you can tell a current
+map from a rotting one at a glance.
+
+Your words are protected structurally, not by asking the model nicely: the AI only ever
+writes its own file, so nothing you wrote is ever in an AI write path.
+
 **Smart Index.** Optional, and off until you add your own Anthropic or OpenAI key
 (**Settings → AI**). It summarizes your files into a catalog so agents can find
 the right note fast instead of crawling the whole folder.
@@ -117,10 +135,10 @@ Markdown you own; the difference is where it lives and who can reach it.
 |---|---|---|
 | Install | Native app on Mac, Windows, Linux | `docker compose` on a box you control |
 | Reach it from | The one machine it runs on | Any browser, on any device, all sharing one copy. Installable as a PWA on phone and tablet |
-| Where data lives | A folder you pick at setup (default `~/Desk/`) | A folder on the server you bind-mount into the container |
+| Where data lives | A folder you pick at setup (default `~/DeskMD/`) | A folder on the server you bind-mount into the container |
 | Multi-device sync | Your own tool (iCloud, Dropbox, git, Syncthing) | Built in, the server holds the shared copy |
 | Login | None, fully offline | Account and session (first user wins), needs the network |
-| Smart Index | Yes, with your own API key | From the desktop app, using your local key. Browser-only hosting has no key store yet |
+| Smart Index | Yes, with your own API key | Built by the server with its own key (set it in the deploy .env), so browser and phone get it too |
 | External AI agents | Point Claude Code, Codex, or Gemini at the folder | Connect Claude.ai, ChatGPT, Claude Code, or any MCP client to your workspace |
 | MCP | No server needed; agents read local files | OAuth-protected MCP endpoint, read-only for now |
 

@@ -100,7 +100,7 @@ export async function getViewState(
 /**
  * Write the view state for a project or workspace
  */
-export async function saveViewState(
+async function saveViewState(
   workspaceId: string,
   projectId: string | null,
   state: ProjectViewState
@@ -123,19 +123,6 @@ export async function updateTaskOrder(
     ...existing,
     taskOrder,
   });
-}
-
-/**
- * Get task order for a specific status column
- * Returns undefined if no custom order is set
- */
-export async function getTaskOrderForStatus(
-  workspaceId: string,
-  projectId: string | null,
-  status: TaskStatus
-): Promise<string[] | undefined> {
-  const state = await getViewState(workspaceId, projectId);
-  return state.taskOrder?.[status];
 }
 
 // =============================================================================
@@ -209,21 +196,6 @@ export async function removeTaskFromOrder(
 // =============================================================================
 
 /**
- * Get the view mode for tasks (list or kanban)
- * @param workspaceId - The workspace ID
- * @param projectId - The project ID, or null for workspace-level
- * @param defaultMode - Default if not set (personal=list, projects=kanban)
- */
-export async function getViewMode(
-  workspaceId: string,
-  projectId: string | null,
-  defaultMode: TaskViewMode = 'kanban'
-): Promise<TaskViewMode> {
-  const state = await getViewState(workspaceId, projectId);
-  return state.viewMode ?? defaultMode;
-}
-
-/**
  * Set the view mode for tasks
  */
 export async function setViewMode(
@@ -282,17 +254,6 @@ export async function getHighlightedTasks(
 // =============================================================================
 
 /**
- * Get expanded folder paths for content tree
- */
-export async function getExpandedFolders(
-  workspaceId: string,
-  projectId: string | null
-): Promise<string[]> {
-  const state = await getViewState(workspaceId, projectId);
-  return state.expandedFolders ?? [];
-}
-
-/**
  * Save expanded folder paths for content tree
  */
 export async function setExpandedFolders(
@@ -310,18 +271,6 @@ export async function setExpandedFolders(
 // =============================================================================
 // STATUS VISIBILITY HELPERS
 // =============================================================================
-
-/**
- * Get task statuses hidden from the Tasks page.
- * Returns undefined if not set, so callers can apply their own default.
- */
-export async function getHiddenStatuses(
-  workspaceId: string,
-  projectId: string | null
-): Promise<TaskStatus[] | undefined> {
-  const state = await getViewState(workspaceId, projectId);
-  return state.hiddenStatuses;
-}
 
 /**
  * Save the set of task statuses hidden from the Tasks page

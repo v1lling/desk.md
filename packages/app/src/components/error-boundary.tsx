@@ -6,7 +6,6 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface OwnProps {
   children: ReactNode;
-  fallback?: ReactNode;
 }
 
 type Props = OwnProps & WithTranslation;
@@ -46,10 +45,6 @@ class ErrorBoundaryInner extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
       const { t } = this.props;
 
       return (

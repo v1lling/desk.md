@@ -81,9 +81,3 @@ export function disconnectFromWatcher(): void {
   isConnected = false;
 }
 
-/**
- * Check if connected to watcher
- */
-export function isWatcherConnected(): boolean {
-  return isConnected;
-}

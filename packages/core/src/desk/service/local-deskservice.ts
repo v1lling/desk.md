@@ -81,7 +81,6 @@ export const localDeskService: DeskService = {
 
   // Content tree (I/O reads)
   getContentTree: contentApi.getContentTree,
-  getAllDocs: contentApi.getAllDocs,
   getAllDocsForWorkspace: contentApi.getAllDocsForWorkspace,
   getWorkspaceOverviewShell: contentApi.getWorkspaceOverviewShell,
   getMergedContentTree: contentApi.getMergedContentTree,

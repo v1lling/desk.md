@@ -135,25 +135,12 @@ export async function getWorkspaceSummaries(): Promise<WorkspaceSummary[]> {
  * plain filter of this one.
  */
 export async function getAllWorkspaceTasksAllStatuses(): Promise<ActiveTask[]> {
-  return getAllWorkspaceTasksByStatus();
-}
-
-/**
- * Internal: fetch cross-workspace tasks, optionally filtered by status.
- * When no statuses provided, returns all tasks.
- */
-async function getAllWorkspaceTasksByStatus(
-  statuses?: string[]
-): Promise<ActiveTask[]> {
   const workspaces = await getWorkspaces();
   const allTasks: ActiveTask[] = [];
 
   const workspaceTasksPromises = workspaces.map(async (workspace) => {
     const tasks = await getTasks(workspace.id);
-    const filtered = statuses
-      ? tasks.filter((task) => statuses.includes(task.status))
-      : tasks;
-    return filtered.map((task) => ({
+    return tasks.map((task) => ({
       ...task,
       workspaceName: workspace.name,
       workspaceColor: workspace.color,
@@ -166,10 +153,7 @@ async function getAllWorkspaceTasksByStatus(
   // Also fetch capture tasks (the capture inbox lives in the home workspace)
   const homeWorkspace = workspaces.find((w) => w.isHome);
   const captureTasks = await getCaptureTasks();
-  const filteredCapture = statuses
-    ? captureTasks.filter((task) => statuses.includes(task.status))
-    : captureTasks;
-  const enrichedCapture = filteredCapture.map((task) => ({
+  const enrichedCapture = captureTasks.map((task) => ({
     ...task,
     workspaceName: homeWorkspace?.name || "Home",
     workspaceColor: homeWorkspace?.color,

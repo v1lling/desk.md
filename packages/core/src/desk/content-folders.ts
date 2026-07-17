@@ -133,12 +133,9 @@ export async function moveFolder(
   const oldFullPath = await joinPath(basePath, fromPath);
   const newFullPath = await joinPath(basePath, newPath);
 
-  // Ensure target parent exists
+  // Ensure target parent exists (mkdir is recursive + idempotent)
   if (toParentPath) {
-    const parentFullPath = await joinPath(basePath, toParentPath);
-    if (!(await getStorage().exists(parentFullPath))) {
-      await getStorage().mkdir(parentFullPath);
-    }
+    await getStorage().mkdir(await joinPath(basePath, toParentPath));
   }
 
   return moveDirectoryWithContents(oldFullPath, newFullPath);

@@ -7,7 +7,7 @@
  * Kept separate from the user-settings KV (settings.ts) because it is a cache, not
  * a user setting, and keeps its own `.desk/index/` home.
  *
- * The value is an opaque JSON string (the zustand persist payload), written whole
+ * The value is an opaque JSON string (plain `{indexes}`), written whole
  * on each build / save-debounce and read once at hydrate — never per-entry.
  */
 import { getDeskPath, joinPath } from "./env";
@@ -29,7 +29,7 @@ export async function getIndexCache(): Promise<string | null> {
 
 export async function setIndexCache(value: string): Promise<void> {
   const dir = await indexDir();
-  if (!(await getStorage().exists(dir))) await getStorage().mkdir(dir);
+  await getStorage().mkdir(dir); // recursive + idempotent
   const path = await joinPath(dir, INDEX_FILE);
   await getStorage().writeTextFile(path, value);
 }

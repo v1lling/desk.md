@@ -44,9 +44,7 @@ export async function getSetting(key: string): Promise<string | null> {
 export async function setSetting(key: string, value: string): Promise<void> {
   assertSafeKey(key);
   const dir = await settingsDir();
-  if (!(await getStorage().exists(dir))) {
-    await getStorage().mkdir(dir);
-  }
+  await getStorage().mkdir(dir); // recursive + idempotent
   const path = await joinPath(dir, `${key}.json`);
   await getStorage().writeTextFile(path, value);
 }

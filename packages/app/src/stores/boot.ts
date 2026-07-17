@@ -24,7 +24,7 @@ interface BootState {
 
 const getDefaultDataPath = (): string => {
   if (typeof window !== "undefined") {
-    return "~/Desk";
+    return "~/DeskMD";
   }
   return "";
 };

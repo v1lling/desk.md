@@ -2,7 +2,7 @@ import { hashContent, extractBody } from "./content-utils";
 import type { CatalogEntry } from "./types";
 
 /** Derive the workspace-relative path from an absolute file path. */
-export function extractRelativePath(absolutePath: string, workspaceId: string): string {
+function extractRelativePath(absolutePath: string, workspaceId: string): string {
   const workspaceMarker = `/workspaces/${workspaceId}/`;
   const markerIndex = absolutePath.indexOf(workspaceMarker);
 

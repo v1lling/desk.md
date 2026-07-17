@@ -165,12 +165,3 @@ export const useOpenEditorRegistry = create<OpenEditorRegistryState>((set, get) 
   },
 }));
 
-/** Check if a path is open in any editor (can be called outside React) */
-export function isPathOpen(path: string): boolean {
-  return useOpenEditorRegistry.getState().isOpen(path);
-}
-
-/** Get session for a path (can be called outside React) */
-export function getEditorSession(path: string): EditorSession | undefined {
-  return useOpenEditorRegistry.getState().getSession(path);
-}

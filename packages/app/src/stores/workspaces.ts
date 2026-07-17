@@ -22,17 +22,6 @@ export function useWorkspaces() {
 }
 
 /**
- * Hook to fetch a single workspace
- */
-export function useWorkspace(workspaceId: string | null) {
-  return useQuery({
-    queryKey: workspaceKeys.detail(workspaceId || ""),
-    queryFn: () => getDeskService().getWorkspace(workspaceId!),
-    enabled: !!workspaceId,
-  });
-}
-
-/**
  * Hook to create a new workspace
  */
 export function useCreateWorkspace() {

@@ -79,7 +79,7 @@ async function handleDroppedEmlPaths(paths: string[]) {
       const email = await importEmlFromPath(path);
       openTab({
         type: "email",
-        title: email.subject || i18n.t("entities.email.defaultTitle"),
+        title: email.subject || i18n.t("tabs.emailDefault"),
         emailData: email,
       });
     } catch (error) {

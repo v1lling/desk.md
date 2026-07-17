@@ -106,16 +106,6 @@ export function splitTreePathToKind(treePath: string): { kind: DocKind; subPath:
   return { kind: "doc", subPath: treePath };
 }
 
-/**
- * Inverse of splitTreePathToKind — build a tree path from kind + on-disk subpath.
- */
-export function joinTreePathFromKind(kind: DocKind, subPath: string): string {
-  if (kind === "context") {
-    return subPath ? `${CONTEXT_SENTINEL}/${subPath}` : CONTEXT_SENTINEL;
-  }
-  return subPath;
-}
-
 /** True when a tree-relative path lives under the synthetic Context subfolder. */
 export function isContextTreePath(treePath: string): boolean {
   return treePath === CONTEXT_SENTINEL || treePath.startsWith(`${CONTEXT_SENTINEL}/`);

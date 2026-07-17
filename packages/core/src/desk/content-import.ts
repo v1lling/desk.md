@@ -79,7 +79,7 @@ export async function createDocInFolder(data: {
     // context doc under `docs/`.
     const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
     const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
-    doc.filePath = `~/Desk/workspaces/${wsId}${scopeSegment}/${kind === "context" ? "context" : "docs"}${folderSegment}/${filename}`;
+    doc.filePath = `~/DeskMD/workspaces/${wsId}${scopeSegment}/${kind === "context" ? "context" : "docs"}${folderSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }

@@ -8,15 +8,8 @@
 
 // Check if running in Tauri
 export function isTauri(): boolean {
-  if (typeof window === "undefined") return false;
-
-  // __TAURI_INTERNALS__ is the Tauri 2.x marker
-  if ("__TAURI_INTERNALS__" in window) return true;
-
-  // Fallback to __TAURI__ for compatibility
-  if ("__TAURI__" in window) return true;
-
-  return false;
+  // __TAURI_INTERNALS__ is the Tauri 2.x marker (always injected; no legacy fallback needed).
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 // Check if running on macOS (for title bar styling)

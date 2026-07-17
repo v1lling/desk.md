@@ -12,15 +12,12 @@ import { smartIndexKeys } from "@/lib/query-client";
 
 export type WorkspaceIndexMap = Record<string, WorkspaceIndex>;
 
-/** Parse the index file's plain `{ indexes }` shape (tolerating a legacy zustand envelope). */
+/** Parse the index file's plain `{ indexes }` shape. */
 function parseIndexes(raw: string | null): WorkspaceIndexMap {
   if (!raw) return {};
   try {
-    const parsed = JSON.parse(raw) as {
-      indexes?: WorkspaceIndexMap;
-      state?: { indexes?: WorkspaceIndexMap };
-    };
-    return parsed.indexes ?? parsed.state?.indexes ?? {};
+    const parsed = JSON.parse(raw) as { indexes?: WorkspaceIndexMap };
+    return parsed.indexes ?? {};
   } catch {
     return {};
   }

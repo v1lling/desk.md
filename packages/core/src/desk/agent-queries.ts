@@ -88,7 +88,7 @@ const CONTENT_DIR_KINDS: Record<string, ContentKind> = {
  * `isDir` tells us whether the final segment is itself a directory (and so classifiable) or
  * a filename (which never is).
  */
-export function contentKindForPath(workspaceRelPath: string, isDir = false): ContentKind {
+function contentKindForPath(workspaceRelPath: string, isDir = false): ContentKind {
   const segments = workspaceRelPath.split("/");
   const dirSegments = isDir ? segments : segments.slice(0, -1);
 

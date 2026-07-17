@@ -28,12 +28,6 @@ import { getAIMaintenanceSettings, createMaintenanceService } from "./config";
 import { getSummaryPreviewLength } from "./types";
 import { readWorkspaceIndex, upsertIndexEntry, removeIndexEntry } from "./index-store-io";
 
-export async function removeFileFromIndex(filePath: string): Promise<void> {
-  const workspaceId = getWorkspaceIdFromPath(filePath);
-  if (!workspaceId) return;
-  await removeIndexEntry(workspaceId, filePath);
-}
-
 export async function updateIndexForFile(
   filePath: string,
   canRunAI: () => boolean | Promise<boolean>,

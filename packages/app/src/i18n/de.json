@@ -30,16 +30,10 @@
       "continue": "Weiter",
       "retry": "Erneut versuchen",
       "dontSave": "Nicht speichern",
-      "open": "Öffnen",
       "create": "Erstellen",
-      "edit": "Bearbeiten",
       "rename": "Umbenennen",
-      "duplicate": "Duplizieren",
-      "remove": "Entfernen",
       "add": "Hinzufügen",
-      "search": "Suchen",
       "all": "Alle",
-      "more": "Mehr",
       "loading": "Lade…",
       "tryAgain": "Erneut versuchen",
       "reloadPage": "Seite neu laden"
@@ -499,7 +493,7 @@
         "title": "Datenspeicher",
         "description": "Wo deine Projekte und Dateien gespeichert sind",
         "pathLabel": "Pfad zum Datenordner",
-        "pathPlaceholder": "~/Desk",
+        "pathPlaceholder": "~/DeskMD",
         "change": "Ändern",
         "helperText": "Alle deine Arbeitsbereiche, Projekte, Aufgaben und Notizen werden als Markdown-Dateien in diesem Ordner gespeichert."
       },
@@ -651,7 +645,7 @@
       "description": "Erstelle einen Arbeitsbereich, um einen Bereich deiner Arbeit zu trennen, z. B. einen Kunden, ein Nebenprojekt oder etwas anderes",
       "nameLabel": "Name des Arbeitsbereichs",
       "namePlaceholder": "z. B. Acme GmbH, Nebenprojekte, Studium",
-      "folderHint": "Ordner: ~/Desk/workspaces/{{folder}}",
+      "folderHint": "Ordner: ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Kurze Beschreibung dieses Arbeitsbereichs...",
       "colorLabel": "Farbe",
@@ -826,11 +820,6 @@
         "low": "Niedrig"
       },
       "pluralLowercase": "Aufgaben"
-    },
-    "doc": {},
-    "meeting": {},
-    "email": {
-      "defaultTitle": "E-Mail"
     }
   },
   "emptyStates": {
@@ -841,12 +830,6 @@
     "tasks": {
       "noResults": {
         "title": "Keine Aufgaben gefunden"
-      }
-    },
-    "docs": {
-      "none": {
-        "title": "Noch keine Dokumente",
-        "description": "Erstelle dein erstes Dokument, um loszulegen"
       }
     },
     "meetings": {
@@ -938,9 +921,6 @@
         "failed": "{{entity}} konnte nicht verschoben werden"
       }
     },
-    "secrets": {
-      "keychainUnavailable": "Zugriff auf den Schlüsselbund des Betriebssystems nicht möglich. KI-Funktionen bleiben deaktiviert, bis das Problem behoben ist. Öffne Einstellungen → KI für Details."
-    },
     "link": {
       "notFound": "Verlinkte Notiz nicht gefunden"
     },
@@ -998,7 +978,6 @@
       "cannotRevealBrowser": "Dateien können im Browsermodus nicht angezeigt werden",
       "cannotOpenBrowser": "Dateien können im Browsermodus nicht geöffnet werden",
       "importFailed": "Dateien konnten nicht importiert werden",
-      "reservedName": "„{{name}}“ ist ein reservierter Name.",
       "crossScopeMove": "Bereichsübergreifende Verschiebungen werden noch nicht unterstützt. Verschiebungen müssen innerhalb desselben Arbeitsbereichs oder Projekts bleiben."
     },
     "meeting": {

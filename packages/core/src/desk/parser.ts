@@ -160,7 +160,7 @@ export function normalizeDate(date: unknown): string {
  * e.g. "2026-05-17-konzept.md" → "2026-05-17". Accepts a bare name or a full path. Returns
  * undefined when there's no valid date prefix.
  */
-export function extractDateFromFilename(fileNameOrPath: string): string | undefined {
+function extractDateFromFilename(fileNameOrPath: string): string | undefined {
   const name = fileNameOrPath.split(/[\\/]/).pop() ?? fileNameOrPath;
   const m = name.match(/^(\d{4})-(\d{2})-(\d{2})-/);
   if (!m) return undefined;

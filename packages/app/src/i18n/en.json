@@ -30,16 +30,10 @@
       "continue": "Continue",
       "retry": "Retry",
       "dontSave": "Don't Save",
-      "open": "Open",
       "create": "Create",
-      "edit": "Edit",
       "rename": "Rename",
-      "duplicate": "Duplicate",
-      "remove": "Remove",
       "add": "Add",
-      "search": "Search",
       "all": "All",
-      "more": "More",
       "loading": "Loading…",
       "tryAgain": "Try Again",
       "reloadPage": "Reload Page"
@@ -510,7 +504,7 @@
         "title": "Data Storage",
         "description": "Where your projects and files are stored",
         "pathLabel": "Data folder path",
-        "pathPlaceholder": "~/Desk",
+        "pathPlaceholder": "~/DeskMD",
         "change": "Change",
         "helperText": "All your workspaces, projects, tasks, and notes are stored as markdown files in this folder."
       },
@@ -662,7 +656,7 @@
       "description": "Create a workspace to separate an area of your work, like a client, side project, or anything else",
       "nameLabel": "Workspace Name",
       "namePlaceholder": "e.g., Acme Corp, Side Projects, Studies",
-      "folderHint": "Folder: ~/Desk/workspaces/{{folder}}",
+      "folderHint": "Folder: ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brief description of this workspace...",
       "colorLabel": "Color",
@@ -837,11 +831,6 @@
         "low": "Low"
       },
       "pluralLowercase": "tasks"
-    },
-    "doc": {},
-    "meeting": {},
-    "email": {
-      "defaultTitle": "Email"
     }
   },
   "emptyStates": {
@@ -852,12 +841,6 @@
     "tasks": {
       "noResults": {
         "title": "No tasks found"
-      }
-    },
-    "docs": {
-      "none": {
-        "title": "No docs yet",
-        "description": "Create your first doc to get started"
       }
     },
     "meetings": {
@@ -951,9 +934,6 @@
         "failed": "Failed to move {{entity}}"
       }
     },
-    "secrets": {
-      "keychainUnavailable": "Couldn't access the OS keychain. AI features will be off until this is resolved. Open Settings → AI for details."
-    },
     "link": {
       "notFound": "Linked note not found"
     },
@@ -1014,7 +994,6 @@
       "cannotRevealBrowser": "Cannot reveal files in browser mode",
       "cannotOpenBrowser": "Cannot open files in browser mode",
       "importFailed": "Failed to import files",
-      "reservedName": "\"{{name}}\" is a reserved name.",
       "crossScopeMove": "Cross-scope moves aren't supported yet. Moves must stay inside the same workspace or project."
     },
     "meeting": {

@@ -233,15 +233,3 @@ export function useMoveTaskToProject() {
   });
 }
 
-/**
- * Helper to group tasks by status for Kanban view
- */
-export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
-  return {
-    backlog: tasks.filter((t) => t.status === "backlog"),
-    todo: tasks.filter((t) => t.status === "todo"),
-    doing: tasks.filter((t) => t.status === "doing"),
-    waiting: tasks.filter((t) => t.status === "waiting"),
-    done: tasks.filter((t) => t.status === "done"),
-  };
-}

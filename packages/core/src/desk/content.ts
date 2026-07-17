@@ -115,7 +115,7 @@ export async function createDoc(data: {
   };
 
   if (isMockMode()) {
-    doc.filePath = `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${dirSegment}/${filename}`;
+    doc.filePath = `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${dirSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }

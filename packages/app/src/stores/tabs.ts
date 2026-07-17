@@ -31,7 +31,6 @@ interface TabState {
   setActiveTab: (tabId: string) => void;
   updateTab: (tabId: string, updates: Partial<TabItem>) => void;
   setTabDirty: (tabId: string, isDirty: boolean) => void;
-  closeAllExcept: (tabId: string) => void;
   closeOtherTabs: (tabId: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   /** Request save and close for a tab (editor will handle) */
@@ -143,13 +142,6 @@ export const useTabStore = create<TabState>()(
           tabs: state.tabs.map((t) =>
             t.id === tabId ? { ...t, isDirty } : t
           ),
-        }));
-      },
-
-      closeAllExcept: (tabId) => {
-        set((state) => ({
-          tabs: state.tabs.filter((t) => t.id === tabId || t.isPinned),
-          activeTabId: tabId,
         }));
       },
 

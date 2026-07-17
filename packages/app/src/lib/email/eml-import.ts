@@ -2,10 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 import PostalMime from "postal-mime";
 import type { EmailAddress, IncomingEmail } from "./types";
 
-export function isEmlPath(path: string): boolean {
-  return path.toLowerCase().endsWith(".eml");
-}
-
 function toEmailAddress(
   addr: { address?: string; name?: string } | undefined,
 ): EmailAddress | undefined {
@@ -39,7 +35,7 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
-export async function parseEmlToIncomingEmail(
+async function parseEmlToIncomingEmail(
   emlText: string,
 ): Promise<IncomingEmail> {
   const parsed = await PostalMime.parse(emlText);

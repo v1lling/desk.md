@@ -31,6 +31,3 @@ export function parseNoteLinkHref(href: string): NoteLink | null {
   return { type, id };
 }
 
-export function isNoteLinkHref(href: string): boolean {
-  return href.startsWith(DESK_PROTOCOL);
-}

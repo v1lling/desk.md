@@ -92,7 +92,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** localStorage seed so the app boots straight into a deterministic state. */
 function seedScript(theme) {
-  const boot = { state: { dataPath: "~/Desk", setupCompleted: true }, version: 0 };
+  const boot = { state: { dataPath: "~/DeskMD", setupCompleted: true }, version: 0 };
   const navigation = { state: { currentWorkspaceId: "acme" }, version: 0 };
   const preferences = {
     state: {

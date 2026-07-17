@@ -214,7 +214,7 @@ export async function createTask(data: {
   };
 
   if (isMockMode()) {
-    task.filePath = `~/Desk/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
+    task.filePath = `~/DeskMD/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
     mockTasks.push(task);
     return task;
   }

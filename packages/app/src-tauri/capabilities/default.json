@@ -8,9 +8,6 @@
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
-    "core:window:allow-show",
-    "core:window:allow-set-focus",
-    "core:window:allow-unminimize",
     "dialog:default",
     "fs:default",
     "shell:allow-open",

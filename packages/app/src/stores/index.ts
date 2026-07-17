@@ -6,7 +6,6 @@ export { useNavigationStore } from "./navigation";
 // ── Workspaces ──────────────────────────────────────────────────────
 export {
   useWorkspaces,
-  useWorkspace,
   useCreateWorkspace,
   useUpdateWorkspace,
   useDeleteWorkspace,
@@ -25,7 +24,6 @@ export {
   useDeleteTask,
   useMoveTask,
   useMoveTaskToProject,
-  groupTasksByStatus,
   taskKeys,
 } from "./tasks";
 
@@ -43,13 +41,11 @@ export { useProjectSelectionStore } from "./project-selection";
 // ── Content (Docs, Assets, Folders) ─────────────────────────────────
 export {
   useDocs,
-  useProjectDocs,
   useDoc,
   useCreateDoc,
   useUpdateDoc,
   useDeleteDoc,
   useDeleteAsset,
-  useAllWorkspaceDocs,
   contentKeys,
   useContentTree,
   useWorkspaceOverviewShell,
@@ -82,7 +78,6 @@ export {
   useUpdateTaskOrder,
   useRemoveTaskFromOrder,
   useViewMode,
-  useExpandedFolders,
   useHighlightedTasks,
   useHiddenStatuses,
   sortTasksByOrder,
@@ -93,7 +88,6 @@ export {
 export {
   useCaptureTasks,
   useCreateCaptureTask,
-  useUpdateCaptureTask,
   useDeleteCaptureTask,
   useMoveCaptureToPersonal,
   useMoveCaptureToWorkspace,

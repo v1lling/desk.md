@@ -15,14 +15,10 @@ const EXT_TO_KIND: Record<string, ConvertibleKind> = {
   txt: "txt",
 };
 
-export function getConvertibleKind(filename: string): ConvertibleKind | null {
+function getConvertibleKind(filename: string): ConvertibleKind | null {
   const ext = getExtension(filename);
   if (!ext) return null;
   return EXT_TO_KIND[ext] ?? null;
-}
-
-export function isConvertibleFile(filename: string): boolean {
-  return getConvertibleKind(filename) !== null;
 }
 
 export function titleFromFilename(filename: string): string {

@@ -53,7 +53,6 @@ export * from "./search";
 export * from "./search-index";
 
 // ── Computed / aggregated data ──────────────────────────────────────
-export * from "./calculations";
 export * from "./dashboard";
 export * from "./view-state";
 export * from "./settings";

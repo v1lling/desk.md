@@ -19,7 +19,6 @@ import {
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
 import { getProjectPath, getMeetingsPath, getProjectsPath, getUnassignedPath } from "./paths";
-import { findItemInAllWorkspaces } from "./search";
 import { getFileTreeService } from "./file-cache";
 
 interface MeetingFrontmatter extends Record<string, unknown> {
@@ -214,8 +213,8 @@ export async function createMeeting(data: {
 
   if (isMockMode()) {
     const mockProjectPath = isUnassigned(data.projectId)
-      ? `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
-      : `~/Desk/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
+      ? `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
+      : `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
     meeting.filePath = `${mockProjectPath}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
@@ -243,8 +242,8 @@ export async function createMeeting(data: {
 export async function updateMeeting(
   meetingId: string,
   updates: Partial<Pick<Meeting, "title" | "date" | "content">>,
-  workspaceId?: string,
-  projectId?: string
+  workspaceId: string,
+  projectId: string
 ): Promise<Meeting | null> {
   if (isMockMode()) {
     const index = mockMeetings.findIndex((m) => m.id === meetingId);
@@ -259,29 +258,14 @@ export async function updateMeeting(
     return mockMeetings[index];
   }
 
-  // Helper to perform the update at a known meetings directory
-  const updateAtPath = async (meetingsPath: string, wsId: string, projId: string): Promise<Meeting | null> => {
-    const result = await findAndUpdateFile<MeetingFrontmatter>(
-      meetingsPath,
-      meetingId,
-      (data, body) => applyMeetingUpdates(data, body, updates)
-    );
-    if (!result) return null;
-    return buildMeeting(meetingId, wsId, projId, result.filePath, result.frontmatter, result.content);
-  };
-
-  // Fast path: directly locate via workspace + project
-  if (workspaceId && projectId) {
-    const meetingsPath = await getMeetingsPath(workspaceId, projectId);
-    return updateAtPath(meetingsPath, workspaceId, projectId);
-  }
-
-  // Slow path: search all workspaces
-  const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
-  if (!meeting) return null;
-
-  const meetingsPath = await getMeetingsPath(meeting.workspaceId, meeting.projectId);
-  return updateAtPath(meetingsPath, meeting.workspaceId, meeting.projectId);
+  const meetingsPath = await getMeetingsPath(workspaceId, projectId);
+  const result = await findAndUpdateFile<MeetingFrontmatter>(
+    meetingsPath,
+    meetingId,
+    (data, body) => applyMeetingUpdates(data, body, updates)
+  );
+  if (!result) return null;
+  return buildMeeting(meetingId, workspaceId, projectId, result.filePath, result.frontmatter, result.content);
 }
 
 /**
@@ -289,8 +273,8 @@ export async function updateMeeting(
  */
 export async function deleteMeeting(
   meetingId: string,
-  workspaceId?: string,
-  projectId?: string
+  workspaceId: string,
+  projectId: string
 ): Promise<boolean> {
   if (isMockMode()) {
     const index = mockMeetings.findIndex((m) => m.id === meetingId);
@@ -299,18 +283,7 @@ export async function deleteMeeting(
     return true;
   }
 
-  // Fast path: directly locate via workspace + project
-  if (workspaceId && projectId) {
-    const meetingsPath = await getMeetingsPath(workspaceId, projectId);
-    const deleted = await findAndDeleteFile(meetingsPath, meetingId);
-    return deleted !== null;
-  }
-
-  // Slow path: search all workspaces
-  const meeting = await findItemInAllWorkspaces(meetingId, getMeetings);
-  if (!meeting) return false;
-
-  const meetingsPath = await getMeetingsPath(meeting.workspaceId, meeting.projectId);
+  const meetingsPath = await getMeetingsPath(workspaceId, projectId);
   const deleted = await findAndDeleteFile(meetingsPath, meetingId);
   return deleted !== null;
 }

@@ -68,17 +68,3 @@ export function publishDeleted(path: string): void {
     handlers.onDeleted();
   }
 }
-
-/**
- * Check if a path has any subscribers
- */
-export function hasSubscribers(path: string): boolean {
-  return subscribers.has(path);
-}
-
-/**
- * Get count of active subscriptions (for debugging)
- */
-export function getSubscriberCount(): number {
-  return subscribers.size;
-}

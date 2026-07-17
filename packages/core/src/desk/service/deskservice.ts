@@ -7,9 +7,9 @@
  *   - LocalDeskService  — runs the domain in-process on a StorageProvider (today;
  *                         see local-deskservice.ts). This is the Tauri app and the
  *                         browser dev-mock mode.
- *   - RemoteDeskService — a thin fetch client to a server that runs the *same*
- *                         LocalDeskService over NodeFsProvider (added with the
- *                         server; not built yet).
+ *   - RemoteDeskService — a thin fetch client (packages/app/src/lib/remote-desk-service.ts)
+ *                         to a server that runs the *same* LocalDeskService over
+ *                         NodeFsProvider.
  *
  * The active implementation is resolved via getDeskService() (see index.ts); a
  * server injects RemoteDeskService with setDeskService() at boot.
@@ -90,7 +90,6 @@ export interface DeskService {
 
   // ── Content tree (I/O reads) ────────────────────────────────────────
   getContentTree: typeof contentApi.getContentTree;
-  getAllDocs: typeof contentApi.getAllDocs;
   getAllDocsForWorkspace: typeof contentApi.getAllDocsForWorkspace;
   getWorkspaceOverviewShell: typeof contentApi.getWorkspaceOverviewShell;
   getMergedContentTree: typeof contentApi.getMergedContentTree;

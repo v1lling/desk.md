@@ -12,7 +12,7 @@ export const SIDEBAR_MAX_WIDTH = 400;
 
 // Secondary sidebar width constants (shared across all routes that opt into the slot)
 export const SECONDARY_SIDEBAR_COLLAPSED_WIDTH = 32;
-export const SECONDARY_SIDEBAR_DEFAULT_WIDTH = 280;
+const SECONDARY_SIDEBAR_DEFAULT_WIDTH = 280;
 export const SECONDARY_SIDEBAR_MIN_WIDTH = 200;
 export const SECONDARY_SIDEBAR_MAX_WIDTH = 480;
 

@@ -60,7 +60,7 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
   const runInit = useCallback(async () => {
     setInitError(null);
     setInitialized(false);
-    // Local-disk setup (Tauri FS scope + creating ~/Desk) only applies when the domain
+    // Local-disk setup (Tauri FS scope + creating ~/DeskMD) only applies when the domain
     // runs on THIS machine. In native-remote mode `isTauri()` is still true but storage is
     // the GuardStorageProvider, so initDeskDirectory() would throw — the data folder lives
     // on the server. Gate on isLocalDisk(), never bare isTauri() (the rule in CLAUDE.md).

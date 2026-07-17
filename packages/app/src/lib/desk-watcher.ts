@@ -152,7 +152,7 @@ export async function startWatching(): Promise<boolean> {
   }
 
   // In remote mode the data lives on the server; getDeskPath() still resolves to the
-  // local ~/Desk, so watching it would only fire spurious invalidations unrelated to
+  // local ~/DeskMD, so watching it would only fire spurious invalidations unrelated to
   // the server's files. Live remote sync is separate, future work.
   if (isRemoteMode()) {
     return false;

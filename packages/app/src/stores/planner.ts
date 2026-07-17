@@ -82,15 +82,6 @@ interface PlannerState {
 /** Max intentions per week. Three is a focus; ten is a to-do list. */
 export const MAX_INTENTIONS = 3;
 
-/** Migrate old string notes to string[] format on rehydration */
-function normalizeBlockNotes(block: WorkspaceBlock): WorkspaceBlock {
-  if (typeof block.notes === "string") {
-    const parts = (block.notes as unknown as string).split("\n").filter(Boolean);
-    return { ...block, notes: parts.length > 0 ? parts : undefined };
-  }
-  return block;
-}
-
 function emptyWeekPlan(weekOf: string): WeekPlan {
   return { weekOf, days: {} };
 }
@@ -296,15 +287,6 @@ export const usePlannerStore = create<PlannerState>()(
       // User-level → shared across devices in hosted mode (.desk/settings/planner.json).
       storage: createRemoteSettingStorage<PlannerState>("planner"),
       partialize: (state) => ({ weekPlans: state.weekPlans }) as PlannerState,
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        for (const weekOf in state.weekPlans) {
-          const plan = state.weekPlans[weekOf];
-          for (const day in plan.days) {
-            plan.days[day] = plan.days[day].map(normalizeBlockNotes);
-          }
-        }
-      },
     }
   )
 );

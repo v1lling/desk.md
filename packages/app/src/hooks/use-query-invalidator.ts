@@ -127,7 +127,7 @@ async function handleFileChange(
  * The cache clear always runs BEFORE the query invalidation so refetches can't
  * serve stale cached content.
  */
-export function invalidateQueriesForPaths(
+function invalidateQueriesForPaths(
   paths: string[],
   queryClient: ReturnType<typeof useQueryClient>
 ): void {

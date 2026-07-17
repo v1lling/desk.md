@@ -15,9 +15,8 @@ import type {
 
 export interface AIServiceConfig {
   providerType: AIProviderType;
-  apiKey?: string;
   model?: string;
-  onUsage?: (usage: AIUsage, purpose: string, provider: AIProviderType) => void;
+  onUsage?: (usage: AIUsage) => void;
 }
 
 export interface AIServiceResponse {
@@ -36,10 +35,6 @@ export class AIService {
     this.config = config;
   }
 
-  updateConfig(config: Partial<AIServiceConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-
   /**
    * Custom purpose with your own system prompt.
    * Used by context index builder for batch summarization.
@@ -49,10 +44,8 @@ export class AIService {
     message: string,
   ): Promise<AIServiceResponse> {
     const providerDef = getProviderDefinition(this.config.providerType);
-    // Key comes from the injectable host seam (Keychain on the app, env on the server)
-    // unless the caller supplies one explicitly.
-    const resolvedKey =
-      this.config.apiKey ?? (await getAIKeyResolver()(providerDef.keyRef)) ?? undefined;
+    // Key comes from the injectable host seam (Keychain on the app, env on the server).
+    const resolvedKey = (await getAIKeyResolver()(providerDef.keyRef)) ?? undefined;
     if (!resolvedKey) {
       throw new AIProviderError(
         "auth",
@@ -73,7 +66,7 @@ export class AIService {
     });
 
     if (response.usage && this.config.onUsage) {
-      this.config.onUsage(response.usage, 'custom', this.config.providerType);
+      this.config.onUsage(response.usage);
     }
 
     return {

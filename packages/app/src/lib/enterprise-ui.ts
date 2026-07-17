@@ -43,8 +43,3 @@ export const appSurfaceClasses = {
   sectionLabel: "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/75",
 } as const;
 
-export const workspaceUiDefaults = {
-  color: "#64748b",
-} as const;
-
-export type TemplateVariant = "workspace" | "project" | "settings";

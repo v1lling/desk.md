@@ -299,9 +299,7 @@ export function DocsTree({
   // Provide a unified handler that routes AI toggling to the right scope (workspace only for now)
   const handleToggleFolderAI = useCallback(
     async (treePath: string, currentlyIncluded: boolean) => {
-      // Project-scope folders don't surface this menu item (see FolderRow); keep the
-      // guard as a silent defensive no-op in case a future caller forgets.
-      if (treePath.startsWith(PROJECT_TREE_PATH_PREFIX)) return;
+      // Workspace scope only: project-scope folders don't surface this menu item (see FolderRow).
       await toggleWorkspaceAI(treePath, currentlyIncluded);
       const name = treePath.includes("/") ? treePath.split("/").pop() : treePath;
       toast.success(

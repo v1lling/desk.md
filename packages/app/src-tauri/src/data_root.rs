@@ -45,7 +45,7 @@ pub fn resolve_data_root(cli_override: Option<PathBuf>) -> PathBuf {
 
 fn default_data_root() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    Path::new(&home).join("Desk")
+    Path::new(&home).join("DeskMD")
 }
 
 pub fn get_data_root() -> PathBuf {

@@ -6,7 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Task, TaskPriority } from "@desk/core/types";
+import type { TaskPriority } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import { taskKeys } from "./tasks";
 
@@ -46,26 +46,6 @@ export function useCreateCaptureTask() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: captureKeys.tasks() });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
-}
-
-/**
- * Hook to update a capture task
- */
-export function useUpdateCaptureTask() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      taskId,
-      updates,
-    }: {
-      taskId: string;
-      updates: Partial<Pick<Task, "title" | "status" | "priority" | "due" | "content">>;
-    }) => getDeskService().updateCaptureTask(taskId, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: captureKeys.all });
     },
   });
 }

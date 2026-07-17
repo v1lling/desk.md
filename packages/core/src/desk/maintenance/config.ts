@@ -35,10 +35,8 @@ export async function getAIMaintenanceSettings(): Promise<AIMaintenanceSettings>
   try {
     const raw = await getSetting("ai-maintenance");
     if (!raw) return { ...AI_MAINTENANCE_DEFAULTS };
-    // Plain JSON now; tolerate a legacy zustand envelope (`{state, version}`) still on disk.
-    const parsed = JSON.parse(raw) as { state?: Partial<AIMaintenanceSettings> } | Partial<AIMaintenanceSettings> | null;
-    const state = (parsed && typeof parsed === "object" && "state" in parsed ? parsed.state : parsed) ?? {};
-    return { ...AI_MAINTENANCE_DEFAULTS, ...state };
+    const parsed = JSON.parse(raw) as Partial<AIMaintenanceSettings> | null;
+    return { ...AI_MAINTENANCE_DEFAULTS, ...(parsed ?? {}) };
   } catch {
     return { ...AI_MAINTENANCE_DEFAULTS };
   }

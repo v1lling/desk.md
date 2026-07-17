@@ -25,7 +25,7 @@ const HOME_WORKSPACE_COLOR = "#6366f1";
 export function SetupWizard() {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("welcome");
-  const [dataPath, setDataPath] = useState("~/Desk");
+  const [dataPath, setDataPath] = useState("~/DeskMD");
   const [workspaceName, setWorkspaceName] = useState("Personal");
   const [serverUrlInput, setServerUrlInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -265,7 +265,7 @@ export function SetupWizard() {
                       setDataPath(e.target.value);
                       setError(null);
                     }}
-                    placeholder="~/Desk"
+                    placeholder="~/DeskMD"
                     className="flex-1"
                   />
                   {isTauri() && (

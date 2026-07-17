@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -24,7 +24,6 @@ import { DateField } from "@/components/ui/date-field";
 import { useCreateTask, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import type { TaskPriority } from "@desk/core/types";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import { SPECIAL_DIRS, todayISO } from "@desk/core";
 import { priorityMeta, priorityOrder } from "@/lib/design-tokens";

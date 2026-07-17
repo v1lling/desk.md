@@ -32,14 +32,14 @@ async function getTauriPathModule() {
 
 /**
  * Get the Desk data directory path.
- * Reads from the boot store, falls back to ~/Desk.
+ * Reads from the boot store, falls back to ~/DeskMD.
  * In Tauri: resolves ~ to the actual home directory.
  * In browser: returns the configured path (data comes from mock arrays).
  */
 export async function getDeskPath(): Promise<string> {
   // Resolved via the injectable data-root seam (app wires the boot store,
-  // server wires DESK_DATA_ROOT). Defaults to ~/Desk before wiring.
-  const dataPath = (await getDataRoot()) || "~/Desk";
+  // server wires DESK_DATA_ROOT). Defaults to ~/DeskMD before wiring.
+  const dataPath = (await getDataRoot()) || "~/DeskMD";
 
   if (!isTauri()) {
     // Browser mode uses mock data from arrays; this path is for display only
@@ -98,7 +98,7 @@ export async function joinPath(...segments: string[]): Promise<string> {
 
 /**
  * Initialize the Desk directory structure.
- * Only ensures ~/Desk/ and ~/Desk/workspaces/ exist — the home workspace is
+ * Only ensures ~/DeskMD/ and ~/DeskMD/workspaces/ exist — the home workspace is
  * created during onboarding via createWorkspace({ home: true }).
  */
 export async function initDeskDirectory(): Promise<void> {

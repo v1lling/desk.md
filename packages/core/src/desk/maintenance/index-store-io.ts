@@ -35,10 +35,8 @@ async function readIndexFile(): Promise<IndexFile> {
     if (!raw) return { indexes: {} };
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return { indexes: {} };
-    // Tolerate a legacy zustand envelope (`{state:{indexes},version}`) left on disk from an
-    // older build — read it once, then the next write lands the plain shape.
-    const p = parsed as { indexes?: Record<string, WorkspaceIndex>; state?: { indexes?: Record<string, WorkspaceIndex> } };
-    return { indexes: p.indexes ?? p.state?.indexes ?? {} };
+    const p = parsed as { indexes?: Record<string, WorkspaceIndex> };
+    return { indexes: p.indexes ?? {} };
   } catch {
     return { indexes: {} };
   }

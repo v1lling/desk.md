@@ -26,7 +26,6 @@ import {
   displayTreePath,
   splitTreePathToKind,
   isContextTreePath,
-  isReservedContextName,
   todayISO,
 } from "@desk/core";
 import { useTemplatesStore } from "@/stores/templates";
@@ -92,13 +91,6 @@ export function NewDocModal({
 
     // For non-personal scopes, we need a workspace
     if (!isPersonalScope && !workspaceId) return;
-
-    // Block creating a doc whose name would create a reserved-name folder collision.
-    // (Docs don't create folders, but be defensive about future automation.)
-    if (!isAIDestination && !destinationSubPath && isReservedContextName(trimmed)) {
-      toast.error(t("errors.doc.reservedName", { name: trimmed }));
-      return;
-    }
 
     try {
       const templateBody = resolveVariables(
