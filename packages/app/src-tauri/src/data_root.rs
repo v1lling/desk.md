@@ -3,8 +3,8 @@
 //! Resolves and caches the user's Desk data directory (CLI override →
 //! DESK_DATA_ROOT env → shared config → ~/Desk default) so the fs-scope setup
 //! can contain reads/writes to it. The former desk_* read/write commands that
-//! also lived here were retired: the in-app assistant now runs its tools on the
-//! TypeScript domain layer (src/lib/desk), the single read+write implementation.
+//! also lived here were retired: agent queries and content operations now use
+//! the shared TypeScript domain layer, the single read+write implementation.
 use crate::app_config;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};

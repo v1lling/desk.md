@@ -15,7 +15,7 @@
  *                         Keychain so the session survives a restart.
  *
  * Gated for bundling behind `!VITE_DESK_HOSTED` and only constructed inside a Tauri
- * webview (isTauri()), so the lean web/PWA build never pulls better-auth in through here.
+ * webview (isTauri()), so the lean hosted web build never pulls better-auth in here.
  */
 import { createAuthClient } from "better-auth/react";
 import { nativeFetch } from "./native-http";

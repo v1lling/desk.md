@@ -1,9 +1,9 @@
 /**
  * .aiignore — per-workspace AI exclusions (gitignore-flavoured patterns).
  *
- * This lives in the domain layer so enforcement runs *where the data is read*:
- * the in-app assistant (via DeskService) and a future MCP server both honour the
- * correct workspace's `.aiignore`, against whichever disk the domain runs on.
+ * This lives in the domain layer so enforcement runs *where the data is read*.
+ * Local agent queries and hosted MCP both honour the correct workspace's
+ * `.aiignore`, against whichever disk the domain runs on.
  *
  * Stored at the workspace root: `{workspace}/.aiignore`. Each non-comment line is
  * an exact workspace-relative path, a `folder/` prefix, or a `*.ext` suffix glob.

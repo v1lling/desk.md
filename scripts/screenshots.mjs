@@ -43,8 +43,8 @@ const THEMES = /** @type {const} */ (["light", "dark"]);
  * `prep` runs extra interaction (the Docs page needs an item opened).
  */
 const PAGES = [
-  { name: "dashboard", route: "/" },
   { name: "tasks", route: "/tasks" },
+  { name: "planner", route: "/planner" },
   { name: "projects", route: "/projects?open=website-redesign" },
   { name: "meetings", route: "/meetings?open=client-kickoff" },
   {
@@ -59,7 +59,7 @@ const PAGES = [
         .click({ timeout: 10_000 });
       await page.waitForTimeout(500);
       await page
-        .getByRole("treeitem", { name: "Project Brief", exact: true })
+        .getByRole("treeitem", { name: "Content Inventory", exact: true })
         .click({ timeout: 10_000 });
       await page.waitForTimeout(700);
     },
@@ -90,10 +90,82 @@ async function waitForServer(timeoutMs = 90_000) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function localISODate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** A representative current-week plan so the README shows the planner in use. */
+function screenshotPlannerState() {
+  const monday = new Date();
+  const mondayOffset = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - mondayOffset);
+  const weekOf = localISODate(monday);
+  const day = (offset) => {
+    const date = new Date(monday);
+    date.setDate(date.getDate() + offset);
+    return localISODate(date);
+  };
+
+  return {
+    weekPlans: {
+      [weekOf]: {
+        weekOf,
+        intentions: ["Ship the website refresh", "Prepare the migration dry run"],
+        days: {
+          [day(0)]: [
+            {
+              id: "shot-website",
+              workspaceId: "acme",
+              notes: ["Website launch"],
+              taskIds: ["contact-form-endpoint", "analytics-events"],
+              startMinute: 540,
+              endMinute: 690,
+            },
+          ],
+          [day(1)]: [
+            {
+              id: "shot-migration",
+              workspaceId: "acme",
+              notes: ["Migration dry run"],
+              taskIds: ["transformation-logic", "id-migration-script"],
+              startMinute: 600,
+              endMinute: 750,
+            },
+          ],
+          [day(2)]: [
+            {
+              id: "shot-side-project",
+              workspaceId: "side-projects",
+              notes: ["Pixel Weather"],
+              taskIds: ["location-search"],
+              startMinute: 570,
+              endMinute: 690,
+            },
+          ],
+          [day(3)]: [
+            {
+              id: "shot-admin",
+              workspaceId: "personal",
+              notes: ["Admin afternoon"],
+              taskIds: ["quarterly-taxes"],
+              startMinute: 780,
+              endMinute: 900,
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
 /** localStorage seed so the app boots straight into a deterministic state. */
 function seedScript(theme) {
   const boot = { state: { dataPath: "~/DeskMD", setupCompleted: true }, version: 0 };
   const navigation = { state: { currentWorkspaceId: "acme" }, version: 0 };
+  const planner = screenshotPlannerState();
   const preferences = {
     state: {
       theme,
@@ -111,6 +183,7 @@ function seedScript(theme) {
     localStorage.setItem("desk-boot", ${JSON.stringify(JSON.stringify(boot))});
     localStorage.setItem("desk-navigation", ${JSON.stringify(JSON.stringify(navigation))});
     localStorage.setItem("desk-preferences", ${JSON.stringify(JSON.stringify(preferences))});
+    localStorage.setItem("planner-store", ${JSON.stringify(JSON.stringify(planner))});
   `;
 }
 
@@ -153,8 +226,8 @@ function bannerHtml(theme, iconB64, fontB64) {
       <img src="data:image/png;base64,${iconB64}" alt="">
       <div>
         <div class="name">desk.md</div>
-        <div class="tag">Project &amp; task management in plain Markdown</div>
-        <div class="feat">lightweight · local-first · agent-ready</div>
+        <div class="tag">Personal work management in plain Markdown</div>
+        <div class="feat">desktop · self-hosted · agent-ready</div>
       </div>
     </div>
   </body></html>`;

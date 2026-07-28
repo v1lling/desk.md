@@ -29,7 +29,7 @@ const HostedAuthGate = import.meta.env.VITE_DESK_HOSTED
   : null;
 
 // Native hosted mode (step 3b-native): the same lazy gate for the desktop build.
-// Bundling is gated on the constant `!VITE_DESK_HOSTED` (so the lean web/PWA build
+// Bundling is gated on the constant `!VITE_DESK_HOSTED` (so the lean hosted web build
 // tree-shakes it out); whether it's actually shown is a runtime decision — only in a
 // Tauri webview (isTauri(), true on macOS/Windows/Linux) and only when the user has
 // switched to a remote backend. No build flag: the native app is self-identifying.

@@ -382,7 +382,7 @@ needs that survive in remote (dropped-file / `.eml` staging) use dedicated Tauri
 | Tasks / docs / meetings / projects / workspaces | USER | markdown files | `getDeskService()` |
 | View state (`.view.json`: task order, view mode, expanded folders, highlights, hidden statuses) | USER | `.view.json` | `getDeskService().getViewState/…` |
 | Templates, agent-instructions, week planner, **AI maintenance settings** (provider/model + auto-summarize/auto-refresh toggles) | USER | `.desk/settings/*.json` (plain JSON — the zustand persist envelope is contained in `createRemoteSettingStorage`) | `getDeskService().getSetting/setSetting` |
-| Smart/context index | DERIVED | `.desk/index/indexes.json` (plain `{indexes}`) | **core is the sole writer** (maintenance engine + local rebuild via `writeWorkspaceIndex`); the app reads only, through a TanStack query over `getIndexCache` (`useSmartIndex`) |
+| Smart Index | DERIVED | `.desk/index/indexes.json` (plain `{indexes}`) | **core is the sole writer** (maintenance engine + local rebuild via `writeWorkspaceIndex`); the app reads only, through a TanStack query over `getIndexCache` (`useSmartIndex`) |
 | AI usage log | DERIVED (telemetry) | `.desk/usage/ai-usage.json` | core `appendAIUsage` (in-process write) + `getDeskService().getAIUsage` (read) |
 | Preferences (theme, language, sidebar widths, workday hours, dismissedUpdate) | DEVICE | localStorage `desk-preferences` | zustand persist |
 | Navigation (current workspace), tabs | DEVICE | localStorage | zustand persist |

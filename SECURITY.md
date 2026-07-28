@@ -26,14 +26,23 @@ confirmed and fixed, a new release will be published and the advisory disclosed.
 
 ## Scope notes
 
-Desk is a **local-first** desktop app — your content stays in plain files on
-your machine. Two things worth knowing:
+Desk stores work content as plain Markdown. In local mode those files stay in
+the data folder you choose; in self-hosted mode they live on the server you
+operate. The hosted authentication database contains accounts and sessions, not
+your workspace content.
 
-- **AI features** (Smart Index, AI Chat, email drafting) send content to the
-  AI provider you configure (e.g. Anthropic or OpenAI). This only happens when
-  you enable and use those features.
-- **API keys** are stored in your operating system's secure credential store
-  where available.
+External access is opt-in:
+
+- **Smart Index:** when enabled, Desk sends file previews to the Anthropic or
+  OpenAI provider you select so it can generate summaries. Local API keys are
+  stored in the operating system's secure credential store. In hosted mode, the
+  server operator supplies the provider key through an environment variable.
+- **MCP:** a self-hosted server can grant an external AI client read-only access
+  after an OAuth sign-in and consent flow. Per-workspace `.aiignore` rules are
+  enforced by the read layer for tree, read, search, and catalog operations.
+
+Desk does not include an in-app chatbot, and MCP clients cannot write workspace
+content today.
 
 If you find a way for data to leave your machine unexpectedly, that is in
 scope — please report it.

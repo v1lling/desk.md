@@ -138,7 +138,7 @@ const authOptions = {
   // cookie, so the native app reads the session token from the `set-auth-token`
   // response header at sign-in, stores it in the macOS Keychain, and sends it as
   // `Authorization: Bearer <token>`. `getSession()` then resolves it exactly like the
-  // cookie — the existing /api/desk session gate works unchanged. The web/PWA tier
+  // cookie — the existing /api/desk session gate works unchanged. The hosted web tier
   // keeps using the cookie; this is purely additive.
   plugins: [
     bearer(),

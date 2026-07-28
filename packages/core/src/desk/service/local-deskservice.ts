@@ -112,7 +112,7 @@ export const localDeskService: DeskService = {
   getSetting: settingsApi.getSetting,
   setSetting: settingsApi.setSetting,
 
-  // Assistant read tools (agent-queries)
+  // Agent read operations (agent-queries)
   deskWorkspaceInfo: agentQueriesApi.deskWorkspaceInfo,
   deskTree: agentQueriesApi.deskTree,
   deskReadFile: agentQueriesApi.deskReadFile,

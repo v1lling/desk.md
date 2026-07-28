@@ -2,7 +2,7 @@
 
 Run desk.md on a server you control. One container serves it all:
 
-- the **web/PWA app** (use desk.md from any browser, installable on phone/tablet),
+- the **hosted web app** (use desk.md from a browser on your devices),
 - the **domain API** the web and native clients talk to,
 - the **OAuth 2.1 Authorization Server**, and
 - a read-only **MCP endpoint** so AI tools (Claude.ai, ChatGPT, Claude Code) can connect.

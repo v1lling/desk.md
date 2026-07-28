@@ -4,7 +4,7 @@
  * The native client authenticates to a remote desk.md server with Better Auth's
  * bearer plugin: sign-in returns the session token in the `set-auth-token` header,
  * which we persist in the OS Keychain (via the existing `secret_*` Tauri commands)
- * and send back as `Authorization: Bearer <token>`. The web/PWA tier uses a cookie
+ * and send back as `Authorization: Bearer <token>`. The hosted web tier uses a cookie
  * instead and never touches this module.
  *
  * A synchronous in-memory mirror (`cachedToken`) backs `getTokenHeaderSync()` so the

@@ -33,14 +33,22 @@ UI work. Use `npm run tauri:dev` when you need real file system behavior.
 
 ## Before opening a pull request
 
-Run both of these and make sure they pass:
+Run these checks and make sure they pass:
 
 ```bash
+npm run typecheck    # core, app, and server
 npm run lint         # ESLint
-npm run build        # Type-check + production build (tsc -b && vite build)
+npm run build        # production app build
 ```
 
-CI runs the same checks on every pull request.
+For storage, parser, or domain CRUD changes, also run the filesystem integration
+fixture:
+
+```bash
+npm run verify:storage
+```
+
+CI runs lint and the production build on every pull request.
 
 If your change affects the UI shown in the README, regenerate its screenshots:
 
@@ -59,7 +67,7 @@ This runs the app in browser mock mode and captures each page in light and dark
   messages, matching the existing history, e.g.:
   - `feat(meetings): add recurring meeting support`
   - `fix(watcher): normalize paths on Windows`
-  - `refactor(assistant): extract tool orchestrator`
+  - `refactor(storage): simplify path classification`
   - `chore(deps): bump tauri to 2.10`
 - Update documentation when you change behavior.
 

@@ -126,8 +126,8 @@ export interface DeskService {
   getSetting: typeof settingsApi.getSetting;
   setSetting: typeof settingsApi.setSetting;
 
-  // ── Assistant read tools (agent-queries) — the AI assistant's tree/read/search
-  // layer. Promoted to the service so it runs server-side in hosted mode (one
+  // ── Agent read operations (agent-queries) — the tree/read/search layer.
+  // Promoted to the service so it runs server-side in hosted mode (one
   // round-trip; the server does the local-disk sweep) instead of hitting the
   // client's local disk. This is also the tool layer MCP wraps server-side.
   deskWorkspaceInfo: typeof agentQueriesApi.deskWorkspaceInfo;

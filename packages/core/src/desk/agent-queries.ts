@@ -1,9 +1,9 @@
 /**
- * Agent queries — read-side filesystem operations for the in-app assistant.
+ * Agent queries — read-side filesystem operations for external agents.
  *
  * These mirror the (now-removed) Rust desk_* read commands, but run purely on
- * the StorageProvider so they work identically on the desktop and on a future
- * server. Output shapes match what the assistant tool layer expects:
+ * the StorageProvider so they work identically on the desktop and server.
+ * Output shapes are shared by generated local guidance and hosted MCP:
  *   - deskWorkspaceInfo → { workspaces:[{ id, name, projects:[{ id, name }] }] }
  *   - deskTree          → { workspace_id, projects:[{ id, name }], total, truncated, entries[] }
  *   - deskReadFile      → { path, content, total_chars, truncated }
@@ -11,8 +11,8 @@
  *
  * `.aiignore` enforcement is built in here (deskTree / deskReadFile /
  * deskFullTextSearch honour each workspace's exclusions), so it applies to EVERY
- * front door — the in-app assistant via DeskService and a future MCP server alike,
- * against whichever disk the domain runs on. Callers no longer need to re-filter.
+ * front door, including hosted MCP, against whichever disk the domain runs on.
+ * Callers no longer need to re-filter.
  */
 import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";

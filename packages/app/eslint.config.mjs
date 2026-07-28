@@ -61,7 +61,6 @@ export default tseslint.config(
       // intentionally English in source because the model reads them.
       "src/lib/ai/prompts.ts",
       "src/lib/ai/**/prompts.ts",
-      "src/lib/assistant/**",
       "src/lib/smart-index/agent-files.ts",
       "src/lib/smart-index/artifacts.ts",
     ],

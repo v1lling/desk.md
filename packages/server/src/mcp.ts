@@ -43,8 +43,8 @@ function json(value: unknown) {
 }
 
 /**
- * Drafting guidance for the `draft-email-reply` prompt. Ported from the (now-removed) in-app
- * assistant's draft-email mode so the email-reply habit survives via MCP. Kept server-local
+ * Drafting guidance for the `draft-email-reply` prompt. Preserves the former
+ * email-drafting workflow as an MCP prompt. Kept server-local
  * because @desk/server can't import from @desk/app.
  */
 const DRAFT_EMAIL_GUIDANCE = `Draft a professional email reply to the email below.

@@ -1,4 +1,4 @@
-# desk.md self-host — one container that serves the web/PWA app, the domain API, the
+# desk.md self-host — one container that serves the hosted web app, the domain API, the
 # OAuth 2.1 Authorization Server, and the read-only MCP endpoint, against your Markdown
 # files on disk.
 #

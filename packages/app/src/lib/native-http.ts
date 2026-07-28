@@ -10,7 +10,7 @@
  *      src-tauri/capabilities/default.json.
  *
  * Imported only from code paths reached inside a Tauri webview (main.tsx / the native
- * auth client), gated for bundling behind `!VITE_DESK_HOSTED`, so the web/PWA build
+ * auth client), gated for bundling behind `!VITE_DESK_HOSTED`, so the hosted web build
  * never pulls it in. It runs but lies dormant in the browser-mock dev bundle.
  */
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";

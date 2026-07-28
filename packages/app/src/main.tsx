@@ -86,7 +86,7 @@ async function bootstrap() {
     // isTauri() — true on every Tauri desktop platform (macOS/Windows/Linux) — so no
     // build flag is needed; the DMG/MSI/AppImage is always native. This whole branch is
     // the `else` of the constant `VITE_DESK_HOSTED`, so it's tree-shaken from the lean
-    // web/PWA build. The choice is a runtime boot-store setting, so flipping it +
+    // hosted web build. The choice is a runtime boot-store setting, so flipping it +
     // reloading re-wires the service; requests go through the Tauri HTTP plugin (Rust
     // reqwest, bypasses CSP/CORS) with a Keychain-backed Bearer token. Local mode (and
     // the browser-mock dev build, where isTauri() is false) keeps LocalDeskService.

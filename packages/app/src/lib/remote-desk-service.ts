@@ -28,7 +28,7 @@ const _allDeskServiceMethodsAreAsync: NonAsyncMethods<DeskService> extends never
 void _allDeskServiceMethodsAreAsync;
 
 /**
- * Transport options. Defaults (web/PWA, same-origin) use the browser `fetch` with
+ * Transport options. Defaults (hosted web, same-origin) use the browser `fetch` with
  * `credentials: "include"` to carry the session cookie. The native client (step
  * 3b-native) is cross-origin and cookie-less: it passes `fetchImpl` from
  * `@tauri-apps/plugin-http` (Rust reqwest — bypasses webview CSP + CORS) and
@@ -55,7 +55,7 @@ export function createRemoteDeskService(
         ...(authHeader ? { authorization: authHeader } : {}),
       },
       body: encode({ args }),
-      // Same-origin web/PWA carries the session cookie; the native client sends a
+      // Same-origin hosted web carries the session cookie; the native client sends a
       // Bearer header instead (cross-origin, cookie-less) so this is a harmless no-op there.
       credentials: "include",
     });
