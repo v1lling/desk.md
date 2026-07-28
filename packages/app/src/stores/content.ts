@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Doc, DocKind, ContentScope, Asset } from "@desk/core/types";
+import type { Doc, ContentScope, Asset } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import type { ConvertibleAction, DocLocation } from "@desk/core";
 
@@ -11,18 +11,11 @@ export const contentKeys = {
     [...contentKeys.byWorkspace(workspaceId), "project", projectId] as const,
   detail: (workspaceId: string, docId: string) =>
     [...contentKeys.byWorkspace(workspaceId), "detail", docId] as const,
-  // Tree keys for scoped content trees (kind distinguishes human vs AI docs)
-  tree: (scope: ContentScope, workspaceId?: string, projectId?: string, kind: DocKind = "doc") =>
-    [...contentKeys.all, "tree", scope, workspaceId || "", projectId || "", kind] as const,
-  // Merged tree (human + AI flattened into a single UI tree)
-  mergedTree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
-    [...contentKeys.all, "merged-tree", scope, workspaceId || "", projectId || ""] as const,
-  // Workspace overview tree (workspace content + project folders)
-  overview: (workspaceId: string, kind: DocKind = "doc") =>
-    [...contentKeys.byWorkspace(workspaceId), "overview-tree", kind] as const,
-  // Merged workspace overview (human + AI flattened)
-  mergedOverview: (workspaceId: string) =>
-    [...contentKeys.byWorkspace(workspaceId), "merged-overview-tree"] as const,
+  tree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
+    [...contentKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
+  // Workspace docs shell (workspace content + project folders)
+  shell: (workspaceId: string) =>
+    [...contentKeys.byWorkspace(workspaceId), "docs-shell"] as const,
 };
 
 /**
@@ -66,7 +59,7 @@ export function useCreateDoc() {
       title: string;
       content?: string;
       templateBody?: string;
-      kind?: DocKind;
+      author?: "ai";
     }) => getDeskService().createDoc(data),
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({
@@ -124,7 +117,7 @@ export function useDeleteDoc() {
     mutationFn: (doc: Doc) => getDeskService().deleteDoc(doc),
     onSuccess: (success, doc) => {
       if (success) {
-        // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
+        // Invalidate workspace-scoped queries (prefix-covers project/detail/overview).
         queryClient.invalidateQueries({
           queryKey: contentKeys.byWorkspace(doc.workspaceId),
         });
@@ -134,15 +127,6 @@ export function useDeleteDoc() {
         });
         queryClient.invalidateQueries({
           queryKey: contentKeys.tree("project", doc.workspaceId, doc.projectId),
-        });
-        // mergedTree keys live at ["content", "merged-tree", …] — outside byWorkspace prefix,
-        // so they must be invalidated explicitly. mergedOverview lives under byWorkspace
-        // and is already covered by the invalidation above.
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.mergedTree("workspace", doc.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.mergedTree("project", doc.workspaceId, doc.projectId),
         });
       }
     },
@@ -159,7 +143,7 @@ export function useDeleteAsset() {
     mutationFn: (asset: Asset) => getDeskService().deleteAsset(asset),
     onSuccess: (success, asset) => {
       if (success) {
-        // Invalidate workspace-scoped queries (prefix-covers byProject, detail, overview, mergedOverview)
+        // Invalidate workspace-scoped queries (prefix-covers project/detail/overview).
         queryClient.invalidateQueries({
           queryKey: contentKeys.byWorkspace(asset.workspaceId),
         });
@@ -169,14 +153,6 @@ export function useDeleteAsset() {
         });
         queryClient.invalidateQueries({
           queryKey: contentKeys.tree("project", asset.workspaceId, asset.projectId),
-        });
-        // mergedTree keys are outside the byWorkspace prefix and need explicit invalidation.
-        // mergedOverview lives under byWorkspace and is already covered above.
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.mergedTree("workspace", asset.workspaceId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.mergedTree("project", asset.workspaceId, asset.projectId),
         });
       }
     },
@@ -194,7 +170,6 @@ export function useContentTree(
   scope: ContentScope,
   workspaceId?: string | null,
   projectId?: string | null,
-  kind: DocKind = "doc"
 ) {
   const enabled =
     scope === "personal" ||
@@ -202,13 +177,12 @@ export function useContentTree(
     (scope === "project" && !!workspaceId && !!projectId);
 
   return useQuery({
-    queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined, kind),
+    queryKey: contentKeys.tree(scope, workspaceId || undefined, projectId || undefined),
     queryFn: () =>
       getDeskService().getContentTree(
         scope,
         workspaceId || undefined,
         projectId || undefined,
-        kind
       ),
     enabled,
   });
@@ -218,23 +192,10 @@ export function useContentTree(
  * Hook to fetch workspace overview shell (workspace content + project folder stubs).
  * Project content is loaded lazily via useContentTree when folders are expanded.
  */
-export function useWorkspaceOverviewShell(workspaceId?: string | null, kind: DocKind = "doc") {
+export function useWorkspaceDocsShell(workspaceId?: string | null) {
   return useQuery({
-    queryKey: contentKeys.overview(workspaceId || "", kind),
-    queryFn: () => getDeskService().getWorkspaceOverviewShell(workspaceId!, kind),
-    enabled: !!workspaceId,
-  });
-}
-
-/**
- * Hook to fetch the merged workspace overview shell.
- * Project stubs remain lazy — on expand, callers fetch the per-project merged tree
- * via useQueries with `contentKeys.mergedTree("project", ws, projectId)`.
- */
-export function useMergedWorkspaceOverviewShell(workspaceId?: string | null) {
-  return useQuery({
-    queryKey: contentKeys.mergedOverview(workspaceId || ""),
-    queryFn: () => getDeskService().getMergedWorkspaceOverviewShell(workspaceId!),
+    queryKey: contentKeys.shell(workspaceId || ""),
+    queryFn: () => getDeskService().getWorkspaceDocsShell(workspaceId!),
     enabled: !!workspaceId,
   });
 }
@@ -251,28 +212,22 @@ export function useCreateFolder() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "doc",
     }: {
       scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
-    }) => getDeskService().createFolder(scope, folderPath, workspaceId, projectId, kind),
+    }) => getDeskService().createFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
     },
   });
@@ -291,29 +246,23 @@ export function useRenameFolder() {
       newName,
       workspaceId,
       projectId,
-      kind = "doc",
     }: {
       scope: ContentScope;
       oldPath: string;
       newName: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
-    }) => getDeskService().renameFolder(scope, oldPath, newName, workspaceId, projectId, kind),
+    }) => getDeskService().renameFolder(scope, oldPath, newName, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
     },
   });
@@ -331,28 +280,22 @@ export function useDeleteFolder() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "doc",
     }: {
       scope: ContentScope;
       folderPath: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
-    }) => getDeskService().deleteFolder(scope, folderPath, workspaceId, projectId, kind),
+    }) => getDeskService().deleteFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
     },
   });
@@ -371,37 +314,30 @@ export function useMoveFolder() {
       toParentPath,
       workspaceId,
       projectId,
-      kind = "doc",
     }: {
       scope: ContentScope;
       fromPath: string;
       toParentPath: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
-    }) => getDeskService().moveFolder(scope, fromPath, toParentPath, workspaceId, projectId, kind),
+    }) => getDeskService().moveFolder(scope, fromPath, toParentPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
     },
   });
 }
 
 /**
- * Hook to move a doc between any (scope, project, folder, kind) location.
- * `from`/`to` may differ in scope/projectId/folderPath/kind — see core `moveDoc`.
+ * Hook to move a doc between folders, projects, and workspace scope.
  */
 export function useMoveDoc() {
   const queryClient = useQueryClient();
@@ -420,17 +356,13 @@ export function useMoveDoc() {
     }) => getDeskService().moveDoc(docId, workspaceId, from, to),
     onSuccess: (_result, variables) => {
       const { workspaceId, from, to } = variables;
-      // Invalidate both the source and destination trees — they may differ in
-      // scope / projectId / kind, and the merged overview spans both.
+      // Invalidate both source and destination trees.
       for (const loc of [from, to]) {
         queryClient.invalidateQueries({
-          queryKey: contentKeys.tree(loc.scope, workspaceId, loc.projectId, loc.kind),
-        });
-        queryClient.invalidateQueries({
-          queryKey: contentKeys.mergedTree(loc.scope, workspaceId, loc.projectId),
+          queryKey: contentKeys.tree(loc.scope, workspaceId, loc.projectId),
         });
       }
-      queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: contentKeys.shell(workspaceId) });
     },
   });
 }
@@ -450,7 +382,6 @@ export function useCreateDocInFolder() {
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
     }) => getDeskService().createDocInFolder(data),
     onSuccess: (_newDoc, variables) => {
       queryClient.invalidateQueries({
@@ -458,14 +389,10 @@ export function useCreateDocInFolder() {
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
       // Also invalidate the flat list queries for backward compatibility
       if (variables.workspaceId) {
@@ -492,7 +419,6 @@ export function useImportFiles() {
       folderPath,
       workspaceId,
       projectId,
-      kind = "doc",
       convertibleAction = "keep",
     }: {
       files: Array<{ name: string; content: string | Uint8Array }>;
@@ -500,7 +426,6 @@ export function useImportFiles() {
       folderPath?: string;
       workspaceId?: string;
       projectId?: string;
-      kind?: DocKind;
       convertibleAction?: ConvertibleAction;
     }) =>
       getDeskService().importFiles(
@@ -509,7 +434,6 @@ export function useImportFiles() {
         folderPath,
         workspaceId,
         projectId,
-        kind,
         convertibleAction,
       ),
     onSuccess: (_result, variables) => {
@@ -518,14 +442,10 @@ export function useImportFiles() {
           variables.scope,
           variables.workspaceId,
           variables.projectId,
-          variables.kind
         ),
       });
-      queryClient.invalidateQueries({
-        queryKey: contentKeys.mergedTree(variables.scope, variables.workspaceId, variables.projectId),
-      });
       if (variables.workspaceId) {
-        queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(variables.workspaceId) });
+        queryClient.invalidateQueries({ queryKey: contentKeys.shell(variables.workspaceId) });
       }
       // Also invalidate the flat list queries
       if (variables.workspaceId) {

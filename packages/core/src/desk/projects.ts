@@ -8,7 +8,6 @@ import { getStorage } from "./storage";
 import { removeDirectoryWithContents } from "./file-operations";
 import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
-import { ensureProjectBrief, hasSeedContent, type BriefSeed } from "./project-brief";
 
 interface ProjectFrontmatter {
   name: string;
@@ -103,19 +102,16 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
         const projectPath = await joinPath(projectsPath, entry.name);
         const projectMdPath = await joinPath(projectPath, "project.md");
         const content = await getStorage().readTextFile(projectMdPath);
-        const { data } = parseMarkdown<ProjectFrontmatter>(content);
+        const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
 
-        // Count project content (context/ + docs/ together — both surface in the tree)
+        // Count project documents.
         const taskStats = await countProjectTasks(projectPath);
         const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
-        const contextPath = await joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
         const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
-        const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
+        const [docCount, meetingCount] = await Promise.all([
           countMarkdownFiles(docsPath, true),
-          countMarkdownFiles(contextPath, true),
           countMarkdownFiles(meetingsPath),
         ]);
-        const docCount = humanDocCount + aiDocCount;
 
         projects.push({
           id: entry.name,
@@ -123,6 +119,7 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
           name: data.name || entry.name,
           status: data.status || "active",
           description: data.description,
+          overview: body.trim() || undefined,
           created: normalizeDate(data.created),
           taskCount: taskStats.total,
           tasksByStatus: taskStats.byStatus,
@@ -159,19 +156,16 @@ export async function getProject(
 
   try {
     const content = await getStorage().readTextFile(projectMdPath);
-    const { data } = parseMarkdown<ProjectFrontmatter>(content);
+    const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
 
-    // Count project content (context/ + docs/ together — both surface in the tree)
+    // Count project documents.
     const taskStats = await countProjectTasks(projectPath);
     const docsPath = await joinPath(projectPath, PATH_SEGMENTS.DOCS);
-    const contextPath = await joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
     const meetingsPath = await joinPath(projectPath, PATH_SEGMENTS.MEETINGS);
-    const [humanDocCount, aiDocCount, meetingCount] = await Promise.all([
+    const [docCount, meetingCount] = await Promise.all([
       countMarkdownFiles(docsPath, true),
-      countMarkdownFiles(contextPath, true),
       countMarkdownFiles(meetingsPath),
     ]);
-    const docCount = humanDocCount + aiDocCount;
 
     return {
       id: projectId,
@@ -179,6 +173,7 @@ export async function getProject(
       name: data.name || projectId,
       status: data.status || "active",
       description: data.description,
+      overview: body.trim() || undefined,
       created: normalizeDate(data.created),
       taskCount: taskStats.total,
       tasksByStatus: taskStats.byStatus,
@@ -198,14 +193,6 @@ export async function createProject(data: {
   name: string;
   description?: string;
   status?: ProjectStatus;
-  /**
-   * Seeds `context/<date>-brief.md`. The forcing function for the map: a project's intent and
-   * the systems it touches cannot be derived from its records later, so they are captured at
-   * birth or not at all. Omitted or empty on both fields → no brief is written, because an
-   * empty brief of bare headings looks done and is noise to an agent. Project Home then shows
-   * the "Write the brief" call to action instead.
-   */
-  seed?: BriefSeed;
 }): Promise<Project> {
   const id = slugify(data.name);
 
@@ -222,18 +209,8 @@ export async function createProject(data: {
     meetingCount: 0,
   };
 
-  const seed: BriefSeed = { description: data.description, ...data.seed };
-
   if (isMockMode()) {
     mockProjects.push(project);
-    if (hasSeedContent(seed)) {
-      await ensureProjectBrief({
-        workspaceId: data.workspaceId,
-        projectId: id,
-        projectName: project.name,
-        seed,
-      });
-    }
     return project;
   }
 
@@ -244,9 +221,9 @@ export async function createProject(data: {
   await getStorage().mkdir(projectPath);
   await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.TASKS));
   await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.DOCS));
-  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.CONTEXT));
+  await getStorage().mkdir(await joinPath(projectPath, PATH_SEGMENTS.MEETINGS));
 
-  // Create project.md
+  // Create project.md — frontmatter holds metadata; the body is the overview.
   const frontmatter: ProjectFrontmatter = {
     name: project.name,
     status: project.status,
@@ -254,22 +231,8 @@ export async function createProject(data: {
     created: project.created,
   };
 
-  const markdownContent = `# ${project.name}
-
-${project.description || ""}
-`;
-
-  const fileContent = serializeMarkdown(frontmatter, markdownContent);
+  const fileContent = serializeMarkdown(frontmatter, "");
   await getStorage().writeTextFile(await joinPath(projectPath, "project.md"), fileContent);
-
-  if (hasSeedContent(seed)) {
-    await ensureProjectBrief({
-      workspaceId: data.workspaceId,
-      projectId: id,
-      projectName: project.name,
-      seed,
-    });
-  }
 
   return project;
 }
@@ -299,36 +262,39 @@ export async function updateProject(
     "project.md"
   );
 
-  try {
-    const content = await getStorage().readTextFile(projectMdPath);
-    const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
+  if (!(await getStorage().exists(projectMdPath))) return null;
 
-    const updatedData: ProjectFrontmatter = {
-      ...data,
-      ...(updates.name && { name: updates.name }),
-      ...(updates.status && { status: updates.status }),
-      // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
-      ...(updates.description !== undefined && { description: updates.description ?? undefined }),
-    };
+  const content = await getStorage().readTextFile(projectMdPath);
+  const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
 
-    const fileContent = serializeMarkdown(updatedData, body);
-    await getStorage().writeTextFile(projectMdPath, fileContent);
+  const updatedData: ProjectFrontmatter = {
+    ...data,
+    ...(updates.name && { name: updates.name }),
+    ...(updates.status && { status: updates.status }),
+    // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
+    ...(updates.description !== undefined && { description: updates.description ?? undefined }),
+  };
 
-    return {
-      id: projectId,
-      workspaceId,
-      name: updatedData.name,
-      status: updatedData.status,
-      description: updatedData.description,
-      created: updatedData.created,
-      taskCount: 0,
-      tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
-      docCount: 0,
-      meetingCount: 0,
-    };
-  } catch {
-    return null;
-  }
+  // The body IS the overview. Rewrite it when the update carries one (null/"" clears it);
+  // otherwise preserve the on-disk body untouched.
+  const newBody = updates.overview !== undefined ? (updates.overview ?? "") : body;
+
+  const fileContent = serializeMarkdown(updatedData, newBody);
+  await getStorage().writeTextFile(projectMdPath, fileContent);
+
+  return {
+    id: projectId,
+    workspaceId,
+    name: updatedData.name,
+    status: updatedData.status,
+    description: updatedData.description,
+    overview: newBody.trim() || undefined,
+    created: updatedData.created,
+    taskCount: 0,
+    tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
+    docCount: 0,
+    meetingCount: 0,
+  };
 }
 
 /**

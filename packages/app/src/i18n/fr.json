@@ -32,6 +32,8 @@
       "dontSave": "Ne pas enregistrer",
       "create": "Créer",
       "rename": "Renommer",
+      "edit": "Modifier",
+      "saving": "Enregistrement…",
       "add": "Ajouter",
       "all": "Tout",
       "loading": "Chargement…",
@@ -39,6 +41,11 @@
       "reloadPage": "Recharger la page"
     },
     "aiBadge": "AI"
+  },
+  "overviews": {
+    "discardTitle": "Ignorer les modifications de la présentation ?",
+    "discardDescription": "Les modifications non enregistrées seront perdues.",
+    "discardAction": "Ignorer les modifications"
   },
   "nav": {
     "sidebar": {
@@ -125,8 +132,6 @@
         "searchPlaceholder": "Rechercher des documents…",
         "fileCount_one": "{{count}} fichier",
         "fileCount_other": "{{count}} fichiers",
-        "contextFolder": "Contexte",
-        "newContextFile": "Nouveau fichier de contexte",
         "sections": {
           "workspace": "Espace",
           "projects": "Projets"
@@ -161,8 +166,8 @@
       "authorFilter": {
         "label": "Rédigé par",
         "all": "Tous",
-        "mine": "Les miens",
-        "generated": "Générés"
+        "mine": "Écrits par moi",
+        "generated": "Écrits par l’IA"
       }
     },
     "meetings": {
@@ -227,17 +232,9 @@
           "backlog_one": "{{count}} en attente",
           "backlog_other": "{{count}} en attente"
         },
-        "context": {
-          "heading": "Contexte",
-          "fresh": "À jour",
-          "stale_one": "{{count}} élément modifié depuis",
-          "stale_other": "{{count}} éléments modifiés depuis",
-          "neverReviewed": "Pas encore passé en revue",
-          "reviewed": "Revu {{when}}",
-          "refreshState": "Actualiser maintenant",
-          "generateState": "Générer l'état actuel",
-          "writeBrief": "Écrire la synthèse",
-          "newContextFile": "Nouveau fichier de contexte"
+        "overview": {
+          "title": "Présentation du projet",
+          "placeholder": "Décrivez le projet, ses points importants et comment s’y repérer."
         }
       },
       "browse": {
@@ -245,7 +242,11 @@
         "statusLabel": "Statut",
         "allStatuses": "Tous les statuts",
         "countLabel": "projets",
-        "searchPlaceholder": "Rechercher des projets…"
+        "searchPlaceholder": "Rechercher des projets…",
+        "workspaceOverview": {
+          "title": "Présentation de l’espace",
+          "placeholder": "Décrivez l’objectif, le contexte important et ce qu’il faut lire en premier."
+        }
       },
       "deleteConfirmTitle": "Supprimer le projet",
       "deleteConfirmDescription": "Voulez-vous vraiment supprimer « {{name}} » ? Cela supprimera définitivement le projet et toutes ses tâches, documents et réunions.",
@@ -419,7 +420,7 @@
       },
       "serverMode": {
         "title": "L'IA s'exécute sur votre serveur",
-        "description": "Votre desk est hébergé : la maintenance IA (Smart Index, état du projet) s'exécute sur le serveur avec des clés issues de son environnement (ANTHROPIC_API_KEY / OPENAI_API_KEY dans le .env de déploiement). Y définir une clé vaut consentement de l'opérateur.",
+        "description": "Votre desk est hébergé : la maintenance du Smart Index s'exécute sur le serveur avec des clés issues de son environnement (ANTHROPIC_API_KEY / OPENAI_API_KEY dans le .env de déploiement). Y définir une clé vaut consentement de l'opérateur.",
         "providerConfigured": "{{provider}} : clé configurée sur le serveur.",
         "providerNotConfigured": "{{provider}} : pas encore de clé sur le serveur. Ajoutez-la au .env de déploiement et redémarrez."
       }
@@ -620,7 +621,7 @@
       },
       "clearDialog": {
         "title": "Vider le catalogue",
-        "description": "Cela vide le Smart Index et supprime les fichiers générés CLAUDE.md, AGENTS.md, GEMINI.md et WORKSPACE_CONTEXT.md. Reconstruisez pour les régénérer. Cette action est irréversible.",
+        "description": "Cela vide le Smart Index et supprime les fichiers générés CLAUDE.md, AGENTS.md, GEMINI.md et WORKSPACE_INDEX.md. Reconstruisez pour les régénérer. Cette action est irréversible.",
         "confirmLabel": "Vider le catalogue"
       },
       "relativeTime": {
@@ -632,10 +633,6 @@
         "hoursAgo_other": "il y a {{count}} heures",
         "daysAgo_one": "il y a {{count}} jour",
         "daysAgo_other": "il y a {{count}} jours"
-      },
-      "autoRefreshState": {
-        "label": "Maintenir l'état des projets à jour",
-        "description": "Après des changements de tâches, docs ou réunions, Desk demande à l'IA de réécrire le fichier « État actuel » du projet en arrière-plan."
       }
     }
   },
@@ -648,6 +645,8 @@
       "folderHint": "Dossier : ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brève description de cet espace...",
+      "overviewLabel": "Présentation de l’espace",
+      "overviewPlaceholder": "Objectif, contexte important et ce qu’il faut lire en premier…",
       "colorLabel": "Couleur",
       "submit": "Créer l'espace"
     },
@@ -657,11 +656,9 @@
       "nameLabel": "Nom du projet",
       "namePlaceholder": "ex. Refonte du site",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Brève description du projet...",
+      "descriptionPlaceholder": "Courte description affichée dans les listes de projets...",
       "statusLabel": "Statut",
-      "submit": "Créer le projet",
-      "systemsLabel": "Systèmes et stack",
-      "systemsPlaceholder": "Quels services, dépôts ou outils sont concernés ?"
+      "submit": "Créer le projet"
     },
     "newTask": {
       "title": "Nouvelle tâche",
@@ -726,27 +723,18 @@
       "namePlaceholder": "ex. Acme SAS, Projets annexes, Études",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brève description de cet espace...",
+      "overviewLabel": "Présentation de l’espace",
+      "overviewPlaceholder": "Objectif, contexte important et ce qu’il faut lire en premier…",
       "colorLabel": "Couleur",
       "homeNote": "C'est votre espace personnel. Il contient la boîte de capture rapide et ne peut pas être supprimé, mais vous pouvez le renommer et changer sa couleur.",
       "dangerZone": "Zone sensible",
       "deleteNote": "Supprimer définitivement cet espace et tous ses projets, tâches, documents et réunions.",
       "deleteButton": "Supprimer l'espace",
       "deleteConfirmTitle": "Supprimer l'espace",
-      "deleteConfirmDescription": "Cela supprimera définitivement « {{name}} » et tous ses projets, tâches, documents et réunions. Cette action est irréversible."
-    },
-    "brief": {
-      "title": "Rédiger la synthèse",
-      "description": "Deux choses qu'une IA ne peut pas deviner.",
-      "whatLabel": "De quoi parle ce projet ?",
-      "whatPlaceholder": "Que cherchez-vous à accomplir, et pourquoi ce projet existe-t-il ?",
-      "systemsLabel": "Systèmes et stack",
-      "systemsPlaceholder": "Quels services, dépôts ou outils sont concernés ?",
-      "submit": "Créer la synthèse"
-    },
-    "newContextFile": {
-      "title": "Nouveau fichier de contexte",
-      "nameLabel": "Titre",
-      "submit": "Créer"
+      "deleteConfirmDescription": "Cela supprimera définitivement « {{name}} » et tous ses projets, tâches, documents et réunions. Cette action est irréversible.",
+      "discardTitle": "Abandonner les modifications de l’espace ?",
+      "discardDescription": "Vos modifications non enregistrées de l’espace seront perdues.",
+      "discardAction": "Abandonner les modifications"
     }
   },
   "editors": {
@@ -773,8 +761,8 @@
       "untitled": "Sans titre",
       "saveTooltip": "Enregistrer (⌘S)",
       "noChangesTooltip": "Aucun changement à enregistrer",
-      "aiIncludedToggle": "Inclus dans le contexte IA (cliquer pour exclure)",
-      "aiExcludedToggle": "Exclu du contexte IA (cliquer pour inclure)",
+      "aiIncludedToggle": "Accès agent activé (cliquer pour exclure)",
+      "aiExcludedToggle": "Accès agent désactivé (cliquer pour inclure)",
       "aiExcludedByFolder": "Exclu par dossier : {{path}}",
       "revealInFinder": "Afficher dans le Finder",
       "entityName": {
@@ -927,15 +915,9 @@
     "ai": {
       "inclusionUpdateFailed": "Échec de la mise à jour du réglage IA"
     },
-    "brief": {
-      "create": {
-        "error": "Impossible de créer la synthèse"
-      }
-    },
-    "state": {
-      "refresh": {
-        "error": "Impossible d'actualiser l'état du projet",
-        "success": "État actuel mis à jour"
+    "overview": {
+      "update": {
+        "error": "Impossible d’enregistrer la présentation"
       }
     }
   },
@@ -988,9 +970,7 @@
       "createFailed": "Échec de la création du dossier",
       "renameFailed": "Échec du renommage du dossier",
       "deleteFailed": "Échec de la suppression du dossier",
-      "moveFailed": "Échec du déplacement du dossier",
-      "reservedName": "« {{name}} » est un nom de dossier réservé.",
-      "crossKindMove": "Le déplacement de dossiers entre Documents et Contexte n'est pas encore pris en charge. Déplacez les documents un par un."
+      "moveFailed": "Échec du déplacement du dossier"
     },
     "editor": {
       "deleteDocFailed": "Échec de la suppression du document",

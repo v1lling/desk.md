@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { WorkspaceUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
-import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
+import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/smart-index/agent-files";
 import { useAgentInstructionsStore } from "./agent-instructions";
 import { useNavigationStore } from "./navigation";
 
@@ -32,6 +32,7 @@ export function useCreateWorkspace() {
       id: string;
       name: string;
       description?: string;
+      overview?: string;
       color?: string;
       home?: boolean;
     }) => getDeskService().createWorkspace(data),
@@ -56,7 +57,11 @@ export function useUpdateWorkspace() {
     }: {
       workspaceId: string;
       updates: WorkspaceUpdate;
-    }) => getDeskService().updateWorkspace(workspaceId, updates),
+    }) =>
+      getDeskService().updateWorkspace(workspaceId, updates).then((workspace) => {
+        if (!workspace) throw new Error(`Workspace '${workspaceId}' no longer exists`);
+        return workspace;
+      }),
     onSuccess: (updatedWorkspace, { workspaceId }) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate agent files (name/description may have changed)

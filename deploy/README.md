@@ -65,12 +65,11 @@ key to manage — it's the standard OAuth grant.
 
 ## Server-side AI
 
-Add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` to `.env` and the server runs the AI maintenance
-itself: Smart Index summaries and each project's Current state file stay fresh as records
-change, with no desktop app involved — hosted web clients get the full Smart Index. Setting a
-key is your consent to send file previews to that provider. Provider and model selection come
-from the shared app settings (Settings → AI in any client); without a key everything still
-works, files just carry metadata without AI summaries.
+Add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` to `.env` and the server maintains Smart Index
+summaries with no desktop app involved, so hosted web clients get the full Smart Index. Setting
+a key is your consent to send file previews to that provider. Provider and model selection
+come from the shared app settings (Settings → AI in any client); without a key everything
+still works, files just carry metadata without AI summaries.
 
 ## Use the desktop app against your server
 

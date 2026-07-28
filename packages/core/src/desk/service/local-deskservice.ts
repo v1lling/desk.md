@@ -12,7 +12,6 @@
  */
 import * as tasksApi from "../tasks";
 import * as projectsApi from "../projects";
-import * as projectBriefApi from "../project-brief";
 import * as workspacesApi from "../workspaces";
 import * as meetingsApi from "../meetings";
 import * as personalApi from "../personal";
@@ -82,18 +81,13 @@ export const localDeskService: DeskService = {
   // Content tree (I/O reads)
   getContentTree: contentApi.getContentTree,
   getAllDocsForWorkspace: contentApi.getAllDocsForWorkspace,
-  getWorkspaceOverviewShell: contentApi.getWorkspaceOverviewShell,
-  getMergedContentTree: contentApi.getMergedContentTree,
-  getMergedWorkspaceOverviewShell: contentApi.getMergedWorkspaceOverviewShell,
+  getWorkspaceDocsShell: contentApi.getWorkspaceDocsShell,
 
   // Content folders
   createFolder: contentApi.createFolder,
   renameFolder: contentApi.renameFolder,
   moveFolder: contentApi.moveFolder,
   deleteFolder: contentApi.deleteFolder,
-
-  // Project brief + state (context/)
-  ensureProjectBrief: projectBriefApi.ensureProjectBrief,
 
   // Content import / move
   createDocInFolder: contentApi.createDocInFolder,
@@ -135,7 +129,6 @@ export const localDeskService: DeskService = {
   clearAIUsage: aiUsageApi.clearAIUsage,
 
   // AI maintenance
-  refreshProjectState: maintenanceApi.runStateRefreshNow,
   rebuildSmartIndex: maintenanceApi.rebuildSmartIndex,
   removeFromSmartIndex: maintenanceApi.removeIndexEntry,
   clearSmartIndex: maintenanceApi.clearWorkspaceIndex,

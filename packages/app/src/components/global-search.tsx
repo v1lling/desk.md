@@ -28,6 +28,7 @@ import {
 } from "@desk/core";
 import { useNavigationStore } from "@/stores/navigation";
 import { useOpenTab } from "@/stores/tabs";
+import { confirmUnsavedChanges } from "@/lib/unsaved-changes-guard";
 
 const TYPE_ICONS: Record<SearchItemType, React.ReactNode> = {
   task: <CheckSquare className="h-4 w-4" />,
@@ -105,6 +106,7 @@ export function GlobalSearch() {
   // Handle item selection
   const handleSelect = useCallback(
     (result: SearchResult) => {
+      if (result.item.type === "project" && !confirmUnsavedChanges()) return;
       setOpen(false);
 
       const { item } = result;

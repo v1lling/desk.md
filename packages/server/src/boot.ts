@@ -6,7 +6,7 @@
  *   - storage         → NodeFsProvider (the server's data volume)
  *   - data root        → DESK_DATA_ROOT env var (already absolute; no ~ expand)
  *   - editor notifier  → no-op default (no editor tabs on a server)
- *   - agent-context    → no-op default (generated agent files are a local-disk feature)
+ *   - agent-file writer → no-op default (generated agent files are a local-disk feature)
  *   - AI key           → environment (ANTHROPIC_API_KEY / OPENAI_API_KEY)
  */
 import { statSync } from "node:fs";

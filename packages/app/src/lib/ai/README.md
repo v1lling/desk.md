@@ -10,6 +10,6 @@ Tauri `secret_*` commands. `main.tsx` wires it into core's `setAIKeyResolver` se
 server wires env vars instead (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, see `server/boot.ts`).
 
 Related:
-- Engines: `@desk/core` `desk/maintenance/` (scheduler, index updater, state refresher, rebuild)
+- Engines: `@desk/core` `desk/maintenance/` (scheduler, index updater, rebuild)
 - Trigger: `desk/domain-write-bus.ts` (published from the record-write funnel)
 - Usage log: `desk/ai-usage.ts` via DeskService (`.desk/usage/ai-usage.json`)

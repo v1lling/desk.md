@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/app && tsc --noEmit -p packages/server",
     "screenshots": "node scripts/screenshots.mjs",
     "screenshots:banner": "node scripts/screenshots.mjs --banner-only",
+    "verify:storage": "tsx scripts/verify-storage.ts",
     "tauri": "npm run tauri -w @desk/app",
     "tauri:dev": "npm run tauri:dev -w @desk/app",
     "tauri:build": "npm run tauri:build -w @desk/app",

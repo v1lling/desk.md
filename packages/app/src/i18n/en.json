@@ -32,6 +32,8 @@
       "dontSave": "Don't Save",
       "create": "Create",
       "rename": "Rename",
+      "edit": "Edit",
+      "saving": "Saving…",
       "add": "Add",
       "all": "All",
       "loading": "Loading…",
@@ -39,6 +41,11 @@
       "reloadPage": "Reload Page"
     },
     "aiBadge": "AI"
+  },
+  "overviews": {
+    "discardTitle": "Discard overview changes?",
+    "discardDescription": "Your unsaved overview changes will be lost.",
+    "discardAction": "Discard changes"
   },
   "nav": {
     "sidebar": {
@@ -136,8 +143,6 @@
         "searchPlaceholder": "Search docs…",
         "fileCount_one": "{{count}} file",
         "fileCount_other": "{{count}} files",
-        "contextFolder": "Context",
-        "newContextFile": "New context file",
         "sections": {
           "workspace": "Workspace",
           "projects": "Projects"
@@ -172,8 +177,8 @@
       "authorFilter": {
         "label": "Written by",
         "all": "All",
-        "mine": "Mine",
-        "generated": "Generated"
+        "mine": "Written by me",
+        "generated": "Written by AI"
       }
     },
     "meetings": {
@@ -238,17 +243,9 @@
           "backlog_one": "{{count}} in backlog",
           "backlog_other": "{{count}} in backlog"
         },
-        "context": {
-          "heading": "Context",
-          "fresh": "Up to date",
-          "stale_one": "{{count}} record changed since",
-          "stale_other": "{{count}} records changed since",
-          "neverReviewed": "Not yet reviewed",
-          "reviewed": "Reviewed {{when}}",
-          "refreshState": "Refresh now",
-          "generateState": "Generate current state",
-          "writeBrief": "Write the brief",
-          "newContextFile": "New context file"
+        "overview": {
+          "title": "Project overview",
+          "placeholder": "Describe what this project is, what matters, and how to orient yourself."
         }
       },
       "browse": {
@@ -256,7 +253,11 @@
         "statusLabel": "Status",
         "allStatuses": "All statuses",
         "countLabel": "projects",
-        "searchPlaceholder": "Search projects…"
+        "searchPlaceholder": "Search projects…",
+        "workspaceOverview": {
+          "title": "Workspace overview",
+          "placeholder": "Describe this workspace, its purpose, and anything people should know first."
+        }
       },
       "deleteConfirmTitle": "Delete Project",
       "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This will permanently remove the project and all its tasks, docs, and meetings.",
@@ -401,7 +402,7 @@
       },
       "serverMode": {
         "title": "AI runs on your server",
-        "description": "Your desk is hosted, so AI maintenance (Smart Index, project state) runs on the server with keys from its environment (ANTHROPIC_API_KEY / OPENAI_API_KEY in the deploy .env). Setting a key there is the operator's consent.",
+        "description": "Your desk is hosted, so Smart Index maintenance runs on the server with keys from its environment (ANTHROPIC_API_KEY / OPENAI_API_KEY in the deploy .env). Setting a key there is the operator's consent.",
         "providerConfigured": "{{provider}}: key configured on the server.",
         "providerNotConfigured": "{{provider}}: no key on the server yet. Add it to the deploy .env and restart."
       },
@@ -620,10 +621,6 @@
         "description": "Keep summaries fresh as you edit, and add new files to the index on first save.",
         "activeWarning": "~5 seconds after your last save, each file whose body actually changed is re-summarized (one API call per file). Metadata-only saves don't trigger a call."
       },
-      "autoRefreshState": {
-        "label": "Keep project state files current",
-        "description": "After tasks, docs, or meetings change, Desk asks the AI to rewrite that project's Current state file (context) in the background."
-      },
       "detail": {
         "label": "Summary detail level",
         "description": "How much of each file is sent for summarization. Higher = better summaries, more tokens.",
@@ -635,7 +632,7 @@
       },
       "clearDialog": {
         "title": "Clear Index",
-        "description": "This empties the Smart Index and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_CONTEXT.md files. Rebuild to regenerate. This action cannot be undone.",
+        "description": "This empties the Smart Index and deletes the generated CLAUDE.md, AGENTS.md, GEMINI.md, and WORKSPACE_INDEX.md files. Rebuild to regenerate. This action cannot be undone.",
         "confirmLabel": "Clear Index"
       },
       "relativeTime": {
@@ -659,6 +656,8 @@
       "folderHint": "Folder: ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brief description of this workspace...",
+      "overviewLabel": "Workspace overview",
+      "overviewPlaceholder": "Purpose, important background, and anything people should read first…",
       "colorLabel": "Color",
       "submit": "Create Workspace"
     },
@@ -668,11 +667,9 @@
       "nameLabel": "Project Name",
       "namePlaceholder": "e.g., Website Redesign",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Brief description of the project...",
+      "descriptionPlaceholder": "Short description shown in project lists...",
       "statusLabel": "Status",
-      "submit": "Create Project",
-      "systemsLabel": "Systems and stack",
-      "systemsPlaceholder": "Which services, repos, or tools does this touch?"
+      "submit": "Create Project"
     },
     "newTask": {
       "title": "New Task",
@@ -737,27 +734,18 @@
       "namePlaceholder": "e.g., Acme Corp, Side Projects, Studies",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Brief description of this workspace...",
+      "overviewLabel": "Workspace overview",
+      "overviewPlaceholder": "Purpose, important background, and anything people should read first…",
       "colorLabel": "Color",
       "homeNote": "This is your home workspace. It holds the quick-capture inbox and can't be deleted, but you can rename and recolor it.",
       "dangerZone": "Danger Zone",
       "deleteNote": "Permanently delete this workspace and all its projects, tasks, docs, and meetings.",
       "deleteButton": "Delete Workspace",
       "deleteConfirmTitle": "Delete Workspace",
-      "deleteConfirmDescription": "This will permanently delete \"{{name}}\" and all its projects, tasks, docs, and meetings. This action cannot be undone."
-    },
-    "brief": {
-      "title": "Write the brief",
-      "description": "Two things an AI cannot work out for itself.",
-      "whatLabel": "What is this project about?",
-      "whatPlaceholder": "What are you trying to achieve, and why does it exist?",
-      "systemsLabel": "Systems and stack",
-      "systemsPlaceholder": "Which services, repos, or tools does this touch?",
-      "submit": "Create brief"
-    },
-    "newContextFile": {
-      "title": "New context file",
-      "nameLabel": "Title",
-      "submit": "Create"
+      "deleteConfirmDescription": "This will permanently delete \"{{name}}\" and all its projects, tasks, docs, and meetings. This action cannot be undone.",
+      "discardTitle": "Discard workspace changes?",
+      "discardDescription": "Your unsaved workspace changes will be lost.",
+      "discardAction": "Discard changes"
     }
   },
   "editors": {
@@ -784,8 +772,8 @@
       "untitled": "Untitled",
       "saveTooltip": "Save (⌘S)",
       "noChangesTooltip": "No changes to save",
-      "aiIncludedToggle": "Included in AI context (click to exclude)",
-      "aiExcludedToggle": "Excluded from AI context (click to include)",
+      "aiIncludedToggle": "Agent access enabled (click to exclude)",
+      "aiExcludedToggle": "Agent access disabled (click to include)",
       "aiExcludedByFolder": "Excluded by folder: {{path}}",
       "revealInFinder": "Reveal in Finder",
       "entityName": {
@@ -940,15 +928,9 @@
     "ai": {
       "inclusionUpdateFailed": "Failed to update AI setting"
     },
-    "brief": {
-      "create": {
-        "error": "Could not create the brief"
-      }
-    },
-    "state": {
-      "refresh": {
-        "error": "Could not refresh the project state",
-        "success": "Current state updated"
+    "overview": {
+      "update": {
+        "error": "Could not save the overview"
       }
     }
   },
@@ -1004,9 +986,7 @@
       "createFailed": "Failed to create folder",
       "renameFailed": "Failed to rename folder",
       "deleteFailed": "Failed to delete folder",
-      "moveFailed": "Failed to move folder",
-      "reservedName": "\"{{name}}\" is a reserved folder name.",
-      "crossKindMove": "Moving folders between Docs and Context isn't supported yet. Move docs individually."
+      "moveFailed": "Failed to move folder"
     },
     "editor": {
       "deleteDocFailed": "Failed to delete doc",

@@ -19,12 +19,12 @@ import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrentWorkspace } from "@/stores/workspaces";
 import { useTasks } from "@/stores/tasks";
-import { useWorkspaceOverviewShell } from "@/stores/content";
+import { useWorkspaceDocsShell } from "@/stores/content";
 import { useMeetings } from "@/stores/meetings";
 import { countTreeFiles } from "@/lib/tree-count";
 import { useProjects } from "@/stores/projects";
 import { useProjectSelectionStore } from "@/stores/project-selection";
-import { countActiveTasks, isActiveStatus } from "@/lib/task-status";
+import { isActiveStatus } from "@/lib/task-status";
 import { SectionLabel } from "@/components/patterns";
 import { WorkspaceSelector } from "./workspace-selector";
 import { useTabStore } from "@/stores/tabs";
@@ -51,7 +51,7 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
   const workspaceId = currentWorkspace?.id || null;
 
   const { data: tasks = [] } = useTasks(workspaceId);
-  const { data: overviewTree = [] } = useWorkspaceOverviewShell(workspaceId);
+  const { data: overviewTree = [] } = useWorkspaceDocsShell(workspaceId);
   const { data: meetings = [] } = useMeetings(workspaceId);
   const { data: projects = [] } = useProjects(workspaceId);
 
@@ -157,7 +157,6 @@ export function Sidebar({ width, isCollapsed, isDragging }: SidebarProps) {
                     to="/projects"
                     role="project"
                     label={project.name}
-                    count={countActiveTasks(project.tasksByStatus)}
                     active={pathname.startsWith("/projects") && selectedProjectId === project.id}
                     onClick={() => {
                       setSelectedProject(project.id);

@@ -32,9 +32,7 @@ export * from "./norms";
 
 // ── Docs tree + queries + planner ───────────────────────────────────
 export * from "./content-tree";
-export * from "./context-freshness";
-export * from "./project-brief";
-export * from "./project-state";
+export * from "./overview";
 export * from "./agent-queries";
 export * from "./planner";
 
@@ -45,7 +43,7 @@ export * from "./catalog";
 export * from "./ai";
 export * from "./ai-usage";
 
-// ── Maintenance engine (Smart Index + project state; runs where the data lives) ──
+// ── Maintenance engine (Smart Index; runs where the data lives) ──
 export * from "./maintenance";
 
 // ── Search ──────────────────────────────────────────────────────────
@@ -62,7 +60,7 @@ export * from "./aiignore";
 // ── Injectable host seams (wired by app/server at boot) ─────────────
 export * from "./data-root";
 export * from "./editor-notifier";
-export * from "./agent-context-writer";
+export * from "./agent-file-writer";
 
 // ── Pub/sub for editor sync (pure; wired to the watcher by the app) ──
 export * from "./editor-event-bus";

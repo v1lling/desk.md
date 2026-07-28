@@ -255,6 +255,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
         onSave={save}
         isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
+        authorAI={task?.author === "ai"}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
         isInExcludedFolder={aiExclusionState.isInExcludedFolder}

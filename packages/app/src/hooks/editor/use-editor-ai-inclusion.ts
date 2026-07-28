@@ -3,9 +3,9 @@
  * Extracted from editor components where this 20-line pattern was duplicated 3 times.
  */
 import { useState, useCallback, useEffect } from "react";
-import { getAiExclusionState, setAIInclusion } from "@/lib/context-index/aiignore";
+import { getAiExclusionState, setAIInclusion } from "@/lib/smart-index/aiignore";
 import { getDeskService, readWorkspaceIndex } from "@desk/core";
-import type { AiExclusionState } from "@/lib/context-index/aiignore";
+import type { AiExclusionState } from "@/lib/smart-index/aiignore";
 import { toast } from "sonner";
 import i18next from "i18next";
 import { isLocalDisk } from "@/lib/connection";
@@ -38,14 +38,14 @@ export function useEditorAIInclusion(
           // Through the service: in hosted mode the index lives on the server.
           await getDeskService().removeFromSmartIndex(workspaceId, filePath);
           // The exclusion must be visible immediately, everywhere the index surfaces: the
-          // Settings catalog (query) and, in local mode, the on-disk WORKSPACE_CONTEXT.md —
+          // Settings catalog (query) and, in local mode, the on-disk WORKSPACE_INDEX.md —
           // an external agent must not keep reading the summary of a file the user just
           // marked sensitive. Same glue as the engine's onIndexWritten (lib/maintenance.ts).
           void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
           if (isLocalDisk()) {
-            const { writeWorkspaceContextArtifact } = await import("@/lib/context-index/artifacts");
+            const { writeWorkspaceIndexArtifact } = await import("@/lib/smart-index/artifacts");
             const index = await readWorkspaceIndex(workspaceId);
-            if (index) await writeWorkspaceContextArtifact(index);
+            if (index) await writeWorkspaceIndexArtifact(index);
           }
         }
       } catch (error) {

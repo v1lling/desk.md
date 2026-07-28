@@ -4,13 +4,14 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { useTabStore } from "@/stores/tabs";
 import { isTauri } from "@desk/core";
+import { getUnsavedChangeLabels } from "@/lib/unsaved-changes-guard";
 
 /**
  * Hook to handle window close requests from Tauri.
  * When the user tries to close the window (Cmd+Q, close button, etc.),
  * this hook checks for unsaved changes and shows a confirmation dialog if needed.
  *
- * @param onCloseRequested - Called when close is requested and there are dirty tabs.
+ * @param onCloseRequested - Called when close is requested and there are dirty editors/forms.
  *   Should show a dialog and call confirmClose() or cancelClose() based on user choice.
  * @returns Object with confirmClose and cancelClose functions.
  */
@@ -48,8 +49,12 @@ export function useWindowClose(onCloseRequested?: (dirtyTabs: string[]) => void)
         // Get current tabs state (not stale closure value)
         const currentTabs = useTabStore.getState().tabs;
         const dirtyTabs = currentTabs.filter((t) => t.isDirty);
+        const dirtyLabels = [
+          ...dirtyTabs.map((tab) => tab.title),
+          ...getUnsavedChangeLabels(),
+        ];
 
-        if (dirtyTabs.length === 0) {
+        if (dirtyLabels.length === 0) {
           // No unsaved changes, proceed with close
           try {
             await invoke("confirm_close");
@@ -59,7 +64,7 @@ export function useWindowClose(onCloseRequested?: (dirtyTabs: string[]) => void)
         } else {
           // Has unsaved changes, notify parent component
           setPendingClose(true);
-          onCloseRequestedRef.current?.(dirtyTabs.map((t) => t.title));
+          onCloseRequestedRef.current?.(dirtyLabels);
         }
       });
     };

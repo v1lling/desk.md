@@ -16,7 +16,6 @@ import type { SummaryDetail } from "./types";
 
 export interface AIMaintenanceSettings {
   autoSummarizeOnSave: boolean;
-  autoRefreshProjectState: boolean;
   summaryDetail: SummaryDetail;
   providerType: AIProviderType;
   /** Model ID per provider (empty = provider default). */
@@ -25,7 +24,6 @@ export interface AIMaintenanceSettings {
 
 export const AI_MAINTENANCE_DEFAULTS: AIMaintenanceSettings = {
   autoSummarizeOnSave: true,
-  autoRefreshProjectState: true,
   summaryDetail: "brief",
   providerType: "openai",
   modelByProvider: {},
@@ -44,8 +42,8 @@ export async function getAIMaintenanceSettings(): Promise<AIMaintenanceSettings>
 
 /**
  * The one place the maintenance engine builds an AI service from settings: provider + model from
- * the shared config, usage logged under `purpose`. Used by the state refresher, the incremental
- * indexer, and the full rebuild — identical construction that previously lived in all three.
+ * the shared config, usage logged under `purpose`. Used by the incremental indexer and the full
+ * rebuild — identical construction that previously lived in both.
  */
 export function createMaintenanceService(settings: AIMaintenanceSettings, purpose: AIPurpose): AIService {
   return createAIService({

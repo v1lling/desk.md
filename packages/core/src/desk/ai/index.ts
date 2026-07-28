@@ -22,7 +22,7 @@ export {
   type AIErrorCode,
 } from "./errors";
 
-// Prompts (Smart Index summarization + project-state refresh)
+// Prompts (Smart Index summarization)
 export { BASE_CONTEXT, SYSTEM_PROMPTS } from "./prompts";
 
 // Service layer (high-level API)

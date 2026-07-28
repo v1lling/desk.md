@@ -8,12 +8,13 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatePanel } from "@/components/ui/state-panel";
 import { FilteredListPage, ListRow } from "@/components/patterns";
+import { EntityOverview } from "@/components/entity-overview";
 import { cn } from "@/lib/utils";
 import { matchesSearch } from "@/lib/tree-count";
 import { projectStatusDotColors, projectStatuses } from "@/lib/design-tokens";
 import { countActiveTasks } from "@/lib/task-status";
 import type { Project } from "@desk/core/types";
-import { useProjects, useDeleteProject } from "@/stores";
+import { useProjects, useDeleteProject, useCurrentWorkspace, useUpdateWorkspace } from "@/stores";
 import { useProjectSelectionStore } from "@/stores/project-selection";
 import { NewProjectModal } from "./new-project-modal";
 
@@ -31,6 +32,8 @@ interface ProjectsBrowseProps {
 export function ProjectsBrowse({ workspaceId }: ProjectsBrowseProps) {
   const { t } = useTranslation();
   const { data: projects = [] } = useProjects(workspaceId);
+  const workspace = useCurrentWorkspace();
+  const updateWorkspace = useUpdateWorkspace();
   const deleteProject = useDeleteProject();
   const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
 
@@ -104,6 +107,22 @@ export function ProjectsBrowse({ workspaceId }: ProjectsBrowseProps) {
       }
     >
       <div className="max-w-3xl">
+        {workspace?.id === workspaceId && (
+          <div className="mb-8">
+            <EntityOverview
+              title={t("pages.projects.browse.workspaceOverview.title")}
+              value={workspace.overview ?? ""}
+              placeholder={t("pages.projects.browse.workspaceOverview.placeholder")}
+              onSave={async (overview) => {
+                await updateWorkspace.mutateAsync({
+                  workspaceId,
+                  updates: { overview },
+                });
+              }}
+            />
+          </div>
+        )}
+
         <div className="relative mb-3">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input

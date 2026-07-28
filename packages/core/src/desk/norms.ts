@@ -2,9 +2,8 @@
  * How a desk space works, stated once.
  *
  * This is the single source of the conventions every external agent needs. It is rendered
- * into three front doors, which must never drift apart:
- *   - the generated CLAUDE.md / AGENTS.md / GEMINI.md (local mode, `lib/context-index/agent-context.ts`)
- *   - WORKSPACE_CONTEXT.md's legend (local mode, `lib/context-index/artifacts.ts`)
+ * into both agent front doors, which must never drift apart:
+ *   - the generated CLAUDE.md / AGENTS.md / GEMINI.md (local mode, `lib/smart-index/agent-files.ts`)
  *   - the MCP server's `instructions` (hosted mode, `packages/server/src/mcp.ts`)
  *
  * The third one is why this lives in core: the generated markdown files are only written
@@ -16,13 +15,13 @@
  */
 export const DESK_SPACE_NORMS = `## How this space works
 
-Desk is a markdown work-management space: workspaces, projects, tasks, docs, meetings — plain \`.md\` files with YAML frontmatter. Two kinds of material live here, split by lifecycle: **records** (\`docs/\`, \`tasks/\`, \`meetings/\`) are dated, accumulate, and are never rewritten; **context** (\`context/\`, at the workspace root and each project root) is the map — evergreen, small, kept current. **Read \`context/\` first.**
+Desk is a markdown work-management space: workspaces, projects, tasks, docs, and meetings — plain \`.md\` files with YAML frontmatter.
 
-When your understanding changes, *update* the relevant context file rather than piling on new ones. A genuinely distinct topic can get its own context file; a pile is no longer a map. Anything dated or append-only — research with sources, a decision record, session notes — is a record and belongs in \`docs/\`.
+Each workspace's \`workspace.md\` body and each project's \`project.md\` body is its **Overview**: the user's own orientation, intent, and boundaries. Read the relevant Overview first and treat it as user-owned — don't rewrite it.
 
-A project's \`context/\` holds a \`*-brief.md\` — the user's own statement of what the project is; treat it as read-only — and may hold a \`*-state.md\` ("Current state"), which Desk maintains automatically. Don't edit the state file; it is overwritten on refresh.
+Documents live in \`docs/\`. Users choose whatever folder structure fits their work; do not infer lifecycle or authorship semantics from folder names. Tasks live in \`tasks/\` and meetings in \`meetings/\`.
 
-Stamp \`author: ai\` in the frontmatter of any file you create. Absence means the user wrote it; never write \`author: human\`.
+Stamp \`author: ai\` in the frontmatter of any document, task, or meeting you create. Absence means the user wrote it; never write \`author: human\`.
 
 Tasks and meetings are committed work items — surface candidates to the user rather than creating them.
 

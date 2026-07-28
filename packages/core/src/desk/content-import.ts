@@ -1,7 +1,7 @@
 /**
  * Content Import - Import files and create docs in specific folders
  */
-import type { Doc, DocKind, ContentScope } from "../types";
+import type { Doc, ContentScope } from "../types";
 import { isMarkdownFile, isConvertibleFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
@@ -10,7 +10,7 @@ import { writeMarkdownFile } from "./file-operations";
 import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getContextPath } from "./paths";
+import { getDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
 import { convertFileToMarkdown } from "./file-conversion";
 
@@ -34,19 +34,13 @@ export async function createDocInFolder(data: {
   folderPath?: string;
   workspaceId?: string;
   projectId?: string;
-  kind?: DocKind;
-  /**
-   * Override the generated `YYYY-MM-DD-<title-slug>.md` filename. Used for singletons whose
-   * identity must not follow the title — the project brief resolves itself by filename slug
-   * (`project-brief.ts`), so it cannot be renamed by editing the title.
-   */
+  /** Override the generated `YYYY-MM-DD-<title-slug>.md` filename. */
   filename?: string;
-  /** Stamp `author: ai` on app-created AI files (the project state file). Absent = user. */
+  /** Stamp `author: ai` on app-created AI files. Absent = user. */
   author?: "ai";
-  /** Explicit `updated` stamp — the state refresher's read-time (see `writeProjectState`). */
+  /** Explicit `updated` stamp instead of write-time (e.g. a snapshot's read-time). */
   updatedStamp?: string;
 }): Promise<Doc> {
-  const kind = data.kind || "doc";
   const filename = data.filename || generateFilename(data.title);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const homeWorkspaceId = await getHomeWorkspaceId();
@@ -74,19 +68,14 @@ export async function createDocInFolder(data: {
   };
 
   if (isMockMode()) {
-    // Mirror the real tree shape: mock reads derive the DocKind from this path
-    // (`filePathIsContextKind` in content-tree.ts), so a flat path would file every
-    // context doc under `docs/`.
     const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
     const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
-    doc.filePath = `~/DeskMD/workspaces/${wsId}${scopeSegment}/${kind === "context" ? "context" : "docs"}${folderSegment}/${filename}`;
+    doc.filePath = `~/DeskMD/workspaces/${wsId}${scopeSegment}/docs${folderSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
 
-  const basePath = kind === "context"
-    ? await getContextPath(data.scope, data.workspaceId, data.projectId)
-    : await getDocsPath(data.scope, data.workspaceId, data.projectId);
+  const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
 
   const folderPath = data.folderPath
     ? await joinPath(basePath, data.folderPath)
@@ -136,7 +125,6 @@ export async function importFiles(
   folderPath?: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc",
   convertibleAction: ConvertibleAction = "keep",
 ): Promise<ImportFilesResult> {
   const importedDocs: Doc[] = [];
@@ -144,9 +132,7 @@ export async function importFiles(
   const convertedDocs: Doc[] = [];
   const failures: ImportFileFailure[] = [];
 
-  const basePath = kind === "context"
-    ? await getContextPath(scope, workspaceId, projectId)
-    : await getDocsPath(scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
   const targetDir = folderPath ? await joinPath(basePath, folderPath) : basePath;
   await getStorage().mkdir(targetDir);
 
@@ -157,7 +143,6 @@ export async function importFiles(
         folderPath,
         workspaceId,
         projectId,
-        kind,
         importedDocs,
         failures,
       });
@@ -172,7 +157,6 @@ export async function importFiles(
         folderPath,
         workspaceId,
         projectId,
-        kind,
         attachOriginal: convertibleAction === "both" ? file.name : undefined,
         convertedDocs,
         failures,
@@ -214,7 +198,6 @@ async function importMarkdownFile(
     folderPath?: string;
     workspaceId?: string;
     projectId?: string;
-    kind: DocKind;
     importedDocs: Doc[];
     failures: ImportFileFailure[];
   },
@@ -225,9 +208,13 @@ async function importMarkdownFile(
       : new TextDecoder().decode(file.content);
 
     let title: string;
+    let body = textContent;
+    let author: "ai" | undefined;
     try {
-      const parsed = parseMarkdown<{ title?: string }>(textContent);
+      const parsed = parseMarkdown<{ title?: string; author?: string }>(textContent);
       title = parsed.data.title || file.name.replace(/\.(md|markdown|txt)$/i, "");
+      body = parsed.content;
+      author = parsed.data.author === "ai" ? "ai" : undefined;
     } catch {
       title = file.name.replace(/\.(md|markdown|txt)$/i, "");
     }
@@ -235,11 +222,11 @@ async function importMarkdownFile(
     const doc = await createDocInFolder({
       scope: ctx.scope,
       title,
-      content: textContent,
+      content: body,
+      author,
       folderPath: ctx.folderPath,
       workspaceId: ctx.workspaceId,
       projectId: ctx.projectId,
-      kind: ctx.kind,
     });
     ctx.importedDocs.push(doc);
   } catch (err) {
@@ -254,7 +241,6 @@ async function importConvertedFile(
     folderPath?: string;
     workspaceId?: string;
     projectId?: string;
-    kind: DocKind;
     attachOriginal?: string;
     convertedDocs: Doc[];
     failures: ImportFileFailure[];
@@ -278,7 +264,6 @@ async function importConvertedFile(
       folderPath: ctx.folderPath,
       workspaceId: ctx.workspaceId,
       projectId: ctx.projectId,
-      kind: ctx.kind,
     });
     ctx.convertedDocs.push(doc);
     return true;

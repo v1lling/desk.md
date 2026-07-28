@@ -1,18 +1,11 @@
 /**
  * Adapter between our `FileTreeNode[]` shape and react-arborist's expected data.
  *
- * Arborist requires unique `id` per node. Leaf names (a doc's basename, an asset's
- * filename) can collide between the docs/ and context/ trees, so we qualify each node
- * by its tree path (parent treePath joined with the leaf basename).
+ * Arborist requires unique ids, so leaves are qualified by their full tree path.
  */
 
 import i18next from "i18next";
 import type { FileTreeNode } from "@desk/core/types";
-import {
-  CONTEXT_SENTINEL,
-  isContextTreePath,
-  isReservedContextName,
-} from "@desk/core";
 
 export type ArboristNodeKind =
   | "folder"
@@ -37,17 +30,12 @@ export interface ArboristNode {
   children?: ArboristNode[];
   /** For "section-header" kind: render a thin top border to separate from the previous group. */
   sectionShowDivider?: boolean;
-  /** Render a hairline above this row — used to close the Context band off from the records below it. */
+  /** Render a hairline above this row. */
   showDividerAbove?: boolean;
 }
 
 function buildId(kind: ArboristNodeKind, treePath: string): string {
   return `${kind}|${treePath}`;
-}
-
-/** True when a folder path is the synthetic Context root (workspace-level or inside a project). */
-function isContextRootPath(folderPath: string): boolean {
-  return folderPath === CONTEXT_SENTINEL || folderPath.endsWith(`/${CONTEXT_SENTINEL}`);
 }
 
 /**
@@ -57,40 +45,19 @@ export function nodesToArborist(
   nodes: FileTreeNode[],
   parentTreePath: string = "",
 ): ArboristNode[] {
-  return nodes.map((node, idx) => {
-    // Close the Context band off from the records that follow it. At the root this is handled by
-    // insertSectionHeaders (which owns the Workspace/Projects labels); here it covers every other
-    // level, i.e. the Context band inside an expanded project.
-    const showDividerAbove =
-      parentTreePath !== ""
-      && idx === 1
-      && nodes[0].type === "folder"
-      && isContextRootPath(nodes[0].folder.path);
-
+  return nodes.map((node) => {
     if (node.type === "folder") {
-      // folder.path is already absolute within the merged tree (context subtree paths are prefixed by the lib).
       const folderPath = node.folder.path;
-      // Core names the synthetic Context root with a stable, non-localized constant (it also
-      // backs isReservedContextName / displayTreePath). Localize it here, on the node itself,
-      // so the row, the rename input, and the menus all read the translated name.
-      const isCtxRoot = isContextRootPath(folderPath);
-      const folderNode: FileTreeNode = isCtxRoot
-        ? {
-            ...node,
-            folder: { ...node.folder, name: i18next.t("pages.docs.tree.contextFolder") },
-          }
-        : node;
       const children = nodesToArborist(node.folder.children, folderPath);
       return {
         id: buildId("folder", folderPath),
-        name: folderNode.type === "folder" ? folderNode.folder.name : "",
+        name: node.folder.name,
         kind: "folder",
         treePath: folderPath,
         parentTreePath,
-        node: folderNode,
+        node,
         // Empty children means "lazy/expandable but currently empty" — arborist still renders the chevron.
         children,
-        showDividerAbove,
       };
     }
     if (node.type === "doc") {
@@ -107,7 +74,6 @@ export function nodesToArborist(
         treePath,
         parentTreePath,
         node,
-        showDividerAbove,
       };
     }
     const assetPath = parentTreePath
@@ -120,7 +86,6 @@ export function nodesToArborist(
       treePath: assetPath,
       parentTreePath,
       node,
-      showDividerAbove,
     };
   });
 }
@@ -138,36 +103,23 @@ export function isProjectStub(node: ArboristNode): boolean {
  * Headers are only added when the list actually mixes non-project and project rows;
  * a list that is all-one-kind renders untouched.
  *
- * The pinned Context band is peeled off first: it is the orientation layer, not a workspace
- * doc folder, so it must sit *above* the "Workspace" label rather than under it. Whatever
- * follows it gets a hairline so the band reads as closed either way.
  */
 export function insertSectionHeaders(nodes: ArboristNode[]): ArboristNode[] {
-  const hasContext = nodes.length > 0 && isContextRoot(nodes[0]);
-  const context = hasContext ? [nodes[0]] : [];
-  const rest = hasContext ? nodes.slice(1) : nodes;
-
-  const firstProjectIdx = rest.findIndex((n) => isProjectStub(n));
-  const workspaceNodes = firstProjectIdx < 0 ? rest : rest.slice(0, firstProjectIdx);
-  const projectNodes = firstProjectIdx < 0 ? [] : rest.slice(firstProjectIdx);
+  const firstProjectIdx = nodes.findIndex((n) => isProjectStub(n));
+  const workspaceNodes = firstProjectIdx < 0 ? nodes : nodes.slice(0, firstProjectIdx);
+  const projectNodes = firstProjectIdx < 0 ? [] : nodes.slice(firstProjectIdx);
 
   // Both kinds present: label them, and let the "Workspace" label carry the band's closing rule.
   if (workspaceNodes.length > 0 && projectNodes.length > 0) {
     return [
-      ...context,
-      makeSectionHeader("section-workspace", i18next.t("pages.docs.tree.sections.workspace"), hasContext),
+      makeSectionHeader("section-workspace", i18next.t("pages.docs.tree.sections.workspace"), false),
       ...workspaceNodes,
       makeSectionHeader("section-projects", i18next.t("pages.docs.tree.sections.projects"), true),
       ...projectNodes,
     ];
   }
 
-  // All-one-kind: no labels, so the first record row closes the band itself.
-  const tail = [...workspaceNodes, ...projectNodes];
-  if (hasContext && tail.length > 0) {
-    tail[0] = { ...tail[0], showDividerAbove: true };
-  }
-  return [...context, ...tail];
+  return [...workspaceNodes, ...projectNodes];
 }
 
 function makeSectionHeader(id: string, label: string, showDivider: boolean): ArboristNode {
@@ -184,23 +136,12 @@ function makeSectionHeader(id: string, label: string, showDivider: boolean): Arb
 }
 
 /**
- * True when a node is the synthetic "Context" folder (top of the context subtree).
- */
-export function isContextRoot(node: ArboristNode): boolean {
-  if (node.kind !== "folder" || node.node.type !== "folder") return false;
-  return isContextRootPath(node.node.folder.path);
-}
-
-/**
  * Whether dragging this node is allowed.
  * - Project stubs: not draggable (they represent projects, not real folders).
- * - Context synthetic folder: not draggable.
  * - Everything else: draggable.
  */
 export function isDraggable(node: ArboristNode): boolean {
-  if (isProjectStub(node)) return false;
-  if (isContextRoot(node)) return false;
-  return true;
+  return !isProjectStub(node);
 }
 
 /**
@@ -221,16 +162,4 @@ export function canDropInto(
     if (parentNode.treePath.startsWith(`${dn.treePath}/`)) return false;
   }
   return true;
-}
-
-/**
- * Whether a new folder name is acceptable at the given parent path.
- * Blocks creating a folder literally named "Context" at any records-side root
- * (collision with the synthetic Context subfolder).
- */
-export function isAllowedNewFolderName(parentTreePath: string, name: string): boolean {
-  if (!isReservedContextName(name)) return true;
-  // Reserved only outside the Context subtree — inside context/ a user could legitimately create
-  // a subfolder named "Context" (uncommon but not harmful).
-  return isContextTreePath(parentTreePath);
 }

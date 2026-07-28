@@ -26,7 +26,7 @@ export interface AIServiceResponse {
 
 /**
  * AI Service for programmatic AI calls (Smart Index summarization).
- * The only consumer is the context-index builder/indexer.
+ * The only consumer is the Smart Index builder/indexer.
  */
 export class AIService {
   private config: AIServiceConfig;

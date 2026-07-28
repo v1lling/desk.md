@@ -67,7 +67,7 @@ export function AuthScreen({ mode, auth, onSuccess }: AuthScreenProps) {
       // A caller can override what "success" does (the OAuth sign-in page resumes the
       // authorize flow). Default: reload so the whole app boots fresh WITH the session
       // cookie. This is not just to re-run the gate (useSession would flip reactively) —
-      // the background bootstrap hooks in providers.tsx (search index, context-index
+      // the background bootstrap hooks in providers.tsx (search index, Smart Index
       // sync) build once on mount, above the gate; reloading lets them build
       // authenticated instead of being stuck with their pre-login 401 result.
       if (onSuccess) {

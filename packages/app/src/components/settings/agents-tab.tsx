@@ -17,7 +17,7 @@ import { useWorkspaces } from "@/stores";
 import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
-} from "@/lib/context-index/agent-context";
+} from "@/lib/smart-index/agent-files";
 import { getDeskService } from "@desk/core";
 import { useBootStore } from "@/stores/boot";
 import { isDomainRemote } from "@/lib/connection";

@@ -4,7 +4,7 @@
  * Typed provider errors (`AIProviderError`, whether thrown in-process locally or reconstructed
  * from the server RPC) map by `code` to a localized message; a translation missing for a code
  * falls back to the error's own self-authored message. Anything else returns its raw message.
- * One helper for every AI surface (state refresh, index rebuild), so the mapping lives once.
+ * One helper for every AI surface, so the mapping lives once.
  */
 import { isAIProviderError } from "@desk/core";
 

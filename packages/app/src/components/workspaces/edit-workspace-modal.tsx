@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2 } from "lucide-react";
@@ -17,6 +18,7 @@ import { useUpdateWorkspace, useDeleteWorkspace, useHomeWorkspace } from "@/stor
 import { useNavigationStore } from "@/stores/navigation";
 import { toast } from "sonner";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import type { Workspace } from "@desk/core/types";
 
 interface EditWorkspaceModalProps {
@@ -36,15 +38,48 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
 
   const [name, setName] = useState(workspace.name);
   const [description, setDescription] = useState(workspace.description || "");
+  const [overview, setOverview] = useState(workspace.overview || "");
   const [color, setColor] = useState(workspace.color || "#3b82f6");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // Sync form state when workspace prop changes
-  useEffect(() => {
+  const resetForm = useCallback(() => {
     setName(workspace.name);
     setDescription(workspace.description || "");
+    setOverview(workspace.overview || "");
     setColor(workspace.color || "#3b82f6");
-  }, [workspace]);
+  }, [workspace.color, workspace.description, workspace.name, workspace.overview]);
+
+  // Start every modal session from the last saved workspace state.
+  useEffect(() => {
+    if (open) resetForm();
+  }, [open, resetForm]);
+
+  const dirty =
+    name.trim() !== workspace.name.trim() ||
+    description.trim() !== (workspace.description || "").trim() ||
+    overview.trim() !== (workspace.overview || "").trim() ||
+    color !== (workspace.color || "#3b82f6");
+
+  // The modal itself intercepts every close path with a Desk confirm dialog. Register only
+  // browser-unload protection here so a confirmed delete can switch workspaces immediately.
+  useUnsavedChangesGuard(
+    open && dirty,
+    t("modals.editWorkspace.discardDescription"),
+    false,
+    t("modals.editWorkspace.title"),
+  );
+
+  const finishClose = () => {
+    resetForm();
+    setShowDiscardConfirm(false);
+    onClose();
+  };
+
+  const requestClose = () => {
+    if (dirty) setShowDiscardConfirm(true);
+    else finishClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,11 +92,12 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
         updates: {
           name: name.trim(),
           description: description.trim() || null,
+          overview,
           color,
         },
       });
       toast.success(t("toasts.workspace.update.success"));
-      onClose();
+      finishClose();
     } catch (error) {
       console.error("Failed to update workspace:", error);
       toast.error(t("toasts.workspace.update.error"));
@@ -76,7 +112,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
         setCurrentWorkspaceId(homeWorkspace.id);
       }
       setShowDeleteConfirm(false);
-      onClose();
+      finishClose();
     } catch (error) {
       console.error("Failed to delete workspace:", error);
       toast.error(t("toasts.workspace.delete.error"));
@@ -85,7 +121,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && requestClose()}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t("modals.editWorkspace.title")}</DialogTitle>
@@ -113,12 +149,22 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
               />
             </FormField>
 
+            <FormField label={t("modals.editWorkspace.overviewLabel")} optional>
+              <RichTextEditor
+                value={overview}
+                onChange={setOverview}
+                placeholder={t("modals.editWorkspace.overviewPlaceholder")}
+                minHeight="120px"
+                maxHeight="240px"
+              />
+            </FormField>
+
             <FormField label={t("modals.editWorkspace.colorLabel")}>
               <ColorPicker value={color} onChange={setColor} />
             </FormField>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={requestClose}>
                 {t("common.buttons.cancel")}
               </Button>
               <Button type="submit" disabled={!name.trim() || updateWorkspace.isPending}>
@@ -163,6 +209,15 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
         confirmLabel={t("common.buttons.delete")}
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={showDiscardConfirm}
+        onOpenChange={setShowDiscardConfirm}
+        title={t("modals.editWorkspace.discardTitle")}
+        description={t("modals.editWorkspace.discardDescription")}
+        confirmLabel={t("modals.editWorkspace.discardAction")}
+        onConfirm={finishClose}
       />
     </>
   );

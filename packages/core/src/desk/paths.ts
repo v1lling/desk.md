@@ -9,7 +9,6 @@
  * ├── workspaces/
  * │   └── {workspaceId}/           (one folder per workspace)
  * │       ├── workspace.md         (frontmatter `home: true` marks the home workspace)
- * │       ├── context/             (The map: evergreen, maintained, co-authored)
  * │       ├── docs/                (Records: dated, accumulate, never rewritten)
  * │       ├── _capture/            (Quick capture for triage — home workspace only)
  * │       │   └── tasks/
@@ -19,7 +18,6 @@
  * │       │   └── meetings/
  * │       └── projects/{projectId}/
  * │           ├── project.md
- * │           ├── context/
  * │           ├── tasks/
  * │           ├── docs/
  * │           └── meetings/
@@ -143,37 +141,6 @@ export async function getDocsPath(
 
   const projectPath = await getProjectPath(workspaceId, projectId);
   return joinPath(projectPath, PATH_SEGMENTS.DOCS);
-}
-
-/**
- * Get the context directory based on scope (parallel to getDocsPath for context/)
- */
-export async function getContextPath(
-  scope: ContentScope,
-  workspaceId?: string,
-  projectId?: string
-): Promise<string> {
-  if (scope === "personal") {
-    const workspacePath = await getWorkspacePath(await getHomeWorkspaceId());
-    return joinPath(workspacePath, PATH_SEGMENTS.CONTEXT);
-  }
-
-  if (!workspaceId) {
-    throw new Error("workspaceId required for workspace/project scope");
-  }
-
-  if (scope === "workspace") {
-    const workspacePath = await getWorkspacePath(workspaceId);
-    return joinPath(workspacePath, PATH_SEGMENTS.CONTEXT);
-  }
-
-  // scope === "project"
-  if (!projectId) {
-    throw new Error("projectId required for project scope");
-  }
-
-  const projectPath = await getProjectPath(workspaceId, projectId);
-  return joinPath(projectPath, PATH_SEGMENTS.CONTEXT);
 }
 
 // =============================================================================

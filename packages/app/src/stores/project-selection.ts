@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { confirmUnsavedChanges } from "@/lib/unsaved-changes-guard";
 
 /**
  * Ephemeral selection state for the Projects page.
@@ -18,5 +19,11 @@ interface ProjectSelectionState {
 
 export const useProjectSelectionStore = create<ProjectSelectionState>((set) => ({
   selectedProjectId: null,
-  setSelectedProject: (id) => set({ selectedProjectId: id }),
+  setSelectedProject: (id) =>
+    set((state) => {
+      if (state.selectedProjectId === id || confirmUnsavedChanges()) {
+        return { selectedProjectId: id };
+      }
+      return state;
+    }),
 }));

@@ -14,6 +14,7 @@ import {
 import { Calendar, Circle, GripVertical, FolderKanban, Star } from "lucide-react";
 import type { Task } from "@desk/core/types";
 import { cn } from "@/lib/utils";
+import { AIBadge } from "@/components/ui/ai-badge";
 
 interface TaskCardProps {
   task: Task;
@@ -106,6 +107,7 @@ export function TaskCard({
             )}
             <h4 className="font-medium text-sm leading-snug mb-2 line-clamp-2 text-foreground/90">
               {task.title}
+              {task.author === "ai" && <AIBadge className="ml-1.5 align-middle" />}
             </h4>
             <div className="flex items-center gap-2 flex-wrap">
               {task.priority && <PriorityIcon priority={task.priority} />}

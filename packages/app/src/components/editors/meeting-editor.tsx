@@ -219,6 +219,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
         onSave={save}
         isDirty={isDirty}
         onDelete={() => setShowDeleteConfirm(true)}
+        authorAI={meeting?.author === "ai"}
         aiIncluded={!aiExclusionState.isExcluded}
         onAIInclusionChange={handleAIInclusionChange}
         isInExcludedFolder={aiExclusionState.isInExcludedFolder}

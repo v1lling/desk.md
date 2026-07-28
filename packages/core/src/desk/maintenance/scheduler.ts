@@ -13,34 +13,29 @@
  * arrive on both channels there; the debounce absorbs the double-fire.
  *
  * Reactions (classified via path-identity; `task`/`doc`/`meeting` only — `context` never
- * schedules, so the state file's own write cannot re-trigger):
+ * schedules):
  *   - per-path debounce (5s)      → Smart Index entry update
  *     (delete/move-away → entry removal, batched per workspace into one index rewrite)
- *   - per-project debounce (90s)  → project state refresh (deletes count as drift)
  *
  * Module-level Map debounces are correct here: one long-lived process per host (Tauri window /
  * single server container). A pending debounce dies with the process; drift is caught by the
- * next record write or a manual refresh.
+ * next record write.
  */
 import { onDomainWrite, type DomainWriteEvent } from "../domain-write-bus";
-import { getItemTypeFromPath, getWorkspaceIdFromPath, getProjectIdFromPath } from "../path-identity";
+import { getItemTypeFromPath, getWorkspaceIdFromPath } from "../path-identity";
 import { getAIKeyResolver } from "../ai/key-resolver";
 import type { AIProviderType } from "../ai/types";
 import { PROVIDER_REGISTRY } from "../ai/provider-registry";
 import { updateIndexForFile } from "./index-updater";
 import { removeIndexEntries } from "./index-store-io";
-import { performStateRefresh, type StateRefreshResult } from "./state-refresher";
 
 const INDEX_DEBOUNCE_MS = 5_000;
-const STATE_REFRESH_DEBOUNCE_MS = 90_000;
 
 export interface MaintenanceEngineOptions {
   /** Host consent gate for AI calls. Default: () => true (server — env key IS consent). */
   canRunAI?: () => boolean | Promise<boolean>;
-  /** App hook: rehydrate the index store + regenerate WORKSPACE_CONTEXT.md after an entry write. */
+  /** App hook: rehydrate the index store + regenerate WORKSPACE_INDEX.md after an entry write. */
   onIndexWritten?: (workspaceId: string) => void;
-  /** App hook: invalidate queries after a background state write. */
-  onStateWritten?: (workspaceId: string, projectId: string) => void;
 }
 
 let unsubscribe: (() => void) | null = null;
@@ -59,10 +54,6 @@ const queuedRemovalPaths = new Map<string, Set<string>>();
 // firing during a slow update would remove the entry first and the finished update would
 // re-insert it — a permanent ghost the next rebuild is the only cure for.
 const inFlightIndexOps = new Map<string, Promise<unknown>>();
-const pendingStateRefreshes = new Map<string, ReturnType<typeof setTimeout>>();
-// Same idea per project: a manual "Refresh now" racing a fired scheduled refresh would run
-// two full AI generations for one snapshot and write the state file twice.
-const inFlightStateRefreshes = new Map<string, Promise<StateRefreshResult>>();
 
 function trackIndexOp(filePath: string, run: Promise<unknown>): void {
   const tracked = run.finally(() => {
@@ -143,45 +134,6 @@ function scheduleIndexRemoval(workspaceId: string, filePath: string): void {
   pendingIndexRemovals.set(workspaceId, timeout);
 }
 
-/** Start (or coalesce onto) a state refresh for one project. */
-function runStateRefresh(
-  workspaceId: string,
-  projectId: string,
-  manual: boolean,
-): Promise<StateRefreshResult> {
-  const key = `${workspaceId}/${projectId}`;
-  const inFlight = inFlightStateRefreshes.get(key);
-  if (inFlight) return inFlight;
-
-  const run = performStateRefresh(workspaceId, projectId, {
-    manual,
-    canRunAI: engineOptions.canRunAI,
-  }).finally(() => {
-    inFlightStateRefreshes.delete(key);
-  });
-  inFlightStateRefreshes.set(key, run);
-  return run;
-}
-
-function scheduleStateRefresh(workspaceId: string, projectId: string): void {
-  const key = `${workspaceId}/${projectId}`;
-  const existing = pendingStateRefreshes.get(key);
-  if (existing) clearTimeout(existing);
-
-  const timeout = setTimeout(() => {
-    pendingStateRefreshes.delete(key);
-    runStateRefresh(workspaceId, projectId, false)
-      .then((result) => {
-        if (result === "written") engineOptions.onStateWritten?.(workspaceId, projectId);
-      })
-      .catch((error) => {
-        console.warn(`[maintenance] State refresh failed for ${workspaceId}/${projectId}:`, error);
-      });
-  }, STATE_REFRESH_DEBOUNCE_MS);
-
-  pendingStateRefreshes.set(key, timeout);
-}
-
 function reactToChange(filePath: string, removed: boolean): void {
   const itemType = getItemTypeFromPath(filePath);
   if (itemType !== "task" && itemType !== "doc" && itemType !== "meeting") return;
@@ -190,11 +142,6 @@ function reactToChange(filePath: string, removed: boolean): void {
 
   if (removed) scheduleIndexRemoval(workspaceId, filePath);
   else scheduleIndexUpdate(workspaceId, filePath);
-
-  // State refresh only for real projects (null for _unassigned/_capture). Deletes count:
-  // a removed record is drift too.
-  const projectId = getProjectIdFromPath(filePath);
-  if (projectId) scheduleStateRefresh(workspaceId, projectId);
 }
 
 function handleDomainWrite(event: DomainWriteEvent): void {
@@ -227,23 +174,6 @@ export function notifyExternalChanges(paths: string[], kind: "modify" | "remove"
   for (const path of paths) {
     reactToChange(path, kind === "remove");
   }
-}
-
-/**
- * Manual "refresh now": bypasses the auto toggle, keeps consent/key/freshness gates.
- * Coalesces onto an already-running refresh for the project instead of starting a second one.
- */
-export async function runStateRefreshNow(
-  workspaceId: string,
-  projectId: string,
-): Promise<StateRefreshResult> {
-  const key = `${workspaceId}/${projectId}`;
-  const existing = pendingStateRefreshes.get(key);
-  if (existing) {
-    clearTimeout(existing);
-    pendingStateRefreshes.delete(key);
-  }
-  return runStateRefresh(workspaceId, projectId, true);
 }
 
 export interface AIMaintenanceInfo {

@@ -1,14 +1,11 @@
 import { createContext, useContext, useCallback, type CSSProperties } from "react";
 import type { NodeApi } from "react-arborist";
-import { useTranslation } from "react-i18next";
 import {
   BotOff,
   ChevronRight,
-  Compass,
   FileText,
   Folder,
   FolderKanban,
-  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIBadge } from "@/components/ui/ai-badge";
@@ -26,11 +23,7 @@ import {
   type MenuItem,
 } from "../tree-item-utils";
 import { InlineRenameInput } from "../inline-rename-input";
-import {
-  isContextRoot,
-  isProjectStub,
-  type ArboristNode,
-} from "./arborist-adapter";
+import { isProjectStub, type ArboristNode } from "./arborist-adapter";
 
 // ── Handlers exposed via context (avoids drilling through arborist props) ─────
 
@@ -83,97 +76,13 @@ interface DocsTreeRowProps {
 export function DocsTreeRow({ node, style, dragHandle }: DocsTreeRowProps) {
   const data = node.data;
   if (data.kind === "section-header") return <SectionHeaderRow node={node} style={style} />;
-  if (data.kind === "folder") {
-    // Context is a layer, not a folder inside Docs: on disk `context/` is a *sibling* of
-    // `docs/`, so it renders as a band (section typography) rather than folder chrome.
-    return isContextRoot(data)
-      ? <ContextSectionRow node={node} style={style} />
-      : <FolderRow node={node} style={style} dragHandle={dragHandle} />;
-  }
+  if (data.kind === "folder") return <FolderRow node={node} style={style} dragHandle={dragHandle} />;
   if (data.kind === "doc") return <DocRow node={node} style={style} dragHandle={dragHandle} />;
   return <AssetRow node={node} style={style} dragHandle={dragHandle} />;
 }
 
-/** Hairline closing the Context band off from the records below it. */
 function RowDivider() {
   return <div className="absolute left-2 right-2 top-0 h-px bg-border/60" />;
-}
-
-// ── Context band ──────────────────────────────────────────────────────────────
-
-/**
- * The synthetic Context root. Interactive like a folder (toggle, drop target, create) but
- * styled like a section label, so it reads as the orientation layer sitting above the records
- * rather than as one more doc folder. Identical at workspace level and inside a project — it is
- * the same node, just path-prefixed.
- */
-function ContextSectionRow({ node, style }: DocsTreeRowProps) {
-  const data = node.data;
-  const handlers = useTreeHandlers();
-  const { t } = useTranslation();
-
-  const handleClick = useCallback(() => {
-    node.toggle();
-  }, [node]);
-
-  const handleCreate = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      handlers.onCreateDocIn(data.treePath);
-    },
-    [handlers, data.treePath],
-  );
-
-  if (data.node.type !== "folder") return null;
-  const folder = data.node.folder;
-
-  // No rename, no delete (it is synthetic), and no AI-exclusion toggle: hiding the map from
-  // the agent is the one thing this folder exists to prevent.
-  const menuItems: MenuItem[] = buildFolderMenuItems({
-    folderPath: data.treePath,
-    fullFolderPath: handlers.basePathFor(data.treePath) ?? "",
-    isAIIncluded: true,
-    hasBasePath: !!handlers.basePathFor(data.treePath),
-    onNewDocInFolder: () => handlers.onCreateDocIn(data.treePath),
-    onNewSubfolder: () => handlers.onCreateFolderIn(data.treePath),
-  });
-
-  return (
-    <TreeItemMenus items={menuItems}>
-      <div
-        style={style}
-        data-drop-tree-path={data.treePath}
-        data-drop-target-kind="folder"
-        className={cn(
-          "group relative flex items-center gap-1 px-2 h-7 cursor-pointer select-none rounded-sm",
-          "hover:bg-accent/30",
-          node.willReceiveDrop && "bg-primary/10 ring-1 ring-primary/40",
-          "data-[desk-drop-target=true]:bg-primary/10 data-[desk-drop-target=true]:ring-1 data-[desk-drop-target=true]:ring-primary/40",
-        )}
-        onClick={handleClick}
-      >
-        <ChevronRight
-          className={cn(
-            "size-3 shrink-0 text-muted-foreground/40 transition-transform",
-            node.isOpen && "rotate-90",
-          )}
-        />
-        <Compass className="size-3.5 shrink-0 text-muted-foreground/50" />
-        <SectionLabel className="text-[10px] tracking-wider text-muted-foreground/50">
-          {folder.name}
-        </SectionLabel>
-        <button
-          type="button"
-          aria-label={t("pages.docs.tree.newContextFile")}
-          title={t("pages.docs.tree.newContextFile")}
-          onClick={handleCreate}
-          className="ml-auto shrink-0 rounded-sm p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
-        >
-          <Plus className="size-3.5 text-muted-foreground" />
-        </button>
-      </div>
-    </TreeItemMenus>
-  );
 }
 
 // ── Section header row (synthetic, non-interactive) ───────────────────────────

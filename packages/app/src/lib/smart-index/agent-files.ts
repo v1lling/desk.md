@@ -7,7 +7,7 @@ import { useAgentSettingsStore } from "@/stores/agent-settings";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 import type { Workspace, Project } from "@desk/core/types";
 
-// Generated agent markdown (CLAUDE.md/AGENTS.md/GEMINI.md/WORKSPACE_CONTEXT.md) is a
+// Generated agent markdown (CLAUDE.md/AGENTS.md/GEMINI.md/WORKSPACE_INDEX.md) is a
 // LOCAL-mode feature: it teaches a local CLI agent the on-disk tree. In hosted mode the
 // data lives on the server and MCP is the external-agent interface, so we don't write
 // these into the server tree. They only belong on a real local disk — exactly isLocalDisk().
@@ -37,15 +37,15 @@ function userInstructionsBlock(value: string, placeholder: string): string {
 }
 
 // =============================================================================
-// TOP-LEVEL CONTEXT (CLAUDE.md + AGENTS.md + GEMINI.md at the data-folder root)
+// TOP-LEVEL AGENT FILES (CLAUDE.md + AGENTS.md + GEMINI.md at the data-folder root)
 // =============================================================================
 
-function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string {
+function buildTopLevelAgentFile(workspaces: Workspace[], deskPath: string): string {
   const lines: string[] = [];
 
   lines.push(generatedHeader());
   lines.push("");
-  lines.push("# Desk: AI Agent Context");
+  lines.push("# Desk: AI Agent Guide");
   lines.push("");
   lines.push(
     "Desk is a markdown-based work management system. All data lives as `.md` files with YAML frontmatter on the local filesystem: workspaces, projects, tasks, docs, meetings. You're meant to read across it; that's why it's structured this way."
@@ -93,7 +93,7 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("## Finding things");
   lines.push("");
   lines.push(
-    "Each workspace has a **`WORKSPACE_CONTEXT.md`**: a one-line-per-file catalog (`path · title · meta · summary`) of every file, with a file count at the top. It is the index, not the story — scan it for a topic to jump straight to the right file. The `.md` files themselves are the source of truth and are straightforward to search and read directly."
+    "Read each workspace's `workspace.md` and each relevant project's `project.md` first. Their Markdown bodies are user-owned overviews. Then scan **`WORKSPACE_INDEX.md`**, the one-line-per-file catalog (`path · title · meta · summary`), to jump to regular docs, tasks, and meetings."
   );
   lines.push("");
 
@@ -106,18 +106,16 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("├── .desk/                              # app metadata (do not edit)");
   lines.push("└── workspaces/");
   lines.push("    └── {workspaceId}/                  # one folder per workspace");
-  lines.push("        ├── workspace.md               # metadata");
+  lines.push("        ├── workspace.md               # metadata + user-owned overview (read first)");
   lines.push("        ├── CLAUDE.md / AGENTS.md / GEMINI.md   # workspace anchor (identical copies)");
-  lines.push("        ├── WORKSPACE_CONTEXT.md       # AI-generated file catalog");
+  lines.push("        ├── WORKSPACE_INDEX.md         # AI-generated file catalog");
   lines.push("        ├── .aiignore                  # sensitive paths to skip");
-  lines.push("        ├── context/                   # the map: evergreen, maintained");
-  lines.push("        ├── docs/                      # records: dated, accumulate, never rewritten");
+  lines.push("        ├── docs/                      # freely organized documents");
   lines.push("        ├── _unassigned/               # items without a project (tasks/docs/meetings)");
   lines.push("        ├── _capture/                  # home workspace only (triage inbox for tasks)");
   lines.push("        └── projects/{projectId}/");
-  lines.push("            ├── project.md");
-  lines.push("            ├── context/               # the map (per project): *-brief.md (user's), *-state.md (app-maintained)");
-  lines.push("            ├── docs/                  # records");
+  lines.push("            ├── project.md             # metadata + user-owned overview (read first)");
+  lines.push("            ├── docs/                  # freely organized documents");
   lines.push("            ├── tasks/");
   lines.push("            └── meetings/");
   lines.push("```");
@@ -147,11 +145,12 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("priority: high         # low | medium | high (optional)");
   lines.push("due: \"2024-06-20\"      # ISO date (optional)");
   lines.push("created: \"2024-06-15\"  # ISO date (required)");
+  lines.push("author: ai              # only when you wrote it; omit for user-authored files");
   lines.push("---");
   lines.push("```");
   lines.push("");
 
-  lines.push("### Doc (`docs/*.md` and `context/*.md`)");
+  lines.push("### Doc (`docs/**/*.md`)");
   lines.push("```yaml");
   lines.push("---");
   lines.push("title: Architecture Overview");
@@ -167,11 +166,13 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("title: Weekly Sync");
   lines.push("date: \"2024-06-15\"     # when meeting occurred (required)");
   lines.push("created: \"2024-06-15\"  # when note was written (required)");
+  lines.push("author: ai              # only when you wrote it; omit for user-authored files");
   lines.push("---");
   lines.push("```");
   lines.push("");
 
   lines.push("### Project (`project.md`)");
+  lines.push("The body below the frontmatter is the user-owned project **overview**. Read it first and do not rewrite it.");
   lines.push("```yaml");
   lines.push("---");
   lines.push("name: Website Redesign");
@@ -183,6 +184,7 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   lines.push("");
 
   lines.push("### Workspace (`workspace.md`)");
+  lines.push("The body below the frontmatter is the user-owned workspace **overview**. Read it first and do not rewrite it.");
   lines.push("```yaml");
   lines.push("---");
   lines.push("name: Acme Corp");
@@ -201,7 +203,7 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
   );
   lines.push("");
   lines.push(
-    "To create a project: add a directory under `projects/` with a `project.md`, plus `context/`, `tasks/`, `docs/`, and `meetings/` subdirectories."
+    "To create a project: add a directory under `projects/` with a `project.md`, plus `tasks/`, `docs/`, and `meetings/` subdirectories. Organize `docs/` however the user prefers."
   );
   lines.push("");
 
@@ -209,18 +211,23 @@ function buildTopLevelContext(workspaces: Workspace[], deskPath: string): string
 }
 
 // =============================================================================
-// PER-WORKSPACE CONTEXT (workspaces/{id}/CLAUDE.md + AGENTS.md + GEMINI.md)
+// PER-WORKSPACE AGENT FILES (workspaces/{id}/CLAUDE.md + AGENTS.md + GEMINI.md)
 // =============================================================================
 
-function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): string {
+function buildPerWorkspaceAgentFile(workspace: Workspace, projects: Project[]): string {
   const lines: string[] = [];
 
   lines.push(generatedHeader());
-  lines.push("");
   lines.push(`# ${workspace.name}`);
   lines.push("");
   if (workspace.description) {
     lines.push(workspace.description);
+    lines.push("");
+  }
+  if (workspace.overview?.trim()) {
+    lines.push("## Workspace overview");
+    lines.push("");
+    lines.push(workspace.overview.trim());
     lines.push("");
   }
   lines.push(`- **Workspace ID**: ${workspace.id}`);
@@ -255,11 +262,21 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
         `| ${cell(proj.name)} | ${proj.id} | ${proj.status} | ${cell(proj.description || "")} |`
       );
     }
+    lines.push("");
+    // Inline user-owned project overviews so an agent can orient without extra reads.
+    for (const proj of projects) {
+      const overview = proj.overview?.trim();
+      if (!overview) continue;
+      lines.push(`### ${proj.name} (\`${proj.id}\`)`);
+      lines.push("");
+      lines.push(overview);
+      lines.push("");
+    }
   }
   lines.push("");
 
   lines.push(
-    `See \`./${FILE_NAMES.WORKSPACE_CONTEXT_MD}\` for a catalog of all files with summaries. The root anchor file covers conventions and how this space works.`
+    `See \`./${FILE_NAMES.WORKSPACE_INDEX_MD}\` for a catalog of regular docs, tasks, and meetings with summaries. Read \`workspace.md\` and relevant \`projects/*/project.md\` overviews first.`
   );
   lines.push("");
 
@@ -270,7 +287,7 @@ function buildPerWorkspaceContext(workspace: Workspace, projects: Project[]): st
 // WRITE FUNCTIONS
 // =============================================================================
 
-/** Map of agent filenames to their corresponding emit-toggle flag in the context store. */
+/** Map of agent filenames to their corresponding emit-toggle flag in settings. */
 function enabledAgentFilenames(): string[] {
   const s = useAgentSettingsStore.getState();
   const out: string[] = [];
@@ -303,7 +320,7 @@ export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<
   const disabled = disabledAgentFilenames();
 
   if (enabled.length > 0) {
-    const content = buildTopLevelContext(workspaces, deskPath);
+    const content = buildTopLevelAgentFile(workspaces, deskPath);
     for (const name of enabled) {
       await getStorage().writeTextFile(await joinPath(deskPath, name), content);
     }
@@ -327,7 +344,7 @@ export async function writePerWorkspaceAgentFiles(
   const disabled = disabledAgentFilenames();
 
   if (enabled.length > 0) {
-    const content = buildPerWorkspaceContext(workspace, projects);
+    const content = buildPerWorkspaceAgentFile(workspace, projects);
     for (const name of enabled) {
       await getStorage().writeTextFile(await joinPath(workspacePath, name), content);
     }
@@ -353,7 +370,7 @@ export async function deleteGeneratedAgentFiles(workspaces: Workspace[]): Promis
       FILE_NAMES.CLAUDE_MD,
       FILE_NAMES.AGENTS_MD,
       FILE_NAMES.GEMINI_MD,
-      FILE_NAMES.WORKSPACE_CONTEXT_MD,
+      FILE_NAMES.WORKSPACE_INDEX_MD,
     ]) {
       await removeIfExists(await joinPath(workspacePath, name));
     }

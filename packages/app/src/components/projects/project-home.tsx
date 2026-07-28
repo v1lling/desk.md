@@ -34,7 +34,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatePanel } from "@/components/ui/state-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionLabel, ListRow } from "@/components/patterns";
-import { ContextSection } from "@/components/context";
+import { EntityOverview } from "@/components/entity-overview";
+import { AIBadge } from "@/components/ui/ai-badge";
 import { TaskListView } from "@/components/tasks/task-list-view";
 import { NewMeetingModal } from "@/components/meetings/new-meeting-modal";
 import {
@@ -66,11 +67,11 @@ interface ProjectHomeProps {
 }
 
 /**
- * The project's home: header (name, description, status, task counts), the Context panel,
+ * The project's home: header (name, description, status, task counts), the overview,
  * active tasks with quick-add, recent meetings, recent docs, and the recent-activity feed
  * driven by the `updated` frontmatter stamp.
  *
- * Context sits above the work on purpose — orientation comes before the to-do list.
+ * The overview sits above the work so orientation comes before the to-do list.
  */
 export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
   const { t } = useTranslation();
@@ -86,6 +87,7 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
     } catch (err) {
       console.error("Failed to update project:", err);
       toast.error(t("toasts.project.update.error"));
+      throw err;
     }
   };
 
@@ -174,7 +176,18 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
             <TaskCounts project={project} />
           </div>
 
-          <ContextSection project={project} />
+          <EntityOverview
+            title={t("pages.projects.home.overview.title")}
+            value={project.overview ?? ""}
+            placeholder={t("pages.projects.home.overview.placeholder")}
+            onSave={async (overview) => {
+              await updateProject.mutateAsync({
+                projectId,
+                workspaceId,
+                updates: { overview },
+              });
+            }}
+          />
           <TasksSection workspaceId={workspaceId} projectId={projectId} />
           <MeetingsSection workspaceId={workspaceId} projectId={projectId} />
           <DocsSection workspaceId={workspaceId} projectId={projectId} />
@@ -324,7 +337,12 @@ function MeetingsSection({ workspaceId, projectId }: { workspaceId: string; proj
               key={meeting.id}
               onClick={() => openMeeting(meeting)}
               leading={<Calendar className="size-3.5 shrink-0 text-muted-foreground" />}
-              title={meeting.title}
+              title={
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">{meeting.title}</span>
+                  {meeting.author === "ai" && <AIBadge />}
+                </span>
+              }
               meta={safeFormat(meeting.date, "MMM d")}
             />
           ))}
@@ -342,7 +360,7 @@ function MeetingsSection({ workspaceId, projectId }: { workspaceId: string; proj
 
 function DocsSection({ workspaceId, projectId }: { workspaceId: string; projectId: string }) {
   const { t } = useTranslation();
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "doc");
+  const { data: tree = [] } = useContentTree("project", workspaceId, projectId);
   const { openDoc } = useOpenTab();
 
   const recent = useMemo(
@@ -371,7 +389,12 @@ function DocsSection({ workspaceId, projectId }: { workspaceId: string; projectI
               key={doc.id}
               onClick={() => openDoc(doc)}
               leading={<FileText className="size-3.5 shrink-0 text-muted-foreground" />}
-              title={doc.title}
+              title={
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">{doc.title}</span>
+                  {doc.author === "ai" && <AIBadge />}
+                </span>
+              }
               meta={safeFormat(doc.created, "MMM d")}
             />
           ))}
@@ -412,7 +435,7 @@ function ActivitySection({ workspaceId, projectId }: { workspaceId: string; proj
   const { t } = useTranslation();
   const { data: tasks = [] } = useProjectTasks(workspaceId, projectId);
   const { data: meetings = [] } = useProjectMeetings(workspaceId, projectId);
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId, "doc");
+  const { data: tree = [] } = useContentTree("project", workspaceId, projectId);
   const { openTask, openMeeting, openDoc } = useOpenTab();
 
   const recent = useMemo(() => {

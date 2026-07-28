@@ -29,6 +29,7 @@ interface TaskFrontmatter extends Record<string, unknown> {
   due?: string;
   created?: string;
   updated?: string;
+  author?: string;
 }
 
 /**
@@ -54,6 +55,7 @@ function buildTask(
     due: data.due ? normalizeDate(data.due) : undefined,
     created: resolveContentDate(data.created, filename ?? filePath),
     updated: normalizeDateTime(data.updated),
+    author: data.author === "ai" ? "ai" : undefined,
     content: body,
   };
 }
@@ -195,6 +197,7 @@ export async function createTask(data: {
   due?: string;
   content?: string;
   templateBody?: string;
+  author?: "ai";
 }): Promise<Task> {
   const filename = generateFilename(data.title);
   const id = filenameToId(filename);
@@ -210,6 +213,7 @@ export async function createTask(data: {
     due: data.due,
     created: todayISO(),
     updated: nowISO(),
+    author: data.author,
     content: data.content || data.templateBody || "",
   };
 
@@ -229,6 +233,7 @@ export async function createTask(data: {
     priority: task.priority,
     due: task.due,
     created: task.created,
+    ...(task.author ? { author: task.author } : {}),
   };
 
   await writeMarkdownFile(filePath, frontmatter, task.content);

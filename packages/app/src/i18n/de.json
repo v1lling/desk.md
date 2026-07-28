@@ -32,6 +32,8 @@
       "dontSave": "Nicht speichern",
       "create": "Erstellen",
       "rename": "Umbenennen",
+      "edit": "Bearbeiten",
+      "saving": "Wird gespeichert…",
       "add": "Hinzufügen",
       "all": "Alle",
       "loading": "Lade…",
@@ -39,6 +41,11 @@
       "reloadPage": "Seite neu laden"
     },
     "aiBadge": "AI"
+  },
+  "overviews": {
+    "discardTitle": "Änderungen am Überblick verwerfen?",
+    "discardDescription": "Deine ungespeicherten Änderungen am Überblick gehen verloren.",
+    "discardAction": "Änderungen verwerfen"
   },
   "nav": {
     "sidebar": {
@@ -125,8 +132,6 @@
         "searchPlaceholder": "Dokumente durchsuchen…",
         "fileCount_one": "{{count}} Datei",
         "fileCount_other": "{{count}} Dateien",
-        "contextFolder": "Kontext",
-        "newContextFile": "Neue Kontextdatei",
         "sections": {
           "workspace": "Arbeitsbereich",
           "projects": "Projekte"
@@ -161,8 +166,8 @@
       "authorFilter": {
         "label": "Verfasst von",
         "all": "Alle",
-        "mine": "Eigene",
-        "generated": "Generiert"
+        "mine": "Von mir geschrieben",
+        "generated": "Von KI geschrieben"
       }
     },
     "meetings": {
@@ -227,17 +232,9 @@
           "backlog_one": "{{count}} im Backlog",
           "backlog_other": "{{count}} im Backlog"
         },
-        "context": {
-          "heading": "Kontext",
-          "fresh": "Aktuell",
-          "stale_one": "{{count}} Eintrag seither geändert",
-          "stale_other": "{{count}} Einträge seither geändert",
-          "neverReviewed": "Noch nicht abgeglichen",
-          "reviewed": "Zuletzt geprüft {{when}}",
-          "refreshState": "Jetzt aktualisieren",
-          "generateState": "Aktuellen Stand erstellen",
-          "writeBrief": "Briefing schreiben",
-          "newContextFile": "Neue Kontext-Datei"
+        "overview": {
+          "title": "Projektüberblick",
+          "placeholder": "Beschreibe das Projekt, was wichtig ist und wie man sich darin orientiert."
         }
       },
       "browse": {
@@ -245,7 +242,11 @@
         "statusLabel": "Status",
         "allStatuses": "Alle Status",
         "countLabel": "Projekte",
-        "searchPlaceholder": "Projekte durchsuchen…"
+        "searchPlaceholder": "Projekte durchsuchen…",
+        "workspaceOverview": {
+          "title": "Arbeitsbereichsüberblick",
+          "placeholder": "Beschreibe Zweck, Hintergrund und was man zuerst wissen sollte."
+        }
       },
       "deleteConfirmTitle": "Projekt löschen",
       "deleteConfirmDescription": "Möchtest du „{{name}}“ wirklich löschen? Damit werden das Projekt und alle Aufgaben, Dokumente und Meetings unwiderruflich entfernt.",
@@ -419,7 +420,7 @@
       },
       "serverMode": {
         "title": "AI läuft auf deinem Server",
-        "description": "Dein Desk ist gehostet, daher läuft die AI-Pflege (Smart Index, Projektstand) auf dem Server mit Schlüsseln aus dessen Umgebung (ANTHROPIC_API_KEY / OPENAI_API_KEY in der Deploy-.env). Einen Schlüssel dort zu setzen ist die Zustimmung des Betreibers.",
+        "description": "Dein Desk ist gehostet, daher wird der Smart Index auf dem Server mit Schlüsseln aus dessen Umgebung gepflegt (ANTHROPIC_API_KEY / OPENAI_API_KEY in der Deploy-.env). Einen Schlüssel dort zu setzen ist die Zustimmung des Betreibers.",
         "providerConfigured": "{{provider}}: Schlüssel auf dem Server konfiguriert.",
         "providerNotConfigured": "{{provider}}: Noch kein Schlüssel auf dem Server. In der Deploy-.env eintragen und neu starten."
       }
@@ -620,7 +621,7 @@
       },
       "clearDialog": {
         "title": "Katalog leeren",
-        "description": "Damit wird der Smart Index geleert und die generierten Dateien CLAUDE.md, AGENTS.md, GEMINI.md und WORKSPACE_CONTEXT.md werden gelöscht. Erneut aufbauen, um sie wiederherzustellen. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "description": "Damit wird der Smart Index geleert und die generierten Dateien CLAUDE.md, AGENTS.md, GEMINI.md und WORKSPACE_INDEX.md werden gelöscht. Erneut aufbauen, um sie wiederherzustellen. Diese Aktion kann nicht rückgängig gemacht werden.",
         "confirmLabel": "Katalog leeren"
       },
       "relativeTime": {
@@ -632,10 +633,6 @@
         "hoursAgo_other": "vor {{count}} Stunden",
         "daysAgo_one": "vor {{count}} Tag",
         "daysAgo_other": "vor {{count}} Tagen"
-      },
-      "autoRefreshState": {
-        "label": "Projektstand aktuell halten",
-        "description": "Nach Änderungen an Aufgaben, Docs oder Meetings lässt Desk die Datei „Aktueller Stand“ des Projekts im Hintergrund neu schreiben."
       }
     }
   },
@@ -648,6 +645,8 @@
       "folderHint": "Ordner: ~/DeskMD/workspaces/{{folder}}",
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Kurze Beschreibung dieses Arbeitsbereichs...",
+      "overviewLabel": "Arbeitsbereichsüberblick",
+      "overviewPlaceholder": "Zweck, wichtiger Hintergrund und was man zuerst lesen sollte…",
       "colorLabel": "Farbe",
       "submit": "Arbeitsbereich erstellen"
     },
@@ -657,11 +656,9 @@
       "nameLabel": "Projektname",
       "namePlaceholder": "z. B. Website-Relaunch",
       "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Kurze Projektbeschreibung...",
+      "descriptionPlaceholder": "Kurze Beschreibung für Projektlisten...",
       "statusLabel": "Status",
-      "submit": "Projekt erstellen",
-      "systemsLabel": "Systeme und Stack",
-      "systemsPlaceholder": "Welche Services, Repos oder Tools sind betroffen?"
+      "submit": "Projekt erstellen"
     },
     "newTask": {
       "title": "Neue Aufgabe",
@@ -726,27 +723,18 @@
       "namePlaceholder": "z. B. Acme GmbH, Nebenprojekte, Studium",
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Kurze Beschreibung dieses Arbeitsbereichs...",
+      "overviewLabel": "Arbeitsbereichsüberblick",
+      "overviewPlaceholder": "Zweck, wichtiger Hintergrund und was man zuerst lesen sollte…",
       "colorLabel": "Farbe",
       "homeNote": "Dies ist dein persönlicher Arbeitsbereich. Er enthält den Eingang zum schnellen Erfassen und kann nicht gelöscht werden, du kannst ihn aber umbenennen und neu einfärben.",
       "dangerZone": "Gefahrenbereich",
       "deleteNote": "Diesen Arbeitsbereich und alle seine Projekte, Aufgaben, Dokumente und Meetings dauerhaft löschen.",
       "deleteButton": "Arbeitsbereich löschen",
       "deleteConfirmTitle": "Arbeitsbereich löschen",
-      "deleteConfirmDescription": "Damit werden „{{name}}“ und alle Projekte, Aufgaben, Dokumente und Meetings unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
-    },
-    "brief": {
-      "title": "Briefing schreiben",
-      "description": "Zwei Dinge, die eine KI nicht selbst herausfinden kann.",
-      "whatLabel": "Worum geht es in diesem Projekt?",
-      "whatPlaceholder": "Was willst du erreichen, und warum gibt es das Projekt?",
-      "systemsLabel": "Systeme und Stack",
-      "systemsPlaceholder": "Welche Services, Repos oder Tools sind betroffen?",
-      "submit": "Briefing erstellen"
-    },
-    "newContextFile": {
-      "title": "Neue Kontext-Datei",
-      "nameLabel": "Titel",
-      "submit": "Erstellen"
+      "deleteConfirmDescription": "Damit werden „{{name}}“ und alle Projekte, Aufgaben, Dokumente und Meetings unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "discardTitle": "Änderungen am Arbeitsbereich verwerfen?",
+      "discardDescription": "Deine nicht gespeicherten Änderungen am Arbeitsbereich gehen verloren.",
+      "discardAction": "Änderungen verwerfen"
     }
   },
   "editors": {
@@ -773,8 +761,8 @@
       "untitled": "Ohne Titel",
       "saveTooltip": "Speichern (⌘S)",
       "noChangesTooltip": "Keine Änderungen zum Speichern",
-      "aiIncludedToggle": "Im KI-Kontext enthalten (klicken zum Ausschließen)",
-      "aiExcludedToggle": "Aus KI-Kontext ausgeschlossen (klicken zum Einschließen)",
+      "aiIncludedToggle": "Agentenzugriff aktiviert (zum Ausschließen klicken)",
+      "aiExcludedToggle": "Agentenzugriff deaktiviert (zum Einschließen klicken)",
       "aiExcludedByFolder": "Durch Ordner ausgeschlossen: {{path}}",
       "revealInFinder": "Im Finder anzeigen",
       "entityName": {
@@ -927,15 +915,9 @@
     "ai": {
       "inclusionUpdateFailed": "KI-Einstellung konnte nicht aktualisiert werden"
     },
-    "brief": {
-      "create": {
-        "error": "Briefing konnte nicht erstellt werden"
-      }
-    },
-    "state": {
-      "refresh": {
-        "error": "Projektstand konnte nicht aktualisiert werden",
-        "success": "Aktueller Stand aktualisiert"
+    "overview": {
+      "update": {
+        "error": "Der Überblick konnte nicht gespeichert werden"
       }
     }
   },
@@ -988,9 +970,7 @@
       "createFailed": "Ordner konnte nicht erstellt werden",
       "renameFailed": "Ordner konnte nicht umbenannt werden",
       "deleteFailed": "Ordner konnte nicht gelöscht werden",
-      "moveFailed": "Ordner konnte nicht verschoben werden",
-      "reservedName": "„{{name}}“ ist ein reservierter Ordnername.",
-      "crossKindMove": "Das Verschieben von Ordnern zwischen Dokumenten und Kontext wird noch nicht unterstützt. Verschiebe Dokumente einzeln."
+      "moveFailed": "Ordner konnte nicht verschoben werden"
     },
     "editor": {
       "deleteDocFailed": "Dokument konnte nicht gelöscht werden",

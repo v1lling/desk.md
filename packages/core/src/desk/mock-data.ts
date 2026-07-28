@@ -75,6 +75,8 @@ export const mockProjects: Project[] = [
     name: "Website Redesign",
     status: "active",
     description: "Redesign and rebuild the Acme Co marketing site",
+    overview:
+      "## What this is\nRebuild the Acme Co marketing site on the new stack with a refreshed brand. Homepage, pricing, and contact pages, plus a working contact form. The customer portal and the blog migration are separate projects.\n\n## Systems & stack\n- Astro + Tailwind, deployed to Cloudflare Pages\n- Contact-form webhook posting into the Acme CRM",
     created: iso(-95),
     taskCount: 8,
     tasksByStatus: { backlog: 1, todo: 2, doing: 2, waiting: 1, done: 2 },
@@ -424,22 +426,6 @@ export const mockTasks: Task[] = [
 
 export const mockDocs: Doc[] = [
   {
-    // The brief is resolved by its frozen filename slug (see project-brief.ts), so the
-    // date prefix is load-bearing here: `brief.md` would not be recognized as the brief.
-    id: `${iso(-95)}-brief`,
-    projectId: "website-redesign",
-    workspaceId: "acme",
-    // Context, not a record: the running brief. Human-seeded ("What this is", "Systems"),
-    // AI-refreshed below that line as the records move.
-    filePath: `~/DeskMD/workspaces/acme/projects/website-redesign/context/${iso(-95)}-brief.md`,
-    title: "Brief",
-    created: iso(-95),
-    updated: iso(-4),
-    content:
-      "# Website Redesign\n\n## What this is\nRebuild the Acme Co marketing site on the new stack with a refreshed brand. Homepage, pricing, and contact pages, plus a working contact form. The customer portal and the blog migration are separate projects.\n\n## Systems & stack\n- Astro + Tailwind, deployed to Cloudflare Pages\n- Contact-form webhook posting into the Acme CRM\n\n## Current state\nDesign sign-off is done and the build is underway. The contact-form webhook is the last integration.\n\n## Decisions\n- Webhook auth uses HMAC-signed payloads with a rotating secret (see the auth research doc).\n\n## Open questions\n- Final homepage copy still pending from the client.\n- Security review not yet scheduled.",
-    preview: "Rebuild the Acme Co marketing site on the new stack with a refreshed brand.",
-  },
-  {
     id: "content-inventory",
     projectId: "website-redesign",
     workspaceId: "acme",
@@ -454,7 +440,7 @@ export const mockDocs: Doc[] = [
     id: "research-webhook-auth",
     projectId: "website-redesign",
     workspaceId: "acme",
-    // A record: dated, AI-written, never rewritten. Its conclusion is distilled into the brief.
+    // An AI-authored research document.
     filePath: "~/DeskMD/workspaces/acme/projects/website-redesign/docs/research-webhook-auth.md",
     title: "Research: webhook auth approaches",
     created: iso(-28),
@@ -478,8 +464,7 @@ export const mockDocs: Doc[] = [
     id: "legacy-schema",
     projectId: "data-migration",
     workspaceId: "acme",
-    // Context, not a record: an evergreen description of a system that still exists.
-    filePath: "~/DeskMD/workspaces/acme/projects/data-migration/context/legacy-schema.md",
+    filePath: "~/DeskMD/workspaces/acme/projects/data-migration/docs/Context/legacy-schema.md",
     title: "Legacy CRM schema",
     created: iso(-40),
     updated: iso(-9),

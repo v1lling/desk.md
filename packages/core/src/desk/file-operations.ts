@@ -74,7 +74,7 @@ export async function readMarkdownFile<T>(
  */
 export interface WriteFileOptions {
   /**
-   * Explicit `updated` stamp (ISO datetime) instead of "now". Used by the state refresher to
+   * Explicit `updated` stamp (ISO datetime) instead of "now". Used by maintenance to
    * stamp the snapshot with the time the records were READ — stamping write-time would mark
    * records written during the AI call as seen when they weren't.
    */

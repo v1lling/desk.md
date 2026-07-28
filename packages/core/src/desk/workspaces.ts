@@ -13,7 +13,8 @@ import { getStorage } from "./storage";
 import { removeDirectoryWithContents } from "./file-operations";
 import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
-import { getAgentContextWriter } from "./agent-context-writer";
+import { getAgentFileWriter } from "./agent-file-writer";
+import { overviewTemplate } from "./overview";
 
 interface WorkspaceFrontmatter {
   name: string;
@@ -100,12 +101,13 @@ export async function getWorkspaces(): Promise<Workspace[]> {
       try {
         const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
         const content = await getStorage().readTextFile(workspacePath);
-        const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
+        const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
 
         workspaces.push({
           id: entry.name,
           name: data.name || entry.name,
           description: data.description,
+          overview: body.trim() || undefined,
           color: data.color,
           created: normalizeDate(data.created),
           isHome: data.home === true,
@@ -132,12 +134,13 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
 
   try {
     const content = await getStorage().readTextFile(workspacePath);
-    const { data } = parseMarkdown<WorkspaceFrontmatter>(content);
+    const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
 
     return {
       id: workspaceId,
       name: data.name || workspaceId,
       description: data.description,
+      overview: body.trim() || undefined,
       color: data.color,
       created: normalizeDate(data.created),
       isHome: data.home === true,
@@ -160,13 +163,16 @@ export async function createWorkspace(data: {
   id: string;
   name: string;
   description?: string;
+  overview?: string;
   color?: string;
   home?: boolean;
 }): Promise<Workspace> {
+  const overview = data.overview?.trim() || overviewTemplate(data.description);
   const workspace: Workspace = {
     id: data.id,
     name: data.name,
     description: data.description,
+    overview: overview || undefined,
     color: data.color,
     created: todayISO(),
     isHome: data.home === true,
@@ -193,10 +199,10 @@ export async function createWorkspace(data: {
   await getStorage().mkdir(workspacePath);
   await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.PROJECTS));
   await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.DOCS));
-  await getStorage().mkdir(await joinPath(workspacePath, PATH_SEGMENTS.CONTEXT));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.TASKS));
   await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.DOCS));
+  await getStorage().mkdir(await joinPath(workspacePath, SPECIAL_DIRS.UNASSIGNED, PATH_SEGMENTS.MEETINGS));
 
   // The home workspace owns the quick-capture inbox
   if (workspace.isHome) {
@@ -213,19 +219,14 @@ export async function createWorkspace(data: {
     ...(workspace.isHome && { home: true }),
   };
 
-  const markdownContent = `# ${workspace.name}
-
-${workspace.description || ""}
-`;
-
-  const fileContent = serializeMarkdown(frontmatter, markdownContent);
+  const fileContent = serializeMarkdown(frontmatter, overview);
   await getStorage().writeTextFile(await joinPath(workspacePath, FILE_NAMES.WORKSPACE_MD), fileContent);
 
   clearHomeWorkspaceCache();
 
-  // Generate agent context files (CLAUDE.md + AGENTS.md) via the injectable
-  // writer (app wires context-index; server uses the no-op default).
-  const agentWriter = getAgentContextWriter();
+  // Generate local agent files via the injectable
+  // writer (app wires Smart Index agent files; server uses the no-op default).
+  const agentWriter = getAgentFileWriter();
   await agentWriter.writePerWorkspace(data.id, workspace, []);
   // Update top-level files with new workspace list (fire-and-forget)
   getWorkspaces().then((workspaces) => agentWriter.writeTopLevel(workspaces)).catch(() => {});
@@ -250,32 +251,32 @@ export async function updateWorkspace(
   const deskPath = await getDeskPath();
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
-  try {
-    const content = await getStorage().readTextFile(workspacePath);
-    const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
+  if (!(await getStorage().exists(workspacePath))) return null;
 
-    const updatedData: WorkspaceFrontmatter = {
-      ...data,
-      ...(updates.name && { name: updates.name }),
-      // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
-      ...(updates.description !== undefined && { description: updates.description ?? undefined }),
-      ...(updates.color !== undefined && { color: updates.color ?? undefined }),
-    };
+  const content = await getStorage().readTextFile(workspacePath);
+  const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
 
-    const fileContent = serializeMarkdown(updatedData, body);
-    await getStorage().writeTextFile(workspacePath, fileContent);
+  const updatedData: WorkspaceFrontmatter = {
+    ...data,
+    ...(updates.name && { name: updates.name }),
+    // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
+    ...(updates.description !== undefined && { description: updates.description ?? undefined }),
+    ...(updates.color !== undefined && { color: updates.color ?? undefined }),
+  };
 
-    return {
-      id: workspaceId,
-      name: updatedData.name,
-      description: updatedData.description,
-      color: updatedData.color,
-      created: updatedData.created,
-      isHome: updatedData.home === true,
-    };
-  } catch {
-    return null;
-  }
+  const newBody = updates.overview !== undefined ? (updates.overview ?? "") : body;
+  const fileContent = serializeMarkdown(updatedData, newBody);
+  await getStorage().writeTextFile(workspacePath, fileContent);
+
+  return {
+    id: workspaceId,
+    name: updatedData.name,
+    description: updatedData.description,
+    overview: newBody.trim() || undefined,
+    color: updatedData.color,
+    created: updatedData.created,
+    isHome: updatedData.home === true,
+  };
 }
 
 /**

@@ -20,7 +20,7 @@ boot();
 
 // AI maintenance runs where the data lives — here. Every record write arriving through the
 // domain API (RPC from web/native-remote clients, future MCP write tools) fires the
-// domain-write bus, and this engine reacts: Smart Index entry updates + project state
+// domain-write bus, and this engine reacts with Smart Index entry updates.
 // refreshes, with keys from the environment (no key → the engine no-ops per call).
 startMaintenanceEngine();
 

@@ -62,8 +62,8 @@ export default tseslint.config(
       "src/lib/ai/prompts.ts",
       "src/lib/ai/**/prompts.ts",
       "src/lib/assistant/**",
-      "src/lib/context-index/agent-context.ts",
-      "src/lib/context-index/artifacts.ts",
+      "src/lib/smart-index/agent-files.ts",
+      "src/lib/smart-index/artifacts.ts",
     ],
   }
 );

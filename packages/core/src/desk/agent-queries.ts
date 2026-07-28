@@ -43,14 +43,13 @@ const MAX_MATCH_TEXT_CHARS = 300;
 // Per-file match cap — keep one file from dominating the result set.
 const MAX_MATCHES_PER_FILE = 5;
 
-// Internal metadata files hidden from the agent's tree view.
+// Generated support files hidden from source-content queries. workspace.md/project.md stay
+// visible because their bodies are the canonical user-owned overviews.
 const TREE_EXCLUDED_FILES = new Set([
   "AGENTS.md",
   "CLAUDE.md",
   "GEMINI.md",
-  "WORKSPACE_CONTEXT.md",
-  "workspace.md",
-  "project.md",
+  "WORKSPACE_INDEX.md",
 ]);
 
 const SEARCHABLE_EXTENSIONS = new Set([
@@ -64,38 +63,58 @@ const SEARCHABLE_EXTENSIONS = new Set([
 ]);
 
 /**
- * What kind of content a workspace-relative path holds. Lifecycle, not authorship:
- * `context` is the evergreen maintained map; the rest are dated records.
+ * What kind of source file a workspace-relative path holds.
  */
-export type ContentKind = "context" | "doc" | "task" | "meeting" | "other";
+export type ContentKind = "workspace" | "project" | "doc" | "task" | "meeting" | "other";
 
 const CONTENT_DIR_KINDS: Record<string, ContentKind> = {
-  [PATH_SEGMENTS.CONTEXT]: "context",
   [PATH_SEGMENTS.DOCS]: "doc",
   [PATH_SEGMENTS.TASKS]: "task",
   [PATH_SEGMENTS.MEETINGS]: "meeting",
 };
 
+function isEntityOverviewPath(workspaceRelPath: string): boolean {
+  const segments = workspaceRelPath.split("/");
+  return (
+    (segments.length === 1 && segments[0] === "workspace.md") ||
+    (
+      segments.length === 3 &&
+      segments[0] === PATH_SEGMENTS.PROJECTS &&
+      segments[2] === "project.md"
+    )
+  );
+}
+
 /**
- * Classify a workspace-relative path by the content directory it lives in (or is).
- *
- * Only *directory* segments count, and only ones desk itself creates — the content dir sits
- * at the workspace root (`context/…`) or a project root (`projects/x/context/…`). A nested
- * folder the user named "context" or "docs" does not qualify, which matters: this is a
- * segment walk and never a substring test, because "context" is an ordinary English word
- * and a real user already had a hand-made `docs/Context/` folder that must read as records.
+ * Classify a workspace-relative path by the entity file or content directory it belongs to.
+ * Only structural directory positions count, so a user can freely name nested folders.
  *
  * `isDir` tells us whether the final segment is itself a directory (and so classifiable) or
  * a filename (which never is).
  */
 function contentKindForPath(workspaceRelPath: string, isDir = false): ContentKind {
   const segments = workspaceRelPath.split("/");
+  if (!isDir && segments.length === 1 && segments[0] === "workspace.md") return "workspace";
+  if (
+    !isDir &&
+    segments.length === 3 &&
+    segments[0] === PATH_SEGMENTS.PROJECTS &&
+    segments[2] === "project.md"
+  ) {
+    return "project";
+  }
   const dirSegments = isDir ? segments : segments.slice(0, -1);
 
-  for (const [i, seg] of dirSegments.entries()) {
-    const kind = CONTENT_DIR_KINDS[seg];
-    // Depth 0 = workspace root; depth 2 = under `projects/{id}/`. `_unassigned/` is depth 1.
-    if (kind && (i === 0 || i === 1 || i === 2)) return kind;
+  const workspaceKind = CONTENT_DIR_KINDS[dirSegments[0]];
+  if (workspaceKind) return workspaceKind;
+  if (
+    (dirSegments[0] === "_unassigned" || dirSegments[0] === "_capture") &&
+    CONTENT_DIR_KINDS[dirSegments[1]]
+  ) {
+    return CONTENT_DIR_KINDS[dirSegments[1]];
+  }
+  if (dirSegments[0] === PATH_SEGMENTS.PROJECTS && CONTENT_DIR_KINDS[dirSegments[2]]) {
+    return CONTENT_DIR_KINDS[dirSegments[2]];
   }
   return "other";
 }
@@ -104,7 +123,7 @@ export interface TreeEntry {
   path: string;
   entry_type: "dir" | "file";
   name: string;
-  /** Which content layer this sits in, so an agent can tell the map from the records. */
+  /** Which Desk entity/content type this path represents. */
   kind: ContentKind;
 }
 
@@ -129,8 +148,7 @@ export interface SearchMatch {
   /** The matched line, trimmed and capped at MAX_MATCH_TEXT_CHARS (with a "…" marker). */
   text: string;
   /**
-   * Which content layer the hit came from. Without this a match gives no way to tell a
-   * live map from a nine-month-old meeting note — both are just a path and a line.
+   * Which Desk entity/content type the hit came from.
    */
   kind: ContentKind;
 }
@@ -272,7 +290,9 @@ export async function deskTree(
   // Drop entries excluded by this workspace's .aiignore (paths are workspace-relative).
   const aiignoreEntries = await loadAIIgnoreEntries(workspaceId);
   const visible = aiignoreEntries.length
-    ? entries.filter((e) => !isPathExcludedByAIIgnore(e.path, aiignoreEntries))
+    ? entries.filter(
+        (e) => isEntityOverviewPath(e.path) || !isPathExcludedByAIIgnore(e.path, aiignoreEntries),
+      )
     : entries;
 
   return {
@@ -303,7 +323,10 @@ export async function deskReadFile(relPath: string): Promise<DeskReadResult> {
   const split = splitWorkspacePath(normalized);
   if (split && split.relative) {
     const aiignoreEntries = await loadAIIgnoreEntries(split.workspaceId);
-    if (isPathExcludedByAIIgnore(split.relative, aiignoreEntries)) {
+    if (
+      !isEntityOverviewPath(split.relative) &&
+      isPathExcludedByAIIgnore(split.relative, aiignoreEntries)
+    ) {
       throw new Error("This file is excluded from AI access (.aiignore)");
     }
   }
@@ -375,6 +398,7 @@ export async function deskFullTextSearch(
   const isExcluded = async (relPath: string): Promise<boolean> => {
     const split = splitWorkspacePath(relPath);
     if (!split || !split.relative) return false;
+    if (isEntityOverviewPath(split.relative)) return false;
     let entries = aiignoreCache.get(split.workspaceId);
     if (!entries) {
       entries = await loadAIIgnoreEntries(split.workspaceId);

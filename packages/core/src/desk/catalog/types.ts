@@ -14,12 +14,8 @@ export interface CatalogEntry {
   path: string;
   /** Absolute file path for reading */
   filePath: string;
-  /**
-   * Content type. A lifecycle distinction, not an authorship one:
-   * `context` is the evergreen, maintained map (read it first to orient); `doc` / `task` /
-   * `meeting` are dated records that accumulate and are never rewritten.
-   */
-  type: 'doc' | 'context' | 'task' | 'meeting';
+  /** Content type; entity overviews live in workspace.md/project.md outside the catalog. */
+  type: 'doc' | 'task' | 'meeting';
   /** Title from frontmatter */
   title: string;
   /** 'ai' when an agent wrote the file; absent means the user did. */

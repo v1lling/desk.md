@@ -34,7 +34,7 @@ import type { Asset, Doc } from "@desk/core/types";
 import {
   useCreateFolder,
   useImportFiles,
-  useMergedWorkspaceOverviewShell,
+  useWorkspaceDocsShell,
   useOpenTab,
   useTabStore,
 } from "@/stores";
@@ -44,9 +44,7 @@ import { getDocsPath } from "@desk/core";
 import {
   displayTreePath,
   resolveTreePath,
-  splitTreePathToKind,
 } from "@desk/core";
-import { isAllowedNewFolderName } from "./tree/arborist-adapter";
 import { revealInFinder, openWithDefaultApp, type DocSortBy } from "./tree-item-utils";
 import { isRemoteMode } from "@/lib/connection";
 import { ContentDropZone } from "./content-drop-zone";
@@ -61,7 +59,7 @@ interface DocsTreePaneProps {
 
 export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const { t } = useTranslation();
-  const { data: overviewTree = [] } = useMergedWorkspaceOverviewShell(workspaceId);
+  const { data: overviewTree = [] } = useWorkspaceDocsShell(workspaceId);
 
   const { openDoc } = useOpenTab();
   // Select the active doc id directly so re-renders only fire when this primitive changes,
@@ -152,13 +150,8 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const handleSubmitNewFolder = useCallback(async () => {
     const trimmed = newFolderName.trim();
     if (!trimmed) return;
-    if (!isAllowedNewFolderName(newFolderParent, trimmed)) {
-      toast.error(t("errors.folder.reservedName", { name: trimmed }));
-      return;
-    }
     const resolved = resolveTreePath(newFolderParent);
-    const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
-    const fullPath = subPath ? `${subPath}/${trimmed}` : trimmed;
+    const fullPath = resolved.scopeTreePath ? `${resolved.scopeTreePath}/${trimmed}` : trimmed;
     setCreatingFolder(true);
     try {
       await createFolder.mutateAsync({
@@ -166,7 +159,6 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         folderPath: fullPath,
         workspaceId,
         projectId: resolved.projectId,
-        kind,
       });
       setNewFolderOpen(false);
     } catch (err) {
@@ -215,7 +207,6 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         // Resolve the drop target to scope/project/folder. Dropping on empty
         // space (null) or the workspace root targets the workspace docs root.
         const resolved = resolveTreePath(targetTreePath ?? "");
-        const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
 
         const fileContents = await Promise.all(
           files.map(async (file) => ({
@@ -228,10 +219,9 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
         const result = await importFiles.mutateAsync({
           files: fileContents,
           scope: resolved.scope,
-          folderPath: subPath || undefined,
+          folderPath: resolved.scopeTreePath || undefined,
           workspaceId,
           projectId: resolved.projectId,
-          kind,
           convertibleAction,
         });
 

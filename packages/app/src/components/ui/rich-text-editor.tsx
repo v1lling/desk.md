@@ -63,6 +63,12 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  /** Caps the bordered container's height; content scrolls within the inner ScrollArea. */
+  maxHeight?: string;
+  /** When false, renders read-only (still shows markdown, links stay clickable, takes no input). */
+  editable?: boolean;
+  /** Place the cursor at the end on mount (used when a display→edit toggle remounts the editor). */
+  autofocus?: boolean;
   /** When true, removes border and inner ScrollArea for seamless embedding */
   borderless?: boolean;
   onInternalLinkClick?: (link: NoteLink) => void;
@@ -87,6 +93,9 @@ export function RichTextEditor({
   placeholder,
   className,
   minHeight = "300px",
+  maxHeight,
+  editable = true,
+  autofocus = false,
   borderless = false,
   onInternalLinkClick,
 }: RichTextEditorProps) {
@@ -103,6 +112,8 @@ export function RichTextEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable,
+    autofocus: autofocus ? "end" : false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -205,6 +216,11 @@ export function RichTextEditor({
     content: value,
   });
 
+  // Keep the editor's editable state in sync (e.g. a display→edit toggle).
+  useEffect(() => {
+    if (editor && editor.isEditable !== editable) editor.setEditable(editable);
+  }, [editor, editable]);
+
   // Update editor content when value changes externally
   useEffect(() => {
     if (!editor || isSyncing.current) return;
@@ -305,9 +321,9 @@ export function RichTextEditor({
         "rounded-lg border border-border/60 bg-background overflow-hidden",
         className
       )}
-      style={{ minHeight }}
+      style={{ minHeight, maxHeight }}
     >
-      <ScrollArea className="h-full" style={{ minHeight }}>
+      <ScrollArea className="h-full" style={{ minHeight, maxHeight }}>
         <div className="p-4" onKeyDown={handleKeyDown}>
           <EditorContent editor={editor} />
         </div>

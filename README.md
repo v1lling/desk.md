@@ -89,23 +89,15 @@ then lets AI tools read it when you want them to. There's no chat box in the app
 the sparring happens in the tool you already use, with desk.md underneath it as
 the source of truth.
 
-**Records and context.** Your files split by lifecycle. Docs, tasks and meetings are
-**records**: they are dated, they accumulate, and nothing rewrites them. A March
-meeting note stays a March meeting note, so a record cannot go stale. Everything an
-agent needs to actually understand the work lives in **context**, a small folder kept
-current: what this is, which systems it touches, what was decided.
+**One flexible document system.** Organize `docs/` however makes sense for your work,
+including a regular `docs/Context/` folder if you want one. Workspace and project overview
+bodies live in `workspace.md` and `project.md`: they are your orientation anchors, shown
+directly in the app and read first by agents. Their short `description` remains the caption
+used in lists.
 
-**The brief and the current state.** Each project's context holds two small files with
-a clean line between them. The **brief** is yours: what this project is and what it runs
-on, the part no AI can work out for itself. The **current state** is the AI's: a short
-snapshot of where the project stands, rewritten in the background as your tasks, docs,
-and meetings change, and marked as AI-written right in the file. This runs wherever your
-data lives: on your desktop with your local key, or on your own server when self-hosted.
-desk.md tracks how many records the snapshot hasn't seen yet, so you can tell a current
-map from a rotting one at a glance.
-
-Your words are protected structurally, not by asking the model nicely: the AI only ever
-writes its own file, so nothing you wrote is ever in an AI write path.
+AI provenance stays lightweight and visible: documents, tasks, and meetings written by an
+agent carry `author: ai` in frontmatter. Agent access is a separate choice controlled by
+`.aiignore`; provenance never determines who may read a file.
 
 **Smart Index.** Optional, and off until you add your own Anthropic or OpenAI key
 (**Settings → AI**). It summarizes your files into a catalog so agents can find
@@ -113,7 +105,7 @@ the right note fast instead of crawling the whole folder.
 
 **Local agent files.** Because your data is just Markdown, local tools like Claude
 Code, Codex, and Gemini CLI can open the folder directly. desk.md writes
-`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `WORKSPACE_CONTEXT.md` so those agents
+`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `WORKSPACE_INDEX.md` so those agents
 know what they're looking at.
 
 **Hosted MCP.** If you self-host desk.md, the server exposes an MCP endpoint over

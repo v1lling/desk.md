@@ -3,6 +3,7 @@ export interface Workspace {
   id: string;              // Folder name
   name: string;            // Display name
   description?: string;
+  overview?: string;       // The workspace.md body: richer user-owned orientation
   color?: string;          // Hex color for UI
   created: string;         // ISO date
   isHome?: boolean;        // The home workspace: owns the capture inbox, undeletable, sorted first
@@ -14,7 +15,8 @@ export interface Project {
   workspaceId: string;     // Parent workspace
   name: string;
   status: ProjectStatus;
-  description?: string;
+  description?: string;    // One-line caption (frontmatter) shown on cards/lists
+  overview?: string;       // The project.md body: richer user-owned orientation
   created: string;         // ISO date
   taskCount?: number;
   tasksByStatus?: {
@@ -42,6 +44,7 @@ export interface Task {
   due?: string;            // ISO date
   created?: string;        // ISO date - absent when the file carries no date
   updated?: string;        // ISO datetime - stamped on every save
+  author?: DocAuthor;      // 'ai' when an agent wrote it; absent = the user
   content: string;         // Markdown body
 }
 
@@ -57,21 +60,14 @@ export type TaskUpdate =
   { priority?: TaskPriority | null; due?: string | null };
 
 export type ProjectUpdate =
-  Partial<Pick<Project, "name" | "status">> & { description?: string | null };
+  Partial<Pick<Project, "name" | "status">> & { description?: string | null; overview?: string | null };
 
 export type WorkspaceUpdate =
-  Partial<Pick<Workspace, "name">> & { description?: string | null; color?: string | null };
-
-// Doc kind - derived from filesystem path (docs/ vs context/), not stored in frontmatter.
-// Selects the physical directory in lib-level CRUD.
-//
-// This is a LIFECYCLE distinction, not an authorship one:
-//   'doc'     — a dated record. Accumulates, never rewritten. Cannot go stale, because
-//               it only ever claimed to be true of its date.
-//   'context' — the map. Evergreen, small, maintained, rewritten as understanding changes.
-//               The only layer that can go stale, hence the only one with a refresh.
-// Both the user and AI write both kinds. Who typed it is `Doc.author`, not the directory.
-export type DocKind = 'doc' | 'context';
+  Partial<Pick<Workspace, "name">> & {
+    description?: string | null;
+    overview?: string | null;
+    color?: string | null;
+  };
 
 // Who wrote a doc. Absent means the user — we never write `author: human`, absence is
 // the default. Agents stamp `author: ai` on files they create (see DESK_SPACE_NORMS).
@@ -83,7 +79,7 @@ export interface Doc {
   path?: string;           // Relative path with folders (e.g., "tech/architecture.md")
   projectId: string;
   workspaceId: string;
-  filePath: string;        // Full absolute path — encodes kind via `/docs/` or `/context/` segment
+  filePath: string;        // Full absolute path
   title: string;
   created?: string;        // ISO date - absent when the file carries no date
   updated?: string;        // ISO datetime - stamped on every save
@@ -143,6 +139,7 @@ export interface Meeting {
   date?: string;           // ISO date - when the meeting occurred; absent when unknown
   created?: string;        // ISO date - absent when the file carries no date
   updated?: string;        // ISO datetime - stamped on every save
+  author?: DocAuthor;      // 'ai' when an agent wrote it; absent = the user
   content: string;         // Markdown body (agenda, notes, action items)
   preview?: string;        // First ~100 chars
 }

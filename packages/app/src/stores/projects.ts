@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ProjectStatus, ProjectUpdate } from "@desk/core/types";
-import { getDeskService, type BriefSeed } from "@desk/core";
-import { writePerWorkspaceAgentFiles } from "@/lib/context-index/agent-context";
+import { getDeskService } from "@desk/core";
+import { writePerWorkspaceAgentFiles } from "@/lib/smart-index/agent-files";
 import { contentKeys } from "./content";
 
 /** Regenerate per-workspace agent files when projects change */
 function regenerateWorkspaceAgentFiles(workspaceId: string) {
   Promise.all([getDeskService().getWorkspace(workspaceId), getDeskService().getProjects(workspaceId)])
     .then(([ws, projects]) => {
-      if (ws) writePerWorkspaceAgentFiles(workspaceId, ws, projects);
+      if (ws) return writePerWorkspaceAgentFiles(workspaceId, ws, projects);
     })
     .catch(() => {});
 }
@@ -61,18 +61,14 @@ export function useCreateProject() {
       name: string;
       description?: string;
       status?: ProjectStatus;
-      seed?: BriefSeed;
     }) => getDeskService().createProject(data),
     onSuccess: (newProject) => {
       queryClient.invalidateQueries({
         queryKey: projectKeys.byWorkspace(newProject.workspaceId),
       });
       queryClient.invalidateQueries({
-        queryKey: contentKeys.overview(newProject.workspaceId),
+        queryKey: contentKeys.shell(newProject.workspaceId),
       });
-      // Seeding writes context/<date>-brief.md, so the context tree and the merged trees
-      // that render it are now stale.
-      queryClient.invalidateQueries({ queryKey: contentKeys.all });
       regenerateWorkspaceAgentFiles(newProject.workspaceId);
     },
   });
@@ -93,14 +89,18 @@ export function useUpdateProject() {
       projectId: string;
       workspaceId: string;
       updates: ProjectUpdate;
-    }) => getDeskService().updateProject(projectId, updates, workspaceId),
+    }) =>
+      getDeskService().updateProject(projectId, updates, workspaceId).then((project) => {
+        if (!project) throw new Error(`Project '${projectId}' no longer exists`);
+        return project;
+      }),
     onSuccess: (updatedProject, variables) => {
       if (updatedProject) {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(variables.workspaceId),
         });
         queryClient.invalidateQueries({
-          queryKey: contentKeys.overview(variables.workspaceId),
+          queryKey: contentKeys.shell(variables.workspaceId),
         });
         regenerateWorkspaceAgentFiles(variables.workspaceId);
       }
@@ -123,7 +123,7 @@ export function useDeleteProject() {
           queryKey: projectKeys.byWorkspace(result.workspaceId),
         });
         queryClient.invalidateQueries({
-          queryKey: contentKeys.overview(result.workspaceId),
+          queryKey: contentKeys.shell(result.workspaceId),
         });
         regenerateWorkspaceAgentFiles(result.workspaceId);
       }

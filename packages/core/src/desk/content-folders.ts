@@ -1,21 +1,15 @@
 /**
  * Content Folders - Folder CRUD operations within the content tree
  */
-import type { ContentFolder, ContentScope, DocKind } from "../types";
+import type { ContentFolder, ContentScope } from "../types";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { moveDirectoryWithContents, removeDirectoryWithContents } from "./file-operations";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
-import { getDocsPath, getContextPath } from "./paths";
+import { getDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
 
 import { getContentTree } from "./content-tree";
-
-function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
-  return kind === "context"
-    ? getContextPath(scope, workspaceId, projectId)
-    : getDocsPath(scope, workspaceId, projectId);
-}
 
 /**
  * Create a new folder in the content tree
@@ -25,9 +19,8 @@ export async function createFolder(
   folderPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<ContentFolder> {
-  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   await getStorage().mkdir(fullPath);
@@ -52,9 +45,8 @@ export async function renameFolder(
   newName: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<ContentFolder> {
-  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, oldPath);
 
   const pathParts = oldPath.split("/");
@@ -75,7 +67,6 @@ export async function renameFolder(
     scope,
     workspaceId || homeWorkspaceId,
     projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
-    kind
   );
 
   // Find the renamed folder in the tree
@@ -110,7 +101,6 @@ export async function moveFolder(
   toParentPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<boolean> {
   // Prevent moving into itself or descendants
   if (toParentPath === fromPath || toParentPath.startsWith(fromPath + "/")) {
@@ -129,7 +119,7 @@ export async function moveFolder(
     return true;
   }
 
-  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, fromPath);
   const newFullPath = await joinPath(basePath, newPath);
 
@@ -149,13 +139,12 @@ export async function deleteFolder(
   folderPath: string,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<boolean> {
   if (isMockMode()) {
     return true;
   }
 
-  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 
   return removeDirectoryWithContents(fullPath);

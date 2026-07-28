@@ -22,7 +22,6 @@
  */
 import type * as tasksApi from "../tasks";
 import type * as projectsApi from "../projects";
-import type * as projectBriefApi from "../project-brief";
 import type * as workspacesApi from "../workspaces";
 import type * as meetingsApi from "../meetings";
 import type * as personalApi from "../personal";
@@ -91,21 +90,13 @@ export interface DeskService {
   // ── Content tree (I/O reads) ────────────────────────────────────────
   getContentTree: typeof contentApi.getContentTree;
   getAllDocsForWorkspace: typeof contentApi.getAllDocsForWorkspace;
-  getWorkspaceOverviewShell: typeof contentApi.getWorkspaceOverviewShell;
-  getMergedContentTree: typeof contentApi.getMergedContentTree;
-  getMergedWorkspaceOverviewShell: typeof contentApi.getMergedWorkspaceOverviewShell;
+  getWorkspaceDocsShell: typeof contentApi.getWorkspaceDocsShell;
 
   // ── Content folders ─────────────────────────────────────────────────
   createFolder: typeof contentApi.createFolder;
   renameFolder: typeof contentApi.renameFolder;
   moveFolder: typeof contentApi.moveFolder;
   deleteFolder: typeof contentApi.deleteFolder;
-
-  // ── Project brief + state (context/) ────────────────────────────────
-  // The one definition of "which file is the brief" — shared by the Context panel and a
-  // future entity-shaped MCP `desk_orient`. (The state file is written by the maintenance
-  // engine in-process, never over RPC — see refreshProjectState below.)
-  ensureProjectBrief: typeof projectBriefApi.ensureProjectBrief;
 
   // ── Content import / move ───────────────────────────────────────────
   createDocInFolder: typeof contentApi.createDocInFolder;
@@ -162,7 +153,6 @@ export interface DeskService {
 
   // ── AI maintenance (runs where the data lives) — remote clients invoke the
   // SERVER's engine/keys through these; local mode resolves them in-process.
-  refreshProjectState: typeof maintenanceApi.runStateRefreshNow;
   rebuildSmartIndex: typeof maintenanceApi.rebuildSmartIndex;
   removeFromSmartIndex: typeof maintenanceApi.removeIndexEntry;
   clearSmartIndex: typeof maintenanceApi.clearWorkspaceIndex;

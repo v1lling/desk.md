@@ -1,7 +1,7 @@
 /**
  * Content Tree - Tree building, extraction, and flat doc access
  */
-import type { Doc, DocKind, FileTreeNode, ContentScope, Asset } from "../types";
+import type { Doc, FileTreeNode, ContentScope, Asset } from "../types";
 import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, resolveContentDate, normalizeDateTime, compareDatesDesc, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
@@ -9,17 +9,9 @@ import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getHomeWorkspaceId } from "./workspaces";
-import { getDocsPath, getContextPath, getProjectsPath } from "./paths";
+import { getDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
-import { CONTEXT_FOLDER_NAME, CONTEXT_SENTINEL, filePathIsContextKind } from "./tree-path";
-
-/** Resolve base path for docs (records) or context (the map) based on kind */
-function getBasePath(kind: DocKind, scope: ContentScope, workspaceId?: string, projectId?: string) {
-  return kind === "context"
-    ? getContextPath(scope, workspaceId, projectId)
-    : getDocsPath(scope, workspaceId, projectId);
-}
 
 interface DocFrontmatter {
   title: string;
@@ -51,7 +43,6 @@ async function buildContentTreeRecursive(
   _scope: ContentScope,
   workspaceId: string,
   projectId: string,
-  kind: DocKind = "doc"
 ): Promise<FileTreeNode[]> {
   const currentPath = relativePath
     ? await joinPath(basePath, relativePath)
@@ -84,7 +75,6 @@ async function buildContentTreeRecursive(
       _scope,
       workspaceId,
       projectId,
-      kind
     );
 
     nodes.push({
@@ -194,14 +184,11 @@ export async function getContentTree(
   scope: ContentScope,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<FileTreeNode[]> {
   const homeWorkspaceId = await getHomeWorkspaceId();
 
   if (isMockMode()) {
     const filtered = mockDocs.filter((doc) => {
-      const docKind: DocKind = filePathIsContextKind(doc.filePath) ? "context" : "doc";
-      if (docKind !== kind) return false;
       if (scope === "personal") return doc.workspaceId === homeWorkspaceId;
       if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
       return doc.workspaceId === workspaceId && doc.projectId === projectId;
@@ -213,7 +200,7 @@ export async function getContentTree(
     }));
   }
 
-  const basePath = await getBasePath(kind, scope, workspaceId, projectId);
+  const basePath = await getDocsPath(scope, workspaceId, projectId);
 
   // Skip directories that haven't been created yet — first write will create them.
   if (!(await getStorage().exists(basePath))) {
@@ -226,7 +213,6 @@ export async function getContentTree(
     scope,
     workspaceId || homeWorkspaceId,
     projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
-    kind
   );
 }
 
@@ -297,9 +283,8 @@ export async function getAllDocs(
   scope: ContentScope,
   workspaceId?: string,
   projectId?: string,
-  kind: DocKind = "doc"
 ): Promise<Doc[]> {
-  const tree = await getContentTree(scope, workspaceId, projectId, kind);
+  const tree = await getContentTree(scope, workspaceId, projectId);
   const docs = extractDocs(tree);
   docs.sort((a, b) => compareDatesDesc(a.created, b.created));
   return docs;
@@ -308,18 +293,15 @@ export async function getAllDocs(
 /**
  * Get all docs for a workspace across all projects (includes nested folders)
  */
-export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind = "doc"): Promise<Doc[]> {
+export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]> {
   if (isMockMode()) {
-    return mockDocs.filter((doc) => {
-      const docKind: DocKind = filePathIsContextKind(doc.filePath) ? "context" : "doc";
-      return doc.workspaceId === workspaceId && docKind === kind;
-    });
+    return mockDocs.filter((doc) => doc.workspaceId === workspaceId);
   }
 
   const allDocs: Doc[] = [];
 
   // 1. Get workspace-level docs
-  const workspaceDocs = await getAllDocs("workspace", workspaceId, undefined, kind);
+  const workspaceDocs = await getAllDocs("workspace", workspaceId);
   allDocs.push(...workspaceDocs);
 
   // 2. Get all project docs
@@ -330,14 +312,14 @@ export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind 
 
     for (const entry of projectEntries) {
       if (entry.isDirectory && !entry.name.startsWith(".") && entry.name !== SPECIAL_DIRS.UNASSIGNED) {
-        const projectDocs = await getAllDocs("project", workspaceId, entry.name, kind);
+        const projectDocs = await getAllDocs("project", workspaceId, entry.name);
         allDocs.push(...projectDocs);
       }
     }
   }
 
   // 3. Get unassigned docs
-  const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED, kind);
+  const unassignedDocs = await getAllDocs("project", workspaceId, SPECIAL_DIRS.UNASSIGNED);
   allDocs.push(...unassignedDocs);
 
   allDocs.sort((a, b) => compareDatesDesc(a.created, b.created));
@@ -348,17 +330,11 @@ export async function getAllDocsForWorkspace(workspaceId: string, kind: DocKind 
  * Get a workspace overview shell: workspace-level content + project folder stubs.
  * Project folders have children: [] — content is loaded lazily by the component on expand.
  */
-export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKind = "doc"): Promise<FileTreeNode[]> {
+export async function getWorkspaceDocsShell(workspaceId: string): Promise<FileTreeNode[]> {
   if (isMockMode()) {
-    // Mock mode: workspace docs + project folder stubs, filtered to the requested kind
-    const workspaceDocs = mockDocs.filter((doc) => {
-      const docKind: DocKind = filePathIsContextKind(doc.filePath) ? "context" : "doc";
-      return (
-        doc.workspaceId === workspaceId &&
-        doc.projectId === WORKSPACE_LEVEL_PROJECT_ID &&
-        docKind === kind
-      );
-    });
+    const workspaceDocs = mockDocs.filter(
+      (doc) => doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID,
+    );
     const workspaceNodes: FileTreeNode[] = workspaceDocs.map((doc) => ({ type: "doc" as const, doc }));
 
     // Get unique project IDs and count docs per project (across both kinds — counts are kind-agnostic in the project stub)
@@ -385,8 +361,8 @@ export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKi
     return [...workspaceNodes, ...projectFolders];
   }
 
-  // 1. Get workspace-level tree for the given kind
-  const workspaceTree = await getContentTree("workspace", workspaceId, undefined, kind);
+  // 1. Get workspace-level document tree
+  const workspaceTree = await getContentTree("workspace", workspaceId);
 
   // 2. Get project metadata (counts already computed by getProjects)
   const projects = await getProjects(workspaceId);
@@ -395,8 +371,6 @@ export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKi
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // 3. Create shell folder nodes — NO getContentTree calls per project
-  // Note: docCount from project metadata only counts human docs.
-  // AI doc counts would need a separate query; for now stubs show human counts.
   const projectFolders: FileTreeNode[] = activeProjects.map((project) => ({
     type: "folder" as const,
     folder: {
@@ -411,88 +385,4 @@ export async function getWorkspaceOverviewShell(workspaceId: string, kind: DocKi
   }));
 
   return [...workspaceTree, ...projectFolders];
-}
-
-// ============================================================================
-// Merged Tree (UI Flattening of context/ + docs/)
-// ============================================================================
-
-/**
- * Recursively prefix folder paths in a subtree. Used when splicing one tree into another
- * (context subtree under `__context__`, project subtree under `_project/{id}`) so the resulting
- * folder paths are globally unique within the combined tree.
- *
- * Asymmetry: only folder `path` fields are rewritten here. Doc/asset `path` stays as the
- * on-disk relative path (those leaves are addressed via `filePath`, and the arborist adapter
- * derives a leaf's tree-id by joining the already-prefixed parent treePath with the leaf's
- * basename — a doc id is a full scope-relative path, an asset id is the bare filename).
- */
-export function prefixSubtreePaths(nodes: FileTreeNode[], prefix: string): FileTreeNode[] {
-  if (!prefix) return nodes;
-  return nodes.map((node) => {
-    if (node.type !== "folder") return node;
-    return {
-      type: "folder" as const,
-      folder: {
-        ...node.folder,
-        path: `${prefix}/${node.folder.path}`,
-        children: prefixSubtreePaths(node.folder.children, prefix),
-      },
-    };
-  });
-}
-
-/**
- * Build the synthetic "Context" folder node containing the (prefixed) context subtree.
- * Always renders — even when empty — so the user has a target to create the first
- * context file, and so the map is visible before it exists.
- */
-function buildContextFolder(contextTree: FileTreeNode[]): FileTreeNode {
-  const prefixedChildren = prefixSubtreePaths(contextTree, CONTEXT_SENTINEL);
-  return {
-    type: "folder",
-    folder: {
-      name: CONTEXT_FOLDER_NAME,
-      path: CONTEXT_SENTINEL,
-      children: prefixedChildren,
-    },
-  };
-}
-
-/**
- * Fetch a merged content tree for a scope. Context is pinned first (it is the map you
- * read to orient yourself); the dated records sit below it at the root.
- */
-export async function getMergedContentTree(
-  scope: ContentScope,
-  workspaceId?: string,
-  projectId?: string,
-): Promise<FileTreeNode[]> {
-  const [docTree, contextTree] = await Promise.all([
-    getContentTree(scope, workspaceId, projectId, "doc"),
-    getContentTree(scope, workspaceId, projectId, "context"),
-  ]);
-  return [buildContextFolder(contextTree), ...docTree];
-}
-
-/**
- * Fetch the workspace overview shell with context + records merged. Project stubs remain
- * lazy-loaded; on expand the consumer calls `getMergedContentTree("project", ws, projId)`.
- */
-export async function getMergedWorkspaceOverviewShell(workspaceId: string): Promise<FileTreeNode[]> {
-  const [docShell, contextTree] = await Promise.all([
-    getWorkspaceOverviewShell(workspaceId, "doc"),
-    // Only the workspace-level context tree — project stubs come from the doc shell.
-    getContentTree("workspace", workspaceId, undefined, "context"),
-  ]);
-
-  // Separate workspace-level nodes from project stubs in the doc shell to keep order.
-  const workspaceNodes = docShell.filter(
-    (n) => n.type !== "folder" || !n.folder.isProject,
-  );
-  const projectStubs = docShell.filter(
-    (n) => n.type === "folder" && n.folder.isProject,
-  );
-
-  return [buildContextFolder(contextTree), ...workspaceNodes, ...projectStubs];
 }

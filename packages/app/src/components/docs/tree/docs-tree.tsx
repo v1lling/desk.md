@@ -15,7 +15,7 @@ import type { Asset, Doc, FileTreeNode } from "@desk/core/types";
 import type { DocLocation } from "@desk/core";
 import {
   contentKeys,
-  useMergedWorkspaceOverviewShell,
+  useWorkspaceDocsShell,
   useMoveDoc,
   useMoveFolder,
   useRenameFolder,
@@ -25,23 +25,18 @@ import {
   useUpdateDoc,
   useFolderAIStates,
 } from "@/stores";
-import { prefixSubtreePaths } from "@desk/core";
 import { getDeskService } from "@desk/core";
 import {
   PROJECT_TREE_PATH_PREFIX,
-  isContextTreePath,
   resolveTreePath,
-  splitTreePathToKind,
 } from "@desk/core";
-import { getDocsPath, getContextPath } from "@desk/core";
+import { getDocsPath } from "@desk/core";
 import { isTauri } from "@desk/core";
 import { sortNodes, type DocSortBy } from "../tree-item-utils";
 import {
   canDropInto,
   insertSectionHeaders,
-  isAllowedNewFolderName,
   isDraggable,
-  isContextRoot,
   nodesToArborist,
   type ArboristNode,
 } from "./arborist-adapter";
@@ -54,7 +49,7 @@ import {
 /**
  * Recursively filter docs by who wrote them. Provenance, not lifecycle: an agent-written
  * research doc is still the user's material, they just want to browse their own hand
- * without it in the way. Folders (incl. the Context root and project stubs) always survive
+ * without it in the way. Folders and project stubs always survive
  * so the tree keeps its shape and stays a drop target.
  */
 function filterTreeByAuthor(nodes: FileTreeNode[], filter: DocAuthorFilter): FileTreeNode[] {
@@ -131,6 +126,21 @@ function collectFolderTreePaths(nodes: FileTreeNode[]): string[] {
   return out;
 }
 
+/** Prefix project folder paths so they stay unique in the workspace-wide tree. */
+function prefixProjectPaths(nodes: FileTreeNode[], prefix: string): FileTreeNode[] {
+  return nodes.map((node) => {
+    if (node.type !== "folder") return node;
+    return {
+      type: "folder" as const,
+      folder: {
+        ...node.folder,
+        path: `${prefix}/${node.folder.path}`,
+        children: prefixProjectPaths(node.folder.children, prefix),
+      },
+    };
+  });
+}
+
 // ── Public props ──────────────────────────────────────────────────────────────
 
 /** Which docs to show, by who wrote them. */
@@ -169,7 +179,7 @@ export function DocsTree({
   onCreateFolderIn,
 }: DocsTreeProps) {
   const { t } = useTranslation();
-  const { data: overviewTree = [], isLoading } = useMergedWorkspaceOverviewShell(workspaceId);
+  const { data: overviewTree = [], isLoading } = useWorkspaceDocsShell(workspaceId);
 
   // Locally tracked set of expanded project IDs — drives per-project query subscriptions.
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
@@ -183,16 +193,15 @@ export function DocsTree({
   const deleteAsset = useDeleteAsset();
   const updateDoc = useUpdateDoc();
 
-  // Subscribe to each expanded project's merged tree. Closing a project unsubscribes its query;
-  // mutations that invalidate `mergedTree("project", ws, projId)` trigger a refetch + re-render.
+  // Subscribe to each expanded project's document tree.
   const expandedProjectIdList = useMemo(
     () => Array.from(expandedProjectIds).sort(),
     [expandedProjectIds],
   );
   const projectQueries = useQueries({
     queries: expandedProjectIdList.map((projectId) => ({
-      queryKey: contentKeys.mergedTree("project", workspaceId, projectId),
-      queryFn: () => getDeskService().getMergedContentTree("project", workspaceId, projectId),
+      queryKey: contentKeys.tree("project", workspaceId, projectId),
+      queryFn: () => getDeskService().getContentTree("project", workspaceId, projectId),
     })),
   });
   const projectSubtrees = useMemo(() => {
@@ -200,7 +209,7 @@ export function DocsTree({
     expandedProjectIdList.forEach((projectId, idx) => {
       const data = projectQueries[idx]?.data;
       if (data) {
-        map.set(projectId, prefixSubtreePaths(data, `${PROJECT_TREE_PATH_PREFIX}${projectId}`));
+        map.set(projectId, prefixProjectPaths(data, `${PROJECT_TREE_PATH_PREFIX}${projectId}`));
       }
     });
     return map;
@@ -243,7 +252,6 @@ export function DocsTree({
 
   // For useFolderAIStates we need to identify scope per folder. Simplest: only enable
   // for workspace-scope folders for now (project-scope toggling needs per-project queries).
-  // The hook handles paths under `__context__` via splitTreePathToKind in the workspace-rel translator.
   const workspaceFolderPaths = useMemo(
     () => folderTreePaths.filter((p) => !p.startsWith(PROJECT_TREE_PATH_PREFIX)),
     [folderTreePaths],
@@ -274,13 +282,11 @@ export function DocsTree({
     (parentTreePath: string): { label: string; isProject?: boolean; toTreePath: string }[] => {
       const locKey = (treePath: string) => {
         const r = resolveTreePath(treePath);
-        const { kind, subPath } = splitTreePathToKind(r.scopeTreePath);
-        return `${r.scope}|${r.projectId ?? ""}|${kind}|${subPath}`;
+        return `${r.scope}|${r.projectId ?? ""}|${r.scopeTreePath}`;
       };
       const fromKey = locKey(parentTreePath);
       const targets: { label: string; isProject?: boolean; toTreePath: string }[] = [];
-      // Workspace docs root + workspace (human) folders
-      const wsPaths = ["", ...workspaceFolderPaths.filter((p) => !isContextTreePath(p))];
+      const wsPaths = ["", ...workspaceFolderPaths];
       for (const tp of wsPaths) {
         if (locKey(tp) === fromKey) continue;
         targets.push({ label: tp === "" ? t("menus.docContextMenu.workspaceLevel") : tp, toTreePath: tp });
@@ -313,38 +319,24 @@ export function DocsTree({
 
   // Base path for "Reveal in Finder"
   const [workspaceBasePath, setWorkspaceBasePath] = useState<string | undefined>(undefined);
-  const [workspaceAIBasePath, setWorkspaceAIBasePath] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (!isTauri()) {
       setWorkspaceBasePath(undefined);
-      setWorkspaceAIBasePath(undefined);
       return;
     }
-    Promise.all([
-      getDocsPath("workspace", workspaceId, undefined),
-      getContextPath("workspace", workspaceId, undefined),
-    ])
-      .then(([h, a]) => {
-        setWorkspaceBasePath(h);
-        setWorkspaceAIBasePath(a);
-      })
-      .catch(() => {
-        setWorkspaceBasePath(undefined);
-        setWorkspaceAIBasePath(undefined);
-      });
+    getDocsPath("workspace", workspaceId)
+      .then(setWorkspaceBasePath)
+      .catch(() => setWorkspaceBasePath(undefined));
   }, [workspaceId]);
 
   const basePathFor = useCallback(
     (treePath: string): string | undefined => {
       // Only workspace-scope base paths are exposed; project-scope reveal needs per-project lookup.
       if (treePath.startsWith(PROJECT_TREE_PATH_PREFIX)) return undefined;
-      const isAI = isContextTreePath(treePath);
-      const base = isAI ? workspaceAIBasePath : workspaceBasePath;
-      if (!base) return undefined;
-      const { subPath } = splitTreePathToKind(treePath);
-      return subPath ? `${base}/${subPath}` : base;
+      if (!workspaceBasePath) return undefined;
+      return treePath ? `${workspaceBasePath}/${treePath}` : workspaceBasePath;
     },
-    [workspaceBasePath, workspaceAIBasePath],
+    [workspaceBasePath],
   );
 
   // ── Prune expanded set when projects disappear from the overview ─────────────
@@ -375,10 +367,6 @@ export function DocsTree({
 
   const treeRef = useRef<TreeApi<ArboristNode> | null>(null);
 
-  // The map should be readable without a click, so every Context band opens itself the first
-  // time it appears (workspace-level on mount, a project's when the project is expanded).
-  // Tracked per id so a deliberate collapse is never undone on the next re-render.
-  const autoOpenedContextIds = useRef<Set<string>>(new Set());
   const selectedArboristId = useMemo(() => {
     if (!activeDocId) return undefined;
     // Find the ArboristNode whose underlying doc has this id
@@ -440,20 +428,14 @@ export function DocsTree({
       if (!trimmed) return;
       const d = node.data;
       if (d.kind === "folder" && d.node.type === "folder") {
-        if (!isAllowedNewFolderName(d.parentTreePath, trimmed)) {
-          toast.error(t("errors.folder.reservedName", { name: trimmed }));
-          return;
-        }
         const resolved = resolveTreePath(d.treePath);
-        const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
         try {
           await renameFolder.mutateAsync({
             scope: resolved.scope,
-            oldPath: subPath,
+            oldPath: resolved.scopeTreePath,
             newName: trimmed,
             workspaceId,
             projectId: resolved.projectId,
-            kind,
           });
           toast.success(t("toasts.common.renamed"));
         } catch (err) {
@@ -492,26 +474,24 @@ export function DocsTree({
       const toTreePath = parentNode?.data.treePath ?? "";
 
       const targetResolved = resolveTreePath(toTreePath);
-      const { kind: toKind, subPath: toSubPath } = splitTreePathToKind(targetResolved.scopeTreePath);
+      const toSubPath = targetResolved.scopeTreePath;
 
       for (const dragNode of dragNodes) {
         const d = dragNode.data;
         const fromResolved = resolveTreePath(d.parentTreePath);
-        const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);
+        const fromSubPath = fromResolved.scopeTreePath;
 
         if (d.kind === "doc" && d.node.type === "doc") {
-          // Docs move freely across scope / project / folder / kind.
+          // Docs move freely across scope, project, and folder.
           const from: DocLocation = {
             scope: fromResolved.scope,
             projectId: fromResolved.projectId,
             folderPath: fromSubPath,
-            kind: fromKind,
           };
           const to: DocLocation = {
             scope: targetResolved.scope,
             projectId: targetResolved.projectId,
             folderPath: toSubPath,
-            kind: toKind,
           };
           try {
             await moveDoc.mutateAsync({ docId: d.node.doc.id, workspaceId, from, to });
@@ -524,7 +504,6 @@ export function DocsTree({
 
         if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue; // can't move a project stub
-          if (isContextRoot(d)) continue; // the synthetic Context root is not a real folder
           // Folder subtree moves stay within one scope/project (cross-scope folder
           // reparenting is a separate, larger feature).
           if (
@@ -534,25 +513,16 @@ export function DocsTree({
             toast.error(t("errors.doc.crossScopeMove"));
             continue;
           }
-          if (fromKind !== toKind) {
-            // Cross-kind folder move: useMoveFolder takes a single kind. The lib needs to handle
-            // a full directory move from docs/<src> to context/<dst> (or vice-versa) — currently it
-            // doesn't. Surface a friendly toast until that's implemented.
-            toast.error(t("errors.folder.crossKindMove"));
-            continue;
-          }
           // The fromSubPath represents the OLD path of the folder being moved (the folder itself,
           // not the parent). The translator gave us parentTreePath. Recompute for the source folder.
           const sourceResolved = resolveTreePath(d.treePath);
-          const { subPath: sourceSubPath } = splitTreePathToKind(sourceResolved.scopeTreePath);
           try {
             await moveFolder.mutateAsync({
               scope: targetResolved.scope,
-              fromPath: sourceSubPath,
+              fromPath: sourceResolved.scopeTreePath,
               toParentPath: toSubPath,
               workspaceId,
               projectId: targetResolved.projectId,
-              kind: fromKind,
             });
           } catch (err) {
             console.error("Failed to move folder:", err);
@@ -584,16 +554,13 @@ export function DocsTree({
           }
         } else if (d.kind === "folder" && d.node.type === "folder") {
           if (d.node.folder.isProject) continue;
-          if (isContextRoot(d)) continue;
           const resolved = resolveTreePath(d.treePath);
-          const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
           try {
             await deleteFolder.mutateAsync({
               scope: resolved.scope,
-              folderPath: subPath,
+              folderPath: resolved.scopeTreePath,
               workspaceId,
               projectId: resolved.projectId,
-              kind,
             });
           } catch (err) {
             console.error("Failed to delete folder:", err);
@@ -618,25 +585,21 @@ export function DocsTree({
       onDeleteAsset: (asset) => deleteAsset.mutate(asset),
       onRenameFolder: async (treePath, newName) => {
         const resolved = resolveTreePath(treePath);
-        const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
         await renameFolder.mutateAsync({
           scope: resolved.scope,
-          oldPath: subPath,
+          oldPath: resolved.scopeTreePath,
           newName,
           workspaceId,
           projectId: resolved.projectId,
-          kind,
         });
       },
       onDeleteFolder: (treePath) => {
         const resolved = resolveTreePath(treePath);
-        const { kind, subPath } = splitTreePathToKind(resolved.scopeTreePath);
         deleteFolder.mutate({
           scope: resolved.scope,
-          folderPath: subPath,
+          folderPath: resolved.scopeTreePath,
           workspaceId,
           projectId: resolved.projectId,
-          kind,
         });
       },
       onCreateDocIn,
@@ -644,13 +607,11 @@ export function DocsTree({
       onMoveDocToFolder: (doc, fromTreePath, toTreePath) => {
         const fromResolved = resolveTreePath(fromTreePath);
         const toResolved = resolveTreePath(toTreePath);
-        const { kind: fromKind, subPath: fromSubPath } = splitTreePathToKind(fromResolved.scopeTreePath);
-        const { kind: toKind, subPath: toSubPath } = splitTreePathToKind(toResolved.scopeTreePath);
         moveDoc.mutate({
           docId: doc.id,
           workspaceId,
-          from: { scope: fromResolved.scope, projectId: fromResolved.projectId, folderPath: fromSubPath, kind: fromKind },
-          to: { scope: toResolved.scope, projectId: toResolved.projectId, folderPath: toSubPath, kind: toKind },
+          from: { scope: fromResolved.scope, projectId: fromResolved.projectId, folderPath: fromResolved.scopeTreePath },
+          to: { scope: toResolved.scope, projectId: toResolved.projectId, folderPath: toResolved.scopeTreePath },
         });
       },
       buildDocMoveTargets,
@@ -694,23 +655,6 @@ export function DocsTree({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  // `size` is a dependency because the Tree (and therefore treeRef) only mounts once the
-  // container has been measured, which can happen after arboristData has already settled.
-  useEffect(() => {
-    const tree = treeRef.current;
-    if (!tree) return;
-    const walk = (nodes: ArboristNode[]) => {
-      for (const n of nodes) {
-        if (isContextRoot(n) && !autoOpenedContextIds.current.has(n.id)) {
-          autoOpenedContextIds.current.add(n.id);
-          tree.open(n.id);
-        }
-        if (n.children) walk(n.children);
-      }
-    };
-    walk(arboristData);
-  }, [arboristData, size]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 

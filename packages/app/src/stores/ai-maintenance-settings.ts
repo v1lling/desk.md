@@ -15,13 +15,11 @@ import { createRemoteSettingStorage } from "./remote-setting-storage";
 
 interface AIMaintenanceSettingsState {
   autoSummarizeOnSave: boolean;
-  autoRefreshProjectState: boolean;
   summaryDetail: SummaryDetail;
   providerType: AIProviderType;
   /** Model ID per provider (empty = provider default). */
   modelByProvider: Record<string, string>;
   setAutoSummarizeOnSave: (enabled: boolean) => void;
-  setAutoRefreshProjectState: (enabled: boolean) => void;
   setSummaryDetail: (detail: SummaryDetail) => void;
   setProviderType: (type: AIProviderType) => void;
   setModelForProvider: (provider: AIProviderType, model: string) => void;
@@ -33,7 +31,6 @@ export const useAIMaintenanceSettingsStore = create<AIMaintenanceSettingsState>(
       // Defaults live once in core (AI_MAINTENANCE_DEFAULTS); the engine reads the same file.
       ...AI_MAINTENANCE_DEFAULTS,
       setAutoSummarizeOnSave: (enabled) => set({ autoSummarizeOnSave: enabled }),
-      setAutoRefreshProjectState: (enabled) => set({ autoRefreshProjectState: enabled }),
       setSummaryDetail: (detail) => set({ summaryDetail: detail }),
       setProviderType: (type) => set({ providerType: type }),
       setModelForProvider: (provider, model) =>
@@ -46,7 +43,6 @@ export const useAIMaintenanceSettingsStore = create<AIMaintenanceSettingsState>(
       storage: createRemoteSettingStorage("ai-maintenance"),
       partialize: (state) => ({
         autoSummarizeOnSave: state.autoSummarizeOnSave,
-        autoRefreshProjectState: state.autoRefreshProjectState,
         summaryDetail: state.summaryDetail,
         providerType: state.providerType,
         modelByProvider: state.modelByProvider,

@@ -73,8 +73,7 @@ function buildServer(): McpServer {
   // `instructions` reaches the client in the `initialize` response and is surfaced as
   // session-level context for every tool call. It is the ONLY channel that teaches a
   // hosted agent how this space works: the generated CLAUDE.md / AGENTS.md files are a
-  // local-disk feature and are never written on the server, so without this an MCP agent
-  // would see the `context` type with no idea what it means.
+  // local-disk feature and are never written on the server.
   const server = new McpServer(
     { name: "desk.md", version: "0.10.0" },
     { instructions: DESK_SPACE_NORMS },
@@ -85,7 +84,7 @@ function buildServer(): McpServer {
     "desk_workspace_info",
     {
       description:
-        "List all workspaces and their projects (ids + names). Start here to learn the workspace_id and project_id values the other tools need.",
+        "List all workspaces and their projects (ids + names). Start here to learn the workspace_id and project_id values, then read workspace.md and relevant projects/{project_id}/project.md overviews.",
       inputSchema: {},
     },
     async () => json(await svc.deskWorkspaceInfo())
@@ -130,11 +129,11 @@ function buildServer(): McpServer {
     "desk_catalog",
     {
       description:
-        "Start here: the workspace's content catalog — every context file, doc, task, and meeting with path, type, title, author, status/date, last-updated timestamp, and an AI summary when available. Most recently updated first. Narrow with project_id/type/status/since; page with limit/offset (response has total + has_more). Use desk_read to open files.",
+        "Catalog of regular documents, tasks, and meetings with path, type, title, author, status/date, last-updated timestamp, and an AI summary when available. Read workspace.md and relevant project.md overviews first. Narrow with project_id/type/status/since; page with limit/offset.",
       inputSchema: {
         workspace_id: z.string().min(1),
         project_id: z.string().optional(),
-        type: z.enum(["doc", "context", "task", "meeting"]).optional(),
+        type: z.enum(["doc", "task", "meeting"]).optional(),
         status: z.string().optional(),
         since: z
           .string()
@@ -227,7 +226,7 @@ async function loadSummaryMap(workspaceId: string): Promise<Map<string, string>>
 interface CatalogQuery {
   workspace_id: string;
   project_id?: string;
-  type?: "doc" | "context" | "task" | "meeting";
+  type?: "doc" | "task" | "meeting";
   status?: string;
   since?: string;
   limit?: number;

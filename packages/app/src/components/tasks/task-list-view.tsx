@@ -12,6 +12,7 @@ import {
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import { AIBadge } from "@/components/ui/ai-badge";
 import type { Task, TaskStatus } from "@desk/core/types";
 
 interface TaskListViewProps {
@@ -188,6 +189,7 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
             )}
           >
             {task.title}
+            {task.author === "ai" && <AIBadge className="ml-1.5 align-middle" />}
           </p>
           {/* Priority indicator */}
           {task.priority && (

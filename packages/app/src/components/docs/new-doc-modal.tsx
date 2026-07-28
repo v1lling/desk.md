@@ -18,14 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Folder, Compass } from "lucide-react";
+import { Loader2, Folder } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
 import type { ContentScope } from "@desk/core/types";
 import {
   displayTreePath,
-  splitTreePathToKind,
-  isContextTreePath,
   todayISO,
 } from "@desk/core";
 import { useTemplatesStore } from "@/stores/templates";
@@ -37,7 +35,7 @@ interface NewDocModalProps {
   defaultProjectId?: string;
   defaultScope?: ContentScope;
   defaultWorkspaceId?: string;
-  /** Tree-relative folder path (may contain the Context sentinel). */
+  /** Tree-relative folder path. */
   defaultFolderPath?: string;
 }
 
@@ -68,9 +66,7 @@ export function NewDocModal({
   const isWorkspaceScope = defaultScope === "workspace";
   const isProjectScope = defaultScope === "project";
 
-  // Translate the tree path into a real on-disk folder + kind
-  const { kind: destinationKind, subPath: destinationSubPath } = splitTreePathToKind(defaultFolderPath || "");
-  const isAIDestination = isContextTreePath(defaultFolderPath || "");
+  const destinationSubPath = defaultFolderPath || "";
 
   // A dialog stays mounted while closed, so form state would otherwise leak across opens —
   // and across workspace switches, where a kept projectId points at another workspace's
@@ -111,7 +107,6 @@ export function NewDocModal({
           title: trimmed,
           templateBody: templateBody || undefined,
           folderPath: destinationSubPath,
-          kind: destinationKind,
         });
       } else if (isWorkspaceScope) {
         doc = await createDocInFolder.mutateAsync({
@@ -120,7 +115,6 @@ export function NewDocModal({
           templateBody: templateBody || undefined,
           folderPath: destinationSubPath,
           workspaceId,
-          kind: destinationKind,
         });
       } else if (isProjectScope && defaultProjectId) {
         doc = await createDocInFolder.mutateAsync({
@@ -130,7 +124,6 @@ export function NewDocModal({
           folderPath: destinationSubPath,
           workspaceId,
           projectId: defaultProjectId,
-          kind: destinationKind,
         });
       } else {
         doc = await createDoc.mutateAsync({
@@ -138,7 +131,6 @@ export function NewDocModal({
           projectId: projectId || "_unassigned",
           title: trimmed,
           templateBody: templateBody || undefined,
-          kind: destinationKind,
         });
       }
 
@@ -185,8 +177,7 @@ export function NewDocModal({
           {(isPersonalScope || isWorkspaceScope || isProjectScope) ? (
             friendlyPath && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
-                {/* Compass = context/ (the map), matching the tree and Context panel rows. */}
-                {isAIDestination ? <Compass className="size-4" /> : <Folder className="size-4" />}
+                <Folder className="size-4" />
                 <span>{t("modals.newDoc.creatingIn", { path: friendlyPath })}</span>
               </div>
             )

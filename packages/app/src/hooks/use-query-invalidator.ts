@@ -43,7 +43,53 @@ import { publishContentUpdate, publishDeleted } from "@desk/core";
 import { getStorage } from "@desk/core";
 import { parseMarkdown } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
-import { notifyExternalChanges } from "@desk/core";
+import { getDeskService, notifyExternalChanges } from "@desk/core";
+import {
+  writePerWorkspaceAgentFiles,
+  writeTopLevelAgentFiles,
+} from "@/lib/smart-index/agent-files";
+
+const pendingAgentFileWorkspaces = new Set<string>();
+let pendingTopLevelAgentFiles = false;
+let agentFileTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Coalesce watcher bursts before rebuilding generated files that inline entity overviews. */
+function scheduleAgentFileRefresh(paths: string[]): void {
+  for (const path of paths) {
+    const type = getItemTypeFromPath(path);
+    if (type !== "workspace" && type !== "project") continue;
+    const workspaceId = getWorkspaceIdFromPath(path);
+    if (workspaceId) pendingAgentFileWorkspaces.add(workspaceId);
+    if (type === "workspace") pendingTopLevelAgentFiles = true;
+  }
+  if (pendingAgentFileWorkspaces.size === 0 && !pendingTopLevelAgentFiles) return;
+  if (agentFileTimer) clearTimeout(agentFileTimer);
+
+  agentFileTimer = setTimeout(() => {
+    agentFileTimer = null;
+    const workspaceIds = [...pendingAgentFileWorkspaces];
+    const refreshTopLevel = pendingTopLevelAgentFiles;
+    pendingAgentFileWorkspaces.clear();
+    pendingTopLevelAgentFiles = false;
+
+    const service = getDeskService();
+    const writes = workspaceIds.map(async (workspaceId) => {
+      const [workspace, projects] = await Promise.all([
+        service.getWorkspace(workspaceId),
+        service.getProjects(workspaceId),
+      ]);
+      if (workspace) await writePerWorkspaceAgentFiles(workspaceId, workspace, projects);
+    });
+    if (refreshTopLevel) {
+      writes.push(
+        service.getWorkspaces().then((workspaces) => writeTopLevelAgentFiles(workspaces)),
+      );
+    }
+    Promise.all(writes).catch((error) => {
+      console.warn("[query-invalidator] Failed to refresh generated agent files:", error);
+    });
+  }, 250);
+}
 
 /**
  * Hook to initialize file watching and route events
@@ -112,10 +158,11 @@ async function handleFileChange(
   // views refetch. (Editor-handled paths are synced above; the extra background
   // list refetch here is harmless and keeps list views consistent.)
   invalidateQueriesForPaths(event.paths, queryClient);
+  scheduleAgentFileRefresh(event.paths);
 
   // Feed the change into the maintenance engine (core desk/maintenance). The engine gets the
   // app's own writes from the domain-write bus already; this covers EXTERNAL edits — an agent
-  // or script writing into the folder gets the same index update + state refresh. The double
+  // or script writing into the folder gets the same index update. The double
   // arrival of our own writes is absorbed by the engine's debounces.
   notifyExternalChanges(event.paths, event.kind === "remove" ? "remove" : "modify");
 }
@@ -302,29 +349,6 @@ function invalidateQueriesForChanges(
           queryClient.invalidateQueries({
             queryKey: meetingKeys.byWorkspace(workspaceId),
           });
-        }
-        break;
-
-      case "context":
-        // Context files (workspace- and project-level). Before this case existed they fell
-        // into "unknown", so an external context edit never refreshed the context tree the
-        // panel reads — and the background state write needs this to show up.
-        for (const workspaceId of affectedWorkspaces) {
-          queryClient.invalidateQueries({
-            queryKey: contentKeys.tree("workspace", workspaceId, undefined, "context"),
-          });
-          queryClient.invalidateQueries({ queryKey: contentKeys.mergedOverview(workspaceId) });
-          const projects = affectedProjects.get(workspaceId);
-          if (projects) {
-            for (const projectId of projects) {
-              queryClient.invalidateQueries({
-                queryKey: contentKeys.tree("project", workspaceId, projectId, "context"),
-              });
-              queryClient.invalidateQueries({
-                queryKey: contentKeys.mergedTree("project", workspaceId, projectId),
-              });
-            }
-          }
         }
         break;
 

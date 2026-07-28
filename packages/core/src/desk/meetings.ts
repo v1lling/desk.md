@@ -26,6 +26,7 @@ interface MeetingFrontmatter extends Record<string, unknown> {
   date?: string;
   created?: string;
   updated?: string;
+  author?: string;
 }
 
 /**
@@ -49,6 +50,7 @@ function buildMeeting(
     date: resolveContentDate(data.date || data.created, filename ?? filePath),
     created: resolveContentDate(data.created, filename ?? filePath),
     updated: normalizeDateTime(data.updated),
+    author: data.author === "ai" ? "ai" : undefined,
     content: body,
     preview: generatePreview(body),
   };
@@ -192,6 +194,7 @@ export async function createMeeting(data: {
   date?: string;
   content?: string;
   templateBody?: string;
+  author?: "ai";
 }): Promise<Meeting> {
   const meetingDate = data.date || todayISO();
   const filename = generateFilename(data.title);
@@ -207,6 +210,7 @@ export async function createMeeting(data: {
     date: meetingDate,
     created: todayISO(),
     updated: nowISO(),
+    author: data.author,
     content,
     preview: generatePreview(content),
   };
@@ -228,6 +232,7 @@ export async function createMeeting(data: {
     title: meeting.title,
     date: meeting.date,
     created: meeting.created,
+    ...(meeting.author ? { author: meeting.author } : {}),
   };
 
   // writeMarkdownFile handles mkdir + cache invalidation

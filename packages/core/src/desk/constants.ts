@@ -27,7 +27,6 @@ export const PATH_SEGMENTS = {
   PROJECTS: "projects",
   TASKS: "tasks",
   DOCS: "docs",
-  CONTEXT: "context",
   MEETINGS: "meetings",
 } as const;
 
@@ -48,7 +47,7 @@ export const FILE_NAMES = {
   CLAUDE_MD: "CLAUDE.md",
   AGENTS_MD: "AGENTS.md",
   GEMINI_MD: "GEMINI.md",
-  WORKSPACE_CONTEXT_MD: "WORKSPACE_CONTEXT.md",
+  WORKSPACE_INDEX_MD: "WORKSPACE_INDEX.md",
   PROJECT_MD: "project.md",
   VIEW_STATE: ".view.json",
 } as const;

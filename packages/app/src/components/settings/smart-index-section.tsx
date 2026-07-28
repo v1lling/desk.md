@@ -34,15 +34,15 @@ import { useWorkspaces } from "@/stores";
 import { rebuildWorkspaceIndex, readWorkspaceIndex, writeRebuiltWorkspaceIndex } from "@desk/core";
 import { smartIndexKeys } from "@/lib/query-client";
 import { isLocalDisk, isDomainRemote } from "@/lib/connection";
-import { writeWorkspaceContextArtifact } from "@/lib/context-index/artifacts";
+import { writeWorkspaceIndexArtifact } from "@/lib/smart-index/artifacts";
 import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
   deleteGeneratedAgentFiles,
-} from "@/lib/context-index/agent-context";
+} from "@/lib/smart-index/agent-files";
 import { getDeskService } from "@desk/core";
 import type { BuildIndexProgress, BuildIndexResult } from "@desk/core";
-import { formatRelativeTime } from "./context-tab-utils";
+import { formatRelativeTime } from "./smart-index-utils";
 
 /** Last full-rebuild result plus when it ran — ephemeral UI state, not persisted. */
 type LastBuildResult = BuildIndexResult & { at: string };
@@ -52,8 +52,6 @@ export function SmartIndexSection() {
   const {
     autoSummarizeOnSave,
     setAutoSummarizeOnSave,
-    autoRefreshProjectState,
-    setAutoRefreshProjectState,
     summaryDetail,
     setSummaryDetail,
     providerType,
@@ -129,7 +127,7 @@ export function SmartIndexSection() {
           result = localResult;
           // One writer: persist through core (local disk), same path the engine uses.
           await writeRebuiltWorkspaceIndex(index, existingIndex);
-          await writeWorkspaceContextArtifact(index);
+          await writeWorkspaceIndexArtifact(index);
           // Refresh per-workspace agent files (project list may have changed)
           getDeskService().getProjects(workspace.id).then((projects) =>
             writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
@@ -173,7 +171,7 @@ export function SmartIndexSection() {
   };
 
   // Wipe everything: empty the Smart Index and delete the generated
-  // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_CONTEXT.md files from disk.
+  // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_INDEX.md files from disk.
   const handleClearCatalog = async () => {
     try {
       for (const workspace of workspaces) {
@@ -372,20 +370,6 @@ export function SmartIndexSection() {
             {t("settings.smartIndex.autoSummarize.activeWarning")}
           </p>
         )}
-
-        <div className="flex items-center justify-between py-3 border-t border-border/40">
-          <div className="space-y-0.5 pr-4">
-            <Label>{t("settings.smartIndex.autoRefreshState.label")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.smartIndex.autoRefreshState.description")}
-            </p>
-          </div>
-          <Switch
-            checked={autoRefreshProjectState}
-            onCheckedChange={setAutoRefreshProjectState}
-            disabled={!canBuild}
-          />
-        </div>
 
         <div className="flex items-center justify-between py-3 border-t border-border/40">
           <div className="space-y-0.5 pr-4">

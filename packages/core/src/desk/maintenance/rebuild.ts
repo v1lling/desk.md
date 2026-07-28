@@ -118,15 +118,14 @@ export async function rebuildWorkspaceIndex(
 
   if (key && needsSummarization.length > 0) {
     // Fetch raw content and strip frontmatter (extractBody) so the AI summarizes body
-    // text, not YAML. Four bulk reads, keyed by absolute filePath to match catalog entries.
-    const [docs, contextDocs, tasks, meetings] = await Promise.all([
-      getAllDocsForWorkspace(workspaceId, "doc"),
-      getAllDocsForWorkspace(workspaceId, "context"),
+    // text, not YAML. Three bulk reads, keyed by absolute filePath to match catalog entries.
+    const [docs, tasks, meetings] = await Promise.all([
+      getAllDocsForWorkspace(workspaceId),
       getTasks(workspaceId),
       getMeetings(workspaceId),
     ]);
     const contentMap = new Map<string, string>();
-    for (const item of [...docs, ...contextDocs, ...tasks, ...meetings]) {
+    for (const item of [...docs, ...tasks, ...meetings]) {
       contentMap.set(item.filePath, extractBody(item.content ?? ""));
     }
 

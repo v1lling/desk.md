@@ -13,6 +13,7 @@ import {
 import { StatePanel } from "@/components/ui/state-panel";
 import { ListPane, ListRow, SectionLabel, type ListPaneSortOption } from "@/components/patterns";
 import { cn } from "@/lib/utils";
+import { AIBadge } from "@/components/ui/ai-badge";
 import { matchesSearch } from "@/lib/tree-count";
 import { safeFormat } from "@/lib/i18n/format";
 import type { Meeting } from "@desk/core/types";
@@ -230,7 +231,12 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
                         )}
                       />
                     }
-                    title={meeting.title}
+                    title={
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate">{meeting.title}</span>
+                        {meeting.author === "ai" && <AIBadge />}
+                      </span>
+                    }
                     meta={safeFormat(meeting.date, "MMM d")}
                     secondLine={showSecondLine ? projectName : undefined}
                     menuItems={

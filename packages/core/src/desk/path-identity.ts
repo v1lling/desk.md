@@ -15,7 +15,6 @@ export type PathItemType =
   | "task"
   | "doc"
   | "meeting"
-  | "context"
   | "project"
   | "workspace"
   | "view"
@@ -43,10 +42,6 @@ const MEETINGS_RE = recordDirRe(PATH_SEGMENTS.MEETINGS);
 export function getItemTypeFromPath(path: string): PathItemType {
   const p = normalizePath(path);
   if (p.endsWith(".view.json")) return "view";
-  // Checked before the record types: context/ is its own layer, never a record. The
-  // maintenance engine keys off this (a context write must never schedule a refresh).
-  // Anchored to a workspace/project root so a docs SUBFOLDER named "context" stays a doc.
-  if (/\/(workspaces|projects)\/[^/]+\/context\//.test(p)) return "context";
   if (TASKS_RE.test(p)) return "task";
   if (DOCS_RE.test(p)) return "doc";
   if (MEETINGS_RE.test(p)) return "meeting";

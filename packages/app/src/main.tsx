@@ -41,7 +41,7 @@ async function bootstrap() {
 
   // Wire the remaining seams (only needed once writes happen): editor-sync
   // notifications and external-agent file generation.
-  const { setEditorNotifier, setAgentContextWriter } = await import("@desk/core");
+  const { setEditorNotifier, setAgentFileWriter } = await import("@desk/core");
   const { useOpenEditorRegistry } = await import("./stores/open-editor-registry");
   setEditorNotifier({
     isOpen: (p) => useOpenEditorRegistry.getState().isOpen(p),
@@ -50,9 +50,9 @@ async function bootstrap() {
     handlePathChange: (o, n) => useOpenEditorRegistry.getState().handlePathChange(o, n),
   });
   const { writePerWorkspaceAgentFiles, writeTopLevelAgentFiles } = await import(
-    "./lib/context-index/agent-context"
+    "./lib/smart-index/agent-files"
   );
-  setAgentContextWriter({
+  setAgentFileWriter({
     writePerWorkspace: writePerWorkspaceAgentFiles,
     writeTopLevel: writeTopLevelAgentFiles,
   });

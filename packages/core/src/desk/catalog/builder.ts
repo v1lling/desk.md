@@ -1,7 +1,7 @@
 /**
  * Workspace catalog builder — pure, AI-free, runnable anywhere (incl. the server).
  *
- * Enumerates every context file / doc / task / meeting in a workspace and returns metadata
+ * Enumerates every doc / task / meeting in a workspace and returns metadata
  * entries (path, title, type, dates, status, contentHash) with NO summaries. The app's
  * summary-enrichment pass layers AI summaries on top by `path`; the MCP server merges
  * persisted summaries at read time. This is the single source of truth for "what files
@@ -39,9 +39,8 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
   const projects = await getProjects(workspaceId);
   const projectNameMap = new Map(projects.map((p) => [p.id, p.name]));
 
-  const [docs, contextDocs, tasks, meetings] = await Promise.all([
-    getAllDocsForWorkspace(workspaceId, "doc"),
-    getAllDocsForWorkspace(workspaceId, "context"),
+  const [docs, tasks, meetings] = await Promise.all([
+    getAllDocsForWorkspace(workspaceId),
     getTasks(workspaceId),
     getMeetings(workspaceId),
   ]);
@@ -66,24 +65,6 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
     );
   }
 
-  for (const doc of contextDocs) {
-    if (isExcluded(doc.filePath)) continue;
-    entries.push(
-      await buildCatalogEntry({
-        filePath: doc.filePath,
-        workspaceId,
-        type: "context",
-        title: doc.title,
-        projectId: doc.projectId,
-        author: doc.author,
-        created: doc.created,
-        updated: doc.updated,
-        content: doc.content,
-        projectName: projectNameMap.get(doc.projectId),
-      })
-    );
-  }
-
   for (const task of tasks) {
     if (isExcluded(task.filePath)) continue;
     entries.push(
@@ -93,6 +74,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         type: "task",
         title: task.title,
         projectId: task.projectId,
+        author: task.author,
         created: task.created,
         updated: task.updated,
         content: task.content,
@@ -112,6 +94,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         type: "meeting",
         title: meeting.title,
         projectId: meeting.projectId,
+        author: meeting.author,
         created: meeting.created,
         updated: meeting.updated,
         content: meeting.content,
