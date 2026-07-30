@@ -15,6 +15,8 @@ import {
   findFileById,
   readMarkdownFile,
   moveMarkdownFile,
+  allocateUniqueFilePath,
+  allocateUniqueName,
 } from "./file-operations";
 import { mockMeetings } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
@@ -197,7 +199,28 @@ export async function createMeeting(data: {
   author?: "ai";
 }): Promise<Meeting> {
   const meetingDate = data.date || todayISO();
-  const filename = generateFilename(data.title);
+  const preferredFilename = generateFilename(data.title);
+  const mockProjectPath = isUnassigned(data.projectId)
+    ? `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
+    : `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
+  let filename: string;
+  let filePath: string;
+
+  if (isMockMode()) {
+    filename = await allocateUniqueName(preferredFilename, (candidate) =>
+      mockMeetings.some(
+        (meeting) =>
+          meeting.workspaceId === data.workspaceId &&
+          meeting.projectId === data.projectId &&
+          meeting.filePath.endsWith(`/${candidate}`),
+      )
+    );
+    filePath = `${mockProjectPath}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
+  } else {
+    const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
+    ({ filename, filePath } = await allocateUniqueFilePath(meetingsPath, preferredFilename));
+  }
+
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
 
@@ -205,7 +228,7 @@ export async function createMeeting(data: {
     id,
     projectId: data.projectId,
     workspaceId: data.workspaceId,
-    filePath: "",
+    filePath,
     title: data.title,
     date: meetingDate,
     created: todayISO(),
@@ -216,17 +239,9 @@ export async function createMeeting(data: {
   };
 
   if (isMockMode()) {
-    const mockProjectPath = isUnassigned(data.projectId)
-      ? `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
-      : `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
-    meeting.filePath = `${mockProjectPath}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
     mockMeetings.unshift(meeting);
     return meeting;
   }
-
-  const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
-  const filePath = await joinPath(meetingsPath, filename);
-  meeting.filePath = filePath;
 
   const frontmatter: MeetingFrontmatter = {
     title: meeting.title,

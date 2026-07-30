@@ -5,7 +5,7 @@ import type { Project, ProjectStatus, ProjectUpdate } from "../types";
 import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
-import { removeDirectoryWithContents } from "./file-operations";
+import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
 import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 
@@ -194,7 +194,29 @@ export async function createProject(data: {
   description?: string;
   status?: ProjectStatus;
 }): Promise<Project> {
-  const id = slugify(data.name);
+  const preferredId = slugify(data.name) || "project";
+  let id: string;
+  let projectsPath: string | null = null;
+
+  if (isMockMode()) {
+    id = await allocateUniqueName(preferredId, (candidate) =>
+      mockProjects.some(
+        (project) => project.workspaceId === data.workspaceId && project.id === candidate,
+      )
+    );
+  } else {
+    const deskPath = await getDeskPath();
+    const realProjectsPath = await joinPath(
+      deskPath,
+      PATH_SEGMENTS.WORKSPACES,
+      data.workspaceId,
+      PATH_SEGMENTS.PROJECTS,
+    );
+    projectsPath = realProjectsPath;
+    id = await allocateUniqueName(preferredId, async (candidate) =>
+      getStorage().exists(await joinPath(realProjectsPath, candidate))
+    );
+  }
 
   const project: Project = {
     id,
@@ -214,8 +236,10 @@ export async function createProject(data: {
     return project;
   }
 
-  const deskPath = await getDeskPath();
-  const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.workspaceId, PATH_SEGMENTS.PROJECTS, id);
+  if (!projectsPath) {
+    throw new Error("Project path was not initialized");
+  }
+  const projectPath = await joinPath(projectsPath, id);
 
   // Create project directory structure
   await getStorage().mkdir(projectPath);

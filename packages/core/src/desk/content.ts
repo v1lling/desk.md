@@ -12,12 +12,14 @@
  */
 import type { Doc, Asset } from "../types";
 import { generateFilename, filenameToId, todayISO, nowISO, generatePreview } from "./parser";
-import { isMockMode, joinPath } from "./env";
+import { isMockMode } from "./env";
 import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   updateMarkdownFile,
   deleteMarkdownFile,
+  allocateUniqueFilePath,
+  allocateUniqueName,
 } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { PATH_SEGMENTS } from "./constants";
@@ -91,7 +93,25 @@ export async function createDoc(data: {
   templateBody?: string;
   author?: "ai";
 }): Promise<Doc> {
-  const filename = generateFilename(data.title);
+  const preferredFilename = generateFilename(data.title);
+  let filename: string;
+  let filePath: string;
+
+  if (isMockMode()) {
+    filename = await allocateUniqueName(preferredFilename, (candidate) =>
+      mockDocs.some(
+        (doc) =>
+          doc.workspaceId === data.workspaceId &&
+          doc.projectId === data.projectId &&
+          doc.filePath.endsWith(`/${candidate}`),
+      )
+    );
+    filePath = `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
+  } else {
+    const docsPath = await getDocsPath("project", data.workspaceId, data.projectId);
+    ({ filename, filePath } = await allocateUniqueFilePath(docsPath, preferredFilename));
+  }
+
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
 
@@ -99,7 +119,7 @@ export async function createDoc(data: {
     id,
     projectId: data.projectId,
     workspaceId: data.workspaceId,
-    filePath: "",
+    filePath,
     title: data.title,
     created: todayISO(),
     updated: nowISO(),
@@ -109,14 +129,9 @@ export async function createDoc(data: {
   };
 
   if (isMockMode()) {
-    doc.filePath = `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
-
-  const docsPath = await getDocsPath("project", data.workspaceId, data.projectId);
-  const filePath = await joinPath(docsPath, filename);
-  doc.filePath = filePath;
 
   const frontmatter: DocFrontmatter = {
     title: doc.title,

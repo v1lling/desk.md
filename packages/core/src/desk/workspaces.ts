@@ -10,7 +10,7 @@ import type { Workspace, WorkspaceUpdate } from "../types";
 import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate, clearNulls } from "./parser";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
-import { removeDirectoryWithContents } from "./file-operations";
+import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
 import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 import { getAgentFileWriter } from "./agent-file-writer";
@@ -167,9 +167,31 @@ export async function createWorkspace(data: {
   color?: string;
   home?: boolean;
 }): Promise<Workspace> {
+  const mockMode = isMockMode();
+  const existingMockHome = data.home
+    ? mockWorkspaces.findIndex((workspace) => workspace.isHome)
+    : -1;
+  let id: string;
+  let workspacePath: string | null = null;
+
+  if (mockMode) {
+    id = existingMockHome !== -1
+      ? mockWorkspaces[existingMockHome].id
+      : await allocateUniqueName(data.id || "workspace", (candidate) =>
+          mockWorkspaces.some((workspace) => workspace.id === candidate)
+        );
+  } else {
+    const deskPath = await getDeskPath();
+    const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
+    id = await allocateUniqueName(data.id || "workspace", async (candidate) =>
+      getStorage().exists(await joinPath(workspacesPath, candidate))
+    );
+    workspacePath = await joinPath(workspacesPath, id);
+  }
+
   const overview = data.overview?.trim() || overviewTemplate(data.description);
   const workspace: Workspace = {
-    id: data.id,
+    id,
     name: data.name,
     description: data.description,
     overview: overview || undefined,
@@ -178,13 +200,10 @@ export async function createWorkspace(data: {
     isHome: data.home === true,
   };
 
-  if (isMockMode()) {
+  if (mockMode) {
     // In mock mode, replace an existing home workspace rather than duplicating it
-    const existingHome = workspace.isHome
-      ? mockWorkspaces.findIndex((w) => w.isHome)
-      : -1;
-    if (existingHome !== -1) {
-      mockWorkspaces[existingHome] = workspace;
+    if (existingMockHome !== -1) {
+      mockWorkspaces[existingMockHome] = workspace;
     } else {
       mockWorkspaces.push(workspace);
     }
@@ -192,8 +211,9 @@ export async function createWorkspace(data: {
     return workspace;
   }
 
-  const deskPath = await getDeskPath();
-  const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, data.id);
+  if (!workspacePath) {
+    throw new Error("Workspace path was not initialized");
+  }
 
   // Create workspace directory structure
   await getStorage().mkdir(workspacePath);
@@ -227,7 +247,7 @@ export async function createWorkspace(data: {
   // Generate local agent files via the injectable
   // writer (app wires Smart Index agent files; server uses the no-op default).
   const agentWriter = getAgentFileWriter();
-  await agentWriter.writePerWorkspace(data.id, workspace, []);
+  await agentWriter.writePerWorkspace(workspace.id, workspace, []);
   // Update top-level files with new workspace list (fire-and-forget)
   getWorkspaces().then((workspaces) => agentWriter.writeTopLevel(workspaces)).catch(() => {});
 

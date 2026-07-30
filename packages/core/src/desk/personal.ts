@@ -34,6 +34,8 @@ import {
   updateMarkdownFile,
   deleteMarkdownFile,
   moveMarkdownFile,
+  allocateUniqueFilePath,
+  allocateUniqueName,
 } from "./file-operations";
 import { SPECIAL_DIRS } from "./constants";
 import { getCapturePath, getTasksPath } from "./paths";
@@ -131,15 +133,27 @@ export async function createCaptureTask(data: {
   due?: string;
   content?: string;
 }): Promise<Task> {
-  const filename = generateFilename(data.title);
-  const id = filenameToId(filename);
   const homeWorkspaceId = await getHomeWorkspaceId();
+  const preferredFilename = generateFilename(data.title);
+  let filename: string;
+  let filePath: string;
+
+  if (isMockMode()) {
+    filename = await allocateUniqueName(preferredFilename, (candidate) =>
+      mockCaptureTasks.some((task) => task.filePath.endsWith(`/${candidate}`))
+    );
+    filePath = `~/DeskMD/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
+  } else {
+    const capturePath = await getCapturePath();
+    ({ filename, filePath } = await allocateUniqueFilePath(capturePath, preferredFilename));
+  }
+  const id = filenameToId(filename);
 
   const task: Task = {
     id,
     projectId: SPECIAL_DIRS.CAPTURE,
     workspaceId: homeWorkspaceId,
-    filePath: "",
+    filePath,
     title: data.title,
     status: "todo",
     priority: data.priority,
@@ -150,14 +164,9 @@ export async function createCaptureTask(data: {
   };
 
   if (isMockMode()) {
-    task.filePath = `~/DeskMD/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
     mockCaptureTasks.push(task);
     return task;
   }
-
-  const capturePath = await getCapturePath();
-  const filePath = await joinPath(capturePath, filename);
-  task.filePath = filePath;
 
   const frontmatter: TaskFrontmatter = {
     title: task.title,
@@ -308,4 +317,3 @@ export async function moveCaptureToWorkspace(
     filePath: newFilePath,
   };
 }
-

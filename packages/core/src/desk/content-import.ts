@@ -6,7 +6,11 @@ import { isMarkdownFile, isConvertibleFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
-import { writeMarkdownFile } from "./file-operations";
+import {
+  allocateUniqueFilePath,
+  allocateUniqueName,
+  writeMarkdownFile,
+} from "./file-operations";
 import { getContentCache } from "./file-cache";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
@@ -41,11 +45,30 @@ export async function createDocInFolder(data: {
   /** Explicit `updated` stamp instead of write-time (e.g. a snapshot's read-time). */
   updatedStamp?: string;
 }): Promise<Doc> {
-  const filename = data.filename || generateFilename(data.title);
+  const preferredFilename = data.filename || generateFilename(data.title);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
   const homeWorkspaceId = await getHomeWorkspaceId();
   const wsId = data.workspaceId || homeWorkspaceId;
   const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId);
+  const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
+  const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
+  const mockDirectory = `~/DeskMD/workspaces/${wsId}${scopeSegment}/docs${folderSegment}`;
+  let filename: string;
+  let filePath: string;
+
+  if (isMockMode()) {
+    filename = await allocateUniqueName(preferredFilename, (candidate) =>
+      mockDocs.some((doc) => doc.filePath === `${mockDirectory}/${candidate}`)
+    );
+    filePath = `${mockDirectory}/${filename}`;
+  } else {
+    const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
+    const folderPath = data.folderPath
+      ? await joinPath(basePath, data.folderPath)
+      : basePath;
+    await getStorage().mkdir(folderPath);
+    ({ filename, filePath } = await allocateUniqueFilePath(folderPath, preferredFilename));
+  }
 
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`
@@ -59,7 +82,7 @@ export async function createDocInFolder(data: {
     path: relPath,
     projectId: projId,
     workspaceId: wsId,
-    filePath: "",
+    filePath,
     title: data.title,
     created: todayISO(),
     content,
@@ -68,22 +91,9 @@ export async function createDocInFolder(data: {
   };
 
   if (isMockMode()) {
-    const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
-    const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
-    doc.filePath = `~/DeskMD/workspaces/${wsId}${scopeSegment}/docs${folderSegment}/${filename}`;
     mockDocs.unshift(doc);
     return doc;
   }
-
-  const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
-
-  const folderPath = data.folderPath
-    ? await joinPath(basePath, data.folderPath)
-    : basePath;
-  await getStorage().mkdir(folderPath);
-
-  const filePath = await joinPath(folderPath, filename);
-  doc.filePath = filePath;
 
   const frontmatter: DocFrontmatter = {
     title: doc.title,
@@ -150,6 +160,19 @@ export async function importFiles(
     }
 
     const isConvertible = isConvertibleFile(file.name);
+    const shouldWriteAsset =
+      !isConvertible ||
+      convertibleAction === "keep" ||
+      convertibleAction === "both";
+    let assetTarget: Awaited<ReturnType<typeof allocateUniqueFilePath>> | null = null;
+    if (shouldWriteAsset && !isMockMode()) {
+      try {
+        assetTarget = await allocateUniqueFilePath(targetDir, file.name);
+      } catch (err) {
+        failures.push({ name: file.name, reason: errorMessage(err) });
+        continue;
+      }
+    }
 
     if (isConvertible && convertibleAction !== "keep") {
       const ok = await importConvertedFile(file, {
@@ -157,7 +180,9 @@ export async function importFiles(
         folderPath,
         workspaceId,
         projectId,
-        attachOriginal: convertibleAction === "both" ? file.name : undefined,
+        attachOriginal: convertibleAction === "both"
+          ? assetTarget?.filename ?? file.name
+          : undefined,
         convertedDocs,
         failures,
       });
@@ -167,21 +192,19 @@ export async function importFiles(
       }
     }
 
-    const shouldWriteAsset =
-      !isConvertible ||
-      convertibleAction === "keep" ||
-      convertibleAction === "both";
-
     if (shouldWriteAsset && !isMockMode()) {
       try {
-        const targetPath = await joinPath(targetDir, file.name);
+        if (!assetTarget) {
+          throw new Error(`Asset path was not allocated: ${file.name}`);
+        }
+        const { filename, filePath: targetPath } = assetTarget;
         if (typeof file.content === "string") {
           await getStorage().writeTextFile(targetPath, file.content);
         } else {
           await getStorage().writeFile(targetPath, file.content);
         }
         getContentCache().invalidate(targetPath);
-        importedAssets.push(file.name);
+        importedAssets.push(filename);
       } catch (err) {
         failures.push({ name: file.name, reason: errorMessage(err) });
       }

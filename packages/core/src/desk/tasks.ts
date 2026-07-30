@@ -15,6 +15,8 @@ import {
   findAndDeleteFile,
   moveMarkdownFile,
   readMarkdownFile,
+  allocateUniqueFilePath,
+  allocateUniqueName,
 } from "./file-operations";
 import { mockTasks } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
@@ -199,14 +201,32 @@ export async function createTask(data: {
   templateBody?: string;
   author?: "ai";
 }): Promise<Task> {
-  const filename = generateFilename(data.title);
+  const preferredFilename = generateFilename(data.title);
+  let filename: string;
+  let filePath: string;
+
+  if (isMockMode()) {
+    filename = await allocateUniqueName(preferredFilename, (candidate) =>
+      mockTasks.some(
+        (task) =>
+          task.workspaceId === data.workspaceId &&
+          task.projectId === data.projectId &&
+          task.filePath.endsWith(`/${candidate}`),
+      )
+    );
+    filePath = `~/DeskMD/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
+  } else {
+    const tasksPath = await getTasksPath(data.workspaceId, data.projectId);
+    ({ filename, filePath } = await allocateUniqueFilePath(tasksPath, preferredFilename));
+  }
+
   const id = filenameToId(filename);
 
   const task: Task = {
     id,
     projectId: data.projectId,
     workspaceId: data.workspaceId,
-    filePath: "",
+    filePath,
     title: data.title,
     status: "todo",
     priority: data.priority,
@@ -218,14 +238,9 @@ export async function createTask(data: {
   };
 
   if (isMockMode()) {
-    task.filePath = `~/DeskMD/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
     mockTasks.push(task);
     return task;
   }
-
-  const tasksPath = await getTasksPath(data.workspaceId, data.projectId);
-  const filePath = await joinPath(tasksPath, filename);
-  task.filePath = filePath;
 
   const frontmatter: TaskFrontmatter = {
     title: task.title,

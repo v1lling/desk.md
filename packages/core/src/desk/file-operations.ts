@@ -31,6 +31,54 @@ export interface ParsedFile<T> {
   content: string;
 }
 
+export class FileCollisionError extends Error {
+  readonly code = "FILE_COLLISION";
+
+  constructor(readonly targetPath: string) {
+    super(`Destination already exists: ${targetPath}`);
+    this.name = "FileCollisionError";
+  }
+}
+
+type NameTaken = (candidate: string) => boolean | Promise<boolean>;
+
+/**
+ * Allocate a deterministic name without replacing an existing item.
+ *
+ * `report.md` becomes `report-2.md`, `report-3.md`, and so on. Names without
+ * extensions use the same suffix rule (`website` → `website-2`). This is a
+ * single-user collision guard, not a cross-process reservation primitive.
+ */
+export async function allocateUniqueName(
+  preferredName: string,
+  isTaken: NameTaken,
+): Promise<string> {
+  if (!(await isTaken(preferredName))) return preferredName;
+
+  const lastDot = preferredName.lastIndexOf(".");
+  const hasExtension = lastDot > 0;
+  const stem = hasExtension ? preferredName.slice(0, lastDot) : preferredName;
+  const extension = hasExtension ? preferredName.slice(lastDot) : "";
+
+  for (let suffix = 2; suffix < 10_000; suffix++) {
+    const candidate = `${stem}-${suffix}${extension}`;
+    if (!(await isTaken(candidate))) return candidate;
+  }
+
+  throw new Error(`Could not allocate a unique name for: ${preferredName}`);
+}
+
+/** Allocate a unique filename and absolute path within `directory`. */
+export async function allocateUniqueFilePath(
+  directory: string,
+  preferredFilename: string,
+): Promise<{ filename: string; filePath: string }> {
+  const filename = await allocateUniqueName(preferredFilename, async (candidate) =>
+    getStorage().exists(await joinPath(directory, candidate))
+  );
+  return { filename, filePath: await joinPath(directory, filename) };
+}
+
 // =============================================================================
 // READ OPERATIONS
 // =============================================================================
@@ -163,6 +211,8 @@ export interface UpdateFileOptions {
  * @param filePath - Absolute path to file
  * @param updater - Function that receives current frontmatter and content, returns updated values
  * @returns Update result with frontmatter, content, and filePath; or null if file not found
+ * @throws Read, parse, serialization, and write failures. Operational failures
+ * must reach the caller so the UI keeps drafts dirty and reports the failed save.
  *
  * @example
  * await updateMarkdownFile<TaskFrontmatter>(filePath, (fm, content) => ({
@@ -179,33 +229,28 @@ export async function updateMarkdownFile<T extends Record<string, unknown>>(
     return null;
   }
 
-  try {
-    const rawContent = await getStorage().readTextFile(filePath);
-    const { data, content } = parseMarkdown<T>(rawContent);
+  const rawContent = await getStorage().readTextFile(filePath);
+  const { data, content } = parseMarkdown<T>(rawContent);
 
-    const updated = updater(data, content);
-    // Stamp after the updater so it can't be overwritten with a stale value.
-    const frontmatter = { ...updated.frontmatter, updated: options.updatedStamp ?? nowISO() };
-    const fileContent = serializeMarkdown(frontmatter, updated.content);
-    await getStorage().writeTextFile(filePath, fileContent);
+  const updated = updater(data, content);
+  // Stamp after the updater so it can't be overwritten with a stale value.
+  const frontmatter = { ...updated.frontmatter, updated: options.updatedStamp ?? nowISO() };
+  const fileContent = serializeMarkdown(frontmatter, updated.content);
+  await getStorage().writeTextFile(filePath, fileContent);
 
-    getContentCache().invalidate(filePath);
-    publishDomainWrite({ kind: "update", filePath });
+  getContentCache().invalidate(filePath);
+  publishDomainWrite({ kind: "update", filePath });
 
-    const registry = getEditorNotifier();
-    if (registry.isOpen(filePath)) {
-      registry.updateLastSaved(filePath, updated.content);
-    }
-
-    return {
-      frontmatter,
-      content: updated.content,
-      filePath,
-    };
-  } catch (e) {
-    console.warn(`[file-ops] Failed to update file:`, e);
-    return null;
+  const registry = getEditorNotifier();
+  if (registry.isOpen(filePath)) {
+    registry.updateLastSaved(filePath, updated.content);
   }
+
+  return {
+    frontmatter,
+    content: updated.content,
+    filePath,
+  };
 }
 
 // =============================================================================
@@ -260,6 +305,9 @@ export async function moveMarkdownFile(
   if (!(await getStorage().exists(sourcePath))) {
     return false;
   }
+  if (sourcePath !== targetPath && await getStorage().exists(targetPath)) {
+    throw new FileCollisionError(targetPath);
+  }
 
   const parts = targetPath.split("/");
   parts.pop();
@@ -312,6 +360,9 @@ export async function moveDirectoryWithContents(
   targetPath: string
 ): Promise<boolean> {
   if (!(await getStorage().exists(sourcePath))) return false;
+  if (sourcePath !== targetPath && await getStorage().exists(targetPath)) {
+    throw new FileCollisionError(targetPath);
+  }
 
   const files = await listFilesRecursive(sourcePath);
   await getStorage().rename(sourcePath, targetPath);
