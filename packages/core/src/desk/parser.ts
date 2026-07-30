@@ -134,10 +134,18 @@ export function normalizeOptionalDate(date: unknown): string | undefined {
   // A Date here comes from YAML (`created: 2026-05-17`), which parses bare dates as UTC
   // midnight — so the UTC calendar day IS the day that was written. formatLocalISODate
   // would shift it back a day in negative-offset zones; toISOString is correct here.
-  if (date instanceof Date) return date.toISOString().split("T")[0];
+  if (date instanceof Date) {
+    return isNaN(date.getTime()) ? undefined : date.toISOString().split("T")[0];
+  }
   if (typeof date === "string") {
-    // If already YYYY-MM-DD format, return as is
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    // Validate already formatted date-only values too: the shape alone would
+    // otherwise accept impossible dates such as 2026-02-30.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const parsed = new Date(`${date}T00:00:00Z`);
+      return !isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
+        ? date
+        : undefined;
+    }
     // Non-ISO strings ("May 17, 2026", "2026/05/17") parse as LOCAL time, so take the
     // local day — toISOString would yield the previous UTC day in positive-offset zones.
     const parsed = new Date(date);

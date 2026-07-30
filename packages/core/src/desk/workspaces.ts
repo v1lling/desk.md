@@ -7,7 +7,11 @@
  * during onboarding like any other workspace — there is no magic folder name.
  */
 import type { Workspace, WorkspaceUpdate } from "../types";
-import { parseMarkdown, serializeMarkdown, todayISO, normalizeDate, clearNulls } from "./parser";
+import { parseMarkdown, serializeMarkdown, todayISO, clearNulls } from "./parser";
+import {
+  decodeWorkspaceFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
@@ -101,7 +105,10 @@ export async function getWorkspaces(): Promise<Workspace[]> {
       try {
         const workspacePath = await joinPath(workspacesPath, entry.name, FILE_NAMES.WORKSPACE_MD);
         const content = await getStorage().readTextFile(workspacePath);
-        const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
+        const { data: rawData, content: body } = parseMarkdown<Record<string, unknown>>(content);
+        const decoded = decodeWorkspaceFrontmatter(rawData, entry.name);
+        reportFrontmatterDiagnostics("workspace", workspacePath, decoded.diagnostics);
+        const data = decoded.value;
 
         workspaces.push({
           id: entry.name,
@@ -109,8 +116,8 @@ export async function getWorkspaces(): Promise<Workspace[]> {
           description: data.description,
           overview: body.trim() || undefined,
           color: data.color,
-          created: normalizeDate(data.created),
-          isHome: data.home === true,
+          created: data.created,
+          isHome: data.home,
         });
       } catch (e) {
         console.warn(`Failed to read workspace ${entry.name}:`, e);
@@ -134,7 +141,10 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
 
   try {
     const content = await getStorage().readTextFile(workspacePath);
-    const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
+    const { data: rawData, content: body } = parseMarkdown<Record<string, unknown>>(content);
+    const decoded = decodeWorkspaceFrontmatter(rawData, workspaceId);
+    reportFrontmatterDiagnostics("workspace", workspacePath, decoded.diagnostics);
+    const data = decoded.value;
 
     return {
       id: workspaceId,
@@ -142,10 +152,11 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
       description: data.description,
       overview: body.trim() || undefined,
       color: data.color,
-      created: normalizeDate(data.created),
-      isHome: data.home === true,
+      created: data.created,
+      isHome: data.home,
     };
-  } catch {
+  } catch (error) {
+    console.warn(`Failed to read workspace ${workspaceId}:`, error);
     return null;
   }
 }
@@ -274,9 +285,9 @@ export async function updateWorkspace(
   if (!(await getStorage().exists(workspacePath))) return null;
 
   const content = await getStorage().readTextFile(workspacePath);
-  const { data, content: body } = parseMarkdown<WorkspaceFrontmatter>(content);
+  const { data, content: body } = parseMarkdown<Record<string, unknown>>(content);
 
-  const updatedData: WorkspaceFrontmatter = {
+  const updatedData: Record<string, unknown> = {
     ...data,
     ...(updates.name && { name: updates.name }),
     // null clears the field (→ undefined → dropped by serializeMarkdown); undefined leaves it.
@@ -287,15 +298,16 @@ export async function updateWorkspace(
   const newBody = updates.overview !== undefined ? (updates.overview ?? "") : body;
   const fileContent = serializeMarkdown(updatedData, newBody);
   await getStorage().writeTextFile(workspacePath, fileContent);
+  const decoded = decodeWorkspaceFrontmatter(updatedData, workspaceId).value;
 
   return {
     id: workspaceId,
-    name: updatedData.name,
-    description: updatedData.description,
+    name: decoded.name,
+    description: decoded.description,
     overview: newBody.trim() || undefined,
-    color: updatedData.color,
-    created: updatedData.created,
-    isHome: updatedData.home === true,
+    color: decoded.color,
+    created: decoded.created,
+    isHome: decoded.home,
   };
 }
 

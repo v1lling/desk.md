@@ -234,8 +234,10 @@ async function importMarkdownFile(
     let body = textContent;
     let author: "ai" | undefined;
     try {
-      const parsed = parseMarkdown<{ title?: string; author?: string }>(textContent);
-      title = parsed.data.title || file.name.replace(/\.(md|markdown|txt)$/i, "");
+      const parsed = parseMarkdown<Record<string, unknown>>(textContent);
+      title = typeof parsed.data.title === "string" && parsed.data.title.trim()
+        ? parsed.data.title
+        : file.name.replace(/\.(md|markdown|txt)$/i, "");
       body = parsed.content;
       author = parsed.data.author === "ai" ? "ai" : undefined;
     } catch {

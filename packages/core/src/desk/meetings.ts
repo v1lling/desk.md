@@ -5,7 +5,11 @@
  * Uses paths.ts for all path construction.
  */
 import type { Meeting } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, normalizeOptionalDate, normalizeDateTime, resolveContentDate, compareDatesDesc, generatePreview } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, normalizeOptionalDate, compareDatesDesc, generatePreview } from "./parser";
+import {
+  decodeMeetingFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -39,20 +43,27 @@ function buildMeeting(
   workspaceId: string,
   projectId: string,
   filePath: string,
-  data: MeetingFrontmatter,
+  data: Record<string, unknown>,
   body: string,
   filename?: string
 ): Meeting {
+  const decoded = decodeMeetingFrontmatter(
+    data,
+    filename || id,
+    filename ?? filePath,
+  );
+  reportFrontmatterDiagnostics("meeting", filePath, decoded.diagnostics);
+  const metadata = decoded.value;
   return {
     id,
     projectId,
     workspaceId,
     filePath,
-    title: data.title || filename || id,
-    date: resolveContentDate(data.date || data.created, filename ?? filePath),
-    created: resolveContentDate(data.created, filename ?? filePath),
-    updated: normalizeDateTime(data.updated),
-    author: data.author === "ai" ? "ai" : undefined,
+    title: metadata.title,
+    date: metadata.date,
+    created: metadata.created,
+    updated: metadata.updated,
+    author: metadata.author,
     content: body,
     preview: generatePreview(body),
   };
@@ -62,10 +73,10 @@ function buildMeeting(
  * Apply meeting updates to existing frontmatter
  */
 function applyMeetingUpdates(
-  data: MeetingFrontmatter,
+  data: Record<string, unknown>,
   body: string,
   updates: Partial<Pick<Meeting, "title" | "date" | "content">>
-): { frontmatter: MeetingFrontmatter; content: string } {
+): { frontmatter: Record<string, unknown>; content: string } {
   return {
     frontmatter: {
       ...data,
@@ -113,7 +124,7 @@ async function readProjectMeetings(
           continue;
         }
 
-        const { data, content: body } = parseMarkdown<MeetingFrontmatter>(content);
+        const { data, content: body } = parseMarkdown<Record<string, unknown>>(content);
         meetings.push(buildMeeting(filenameToId(entry.name), workspaceId, projectId, meetingPath, data, body, entry.name));
       } catch (e) {
         console.warn(`Failed to read meeting ${entry.name}:`, e);
@@ -279,7 +290,7 @@ export async function updateMeeting(
   }
 
   const meetingsPath = await getMeetingsPath(workspaceId, projectId);
-  const result = await findAndUpdateFile<MeetingFrontmatter>(
+  const result = await findAndUpdateFile<Record<string, unknown>>(
     meetingsPath,
     meetingId,
     (data, body) => applyMeetingUpdates(data, body, updates)
@@ -333,7 +344,7 @@ export async function moveMeetingToProject(
   const sourceFilePath = await findFileById(fromMeetingsPath, meetingId);
   if (!sourceFilePath) return null;
 
-  const parsed = await readMarkdownFile<MeetingFrontmatter>(sourceFilePath);
+  const parsed = await readMarkdownFile<Record<string, unknown>>(sourceFilePath);
   if (!parsed) return null;
 
   const toMeetingsPath = await getMeetingsPath(workspaceId, toProjectId);

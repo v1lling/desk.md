@@ -17,6 +17,7 @@
 import type { Hono } from "hono";
 import { getDeskService, encode, decode, isAIProviderError } from "@desk/core";
 import { auth, TRUSTED_ORIGINS } from "./auth";
+import { validateDeskRpcEntityMutation } from "./desk-rpc-validation";
 
 type AnyFn = (...args: unknown[]) => Promise<unknown>;
 
@@ -70,6 +71,18 @@ export function registerDeskApi(app: Hono): void {
       args = Array.isArray(body?.args) ? body.args : [];
     } catch {
       return c.json({ error: { message: "Invalid request body" } }, 400);
+    }
+
+    const validationIssue = validateDeskRpcEntityMutation(op, args);
+    if (validationIssue) {
+      return c.json(
+        {
+          error: {
+            message: `Invalid request at ${validationIssue.path}: ${validationIssue.message}`,
+          },
+        },
+        400,
+      );
     }
 
     try {

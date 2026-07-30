@@ -3,7 +3,11 @@
  */
 import type { Doc, FileTreeNode, ContentScope, Asset } from "../types";
 import { isMarkdownFile, getExtension } from "./file-utils";
-import { parseMarkdown, filenameToId, resolveContentDate, normalizeDateTime, compareDatesDesc, generatePreview } from "./parser";
+import { parseMarkdown, filenameToId, compareDatesDesc, generatePreview } from "./parser";
+import {
+  decodeDocFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { mockDocs } from "./mock-data";
@@ -12,13 +16,6 @@ import { getHomeWorkspaceId } from "./workspaces";
 import { getDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
-
-interface DocFrontmatter {
-  title: string;
-  created: string;
-  updated?: string;
-  author?: string;
-}
 
 /**
  * Generate a unique key for a tree node (for React rendering)
@@ -104,11 +101,18 @@ async function buildContentTreeRecursive(
         continue;
       }
 
-      const { data, content: body } = parseMarkdown<DocFrontmatter>(content);
+      const { data: rawData, content: body } = parseMarkdown<Record<string, unknown>>(content);
 
       const docRelPath = relativePath
         ? `${relativePath}/${file.name}`
         : file.name;
+      const decoded = decodeDocFrontmatter(
+        rawData,
+        file.name.replace(/\.md$/, ""),
+        docRelPath,
+      );
+      reportFrontmatterDiagnostics("document", filePath, decoded.diagnostics);
+      const data = decoded.value;
 
       // Get OS file dates
       const stats = await getStorage().fileStat(filePath);
@@ -127,10 +131,9 @@ async function buildContentTreeRecursive(
           workspaceId,
           filePath,
           title: data.title || file.name.replace(".md", ""),
-          created: resolveContentDate(data.created, docRelPath),
-          updated: normalizeDateTime(data.updated),
-          // Only 'ai' is meaningful; anything else (incl. a stray `author: human`) reads as the user.
-          author: data.author === "ai" ? "ai" : undefined,
+          created: data.created,
+          updated: data.updated,
+          author: data.author,
           content: body,
           preview: generatePreview(body),
           fileCreated,

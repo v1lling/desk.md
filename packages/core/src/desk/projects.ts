@@ -2,7 +2,12 @@
  * Projects library - File system operations for projects
  */
 import type { Project, ProjectStatus, ProjectUpdate } from "../types";
-import { parseMarkdown, serializeMarkdown, slugify, todayISO, normalizeDate, clearNulls } from "./parser";
+import { parseMarkdown, serializeMarkdown, slugify, todayISO, clearNulls } from "./parser";
+import {
+  decodeProjectFrontmatter,
+  decodeTaskFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
@@ -37,11 +42,10 @@ async function countProjectTasks(projectPath: string): Promise<{
       try {
         const taskPath = await joinPath(tasksPath, entry.name);
         const content = await getStorage().readTextFile(taskPath);
-        const { data } = parseMarkdown<{ status?: string }>(content);
-        const status = data.status as keyof typeof byStatus;
-        if (status in byStatus) {
-          byStatus[status]++;
-        }
+        const { data } = parseMarkdown<Record<string, unknown>>(content);
+        const decoded = decodeTaskFrontmatter(data, entry.name, entry.name);
+        reportFrontmatterDiagnostics("task", taskPath, decoded.diagnostics);
+        byStatus[decoded.value.status]++;
       } catch {
         // Skip invalid task files
       }
@@ -102,7 +106,10 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
         const projectPath = await joinPath(projectsPath, entry.name);
         const projectMdPath = await joinPath(projectPath, "project.md");
         const content = await getStorage().readTextFile(projectMdPath);
-        const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
+        const { data: rawData, content: body } = parseMarkdown<Record<string, unknown>>(content);
+        const decoded = decodeProjectFrontmatter(rawData, entry.name);
+        reportFrontmatterDiagnostics("project", projectMdPath, decoded.diagnostics);
+        const data = decoded.value;
 
         // Count project documents.
         const taskStats = await countProjectTasks(projectPath);
@@ -120,7 +127,7 @@ export async function getProjects(workspaceId: string): Promise<Project[]> {
           status: data.status || "active",
           description: data.description,
           overview: body.trim() || undefined,
-          created: normalizeDate(data.created),
+          created: data.created,
           taskCount: taskStats.total,
           tasksByStatus: taskStats.byStatus,
           docCount,
@@ -156,7 +163,10 @@ export async function getProject(
 
   try {
     const content = await getStorage().readTextFile(projectMdPath);
-    const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
+    const { data: rawData, content: body } = parseMarkdown<Record<string, unknown>>(content);
+    const decoded = decodeProjectFrontmatter(rawData, projectId);
+    reportFrontmatterDiagnostics("project", projectMdPath, decoded.diagnostics);
+    const data = decoded.value;
 
     // Count project documents.
     const taskStats = await countProjectTasks(projectPath);
@@ -174,13 +184,14 @@ export async function getProject(
       status: data.status || "active",
       description: data.description,
       overview: body.trim() || undefined,
-      created: normalizeDate(data.created),
+      created: data.created,
       taskCount: taskStats.total,
       tasksByStatus: taskStats.byStatus,
       docCount,
       meetingCount,
     };
-  } catch {
+  } catch (error) {
+    console.warn(`Failed to read project ${projectId}:`, error);
     return null;
   }
 }
@@ -289,9 +300,9 @@ export async function updateProject(
   if (!(await getStorage().exists(projectMdPath))) return null;
 
   const content = await getStorage().readTextFile(projectMdPath);
-  const { data, content: body } = parseMarkdown<ProjectFrontmatter>(content);
+  const { data, content: body } = parseMarkdown<Record<string, unknown>>(content);
 
-  const updatedData: ProjectFrontmatter = {
+  const updatedData: Record<string, unknown> = {
     ...data,
     ...(updates.name && { name: updates.name }),
     ...(updates.status && { status: updates.status }),
@@ -305,15 +316,16 @@ export async function updateProject(
 
   const fileContent = serializeMarkdown(updatedData, newBody);
   await getStorage().writeTextFile(projectMdPath, fileContent);
+  const decoded = decodeProjectFrontmatter(updatedData, projectId).value;
 
   return {
     id: projectId,
     workspaceId,
-    name: updatedData.name,
-    status: updatedData.status,
-    description: updatedData.description,
+    name: decoded.name,
+    status: decoded.status,
+    description: decoded.description,
     overview: newBody.trim() || undefined,
-    created: updatedData.created,
+    created: decoded.created,
     taskCount: 0,
     tasksByStatus: { backlog: 0, todo: 0, doing: 0, waiting: 0, done: 0 },
     docCount: 0,

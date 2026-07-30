@@ -5,7 +5,11 @@
  * Uses paths.ts for all path construction.
  */
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, normalizeDate, normalizeDateTime, resolveContentDate, clearNulls } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, clearNulls } from "./parser";
+import {
+  decodeTaskFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -42,22 +46,29 @@ function buildTask(
   workspaceId: string,
   projectId: string,
   filePath: string,
-  data: TaskFrontmatter,
+  data: Record<string, unknown>,
   body: string,
   filename?: string
 ): Task {
+  const decoded = decodeTaskFrontmatter(
+    data,
+    filename || id,
+    filename ?? filePath,
+  );
+  reportFrontmatterDiagnostics("task", filePath, decoded.diagnostics);
+  const metadata = decoded.value;
   return {
     id,
     projectId,
     workspaceId,
     filePath,
-    title: data.title || filename || id,
-    status: data.status || "todo",
-    priority: data.priority,
-    due: data.due ? normalizeDate(data.due) : undefined,
-    created: resolveContentDate(data.created, filename ?? filePath),
-    updated: normalizeDateTime(data.updated),
-    author: data.author === "ai" ? "ai" : undefined,
+    title: metadata.title,
+    status: metadata.status,
+    priority: metadata.priority,
+    due: metadata.due,
+    created: metadata.created,
+    updated: metadata.updated,
+    author: metadata.author,
     content: body,
   };
 }
@@ -66,10 +77,10 @@ function buildTask(
  * Apply task updates to existing frontmatter
  */
 function applyTaskUpdates(
-  data: TaskFrontmatter,
+  data: Record<string, unknown>,
   body: string,
   updates: TaskUpdate
-): { frontmatter: TaskFrontmatter; content: string } {
+): { frontmatter: Record<string, unknown>; content: string } {
   return {
     frontmatter: {
       ...data,
@@ -116,7 +127,7 @@ async function readProjectTasks(
           continue;
         }
 
-        const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+        const { data, content: body } = parseMarkdown<Record<string, unknown>>(content);
         tasks.push(buildTask(filenameToId(entry.name), workspaceId, projectId, taskPath, data, body, entry.name));
       } catch (e) {
         console.warn(`Failed to read task ${entry.name}:`, e);
@@ -274,7 +285,7 @@ export async function updateTask(
 
   // Helper to perform the update at a known tasks directory
   const updateAtPath = async (tasksPath: string, wsId: string, projId: string): Promise<Task | null> => {
-    const result = await findAndUpdateFile<TaskFrontmatter>(
+    const result = await findAndUpdateFile<Record<string, unknown>>(
       tasksPath,
       taskId,
       (data, body) => applyTaskUpdates(data, body, updates)
@@ -367,7 +378,7 @@ export async function moveTaskToProject(
   if (!sourceFilePath) return null;
 
   // Read source content before moving
-  const parsed = await readMarkdownFile<TaskFrontmatter>(sourceFilePath);
+  const parsed = await readMarkdownFile<Record<string, unknown>>(sourceFilePath);
   if (!parsed) return null;
 
   // Build target path (same filename, different directory)

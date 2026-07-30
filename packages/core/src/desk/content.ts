@@ -12,6 +12,7 @@
  */
 import type { Doc, Asset } from "../types";
 import { generateFilename, filenameToId, todayISO, nowISO, generatePreview } from "./parser";
+import { decodeDocFrontmatter } from "./frontmatter";
 import { isMockMode } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -166,7 +167,7 @@ export async function updateDoc(
   }
 
   // updateMarkdownFile handles cache invalidation + registry notification
-  const result = await updateMarkdownFile<DocFrontmatter>(doc.filePath, (data, body) => ({
+  const result = await updateMarkdownFile<Record<string, unknown>>(doc.filePath, (data, body) => ({
     frontmatter: {
       ...data,
       ...(updates.title && { title: updates.title }),
@@ -175,11 +176,18 @@ export async function updateDoc(
   }));
 
   if (!result) return null;
+  const metadata = decodeDocFrontmatter(
+    result.frontmatter,
+    doc.title,
+    doc.path ?? doc.filePath,
+  ).value;
 
   return {
     ...doc,
-    title: result.frontmatter.title,
-    updated: result.frontmatter.updated,
+    title: metadata.title,
+    created: metadata.created,
+    updated: metadata.updated,
+    author: metadata.author,
     content: result.content,
     preview: generatePreview(result.content),
   };

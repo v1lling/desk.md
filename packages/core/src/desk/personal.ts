@@ -22,11 +22,12 @@ import {
   filenameToId,
   todayISO,
   nowISO,
-  normalizeDate,
-  normalizeDateTime,
-  resolveContentDate,
   clearNulls,
 } from "./parser";
+import {
+  decodeTaskFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
@@ -100,19 +101,21 @@ export async function getCaptureTasks(): Promise<Task[]> {
       try {
         const taskPath = await joinPath(capturePath, entry.name);
         const content = await getStorage().readTextFile(taskPath);
-        const { data, content: body } = parseMarkdown<TaskFrontmatter>(content);
+        const { data, content: body } = parseMarkdown<Record<string, unknown>>(content);
 
+        const decoded = decodeTaskFrontmatter(data, entry.name, entry.name);
+        reportFrontmatterDiagnostics("capture task", taskPath, decoded.diagnostics);
         tasks.push({
           id: filenameToId(entry.name),
           projectId: SPECIAL_DIRS.CAPTURE,
           workspaceId: homeWorkspaceId,
           filePath: taskPath,
-          title: data.title || entry.name,
-          status: data.status || "todo",
-          priority: data.priority,
-          due: data.due ? normalizeDate(data.due) : undefined,
-          created: resolveContentDate(data.created, entry.name),
-          updated: normalizeDateTime(data.updated),
+          title: decoded.value.title,
+          status: decoded.value.status,
+          priority: decoded.value.priority,
+          due: decoded.value.due,
+          created: decoded.value.created,
+          updated: decoded.value.updated,
           content: body,
         });
       } catch (e) {
@@ -199,8 +202,8 @@ export async function updateCaptureTask(
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  const result = await updateMarkdownFile<TaskFrontmatter>(task.filePath, (data, body) => {
-    const updatedData: TaskFrontmatter = {
+  const result = await updateMarkdownFile<Record<string, unknown>>(task.filePath, (data, body) => {
+    const updatedData: Record<string, unknown> = {
       ...data,
       ...(updates.title && { title: updates.title }),
       ...(updates.status && { status: updates.status }),
@@ -213,15 +216,17 @@ export async function updateCaptureTask(
   });
 
   if (!result) return null;
+  const metadata = decodeTaskFrontmatter(result.frontmatter, task.title, task.filePath).value;
 
   return {
     ...task,
     ...updates,
-    title: result.frontmatter.title,
-    status: result.frontmatter.status,
-    priority: result.frontmatter.priority,
-    due: result.frontmatter.due,
-    updated: normalizeDateTime(result.frontmatter.updated),
+    title: metadata.title,
+    status: metadata.status,
+    priority: metadata.priority,
+    due: metadata.due,
+    created: metadata.created,
+    updated: metadata.updated,
     content: result.content,
   };
 }

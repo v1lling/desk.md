@@ -2,20 +2,17 @@
  * Content Move - Move a doc between any (scope, project, folder, kind) location.
  */
 import type { Doc, ContentScope } from "../types";
-import { resolveContentDate, normalizeDateTime, generatePreview, filenameToId } from "./parser";
+import { generatePreview, filenameToId } from "./parser";
+import {
+  decodeDocFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "./frontmatter";
 import { isMockMode, joinPath } from "./env";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
 import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
-
-interface DocFrontmatter extends Record<string, unknown> {
-  title: string;
-  created?: string;
-  updated?: string;
-  author?: string;
-}
 
 /**
  * A doc's physical location: scope/project plus the folder within its docs root.
@@ -69,7 +66,7 @@ export async function moveDoc(
   const sourceFilePath = await findFileById(fromDir, baseId);
   if (!sourceFilePath) return null;
 
-  const parsed = await readMarkdownFile<DocFrontmatter>(sourceFilePath);
+  const parsed = await readMarkdownFile<Record<string, unknown>>(sourceFilePath);
   if (!parsed) return null;
 
   const sourceFilename = sourceFilePath.split("/").pop()!;
@@ -78,6 +75,12 @@ export async function moveDoc(
 
   const homeWorkspaceId = await getHomeWorkspaceId();
   const newRelPath = to.folderPath ? `${to.folderPath}/${sourceFilename}` : sourceFilename;
+  const decoded = decodeDocFrontmatter(
+    parsed.frontmatter,
+    sourceFilename.replace(/\.md$/, ""),
+    newRelPath,
+  );
+  reportFrontmatterDiagnostics("document", sourceFilePath, decoded.diagnostics);
 
   // Same source and destination — nothing to move; return the doc as-is.
   if (targetFilePath !== sourceFilePath) {
@@ -92,11 +95,11 @@ export async function moveDoc(
     projectId: projectIdFor(to, homeWorkspaceId),
     workspaceId: workspaceId || homeWorkspaceId,
     filePath: targetFilePath,
-    title: parsed.frontmatter.title,
+    title: decoded.value.title,
     // Filename is unchanged by a move, so its date prefix still applies as fallback.
-    created: resolveContentDate(parsed.frontmatter.created, newRelPath),
-    updated: normalizeDateTime(parsed.frontmatter.updated),
-    author: parsed.frontmatter.author === "ai" ? "ai" : undefined,
+    created: decoded.value.created,
+    updated: decoded.value.updated,
+    author: decoded.value.author,
     content: parsed.content,
     preview: generatePreview(parsed.content),
   };

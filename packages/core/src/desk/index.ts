@@ -22,6 +22,7 @@ export * from "./personal";
 export * from "./env";
 export * from "./storage";
 export * from "./parser";
+export * from "./frontmatter";
 export * from "./constants";
 export * from "./paths";
 export * from "./tree-path";

@@ -5,7 +5,13 @@
  * Each parser transforms raw file content into a typed structure.
  */
 
-import { parseMarkdown, generatePreview, resolveContentDate } from "../parser";
+import { parseMarkdown, generatePreview } from "../parser";
+import {
+  decodeDocFrontmatter,
+  decodeTaskFrontmatter,
+  reportFrontmatterDiagnostics,
+} from "../frontmatter";
+import type { TaskPriority, TaskStatus } from "../../types";
 import type { ContentParser } from "./types";
 
 /**
@@ -71,10 +77,12 @@ export function createDocParser(filename: string): ContentParser<ParsedDoc> {
   return (raw, path) => {
     const parsed = parseMarkdownDoc(raw, path);
     const nameWithoutExt = filename.replace(/\.md$/, "");
+    const decoded = decodeDocFrontmatter(parsed.frontmatter, nameWithoutExt, filename);
+    reportFrontmatterDiagnostics("document", path, decoded.diagnostics);
 
     return {
-      title: (parsed.frontmatter.title as string) || nameWithoutExt,
-      created: resolveContentDate(parsed.frontmatter.created as string | undefined, filename),
+      title: decoded.value.title,
+      created: decoded.value.created,
       content: parsed.content,
       preview: parsed.preview,
     };
@@ -86,8 +94,8 @@ export function createDocParser(filename: string): ContentParser<ParsedDoc> {
  */
 export interface ParsedTask {
   title: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority?: TaskPriority;
   created?: string;
   due?: string;
   content: string;
@@ -100,13 +108,15 @@ export function createTaskParser(filename: string): ContentParser<ParsedTask> {
   return (raw, path) => {
     const parsed = parseMarkdownDoc(raw, path);
     const nameWithoutExt = filename.replace(/\.md$/, "");
+    const decoded = decodeTaskFrontmatter(parsed.frontmatter, nameWithoutExt, filename);
+    reportFrontmatterDiagnostics("task", path, decoded.diagnostics);
 
     return {
-      title: (parsed.frontmatter.title as string) || nameWithoutExt,
-      status: (parsed.frontmatter.status as string) || "todo",
-      priority: (parsed.frontmatter.priority as string) || "medium",
-      created: resolveContentDate(parsed.frontmatter.created as string | undefined, filename),
-      due: parsed.frontmatter.due as string | undefined,
+      title: decoded.value.title,
+      status: decoded.value.status,
+      priority: decoded.value.priority,
+      created: decoded.value.created,
+      due: decoded.value.due,
       content: parsed.content,
     };
   };
