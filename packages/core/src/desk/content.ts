@@ -13,17 +13,13 @@
 import type { Doc, Asset } from "../types";
 import { generateFilename, filenameToId, todayISO, nowISO, generatePreview } from "./parser";
 import { decodeDocFrontmatter } from "./frontmatter";
-import { isMockMode } from "./env";
 import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
   updateMarkdownFile,
   deleteMarkdownFile,
   allocateUniqueFilePath,
-  allocateUniqueName,
 } from "./file-operations";
-import { mockDocs } from "./mock-data";
-import { PATH_SEGMENTS } from "./constants";
 import { getDocsPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
 
@@ -95,23 +91,8 @@ export async function createDoc(data: {
   author?: "ai";
 }): Promise<Doc> {
   const preferredFilename = generateFilename(data.title);
-  let filename: string;
-  let filePath: string;
-
-  if (isMockMode()) {
-    filename = await allocateUniqueName(preferredFilename, (candidate) =>
-      mockDocs.some(
-        (doc) =>
-          doc.workspaceId === data.workspaceId &&
-          doc.projectId === data.projectId &&
-          doc.filePath.endsWith(`/${candidate}`),
-      )
-    );
-    filePath = `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}/${PATH_SEGMENTS.DOCS}/${filename}`;
-  } else {
-    const docsPath = await getDocsPath("project", data.workspaceId, data.projectId);
-    ({ filename, filePath } = await allocateUniqueFilePath(docsPath, preferredFilename));
-  }
+  const docsPath = await getDocsPath("project", data.workspaceId, data.projectId);
+  const { filename, filePath } = await allocateUniqueFilePath(docsPath, preferredFilename);
 
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
@@ -128,11 +109,6 @@ export async function createDoc(data: {
     content,
     preview: generatePreview(content),
   };
-
-  if (isMockMode()) {
-    mockDocs.unshift(doc);
-    return doc;
-  }
 
   const frontmatter: DocFrontmatter = {
     title: doc.title,
@@ -153,19 +129,6 @@ export async function updateDoc(
   doc: Doc,
   updates: Partial<Pick<Doc, "title" | "content">>
 ): Promise<Doc | null> {
-  if (isMockMode()) {
-    const index = mockDocs.findIndex((d) => d.id === doc.id);
-    if (index === -1) return null;
-
-    const updatedFields: Partial<Doc> = { ...updates, updated: nowISO() };
-    if (updates.content) {
-      updatedFields.preview = generatePreview(updates.content);
-    }
-
-    mockDocs[index] = { ...mockDocs[index], ...updatedFields };
-    return mockDocs[index];
-  }
-
   // updateMarkdownFile handles cache invalidation + registry notification
   const result = await updateMarkdownFile<Record<string, unknown>>(doc.filePath, (data, body) => ({
     frontmatter: {
@@ -197,13 +160,6 @@ export async function updateDoc(
  * Delete a doc using its file path directly
  */
 export async function deleteDoc(doc: Doc): Promise<boolean> {
-  if (isMockMode()) {
-    const index = mockDocs.findIndex((d) => d.id === doc.id);
-    if (index === -1) return false;
-    mockDocs.splice(index, 1);
-    return true;
-  }
-
   // deleteMarkdownFile handles cache invalidation + registry notification
   return deleteMarkdownFile(doc.filePath);
 }
@@ -212,8 +168,6 @@ export async function deleteDoc(doc: Doc): Promise<boolean> {
  * Delete an asset (non-markdown file)
  */
 export async function deleteAsset(asset: Asset): Promise<boolean> {
-  if (isMockMode()) return true;
-
   if (!(await getStorage().exists(asset.filePath))) {
     console.error(`File not found: ${asset.filePath}`);
     return false;

@@ -68,3 +68,8 @@ export function publishDeleted(path: string): void {
     handlers.onDeleted();
   }
 }
+
+/** Remove all editor subscriptions when disposing an isolated runtime. */
+export function resetEditorEventSubscribers(): void {
+  subscribers.clear();
+}

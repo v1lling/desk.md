@@ -25,6 +25,11 @@ export function setDeskService(service: DeskService): void {
   activeService = service;
 }
 
+/** Restore the in-process domain service. */
+export function resetDeskService(): void {
+  activeService = localDeskService;
+}
+
 /** Get the active DeskService. */
 export function getDeskService(): DeskService {
   return activeService;

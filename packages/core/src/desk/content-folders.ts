@@ -2,7 +2,7 @@
  * Content Folders - Folder CRUD operations within the content tree
  */
 import type { ContentFolder, ContentScope } from "../types";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import { moveDirectoryWithContents, removeDirectoryWithContents } from "./file-operations";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
@@ -53,10 +53,6 @@ export async function renameFolder(
   pathParts[pathParts.length - 1] = newName;
   const newPath = pathParts.join("/");
   const newFullPath = await joinPath(basePath, newPath);
-
-  if (isMockMode()) {
-    return { name: newName, path: newPath, children: [] };
-  }
 
   await moveDirectoryWithContents(oldFullPath, newFullPath);
 
@@ -115,10 +111,6 @@ export async function moveFolder(
 
   if (newPath === fromPath) return false;
 
-  if (isMockMode()) {
-    return true;
-  }
-
   const basePath = await getDocsPath(scope, workspaceId, projectId);
   const oldFullPath = await joinPath(basePath, fromPath);
   const newFullPath = await joinPath(basePath, newPath);
@@ -140,10 +132,6 @@ export async function deleteFolder(
   workspaceId?: string,
   projectId?: string,
 ): Promise<boolean> {
-  if (isMockMode()) {
-    return true;
-  }
-
   const basePath = await getDocsPath(scope, workspaceId, projectId);
   const fullPath = await joinPath(basePath, folderPath);
 

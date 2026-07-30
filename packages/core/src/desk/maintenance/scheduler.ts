@@ -164,6 +164,19 @@ export function startMaintenanceEngine(options: MaintenanceEngineOptions = {}): 
   unsubscribe = onDomainWrite(handleDomainWrite);
 }
 
+/** Stop the engine and discard scheduled work. Used when disposing a runtime. */
+export function resetMaintenanceEngine(): void {
+  unsubscribe?.();
+  unsubscribe = null;
+  for (const timeout of pendingIndexUpdates.values()) clearTimeout(timeout);
+  for (const timeout of pendingIndexRemovals.values()) clearTimeout(timeout);
+  pendingIndexUpdates.clear();
+  pendingIndexRemovals.clear();
+  queuedRemovalPaths.clear();
+  inFlightIndexOps.clear();
+  engineOptions = { canRunAI: () => true };
+}
+
 /**
  * External-edit feed (local mode): the Tauri watcher pipes changed paths here so files written
  * by external agents get the same maintenance as app writes. The engine classifies internally;

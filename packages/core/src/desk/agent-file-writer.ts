@@ -27,6 +27,10 @@ export function setAgentFileWriter(w: AgentFileWriter): void {
   writer = w;
 }
 
+export function resetAgentFileWriter(): void {
+  writer = NOOP;
+}
+
 export function getAgentFileWriter(): AgentFileWriter {
   return writer;
 }

@@ -10,7 +10,7 @@ import {
   decodeMeetingFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
@@ -20,10 +20,8 @@ import {
   readMarkdownFile,
   moveMarkdownFile,
   allocateUniqueFilePath,
-  allocateUniqueName,
 } from "./file-operations";
-import { mockMeetings } from "./mock-data";
-import { SPECIAL_DIRS, PATH_SEGMENTS, isUnassigned } from "./constants";
+import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 import { getProjectPath, getMeetingsPath, getProjectsPath, getUnassignedPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 
@@ -140,10 +138,6 @@ async function readProjectMeetings(
  * Get all meetings for a workspace (across all projects + unassigned)
  */
 export async function getMeetings(workspaceId: string): Promise<Meeting[]> {
-  if (isMockMode()) {
-    return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId);
-  }
-
   const projectsPath = await getProjectsPath(workspaceId);
 
   if (!(await getStorage().exists(projectsPath))) {
@@ -178,10 +172,6 @@ export async function getMeetingsByProject(
   workspaceId: string,
   projectId: string
 ): Promise<Meeting[]> {
-  if (isMockMode()) {
-    return mockMeetings.filter((meeting) => meeting.workspaceId === workspaceId && meeting.projectId === projectId);
-  }
-
   const projectPath = await getProjectPath(workspaceId, projectId);
   return readProjectMeetings(workspaceId, projectId, projectPath);
 }
@@ -211,26 +201,8 @@ export async function createMeeting(data: {
 }): Promise<Meeting> {
   const meetingDate = data.date || todayISO();
   const preferredFilename = generateFilename(data.title);
-  const mockProjectPath = isUnassigned(data.projectId)
-    ? `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${SPECIAL_DIRS.UNASSIGNED}`
-    : `~/DeskMD/${PATH_SEGMENTS.WORKSPACES}/${data.workspaceId}/${PATH_SEGMENTS.PROJECTS}/${data.projectId}`;
-  let filename: string;
-  let filePath: string;
-
-  if (isMockMode()) {
-    filename = await allocateUniqueName(preferredFilename, (candidate) =>
-      mockMeetings.some(
-        (meeting) =>
-          meeting.workspaceId === data.workspaceId &&
-          meeting.projectId === data.projectId &&
-          meeting.filePath.endsWith(`/${candidate}`),
-      )
-    );
-    filePath = `${mockProjectPath}/${PATH_SEGMENTS.MEETINGS}/${filename}`;
-  } else {
-    const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
-    ({ filename, filePath } = await allocateUniqueFilePath(meetingsPath, preferredFilename));
-  }
+  const meetingsPath = await getMeetingsPath(data.workspaceId, data.projectId);
+  const { filename, filePath } = await allocateUniqueFilePath(meetingsPath, preferredFilename);
 
   const id = filenameToId(filename);
   const content = data.content || `# ${data.title}\n\n${data.templateBody || ""}`;
@@ -248,11 +220,6 @@ export async function createMeeting(data: {
     content,
     preview: generatePreview(content),
   };
-
-  if (isMockMode()) {
-    mockMeetings.unshift(meeting);
-    return meeting;
-  }
 
   const frontmatter: MeetingFrontmatter = {
     title: meeting.title,
@@ -276,19 +243,6 @@ export async function updateMeeting(
   workspaceId: string,
   projectId: string
 ): Promise<Meeting | null> {
-  if (isMockMode()) {
-    const index = mockMeetings.findIndex((m) => m.id === meetingId);
-    if (index === -1) return null;
-
-    const updatedFields: Partial<Meeting> = { ...updates, updated: nowISO() };
-    if (updates.content) {
-      updatedFields.preview = generatePreview(updates.content);
-    }
-
-    mockMeetings[index] = { ...mockMeetings[index], ...updatedFields };
-    return mockMeetings[index];
-  }
-
   const meetingsPath = await getMeetingsPath(workspaceId, projectId);
   const result = await findAndUpdateFile<Record<string, unknown>>(
     meetingsPath,
@@ -307,13 +261,6 @@ export async function deleteMeeting(
   workspaceId: string,
   projectId: string
 ): Promise<boolean> {
-  if (isMockMode()) {
-    const index = mockMeetings.findIndex((m) => m.id === meetingId);
-    if (index === -1) return false;
-    mockMeetings.splice(index, 1);
-    return true;
-  }
-
   const meetingsPath = await getMeetingsPath(workspaceId, projectId);
   const deleted = await findAndDeleteFile(meetingsPath, meetingId);
   return deleted !== null;
@@ -328,13 +275,6 @@ export async function moveMeetingToProject(
   fromProjectId: string,
   toProjectId: string
 ): Promise<Meeting | null> {
-  if (isMockMode()) {
-    const index = mockMeetings.findIndex((m) => m.id === meetingId && m.workspaceId === workspaceId);
-    if (index === -1) return null;
-    mockMeetings[index] = { ...mockMeetings[index], projectId: toProjectId };
-    return mockMeetings[index];
-  }
-
   if (fromProjectId === toProjectId) {
     const meetings = await getMeetings(workspaceId);
     return meetings.find((m) => m.id === meetingId) || null;

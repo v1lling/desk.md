@@ -3,8 +3,8 @@
  *
  * Everything in @desk/core (parser, CRUD, file-cache, search) reaches the
  * filesystem exclusively through this interface. Today it is backed by Tauri
- * (TauriProvider) on the desktop and a no-op BrowserProvider in browser/mock
- * mode. @desk/server runs the same domain layer against a NodeFsProvider (and a
+ * (TauriProvider) on the desktop and an in-memory BrowserProvider in browser
+ * development. @desk/server runs the same domain layer against a NodeFsProvider (and a
  * future S3Provider) by calling setStorage() at boot — no domain code changes.
  *
  * Scope: the 10 raw I/O primitives only. Environment/path helpers (isTauri,
@@ -24,12 +24,6 @@ export interface FileStat {
 }
 
 export interface StorageProvider {
-  /**
-   * True only for the no-real-filesystem browser/dev provider. The domain reads
-   * seed/mock data instead of hitting storage when this is set (see isMockMode
-   * in ../env). Tauri and Node providers leave it unset/false.
-   */
-  readonly isMock?: boolean;
   /**
    * False ONLY on the GuardStorageProvider (remote mode — the local disk is the
    * wrong disk). Lets LOCAL-ONLY setup operations (e.g. initDeskDirectory) no-op

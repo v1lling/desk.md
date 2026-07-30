@@ -91,7 +91,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     entityId: docId,
     filePath: doc?.filePath,
     // In Tauri the body is loaded fresh from disk; this is only a fallback.
-    // In browser mock mode it is the content the editor shows.
+    // In browser development it is the content the editor shows.
     initialContent: doc?.content ?? "",
     enabled: !!doc,
     persistBody,

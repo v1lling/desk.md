@@ -1,13 +1,12 @@
 /**
- * Centralized mock data for browser development
+ * Representative fixtures for browser development.
  *
- * This file contains all mock data used when running outside of Tauri.
- * All data is defined here for:
+ * These typed values are converted to canonical Markdown files by browser-seed.
+ * They are read-only fixture inputs, never a second persistence model.
  * - Easy modification and testing
  * - Single source of truth for mock state
  * - Clear separation between mock data and business logic
  *
- * Note: These arrays are mutable so CRUD operations work in browser mode.
  * All names below are fictional sample data.
  */
 
@@ -35,7 +34,7 @@ function iso(days: number): string {
 // WORKSPACES
 // ============================================================================
 
-export const mockWorkspaces: Workspace[] = [
+export const browserWorkspaces: readonly Workspace[] = [
   {
     id: "personal",
     name: "Personal",
@@ -63,12 +62,11 @@ export const mockWorkspaces: Workspace[] = [
 // ============================================================================
 // PROJECTS
 //
-// In browser mock mode, project stats (taskCount / tasksByStatus / docCount /
-// meetingCount) are read straight from these fields — keep them in sync with
-// the tasks / docs / meetings arrays below.
+// The stats below document the intended fixture shape. Normal domain reads
+// derive current counts from the seeded files.
 // ============================================================================
 
-export const mockProjects: Project[] = [
+export const browserProjects: readonly Project[] = [
   {
     id: "website-redesign",
     workspaceId: "acme",
@@ -175,7 +173,7 @@ const t = (
   ...fields,
 });
 
-export const mockTasks: Task[] = [
+export const browserTasks: readonly Task[] = [
   // --- Acme · Website Redesign ---------------------------------------------
   t("contact-form-endpoint", "acme", "website-redesign", "projects/website-redesign", {
     title: "Set up the contact form endpoint",
@@ -424,7 +422,7 @@ export const mockTasks: Task[] = [
 // DOCS
 // ============================================================================
 
-export const mockDocs: Doc[] = [
+export const browserDocs: readonly Doc[] = [
   {
     id: "content-inventory",
     projectId: "website-redesign",
@@ -512,7 +510,7 @@ export const mockDocs: Doc[] = [
 // MEETINGS
 // ============================================================================
 
-export const mockMeetings: Meeting[] = [
+export const browserMeetings: readonly Meeting[] = [
   {
     id: "client-kickoff",
     projectId: "website-redesign",
@@ -587,24 +585,14 @@ export const mockMeetings: Meeting[] = [
   },
 ];
 
-// Derive a deterministic `updated` stamp for every mock entry (the `created`
-// day at a fixed time), so recency ordering and the activity feed have data in
-// browser mode. Mock CRUD operations overwrite it with the real save instant.
-// Undated entries stay unstamped: they carry no recency signal, exactly like a
-// file dropped into the tree from outside the app.
-for (const task of mockTasks) if (task.created) task.updated = `${task.created}T09:00:00.000Z`;
-for (const doc of mockDocs) if (doc.created) doc.updated = `${doc.created}T10:00:00.000Z`;
-for (const meeting of mockMeetings) if (meeting.created) meeting.updated = `${meeting.created}T11:00:00.000Z`;
-
 // ============================================================================
 // VIEW STATE
 //
-// Per-workspace / per-project UI state that lives in `.view.json` on disk. In
-// browser mock mode there is no filesystem, so `getViewState` returns these
-// entries instead. Keyed by `workspaceId` or `workspaceId/projectId`.
+// Per-workspace / per-project UI state seeded as `.view.json` files.
+// Keyed by `workspaceId` or `workspaceId/projectId`.
 // ============================================================================
 
-export const mockViewState: Record<string, ProjectViewState> = {
+export const browserViewState: Readonly<Record<string, ProjectViewState>> = {
   // A couple of Acme tasks highlighted "for focus" — surfaces a workspace-color
   // tint on the board and populates the dashboard Focus widget.
   acme: { highlightedTasks: ["review-api-docs", "contact-form-endpoint"] },

@@ -54,7 +54,7 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 // Entity update shapes. `null` on an optional field is the "clear" sentinel — it
 // removes the field from frontmatter. `undefined`/omitted leaves it unchanged. null
 // is used (not undefined) because it survives JSON-RPC to the hosted server, whereas
-// JSON.stringify strips undefined keys. See applyTaskUpdates / clearNulls.
+// JSON.stringify strips undefined keys. See applyTaskUpdates.
 export type TaskUpdate =
   Partial<Pick<Task, "title" | "status" | "content" | "projectId">> &
   { priority?: TaskPriority | null; due?: string | null };

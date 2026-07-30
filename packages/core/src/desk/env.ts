@@ -12,19 +12,6 @@ import { getDataRoot } from "./data-root";
 
 export { isTauri, isMacOS, needsTrafficLightPadding } from "./platform";
 
-/**
- * Whether the domain should use seed/mock data instead of the real filesystem.
- *
- * True only in browser dev (the no-op BrowserProvider). Tauri (TauriProvider)
- * and the server (NodeFsProvider) install a real StorageProvider, so this is
- * false there and the domain reads/writes actual files. This is the seam that
- * lets the SAME domain code run on a server: `isTauri()` stays a pure platform
- * check (gates Tauri-only APIs), while mock-vs-real is decided by the provider.
- */
-export function isMockMode(): boolean {
-  return getStorage().isMock === true;
-}
-
 async function getTauriPathModule() {
   const { homeDir, join } = await import("@tauri-apps/api/path");
   return { homeDir, join };
@@ -34,7 +21,7 @@ async function getTauriPathModule() {
  * Get the Desk data directory path.
  * Reads from the boot store, falls back to ~/DeskMD.
  * In Tauri: resolves ~ to the actual home directory.
- * In browser: returns the configured path (data comes from mock arrays).
+ * In browser: returns the configured path (data lives in memory).
  */
 export async function getDeskPath(): Promise<string> {
   // Resolved via the injectable data-root seam (app wires the boot store,
@@ -42,7 +29,7 @@ export async function getDeskPath(): Promise<string> {
   const dataPath = (await getDataRoot()) || "~/DeskMD";
 
   if (!isTauri()) {
-    // Browser mode uses mock data from arrays; this path is for display only
+    // Browser mode uses the same logical path inside its in-memory provider.
     return dataPath;
   }
 

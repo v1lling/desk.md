@@ -50,3 +50,8 @@ export function publishDomainWrite(event: DomainWriteEvent): void {
     }
   }
 }
+
+/** Remove all listeners when disposing an isolated runtime. */
+export function resetDomainWriteListeners(): void {
+  listeners.clear();
+}

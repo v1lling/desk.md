@@ -4,15 +4,13 @@
 import type { Doc, ContentScope } from "../types";
 import { isMarkdownFile, isConvertibleFile } from "./file-utils";
 import { parseMarkdown, generateFilename, filenameToId, todayISO, generatePreview } from "./parser";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
   allocateUniqueFilePath,
-  allocateUniqueName,
   writeMarkdownFile,
 } from "./file-operations";
 import { getContentCache } from "./file-cache";
-import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
@@ -50,25 +48,12 @@ export async function createDocInFolder(data: {
   const homeWorkspaceId = await getHomeWorkspaceId();
   const wsId = data.workspaceId || homeWorkspaceId;
   const projId = data.projectId || (data.scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId);
-  const scopeSegment = data.scope === "workspace" ? "" : `/projects/${projId}`;
-  const folderSegment = data.folderPath ? `/${data.folderPath}` : "";
-  const mockDirectory = `~/DeskMD/workspaces/${wsId}${scopeSegment}/docs${folderSegment}`;
-  let filename: string;
-  let filePath: string;
-
-  if (isMockMode()) {
-    filename = await allocateUniqueName(preferredFilename, (candidate) =>
-      mockDocs.some((doc) => doc.filePath === `${mockDirectory}/${candidate}`)
-    );
-    filePath = `${mockDirectory}/${filename}`;
-  } else {
-    const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
-    const folderPath = data.folderPath
-      ? await joinPath(basePath, data.folderPath)
-      : basePath;
-    await getStorage().mkdir(folderPath);
-    ({ filename, filePath } = await allocateUniqueFilePath(folderPath, preferredFilename));
-  }
+  const basePath = await getDocsPath(data.scope, data.workspaceId, data.projectId);
+  const folderPath = data.folderPath
+    ? await joinPath(basePath, data.folderPath)
+    : basePath;
+  await getStorage().mkdir(folderPath);
+  const { filename, filePath } = await allocateUniqueFilePath(folderPath, preferredFilename);
 
   const relPath = data.folderPath
     ? `${data.folderPath}/${filename}`
@@ -89,11 +74,6 @@ export async function createDocInFolder(data: {
     preview: generatePreview(content),
     ...(data.author ? { author: data.author } : {}),
   };
-
-  if (isMockMode()) {
-    mockDocs.unshift(doc);
-    return doc;
-  }
 
   const frontmatter: DocFrontmatter = {
     title: doc.title,
@@ -165,7 +145,7 @@ export async function importFiles(
       convertibleAction === "keep" ||
       convertibleAction === "both";
     let assetTarget: Awaited<ReturnType<typeof allocateUniqueFilePath>> | null = null;
-    if (shouldWriteAsset && !isMockMode()) {
+    if (shouldWriteAsset) {
       try {
         assetTarget = await allocateUniqueFilePath(targetDir, file.name);
       } catch (err) {
@@ -192,7 +172,7 @@ export async function importFiles(
       }
     }
 
-    if (shouldWriteAsset && !isMockMode()) {
+    if (shouldWriteAsset) {
       try {
         if (!assetTarget) {
           throw new Error(`Asset path was not allocated: ${file.name}`);

@@ -13,7 +13,7 @@
  * or already workspace-relative (folder patterns); `toRelativePath` normalises the
  * former and leaves the latter untouched.
  */
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import { getWorkspacePath } from "./paths";
 
@@ -76,9 +76,8 @@ export function isPathExcludedByAIIgnore(relativePath: string, entries: string[]
   return false;
 }
 
-/** Load `.aiignore` entries for a workspace (empty in mock mode / when absent). */
+/** Load `.aiignore` entries for a workspace (empty when absent). */
 export async function loadAIIgnoreEntries(workspaceId: string): Promise<string[]> {
-  if (isMockMode()) return [];
   return readAIIgnoreEntries(workspaceId);
 }
 
@@ -91,7 +90,6 @@ export async function setAIInclusion(
   workspaceId: string,
   included: boolean
 ): Promise<void> {
-  if (isMockMode()) return;
   const relativePath = await toRelativePath(filePath, workspaceId);
   const entries = await readAIIgnoreEntries(workspaceId);
   if (included) {
@@ -104,7 +102,6 @@ export async function setAIInclusion(
 
 /** True if the file is included (not excluded by `.aiignore`). */
 export async function getAIInclusion(filePath: string, workspaceId: string): Promise<boolean> {
-  if (isMockMode()) return true;
   try {
     const relativePath = await toRelativePath(filePath, workspaceId);
     const entries = await readAIIgnoreEntries(workspaceId);
@@ -125,7 +122,6 @@ export async function getAiExclusionState(
   filePath: string,
   workspaceId: string
 ): Promise<AiExclusionState> {
-  if (isMockMode()) return { isExcluded: false, isInExcludedFolder: false };
   try {
     const relativePath = await toRelativePath(filePath, workspaceId);
     const entries = await readAIIgnoreEntries(workspaceId);
@@ -166,7 +162,6 @@ export async function setFolderAIInclusion(
   workspaceId: string,
   included: boolean
 ): Promise<void> {
-  if (isMockMode()) return;
   const folderPattern = toFolderPattern(folderPath);
   const entries = await readAIIgnoreEntries(workspaceId);
   if (included) {
@@ -179,7 +174,6 @@ export async function setFolderAIInclusion(
 
 /** True if the folder is included (not itself excluded and not under an excluded parent). */
 export async function getFolderAIInclusion(folderPath: string, workspaceId: string): Promise<boolean> {
-  if (isMockMode()) return true;
   try {
     const folderPattern = toFolderPattern(folderPath);
     const entries = await readAIIgnoreEntries(workspaceId);

@@ -12,10 +12,9 @@
  */
 
 import { compareDatesDesc } from "./parser";
-import { getDeskPath, joinPath, isMockMode } from "./env";
+import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
-import { mockViewState } from "./mock-data";
 import type { TaskStatus, ProjectViewState, TaskViewMode } from "../types";
 
 // Re-export type for external use (canonical definition in @/types)
@@ -67,12 +66,6 @@ export async function getViewState(
   workspaceId: string,
   projectId: string | null
 ): Promise<ProjectViewState> {
-  // Browser mock mode: no filesystem — serve seeded view state instead.
-  if (isMockMode()) {
-    const key = projectId ? `${workspaceId}/${projectId}` : workspaceId;
-    return mockViewState[key] ?? {};
-  }
-
   try {
     const path = await getViewStatePath(workspaceId, projectId);
 

@@ -27,6 +27,10 @@ export function setEditorNotifier(n: EditorNotifier): void {
   notifier = n;
 }
 
+export function resetEditorNotifier(): void {
+  notifier = NOOP;
+}
+
 export function getEditorNotifier(): EditorNotifier {
   return notifier;
 }

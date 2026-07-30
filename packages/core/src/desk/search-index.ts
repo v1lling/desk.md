@@ -69,6 +69,12 @@ export function rebuildIndex(newItems: SearchItem[]): void {
   isInitialized = true;
 }
 
+export function resetSearchIndex(): void {
+  items = [];
+  fuse = null;
+  isInitialized = false;
+}
+
 /**
  * Search the index with fuzzy matching
  */

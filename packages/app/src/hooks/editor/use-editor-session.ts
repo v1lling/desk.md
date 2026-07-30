@@ -64,7 +64,7 @@ interface UseEditorSessionOptions {
   /** Called after successful save with the path and content that was saved */
   /**
    * Hosted/web mode persistence. In Tauri the body is written straight to disk
-   * via getStorage(); on the web client getStorage() is the mock BrowserProvider,
+   * via getStorage(); on the web client getStorage() is the in-memory BrowserProvider,
    * so the body must be persisted through the DeskService update mutation
    * instead (the server merges frontmatter). When set and not running in Tauri,
    * save() calls this with the body and expects true on success.

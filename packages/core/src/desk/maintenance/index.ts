@@ -13,6 +13,7 @@ export { updateIndexForFile } from "./index-updater";
 export { rebuildWorkspaceIndex, rebuildSmartIndex } from "./rebuild";
 export {
   startMaintenanceEngine,
+  resetMaintenanceEngine,
   notifyExternalChanges,
   getAIMaintenanceInfo,
   type MaintenanceEngineOptions,

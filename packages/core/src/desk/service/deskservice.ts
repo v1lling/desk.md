@@ -6,7 +6,7 @@
  *
  *   - LocalDeskService  — runs the domain in-process on a StorageProvider (today;
  *                         see local-deskservice.ts). This is the Tauri app and the
- *                         browser dev-mock mode.
+ *                         browser development.
  *   - RemoteDeskService — a thin fetch client (packages/app/src/lib/remote-desk-service.ts)
  *                         to a server that runs the *same* LocalDeskService over
  *                         NodeFsProvider.

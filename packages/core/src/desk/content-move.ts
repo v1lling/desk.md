@@ -7,9 +7,8 @@ import {
   decodeDocFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { findFileById, readMarkdownFile, moveMarkdownFile } from "./file-operations";
-import { mockDocs } from "./mock-data";
 import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getDocsPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
@@ -44,18 +43,6 @@ export async function moveDoc(
   from: DocLocation,
   to: DocLocation
 ): Promise<Doc | null> {
-  if (isMockMode()) {
-    const doc = mockDocs.find((d) => d.id === docId);
-    if (doc) {
-      // docId is a scope-relative path; the filename is its last segment.
-      const baseFilename = `${docId.split("/").pop()!}.md`;
-      doc.path = to.folderPath ? `${to.folderPath}/${baseFilename}` : baseFilename;
-      doc.id = filenameToId(doc.path);
-      doc.projectId = projectIdFor(to, doc.workspaceId);
-    }
-    return doc || null;
-  }
-
   const fromBasePath = await resolveBasePath(from, workspaceId);
   const toBasePath = await resolveBasePath(to, workspaceId);
   const fromDir = from.folderPath ? await joinPath(fromBasePath, from.folderPath) : fromBasePath;

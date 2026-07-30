@@ -17,6 +17,10 @@ export function setDataRootResolver(fn: DataRootResolver): void {
   resolver = fn;
 }
 
+export function resetDataRootResolver(): void {
+  resolver = async () => "~/DeskMD";
+}
+
 export async function getDataRoot(): Promise<string> {
   return resolver();
 }

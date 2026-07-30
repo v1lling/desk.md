@@ -5,12 +5,12 @@
  * Uses paths.ts for all path construction.
  */
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "../types";
-import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO, clearNulls } from "./parser";
+import { parseMarkdown, generateFilename, filenameToId, todayISO, nowISO } from "./parser";
 import {
   decodeTaskFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
@@ -20,9 +20,7 @@ import {
   moveMarkdownFile,
   readMarkdownFile,
   allocateUniqueFilePath,
-  allocateUniqueName,
 } from "./file-operations";
-import { mockTasks } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 import { getTasksPath, getProjectsPath, getUnassignedPath, getProjectPath } from "./paths";
 import { findItemInAllWorkspaces } from "./search";
@@ -142,10 +140,6 @@ async function readProjectTasks(
  * Get all tasks for a workspace (across all projects)
  */
 export async function getTasks(workspaceId: string): Promise<Task[]> {
-  if (isMockMode()) {
-    return mockTasks.filter((task) => task.workspaceId === workspaceId);
-  }
-
   const projectsPath = await getProjectsPath(workspaceId);
 
   if (!(await getStorage().exists(projectsPath))) {
@@ -180,10 +174,6 @@ export async function getTasksByProject(
   workspaceId: string,
   projectId: string
 ): Promise<Task[]> {
-  if (isMockMode()) {
-    return mockTasks.filter((task) => task.workspaceId === workspaceId && task.projectId === projectId);
-  }
-
   const projectPath = await getProjectPath(workspaceId, projectId);
   return readProjectTasks(workspaceId, projectId, projectPath);
 }
@@ -213,23 +203,8 @@ export async function createTask(data: {
   author?: "ai";
 }): Promise<Task> {
   const preferredFilename = generateFilename(data.title);
-  let filename: string;
-  let filePath: string;
-
-  if (isMockMode()) {
-    filename = await allocateUniqueName(preferredFilename, (candidate) =>
-      mockTasks.some(
-        (task) =>
-          task.workspaceId === data.workspaceId &&
-          task.projectId === data.projectId &&
-          task.filePath.endsWith(`/${candidate}`),
-      )
-    );
-    filePath = `~/DeskMD/workspaces/${data.workspaceId}/projects/${data.projectId}/tasks/${filename}`;
-  } else {
-    const tasksPath = await getTasksPath(data.workspaceId, data.projectId);
-    ({ filename, filePath } = await allocateUniqueFilePath(tasksPath, preferredFilename));
-  }
+  const tasksPath = await getTasksPath(data.workspaceId, data.projectId);
+  const { filename, filePath } = await allocateUniqueFilePath(tasksPath, preferredFilename);
 
   const id = filenameToId(filename);
 
@@ -247,11 +222,6 @@ export async function createTask(data: {
     author: data.author,
     content: data.content || data.templateBody || "",
   };
-
-  if (isMockMode()) {
-    mockTasks.push(task);
-    return task;
-  }
 
   const frontmatter: TaskFrontmatter = {
     title: task.title,
@@ -276,13 +246,6 @@ export async function updateTask(
   workspaceId?: string,
   projectId?: string
 ): Promise<Task | null> {
-  if (isMockMode()) {
-    const index = mockTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return null;
-    mockTasks[index] = { ...mockTasks[index], ...clearNulls(updates), updated: nowISO() };
-    return mockTasks[index];
-  }
-
   // Helper to perform the update at a known tasks directory
   const updateAtPath = async (tasksPath: string, wsId: string, projId: string): Promise<Task | null> => {
     const result = await findAndUpdateFile<Record<string, unknown>>(
@@ -316,13 +279,6 @@ export async function deleteTask(
   workspaceId?: string,
   projectId?: string
 ): Promise<boolean> {
-  if (isMockMode()) {
-    const index = mockTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return false;
-    mockTasks.splice(index, 1);
-    return true;
-  }
-
   // Fast path: directly locate via workspace + project
   if (workspaceId && projectId) {
     const tasksPath = await getTasksPath(workspaceId, projectId);
@@ -360,13 +316,6 @@ export async function moveTaskToProject(
   fromProjectId: string,
   toProjectId: string
 ): Promise<Task | null> {
-  if (isMockMode()) {
-    const index = mockTasks.findIndex((t) => t.id === taskId && t.workspaceId === workspaceId);
-    if (index === -1) return null;
-    mockTasks[index] = { ...mockTasks[index], projectId: toProjectId };
-    return mockTasks[index];
-  }
-
   if (fromProjectId === toProjectId) {
     const tasks = await getTasks(workspaceId);
     return tasks.find((t) => t.id === taskId) || null;

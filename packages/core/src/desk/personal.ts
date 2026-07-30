@@ -22,13 +22,12 @@ import {
   filenameToId,
   todayISO,
   nowISO,
-  clearNulls,
 } from "./parser";
 import {
   decodeTaskFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import {
   writeMarkdownFile,
@@ -36,30 +35,10 @@ import {
   deleteMarkdownFile,
   moveMarkdownFile,
   allocateUniqueFilePath,
-  allocateUniqueName,
 } from "./file-operations";
 import { SPECIAL_DIRS } from "./constants";
 import { getCapturePath, getTasksPath } from "./paths";
 import { getHomeWorkspaceId } from "./workspaces";
-
-// ============================================================================
-// MOCK DATA
-// ============================================================================
-
-export const mockCaptureTasks: Task[] = [
-  {
-    id: "2024-01-16-book-dentist",
-    projectId: SPECIAL_DIRS.CAPTURE,
-    workspaceId: "personal",
-    filePath: "~/DeskMD/workspaces/personal/_capture/tasks/2024-01-16-book-dentist.md",
-    title: "Book dentist appointment",
-    status: "todo",
-    priority: "low",
-    created: "2024-01-16",
-    updated: "2024-01-16T09:00:00.000Z",
-    content: "Remember to book the 6-month checkup",
-  },
-];
 
 // ============================================================================
 // FRONTMATTER TYPES
@@ -82,10 +61,6 @@ interface TaskFrontmatter extends Record<string, unknown> {
  * Get all capture tasks (quick capture inbox)
  */
 export async function getCaptureTasks(): Promise<Task[]> {
-  if (isMockMode()) {
-    return [...mockCaptureTasks];
-  }
-
   const capturePath = await getCapturePath();
 
   if (!(await getStorage().exists(capturePath))) {
@@ -138,18 +113,8 @@ export async function createCaptureTask(data: {
 }): Promise<Task> {
   const homeWorkspaceId = await getHomeWorkspaceId();
   const preferredFilename = generateFilename(data.title);
-  let filename: string;
-  let filePath: string;
-
-  if (isMockMode()) {
-    filename = await allocateUniqueName(preferredFilename, (candidate) =>
-      mockCaptureTasks.some((task) => task.filePath.endsWith(`/${candidate}`))
-    );
-    filePath = `~/DeskMD/workspaces/${homeWorkspaceId}/_capture/tasks/${filename}`;
-  } else {
-    const capturePath = await getCapturePath();
-    ({ filename, filePath } = await allocateUniqueFilePath(capturePath, preferredFilename));
-  }
+  const capturePath = await getCapturePath();
+  const { filename, filePath } = await allocateUniqueFilePath(capturePath, preferredFilename);
   const id = filenameToId(filename);
 
   const task: Task = {
@@ -165,11 +130,6 @@ export async function createCaptureTask(data: {
     updated: nowISO(),
     content: data.content || "",
   };
-
-  if (isMockMode()) {
-    mockCaptureTasks.push(task);
-    return task;
-  }
 
   const frontmatter: TaskFrontmatter = {
     title: task.title,
@@ -191,13 +151,6 @@ export async function updateCaptureTask(
   taskId: string,
   updates: Omit<TaskUpdate, "projectId">
 ): Promise<Task | null> {
-  if (isMockMode()) {
-    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return null;
-    mockCaptureTasks[index] = { ...mockCaptureTasks[index], ...clearNulls(updates), updated: nowISO() };
-    return mockCaptureTasks[index];
-  }
-
   const tasks = await getCaptureTasks();
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -235,13 +188,6 @@ export async function updateCaptureTask(
  * Delete a capture task
  */
 export async function deleteCaptureTask(taskId: string): Promise<boolean> {
-  if (isMockMode()) {
-    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return false;
-    mockCaptureTasks.splice(index, 1);
-    return true;
-  }
-
   const tasks = await getCaptureTasks();
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return false;
@@ -254,17 +200,6 @@ export async function deleteCaptureTask(taskId: string): Promise<boolean> {
  * This moves the task to the Personal workspace's _unassigned/tasks/ directory
  */
 export async function moveCaptureToPersonal(taskId: string): Promise<Task | null> {
-  if (isMockMode()) {
-    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return null;
-
-    const [task] = mockCaptureTasks.splice(index, 1);
-    return {
-      ...task,
-      projectId: SPECIAL_DIRS.UNASSIGNED,
-    };
-  }
-
   const tasks = await getCaptureTasks();
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -291,19 +226,6 @@ export async function moveCaptureToWorkspace(
   workspaceId: string,
   projectId: string
 ): Promise<Task | null> {
-  if (isMockMode()) {
-    const index = mockCaptureTasks.findIndex((t) => t.id === taskId);
-    if (index === -1) return null;
-
-    // Remove from mock capture tasks and return as workspace task
-    const [task] = mockCaptureTasks.splice(index, 1);
-    return {
-      ...task,
-      projectId,
-      workspaceId,
-    };
-  }
-
   const tasks = await getCaptureTasks();
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;

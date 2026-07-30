@@ -21,6 +21,10 @@ export function setAIKeyResolver(r: AIKeyResolver): void {
   resolver = r;
 }
 
+export function resetAIKeyResolver(): void {
+  resolver = async () => null;
+}
+
 export function getAIKeyResolver(): AIKeyResolver {
   return resolver;
 }

@@ -7,15 +7,14 @@
  * during onboarding like any other workspace — there is no magic folder name.
  */
 import type { Workspace, WorkspaceUpdate } from "../types";
-import { parseMarkdown, serializeMarkdown, todayISO, clearNulls } from "./parser";
+import { parseMarkdown, serializeMarkdown, todayISO } from "./parser";
 import {
   decodeWorkspaceFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, getDeskPath, joinPath } from "./env";
+import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
-import { mockWorkspaces } from "./mock-data";
 import { PATH_SEGMENTS, SPECIAL_DIRS, FILE_NAMES } from "./constants";
 import { getAgentFileWriter } from "./agent-file-writer";
 import { overviewTemplate } from "./overview";
@@ -86,10 +85,6 @@ export function clearHomeWorkspaceCache(): void {
  * Get all workspaces, home workspace first.
  */
 export async function getWorkspaces(): Promise<Workspace[]> {
-  if (isMockMode()) {
-    return sortWorkspacesHomeFirst([...mockWorkspaces]);
-  }
-
   const deskPath = await getDeskPath();
   const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
 
@@ -132,10 +127,6 @@ export async function getWorkspaces(): Promise<Workspace[]> {
  * Get a single workspace by ID
  */
 export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
-  if (isMockMode()) {
-    return mockWorkspaces.find((w) => w.id === workspaceId) || null;
-  }
-
   const deskPath = await getDeskPath();
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
@@ -178,27 +169,12 @@ export async function createWorkspace(data: {
   color?: string;
   home?: boolean;
 }): Promise<Workspace> {
-  const mockMode = isMockMode();
-  const existingMockHome = data.home
-    ? mockWorkspaces.findIndex((workspace) => workspace.isHome)
-    : -1;
-  let id: string;
-  let workspacePath: string | null = null;
-
-  if (mockMode) {
-    id = existingMockHome !== -1
-      ? mockWorkspaces[existingMockHome].id
-      : await allocateUniqueName(data.id || "workspace", (candidate) =>
-          mockWorkspaces.some((workspace) => workspace.id === candidate)
-        );
-  } else {
-    const deskPath = await getDeskPath();
-    const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
-    id = await allocateUniqueName(data.id || "workspace", async (candidate) =>
-      getStorage().exists(await joinPath(workspacesPath, candidate))
-    );
-    workspacePath = await joinPath(workspacesPath, id);
-  }
+  const deskPath = await getDeskPath();
+  const workspacesPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES);
+  const id = await allocateUniqueName(data.id || "workspace", async (candidate) =>
+    getStorage().exists(await joinPath(workspacesPath, candidate))
+  );
+  const workspacePath = await joinPath(workspacesPath, id);
 
   const overview = data.overview?.trim() || overviewTemplate(data.description);
   const workspace: Workspace = {
@@ -210,21 +186,6 @@ export async function createWorkspace(data: {
     created: todayISO(),
     isHome: data.home === true,
   };
-
-  if (mockMode) {
-    // In mock mode, replace an existing home workspace rather than duplicating it
-    if (existingMockHome !== -1) {
-      mockWorkspaces[existingMockHome] = workspace;
-    } else {
-      mockWorkspaces.push(workspace);
-    }
-    clearHomeWorkspaceCache();
-    return workspace;
-  }
-
-  if (!workspacePath) {
-    throw new Error("Workspace path was not initialized");
-  }
 
   // Create workspace directory structure
   await getStorage().mkdir(workspacePath);
@@ -272,13 +233,6 @@ export async function updateWorkspace(
   workspaceId: string,
   updates: WorkspaceUpdate
 ): Promise<Workspace | null> {
-  if (isMockMode()) {
-    const index = mockWorkspaces.findIndex((w) => w.id === workspaceId);
-    if (index === -1) return null;
-    mockWorkspaces[index] = { ...mockWorkspaces[index], ...clearNulls(updates) };
-    return mockWorkspaces[index];
-  }
-
   const deskPath = await getDeskPath();
   const workspacePath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, FILE_NAMES.WORKSPACE_MD);
 
@@ -319,14 +273,6 @@ export async function deleteWorkspace(workspaceId: string): Promise<boolean> {
   if (workspaceId === (await getHomeWorkspaceId())) {
     console.warn("Cannot delete the home workspace");
     return false;
-  }
-
-  if (isMockMode()) {
-    const index = mockWorkspaces.findIndex((w) => w.id === workspaceId);
-    if (index === -1) return false;
-    mockWorkspaces.splice(index, 1);
-    clearHomeWorkspaceCache();
-    return true;
   }
 
   const deskPath = await getDeskPath();

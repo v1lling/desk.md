@@ -6,7 +6,7 @@
  */
 
 import type { TreeNode, TraversalOptions } from "./types";
-import { isMockMode, getDeskPath, joinPath } from "../env";
+import { getDeskPath, joinPath } from "../env";
 import { getStorage } from "../storage";
 
 /**
@@ -208,9 +208,9 @@ export async function getDeskRoot(): Promise<string> {
 }
 
 /**
- * Whether a real filesystem is available (Tauri desktop or the Node server).
- * False only in browser/mock mode.
+ * Whether this process owns an available storage backend.
+ * False only when remote mode installs the guard provider.
  */
 export function isFileSystemAvailable(): boolean {
-  return !isMockMode();
+  return getStorage().canPersist !== false;
 }

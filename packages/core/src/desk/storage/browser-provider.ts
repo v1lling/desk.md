@@ -1,54 +1,14 @@
 /**
- * BrowserProvider — StorageProvider for browser/mock mode (no real filesystem).
+ * BrowserProvider — a seeded in-memory filesystem for browser development.
  *
- * Preserves the exact behavior the old tauri-fs.ts free functions had when
- * isTauri() was false: existence is assumed, reads throw, writes are no-ops,
- * listings are empty. In practice the domain layer short-circuits to mock-data
- * arrays before most of these are hit; this is the safety net for anything that
- * does reach storage.
+ * Browser builds run the same filesystem-backed domain code as Tauri and the
+ * server. The only runtime difference is where the bytes live.
  */
-import type { DirEntry, FileStat, StorageProvider } from "./provider";
+import { createBrowserSeedFiles } from "../browser-seed";
+import { InMemoryStorageProvider } from "./memory-provider";
 
-export class BrowserProvider implements StorageProvider {
-  readonly isMock = true;
-
-  async exists(): Promise<boolean> {
-    return true; // Mock for browser
-  }
-
-  async readTextFile(): Promise<string> {
-    throw new Error("File system not available in browser mode");
-  }
-
-  async writeTextFile(): Promise<void> {
-    // no-op
-  }
-
-  async writeFile(): Promise<void> {
-    // no-op
-  }
-
-  async mkdir(): Promise<void> {
-    // no-op
-  }
-
-  async removeFile(): Promise<void> {
-    // no-op
-  }
-
-  async removeDir(): Promise<void> {
-    // no-op
-  }
-
-  async rename(): Promise<void> {
-    // no-op
-  }
-
-  async readDir(): Promise<DirEntry[]> {
-    return [];
-  }
-
-  async fileStat(): Promise<FileStat | null> {
-    return null;
+export class BrowserProvider extends InMemoryStorageProvider {
+  constructor() {
+    super(createBrowserSeedFiles());
   }
 }

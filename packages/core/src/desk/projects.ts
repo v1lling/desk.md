@@ -2,16 +2,15 @@
  * Projects library - File system operations for projects
  */
 import type { Project, ProjectStatus, ProjectUpdate } from "../types";
-import { parseMarkdown, serializeMarkdown, slugify, todayISO, clearNulls } from "./parser";
+import { parseMarkdown, serializeMarkdown, slugify, todayISO } from "./parser";
 import {
   decodeProjectFrontmatter,
   decodeTaskFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, getDeskPath, joinPath } from "./env";
+import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { allocateUniqueName, removeDirectoryWithContents } from "./file-operations";
-import { mockProjects } from "./mock-data";
 import { SPECIAL_DIRS, PATH_SEGMENTS } from "./constants";
 
 interface ProjectFrontmatter {
@@ -86,10 +85,6 @@ async function countMarkdownFiles(dirPath: string, recursive = false): Promise<n
  * Get all projects for a workspace
  */
 export async function getProjects(workspaceId: string): Promise<Project[]> {
-  if (isMockMode()) {
-    return mockProjects.filter((project) => project.workspaceId === workspaceId);
-  }
-
   const deskPath = await getDeskPath();
   const projectsPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS);
 
@@ -149,14 +144,6 @@ export async function getProject(
   workspaceId: string,
   projectId: string
 ): Promise<Project | null> {
-  if (isMockMode()) {
-    return (
-      mockProjects.find(
-        (project) => project.workspaceId === workspaceId && project.id === projectId
-      ) || null
-    );
-  }
-
   const deskPath = await getDeskPath();
   const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
   const projectMdPath = await joinPath(projectPath, "project.md");
@@ -206,28 +193,16 @@ export async function createProject(data: {
   status?: ProjectStatus;
 }): Promise<Project> {
   const preferredId = slugify(data.name) || "project";
-  let id: string;
-  let projectsPath: string | null = null;
-
-  if (isMockMode()) {
-    id = await allocateUniqueName(preferredId, (candidate) =>
-      mockProjects.some(
-        (project) => project.workspaceId === data.workspaceId && project.id === candidate,
-      )
-    );
-  } else {
-    const deskPath = await getDeskPath();
-    const realProjectsPath = await joinPath(
-      deskPath,
-      PATH_SEGMENTS.WORKSPACES,
-      data.workspaceId,
-      PATH_SEGMENTS.PROJECTS,
-    );
-    projectsPath = realProjectsPath;
-    id = await allocateUniqueName(preferredId, async (candidate) =>
-      getStorage().exists(await joinPath(realProjectsPath, candidate))
-    );
-  }
+  const deskPath = await getDeskPath();
+  const projectsPath = await joinPath(
+    deskPath,
+    PATH_SEGMENTS.WORKSPACES,
+    data.workspaceId,
+    PATH_SEGMENTS.PROJECTS,
+  );
+  const id = await allocateUniqueName(preferredId, async (candidate) =>
+    getStorage().exists(await joinPath(projectsPath, candidate))
+  );
 
   const project: Project = {
     id,
@@ -242,14 +217,6 @@ export async function createProject(data: {
     meetingCount: 0,
   };
 
-  if (isMockMode()) {
-    mockProjects.push(project);
-    return project;
-  }
-
-  if (!projectsPath) {
-    throw new Error("Project path was not initialized");
-  }
   const projectPath = await joinPath(projectsPath, id);
 
   // Create project directory structure
@@ -280,13 +247,6 @@ export async function updateProject(
   updates: ProjectUpdate,
   workspaceId: string
 ): Promise<Project | null> {
-  if (isMockMode()) {
-    const index = mockProjects.findIndex((p) => p.id === projectId);
-    if (index === -1) return null;
-    mockProjects[index] = { ...mockProjects[index], ...clearNulls(updates) };
-    return mockProjects[index];
-  }
-
   const deskPath = await getDeskPath();
   const projectMdPath = await joinPath(
     deskPath,
@@ -337,13 +297,6 @@ export async function updateProject(
  * Delete a project (removes entire directory)
  */
 export async function deleteProject(projectId: string, workspaceId: string): Promise<boolean> {
-  if (isMockMode()) {
-    const index = mockProjects.findIndex((p) => p.id === projectId);
-    if (index === -1) return false;
-    mockProjects.splice(index, 1);
-    return true;
-  }
-
   const deskPath = await getDeskPath();
   const projectPath = await joinPath(deskPath, PATH_SEGMENTS.WORKSPACES, workspaceId, PATH_SEGMENTS.PROJECTS, projectId);
 

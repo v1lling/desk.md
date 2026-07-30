@@ -69,6 +69,7 @@ export * from "./editor-event-bus";
 // ── Domain-write bus + path classification (the maintenance trigger) ──
 export * from "./domain-write-bus";
 export * from "./path-identity";
+export * from "./runtime";
 
 // ── Infrastructure ──────────────────────────────────────────────────
 // Note: the file watcher and the React file-tree hooks are UI/Tauri glue and

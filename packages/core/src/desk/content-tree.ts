@@ -8,9 +8,8 @@ import {
   decodeDocFrontmatter,
   reportFrontmatterDiagnostics,
 } from "./frontmatter";
-import { isMockMode, joinPath } from "./env";
+import { joinPath } from "./env";
 import { getStorage } from "./storage";
-import { mockDocs } from "./mock-data";
 import { SPECIAL_DIRS, WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 import { getHomeWorkspaceId } from "./workspaces";
 import { getDocsPath, getProjectsPath } from "./paths";
@@ -190,19 +189,6 @@ export async function getContentTree(
 ): Promise<FileTreeNode[]> {
   const homeWorkspaceId = await getHomeWorkspaceId();
 
-  if (isMockMode()) {
-    const filtered = mockDocs.filter((doc) => {
-      if (scope === "personal") return doc.workspaceId === homeWorkspaceId;
-      if (scope === "workspace") return doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID;
-      return doc.workspaceId === workspaceId && doc.projectId === projectId;
-    });
-
-    return filtered.map((doc) => ({
-      type: "doc" as const,
-      doc,
-    }));
-  }
-
   const basePath = await getDocsPath(scope, workspaceId, projectId);
 
   // Skip directories that haven't been created yet — first write will create them.
@@ -297,10 +283,6 @@ export async function getAllDocs(
  * Get all docs for a workspace across all projects (includes nested folders)
  */
 export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]> {
-  if (isMockMode()) {
-    return mockDocs.filter((doc) => doc.workspaceId === workspaceId);
-  }
-
   const allDocs: Doc[] = [];
 
   // 1. Get workspace-level docs
@@ -334,36 +316,6 @@ export async function getAllDocsForWorkspace(workspaceId: string): Promise<Doc[]
  * Project folders have children: [] — content is loaded lazily by the component on expand.
  */
 export async function getWorkspaceDocsShell(workspaceId: string): Promise<FileTreeNode[]> {
-  if (isMockMode()) {
-    const workspaceDocs = mockDocs.filter(
-      (doc) => doc.workspaceId === workspaceId && doc.projectId === WORKSPACE_LEVEL_PROJECT_ID,
-    );
-    const workspaceNodes: FileTreeNode[] = workspaceDocs.map((doc) => ({ type: "doc" as const, doc }));
-
-    // Get unique project IDs and count docs per project (across both kinds — counts are kind-agnostic in the project stub)
-    const projectDocs = mockDocs.filter(
-      (doc) => doc.workspaceId === workspaceId && doc.projectId !== WORKSPACE_LEVEL_PROJECT_ID
-    );
-    const projectCounts = new Map<string, number>();
-    for (const doc of projectDocs) {
-      projectCounts.set(doc.projectId, (projectCounts.get(doc.projectId) || 0) + 1);
-    }
-    const projectFolders: FileTreeNode[] = Array.from(projectCounts.entries()).map(([projectId, count]) => ({
-      type: "folder" as const,
-      folder: {
-        name: projectId,
-        path: `_project/${projectId}`,
-        children: [],  // Lazy loaded on expand
-        isProject: true,
-        projectId,
-        docCount: count,
-        assetCount: 0,
-      },
-    }));
-
-    return [...workspaceNodes, ...projectFolders];
-  }
-
   // 1. Get workspace-level document tree
   const workspaceTree = await getContentTree("workspace", workspaceId);
 
