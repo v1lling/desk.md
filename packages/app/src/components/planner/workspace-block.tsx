@@ -22,12 +22,12 @@ import {
   minutesToTime,
   pixelsToMinutes,
   snapToSlot,
-  blocksOverlap,
 } from "@desk/core";
 import { MiniTaskItem } from "./mini-task-item";
 import { MiniNoteItem } from "./mini-note-item";
 import { TaskPickerPopover } from "./task-picker-popover";
 import { usePointerDrag } from "./use-pointer-drag";
+import { clampBlockResize } from "@/lib/planner-interactions";
 import type { WorkspaceBlock, Workspace } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
 
@@ -133,36 +133,6 @@ export function TimeBlock({
   const resizePreviewRef = useRef(resizePreview);
   resizePreviewRef.current = resizePreview;
 
-  const clampToSiblings = useCallback(
-    (startMin: number, endMin: number): { startMinute: number; endMinute: number } => {
-      let clampedStart = startMin;
-      let clampedEnd = endMin;
-      const edge = resizeRef.current?.edge;
-      const sorted = [...siblingBlocks].sort((a, b) => a.startMinute - b.startMinute);
-
-      for (const s of sorted) {
-        if (!blocksOverlap({ startMinute: clampedStart, endMinute: clampedEnd }, s)) continue;
-        if (edge === "top") {
-          clampedStart = s.endMinute;
-        } else {
-          clampedEnd = s.startMinute;
-        }
-      }
-
-      // Minimum 30-minute block
-      if (clampedEnd - clampedStart < 30) {
-        if (edge === "top") {
-          clampedStart = clampedEnd - 30;
-        } else {
-          clampedEnd = clampedStart + 30;
-        }
-      }
-
-      return { startMinute: Math.max(0, clampedStart), endMinute: Math.min(1440, clampedEnd) };
-    },
-    [siblingBlocks]
-  );
-
   const handleResizeStart = useCallback(
     (edge: "top" | "bottom", e: React.MouseEvent) => {
       e.preventDefault();
@@ -193,7 +163,7 @@ export function TimeBlock({
             newEnd = snapToSlot(resizeRef.current.originalEnd + deltaMinutes);
           }
 
-          const clamped = clampToSiblings(newStart, newEnd);
+          const clamped = clampBlockResize(edge, newStart, newEnd, siblingBlocks);
           resizePreviewRef.current = clamped;
           setResizePreview(clamped);
         },
@@ -216,7 +186,7 @@ export function TimeBlock({
         },
       });
     },
-    [beginDrag, block, weekOf, day, updateBlockTime, clampToSiblings]
+    [beginDrag, block, weekOf, day, updateBlockTime, siblingBlocks]
   );
 
   // ── Drag handling (body) ─────────────────────────────────────────

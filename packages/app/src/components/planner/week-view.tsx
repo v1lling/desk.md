@@ -22,7 +22,6 @@ import {
   minuteToPixel,
   pixelsToMinutes,
   snapToSlot,
-  blocksOverlap,
 } from "@desk/core";
 import { WeekNavigator } from "./week-navigator";
 import { TimeGrid } from "./time-grid";
@@ -34,6 +33,7 @@ import { UnscheduledRail } from "./unscheduled-rail";
 import { usePointerDrag } from "./use-pointer-drag";
 import { useTaskDrag } from "./use-task-drag";
 import { dayAtClientX, getPlannerViewport } from "./grid-hit-test";
+import { planBlockMove } from "@/lib/planner-interactions";
 import type { WorkspaceBlock } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
 
@@ -273,40 +273,31 @@ export function WeekView() {
           if (!dragRef.current) return;
 
           const deltaY = ev.clientY - dragRef.current.startY;
-          let newStart = snapToSlot(
+          const requestedStart = snapToSlot(
             dragRef.current.originalStartMinute +
               pixelsToMinutes(deltaY, slotHeightRef.current)
           );
-
-          // Clamp to grid bounds
-          if (newStart < 0) newStart = 0;
-          if (newStart + duration > 1440) newStart = 1440 - duration;
 
           // Which column is the cursor over? Rect-scan, not elementFromPoint — the
           // block being dragged sits under the cursor and would win the hit-test.
           const targetDay = dayAtClientX(ev.clientX) ?? dragRef.current.fromDay;
 
-          // Check overlap with blocks in target day
           const targetBlocks = dayBlocksRef.current[targetDay] || [];
-          const siblings = targetBlocks.filter(
-            (b) => b.id !== dragRef.current!.blockId
-          );
-          const wouldOverlap = siblings.some((s) =>
-            blocksOverlap(
-              { startMinute: newStart, endMinute: newStart + duration },
-              s
-            )
+          const plannedMove = planBlockMove(
+            requestedStart,
+            duration,
+            targetBlocks,
+            dragRef.current.blockId,
           );
 
-          if (!wouldOverlap) {
+          if (plannedMove) {
             dragRef.current.currentDay = targetDay;
-            dragRef.current.currentStartMinute = newStart;
+            dragRef.current.currentStartMinute = plannedMove.startMinute;
             setDragPreview({
               blockId,
               day: targetDay,
               dayIndex: daysRef.current.indexOf(targetDay),
-              startMinute: newStart,
-              endMinute: newStart + duration,
+              ...plannedMove,
             });
           }
         },

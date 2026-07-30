@@ -11,8 +11,12 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import { pixelToMinute, blocksOverlap } from "@desk/core";
+import { pixelToMinute } from "@desk/core";
 import { usePlannerStore } from "@/stores/planner";
+import {
+  canAddTaskToBlock,
+  planTaskDropOnEmptyGrid,
+} from "@/lib/planner-interactions";
 import { usePointerDrag, DRAG_THRESHOLD_PX } from "./use-pointer-drag";
 import { blockAtPoint, dayAtClientX, dayElementAt } from "./grid-hit-test";
 import type { ActiveTask } from "@desk/core";
@@ -70,8 +74,7 @@ export function useTaskDrag({
       const hit = blockAtPoint(clientX, clientY);
       if (hit) {
         const block = blocks.find((b) => b.id === hit.blockId);
-        if (!block || block.workspaceId !== task.workspaceId) return null;
-        if (block.taskIds.includes(task.id)) return null;
+        if (!block || !canAddTaskToBlock(task, block)) return null;
         return { kind: "block", day, blockId: hit.blockId };
       }
 
@@ -80,19 +83,16 @@ export function useTaskDrag({
       if (!column) return null;
 
       const rect = column.getBoundingClientRect();
-      const start = Math.min(Math.max(pixelToMinute(clientY - rect.top, gs, sh), gs), ge - 30);
-      const upperBound = blocks
-        .filter((b) => b.startMinute >= start)
-        .reduce((hi, b) => Math.min(hi, b.startMinute), ge);
-      const end = Math.min(start + NEW_BLOCK_MINUTES, upperBound);
+      const plannedDrop = planTaskDropOnEmptyGrid(
+        pixelToMinute(clientY - rect.top, gs, sh),
+        gs,
+        ge,
+        blocks,
+        NEW_BLOCK_MINUTES,
+      );
+      if (!plannedDrop) return null;
 
-      if (end - start < 30) return null;
-      // The cursor is over bare grid, but the tail of the new block still must not collide.
-      if (blocks.some((b) => blocksOverlap({ startMinute: start, endMinute: end }, b))) {
-        return null;
-      }
-
-      return { kind: "empty", day, startMinute: start, endMinute: end };
+      return { kind: "empty", day, ...plannedDrop };
     },
     []
   );
