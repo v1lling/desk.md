@@ -123,7 +123,7 @@ export function RichTextEditor({
       }),
       CustomParagraph,
       Markdown.configure({
-        html: false,
+        html: true, // Preserve tables that cannot be represented as pipe Markdown.
         transformPastedText: true,
         transformCopiedText: true,
       }),
