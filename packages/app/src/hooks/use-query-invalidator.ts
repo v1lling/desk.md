@@ -20,8 +20,6 @@ import {
 import {
   getItemTypeFromPath,
   getWorkspaceIdFromPath,
-  getProjectIdFromPath,
-  isCapturePath,
 } from "@desk/core";
 import {
   taskKeys,
@@ -48,6 +46,10 @@ import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
 } from "@/lib/smart-index/agent-files";
+import {
+  planQueryInvalidations,
+  type QueryInvalidationTarget,
+} from "@/lib/query-invalidation-plan";
 
 const pendingAgentFileWorkspaces = new Set<string>();
 let pendingTopLevelAgentFiles = false;
@@ -186,43 +188,9 @@ function invalidateQueriesForPaths(
   }
   fileTreeService.clearCache();
 
-  const affectedWorkspaces = new Set<string>();
-  const affectedProjects = new Map<string, Set<string>>(); // workspaceId -> Set<projectId>
-  const affectedTypes = new Set<string>();
-  let hasCaptureChanges = false;
-
-  for (const path of paths) {
-    const itemType = getItemTypeFromPath(path);
-    const workspaceId = getWorkspaceIdFromPath(path);
-    const projectId = getProjectIdFromPath(path);
-
-    affectedTypes.add(itemType);
-    if (workspaceId) {
-      affectedWorkspaces.add(workspaceId);
-      if (projectId) {
-        if (!affectedProjects.has(workspaceId)) {
-          affectedProjects.set(workspaceId, new Set());
-        }
-        affectedProjects.get(workspaceId)!.add(projectId);
-      }
-    }
-    if (isCapturePath(path)) {
-      hasCaptureChanges = true;
-    }
+  for (const target of planQueryInvalidations(paths)) {
+    invalidateQueryTarget(target, queryClient);
   }
-
-  invalidateQueriesForChanges(
-    affectedTypes,
-    affectedWorkspaces,
-    affectedProjects,
-    hasCaptureChanges,
-    queryClient
-  );
-
-  // Also invalidate file-tree queries for any file change.
-  queryClient.invalidateQueries({
-    queryKey: fileTreeKeys.all,
-  });
 }
 
 /**
@@ -291,118 +259,54 @@ async function handleOpenFileChange(
 }
 
 /**
- * Invalidate TanStack Query caches based on what changed
+ * Apply one semantic invalidation decision to TanStack Query.
  */
-function invalidateQueriesForChanges(
-  affectedTypes: Set<string>,
-  affectedWorkspaces: Set<string>,
-  affectedProjects: Map<string, Set<string>>,
-  hasCaptureChanges: boolean,
+function invalidateQueryTarget(
+  target: QueryInvalidationTarget,
   queryClient: ReturnType<typeof useQueryClient>
-) {
-  for (const itemType of affectedTypes) {
-    switch (itemType) {
-      case "task":
-        // Invalidate tasks for affected workspaces
-        for (const workspaceId of affectedWorkspaces) {
-          queryClient.invalidateQueries({
-            queryKey: taskKeys.byWorkspace(workspaceId),
-          });
-        }
-        // Personal tasks
-        if (hasCaptureChanges) {
-          queryClient.invalidateQueries({
-            queryKey: captureKeys.all,
-          });
-        }
-        // Also invalidate view state (task ordering)
-        queryClient.invalidateQueries({
-          queryKey: viewStateKeys.all,
-        });
-        break;
-
-      case "doc":
-        // Invalidate doc queries for affected workspaces
-        for (const workspaceId of affectedWorkspaces) {
-          // Flat doc list
-          queryClient.invalidateQueries({
-            queryKey: contentKeys.byWorkspace(workspaceId),
-          });
-          // Workspace-level doc tree
-          queryClient.invalidateQueries({
-            queryKey: contentKeys.tree("workspace", workspaceId, undefined),
-          });
-          // Project-level doc trees
-          const projects = affectedProjects.get(workspaceId);
-          if (projects) {
-            for (const projectId of projects) {
-              queryClient.invalidateQueries({
-                queryKey: contentKeys.tree("project", workspaceId, projectId),
-              });
-            }
-          }
-        }
-        break;
-
-      case "meeting":
-        for (const workspaceId of affectedWorkspaces) {
-          queryClient.invalidateQueries({
-            queryKey: meetingKeys.byWorkspace(workspaceId),
-          });
-        }
-        break;
-
-      case "project":
-        for (const workspaceId of affectedWorkspaces) {
-          queryClient.invalidateQueries({
-            queryKey: projectKeys.byWorkspace(workspaceId),
-          });
-        }
-        break;
-
-      case "workspace":
-        // Workspace metadata changed - invalidate all workspace queries
-        queryClient.invalidateQueries({
-          queryKey: workspaceKeys.all,
-        });
-        break;
-
-      case "view":
-        // View state (.view.json) changed
-        queryClient.invalidateQueries({
-          queryKey: viewStateKeys.all,
-        });
-        break;
-
-      case "config":
-        // Config changed - this is handled by Zustand persist, not TanStack Query
-        break;
-
-      case "unknown":
-        // Unknown file type - invalidate everything for safety
-        if (affectedWorkspaces.size > 0) {
-          for (const workspaceId of affectedWorkspaces) {
-            queryClient.invalidateQueries({
-              queryKey: taskKeys.byWorkspace(workspaceId),
-            });
-            queryClient.invalidateQueries({
-              queryKey: contentKeys.byWorkspace(workspaceId),
-            });
-            queryClient.invalidateQueries({
-              queryKey: meetingKeys.byWorkspace(workspaceId),
-            });
-            queryClient.invalidateQueries({
-              queryKey: projectKeys.byWorkspace(workspaceId),
-            });
-          }
-        }
-        if (hasCaptureChanges) {
-          queryClient.invalidateQueries({
-            queryKey: captureKeys.all,
-          });
-        }
-        break;
-    }
+): void {
+  switch (target.type) {
+    case "tasks":
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.byWorkspace(target.workspaceId),
+      });
+      break;
+    case "capture":
+      queryClient.invalidateQueries({ queryKey: captureKeys.all });
+      break;
+    case "view-state":
+      queryClient.invalidateQueries({ queryKey: viewStateKeys.all });
+      break;
+    case "content":
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.byWorkspace(target.workspaceId),
+      });
+      break;
+    case "content-tree":
+      queryClient.invalidateQueries({
+        queryKey: contentKeys.tree(
+          target.scope,
+          target.workspaceId,
+          target.projectId,
+        ),
+      });
+      break;
+    case "meetings":
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.byWorkspace(target.workspaceId),
+      });
+      break;
+    case "projects":
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.byWorkspace(target.workspaceId),
+      });
+      break;
+    case "workspaces":
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      break;
+    case "file-tree":
+      queryClient.invalidateQueries({ queryKey: fileTreeKeys.all });
+      break;
   }
 }
 

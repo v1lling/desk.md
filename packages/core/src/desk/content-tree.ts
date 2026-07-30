@@ -1,7 +1,7 @@
 /**
  * Content Tree - Tree building, extraction, and flat doc access
  */
-import type { Doc, FileTreeNode, ContentScope, Asset } from "../types";
+import type { Doc, FileTreeNode, ContentScope } from "../types";
 import { isMarkdownFile, getExtension } from "./file-utils";
 import { parseMarkdown, filenameToId, compareDatesDesc, generatePreview } from "./parser";
 import {
@@ -15,20 +15,14 @@ import { getHomeWorkspaceId } from "./workspaces";
 import { getDocsPath, getProjectsPath } from "./paths";
 import { getFileTreeService } from "./file-cache";
 import { getProjects } from "./projects";
+import { extractDocs } from "./content-tree-utils";
 
-/**
- * Generate a unique key for a tree node (for React rendering)
- */
-export function getNodeKey(node: FileTreeNode): string {
-  switch (node.type) {
-    case 'folder':
-      return `folder-${node.folder.path}`;
-    case 'doc':
-      return `doc-${node.doc.id}`;
-    case 'asset':
-      return `asset-${node.asset.path}`;
-  }
-}
+export {
+  extractAssets,
+  extractDocs,
+  extractFolderPaths,
+  getNodeKey,
+} from "./content-tree-utils";
 
 /**
  * Recursively build a content tree from a directory
@@ -203,62 +197,6 @@ export async function getContentTree(
     workspaceId || homeWorkspaceId,
     projectId || (scope === "workspace" ? WORKSPACE_LEVEL_PROJECT_ID : homeWorkspaceId),
   );
-}
-
-// ============================================================================
-// Tree Extraction Utilities
-// ============================================================================
-
-/**
- * Extract all docs from a file tree (recursive)
- */
-export function extractDocs(nodes: FileTreeNode[]): Doc[] {
-  const docs: Doc[] = [];
-
-  for (const node of nodes) {
-    if (node.type === "doc") {
-      docs.push(node.doc);
-    } else if (node.type === "folder" && node.folder.children) {
-      docs.push(...extractDocs(node.folder.children));
-    }
-  }
-
-  return docs;
-}
-
-/**
- * Extract all assets from a file tree (recursive)
- */
-export function extractAssets(nodes: FileTreeNode[]): Asset[] {
-  const assets: Asset[] = [];
-
-  for (const node of nodes) {
-    if (node.type === "asset") {
-      assets.push(node.asset);
-    } else if (node.type === "folder" && node.folder.children) {
-      assets.push(...extractAssets(node.folder.children));
-    }
-  }
-
-  return assets;
-}
-
-/**
- * Extract all folder paths from a file tree (recursive)
- */
-export function extractFolderPaths(nodes: FileTreeNode[]): string[] {
-  const paths: string[] = [];
-
-  for (const node of nodes) {
-    if (node.type === "folder") {
-      paths.push(node.folder.path);
-      if (node.folder.children) {
-        paths.push(...extractFolderPaths(node.folder.children));
-      }
-    }
-  }
-
-  return paths;
 }
 
 // ============================================================================
