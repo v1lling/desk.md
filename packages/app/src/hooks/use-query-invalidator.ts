@@ -40,7 +40,7 @@ import {
   type EditorSession,
 } from "@/stores/open-editor-registry";
 import { publishContentUpdate, publishDeleted } from "@desk/core";
-import { getStorage } from "@desk/core";
+import { hostFileExists, readHostTextFile } from "@/lib/host-files";
 import { parseMarkdown } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
 import { getDeskService, notifyExternalChanges } from "@desk/core";
@@ -102,7 +102,7 @@ export function useQueryInvalidator() {
   useEffect(() => {
     // The file watcher + tree-service cache are a LOCAL-disk subsystem: they read
     // the filesystem directly. In remote mode the domain is on the server (and the
-    // guard provider blocks getStorage()), so the whole watcher is skipped — list
+    // guard provider blocks host-file access), so the whole watcher is skipped — list
     // refresh after writes is driven by query invalidation instead.
     if (!isLocalDisk()) return;
 
@@ -244,7 +244,7 @@ async function handleOpenFileChange(
   // For "any" events (batched), check if file still exists
   // This handles cases where remove got merged with other events
   if (eventKind === "any") {
-    const fileExists = await getStorage().exists(path);
+    const fileExists = await hostFileExists(path);
     if (!fileExists) {
       useOpenEditorRegistry.getState().handlePathDeleted(path);
       publishDeleted(path);
@@ -253,7 +253,7 @@ async function handleOpenFileChange(
   }
 
   try {
-    const fileContent = await getStorage().readTextFile(path);
+    const fileContent = await readHostTextFile(path);
 
     // Parse to extract body for comparison (registry stores body only, not full file with frontmatter)
     const { content: fileBody } = parseMarkdown<Record<string, unknown>>(fileContent);

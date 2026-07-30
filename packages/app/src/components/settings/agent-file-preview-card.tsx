@@ -5,10 +5,10 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getDeskPath, joinPath } from "@desk/core";
-import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
+import { hostFileExists, readHostTextFile } from "@/lib/host-files";
 
 interface Props {
   scope: "global" | string;
@@ -34,12 +34,12 @@ export function AgentFilePreviewCard({ scope }: Props) {
     try {
       const parent = isGlobal ? await getDeskPath() : await getWorkspacePath(scope);
       const filePath = await joinPath(parent, FILE_NAMES.CLAUDE_MD);
-      if (!(await getStorage().exists(filePath))) {
+      if (!(await hostFileExists(filePath))) {
         setContent(null);
         setError(t("settings.agents.preview.errorFileMissing"));
         return;
       }
-      setContent(await getStorage().readTextFile(filePath));
+      setContent(await readHostTextFile(filePath));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

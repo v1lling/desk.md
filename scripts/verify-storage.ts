@@ -20,13 +20,12 @@ import {
   getWorkspace,
   importFiles,
   moveDoc,
-  setDataRootResolver,
-  setStorage,
   updateMeeting,
   updateProject,
   updateTask,
   updateWorkspace,
 } from "@desk/core";
+import { setDataRootResolver, setStorage } from "@desk/core/host";
 import { NodeFsProvider } from "../packages/server/src/node-fs-provider";
 
 function markdownBody(markdown: string): string {

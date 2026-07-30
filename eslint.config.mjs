@@ -3,6 +3,39 @@ import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import i18next from "eslint-plugin-i18next";
 
+const hostOnlyCoreImports = [
+  "getStorage",
+  "setStorage",
+  "resetStorage",
+  "GuardStorageProvider",
+  "InMemoryStorageProvider",
+  "StorageProvider",
+  "DirEntry",
+  "FileStat",
+  "MemorySeedFile",
+  "setDeskService",
+  "resetDeskService",
+  "setDataRootResolver",
+  "resetDataRootResolver",
+  "setEditorNotifier",
+  "resetEditorNotifier",
+  "EditorNotifier",
+  "setAgentFileWriter",
+  "resetAgentFileWriter",
+  "AgentFileWriter",
+  "setAIKeyResolver",
+  "resetAIKeyResolver",
+  "AIKeyRef",
+  "AIKeyResolver",
+  "resetDeskRuntime",
+];
+
+const coreRootBoundary = {
+  name: "@desk/core",
+  importNames: hostOnlyCoreImports,
+  message: "Import runtime wiring from '@desk/core/host'; feature code belongs on the public domain API.",
+};
+
 export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -14,6 +47,31 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
+      "no-restricted-imports": ["error", {
+        paths: [coreRootBoundary],
+      }],
+    },
+  },
+  // Raw runtime wiring is limited to bootstrap and explicit host adapters.
+  // React features and stores must use DeskService or the app-local host-files
+  // adapter instead of reaching into StorageProvider directly.
+  {
+    files: ["packages/app/src/**/*.{ts,tsx}"],
+    ignores: [
+      "packages/app/src/main.tsx",
+      "packages/app/src/lib/host-files.ts",
+      "packages/app/src/lib/ai/secrets.ts",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [
+          coreRootBoundary,
+          {
+            name: "@desk/core/host",
+            message: "Runtime wiring is restricted to app bootstrap and approved host adapters.",
+          },
+        ],
+      }],
     },
   },
   // i18n: forbid hardcoded user-visible strings in app components/pages. New

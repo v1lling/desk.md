@@ -16,8 +16,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@desk/core";
-import { getStorage } from "@desk/core";
 import { isLocalDisk, isDomainRemote } from "@/lib/connection";
+import { readHostTextFile } from "@/lib/host-files";
 import { writeMarkdownFile, saveMarkdownBody } from "@desk/core";
 import { parseMarkdown } from "@desk/core";
 import type { EditorType } from "@/stores/open-editor-registry";
@@ -58,13 +58,13 @@ interface UseEditorSessionOptions {
   type: EditorType;
   entityId: string;
   filePath: string | undefined;
-  /** Fallback content for mock/browser mode. In Tauri, content is loaded from disk. */
+  /** Fallback content outside local-disk mode. In Tauri local mode, content is loaded from disk. */
   initialContent: string;
   enabled: boolean;
   /** Called after successful save with the path and content that was saved */
   /**
    * Hosted/web mode persistence. In Tauri the body is written straight to disk
-   * via getStorage(); on the web client getStorage() is the in-memory BrowserProvider,
+   * through the host adapter; browser development uses the in-memory BrowserProvider,
    * so the body must be persisted through the DeskService update mutation
    * instead (the server merges frontmatter). When set and not running in Tauri,
    * save() calls this with the body and expects true on success.
@@ -169,7 +169,7 @@ export function useEditorSession({
 
     async function loadContent() {
       try {
-        const fileContent = await getStorage().readTextFile(filePath!);
+        const fileContent = await readHostTextFile(filePath!);
         const { data: frontmatter, content: body } = parseMarkdown<Record<string, unknown>>(fileContent);
         if (!cancelled) {
           const processedBody = preserveEmptyParagraphs(body);
@@ -275,7 +275,7 @@ export function useEditorSession({
     try {
       // Not local disk (remote or web): the domain runs on the server (or is mocked).
       // Persist the body through the DeskService update mutation (server merges
-      // frontmatter); getStorage() here is the guard/mock and must not be touched.
+      // frontmatter); host-file access here is guarded and must not be touched.
       //
       // Asymmetry vs the local-disk branch below: this path intentionally skips the
       // fileDeleted/pathChanged recovery the desktop save has. That's acceptable —
@@ -296,9 +296,9 @@ export function useEditorSession({
 
       if (isDomainRemote()) {
         // Remote/hosted domain but no persistBody was supplied for this editor. Writing here
-        // would hit the GuardStorageProvider and throw; fail the save cleanly instead. Every
+      // would hit the guarded host adapter and throw; fail the save cleanly instead. Every
         // remote-capable editor must pass persistBody (task/doc/meeting editors do) — reaching
-        // here is a wiring bug. (Browser-mock keeps writing to its mock provider below.)
+        // here is a wiring bug. Browser development keeps using its in-memory provider below.
         console.error("[editor-session] No persistBody in remote mode; refusing local write:", path);
         setSaveStatus("error");
         return false;

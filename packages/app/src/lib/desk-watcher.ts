@@ -6,8 +6,9 @@
  */
 
 import { toast } from "sonner";
-import { isTauri, getDeskPath, getStorage } from "@desk/core";
+import { isTauri, getDeskPath } from "@desk/core";
 import { isRemoteMode } from "@/lib/connection";
+import { hostFileExists } from "@/lib/host-files";
 
 // Event types we care about
 export type WatchEventKind = "create" | "modify" | "remove" | "any";
@@ -165,7 +166,7 @@ export async function startWatching(): Promise<boolean> {
   // On very first launch the Desk directory may not exist yet — retrying
   // won't help, and toasting "watcher stopped" would just be noise.
   const deskPath = await getDeskPath();
-  if (!(await getStorage().exists(deskPath))) {
+  if (!(await hostFileExists(deskPath))) {
     return false;
   }
 
@@ -213,4 +214,3 @@ export function onFileChange(callback: WatchCallback): () => void {
   listeners.add(callback);
   return () => listeners.delete(callback);
 }
-

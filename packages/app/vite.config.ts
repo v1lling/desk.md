@@ -11,11 +11,12 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf8")) as {
 
 // Resolve the @desk/core workspace package straight to its TypeScript source so
 // Vite compiles it as part of the app (no build step, no node_modules pre-bundle
-// quirks). The `/types` subpath alias must come first so it wins over the bare
-// one. The monorepo root is added to server.fs.allow because core lives outside
-// this package's root.
+// quirks). Subpath aliases must come first so they win over the bare one. The
+// monorepo root is added to server.fs.allow because core lives outside this
+// package's root.
 const monorepoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const coreSrc = fileURLToPath(new URL("../core/src/index.ts", import.meta.url));
+const coreHostSrc = fileURLToPath(new URL("../core/src/host.ts", import.meta.url));
 const coreTypesSrc = fileURLToPath(new URL("../core/src/types/index.ts", import.meta.url));
 
 let commit = "dev";
@@ -39,6 +40,7 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   resolve: {
     alias: {
+      "@desk/core/host": coreHostSrc,
       "@desk/core/types": coreTypesSrc,
       "@desk/core": coreSrc,
     },

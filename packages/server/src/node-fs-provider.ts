@@ -20,7 +20,7 @@ import {
 } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
-import type { DirEntry, FileStat, StorageProvider } from "@desk/core";
+import type { DirEntry, FileStat, StorageProvider } from "@desk/core/host";
 
 export class NodeFsProvider implements StorageProvider {
   private readonly root: string;

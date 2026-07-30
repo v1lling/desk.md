@@ -1,9 +1,9 @@
 import { joinPath } from "@desk/core";
-import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import type { WorkspaceIndex } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
+import { writeHostTextFile } from "@/lib/host-files";
 import { anyAgentFileEnabled } from "@/stores/agent-settings";
 
 /** Collapse whitespace so a value is safe to place on a single catalog line. */
@@ -78,5 +78,5 @@ export async function writeWorkspaceIndexArtifact(index: WorkspaceIndex): Promis
 
   const workspacePath = await getWorkspacePath(index.workspaceId);
   const filePath = await joinPath(workspacePath, FILE_NAMES.WORKSPACE_INDEX_MD);
-  await getStorage().writeTextFile(filePath, buildWorkspaceIndex(index));
+  await writeHostTextFile(filePath, buildWorkspaceIndex(index));
 }

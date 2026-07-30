@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  InMemoryStorageProvider,
   SPECIAL_DIRS,
   WORKSPACE_LEVEL_PROJECT_ID,
   createDoc,
@@ -22,13 +21,13 @@ import {
   moveDoc,
   moveMeetingToProject,
   moveTaskToProject,
-  resetDeskRuntime,
   updateDoc,
   updateMeeting,
   updateProject,
   updateTask,
   updateWorkspace,
 } from "@desk/core";
+import { InMemoryStorageProvider, resetDeskRuntime } from "@desk/core/host";
 
 describe("InMemoryStorageProvider", () => {
   it("implements recursive directories, binary files, metadata, moves, and deletes", async () => {

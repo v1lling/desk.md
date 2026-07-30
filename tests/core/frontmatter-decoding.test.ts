@@ -23,14 +23,13 @@ import {
   resetContentCache,
   resetFileTreeService,
   serializeMarkdown,
-  setDataRootResolver,
-  setStorage,
   updateDoc,
   updateMeeting,
   updateProject,
   updateTask,
   updateWorkspace,
-} from "../../packages/core/src";
+} from "@desk/core";
+import { setDataRootResolver, setStorage } from "@desk/core/host";
 import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
 
 describe("frontmatter decoding", () => {

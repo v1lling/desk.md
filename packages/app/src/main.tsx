@@ -21,7 +21,7 @@ async function bootstrap() {
   // UI-agnostic (it runs on a server too); these injectors connect it to this
   // app's stores. The data-root resolver MUST be set before expandFsScope()
   // below, since that resolves the data path through it.
-  const { setDataRootResolver } = await import("@desk/core");
+  const { setDataRootResolver } = await import("@desk/core/host");
   const { useBootStore } = await import("./stores/boot");
   setDataRootResolver(async () => useBootStore.getState().dataPath || "~/DeskMD");
 
@@ -41,7 +41,7 @@ async function bootstrap() {
 
   // Wire the remaining seams (only needed once writes happen): editor-sync
   // notifications and external-agent file generation.
-  const { setEditorNotifier, setAgentFileWriter } = await import("@desk/core");
+  const { setEditorNotifier, setAgentFileWriter } = await import("@desk/core/host");
   const { useOpenEditorRegistry } = await import("./stores/open-editor-registry");
   setEditorNotifier({
     isOpen: (p) => useOpenEditorRegistry.getState().isOpen(p),
@@ -59,7 +59,7 @@ async function bootstrap() {
 
   // AI key seam: the app resolves provider keys from the OS Keychain. Outside Tauri the
   // secrets module throws BrowserModeError — mapped to "no key", which every caller handles.
-  const { setAIKeyResolver } = await import("@desk/core");
+  const { setAIKeyResolver } = await import("@desk/core/host");
   setAIKeyResolver(async (ref) => {
     try {
       const { getSecret } = await import("./lib/ai/secrets");
@@ -74,7 +74,7 @@ async function bootstrap() {
   // server — inject a RemoteDeskService so every getDeskService() call goes over
   // HTTP instead of the in-process LocalDeskService. Same-origin → cookie auth, no CORS.
   if (import.meta.env.VITE_DESK_HOSTED) {
-    const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core");
+    const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core/host");
     const { createRemoteDeskService } = await import("./lib/remote-desk-service");
     // Domain runs on the server: make the local filesystem structurally off-limits so a
     // stray getStorage() throws instead of silently hitting the wrong disk.
@@ -93,7 +93,7 @@ async function bootstrap() {
     const { isTauri } = await import("@desk/core");
     const boot = useBootStore.getState();
     if (isTauri() && boot.connectionMode === "remote" && boot.serverUrl) {
-      const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core");
+      const { setDeskService, setStorage, GuardStorageProvider } = await import("@desk/core/host");
       const { createRemoteDeskService } = await import("./lib/remote-desk-service");
       const { nativeFetch } = await import("./lib/native-http");
       const { loadSessionToken, getTokenHeaderSync } = await import("./lib/session-token");

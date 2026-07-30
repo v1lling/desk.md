@@ -11,7 +11,7 @@
  */
 import { statSync } from "node:fs";
 import { isAbsolute } from "node:path";
-import { setDataRootResolver, setStorage, setAIKeyResolver } from "@desk/core";
+import { setDataRootResolver, setStorage, setAIKeyResolver } from "@desk/core/host";
 import { NodeFsProvider } from "./node-fs-provider";
 
 export function resolveDataRoot(): string {

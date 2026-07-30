@@ -1,9 +1,6 @@
 // Types
 export * from "./types";
 
-// Key resolution (injectable host seam — Keychain on the app, env on the server)
-export { setAIKeyResolver, getAIKeyResolver, type AIKeyRef, type AIKeyResolver } from "./key-resolver";
-
 // Provider registry (single source: catalog, key seam ref, model factory) + derived catalog
 export {
   getProviderDefinition,

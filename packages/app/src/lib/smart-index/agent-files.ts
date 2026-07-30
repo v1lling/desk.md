@@ -1,8 +1,12 @@
 import { getDeskPath, joinPath } from "@desk/core";
-import { getStorage } from "@desk/core";
 import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES, DESK_SPACE_NORMS } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
+import {
+  hostFileExists,
+  removeHostFile,
+  writeHostTextFile,
+} from "@/lib/host-files";
 import { useAgentSettingsStore } from "@/stores/agent-settings";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 import type { Workspace, Project } from "@desk/core/types";
@@ -309,7 +313,7 @@ function disabledAgentFilenames(): string[] {
 
 /** Remove a file if it's present; a missing file is not an error. */
 async function removeIfExists(path: string): Promise<void> {
-  if (await getStorage().exists(path)) await getStorage().removeFile(path);
+  if (await hostFileExists(path)) await removeHostFile(path);
 }
 
 export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<void> {
@@ -322,7 +326,7 @@ export async function writeTopLevelAgentFiles(workspaces: Workspace[]): Promise<
   if (enabled.length > 0) {
     const content = buildTopLevelAgentFile(workspaces, deskPath);
     for (const name of enabled) {
-      await getStorage().writeTextFile(await joinPath(deskPath, name), content);
+      await writeHostTextFile(await joinPath(deskPath, name), content);
     }
   }
 
@@ -346,7 +350,7 @@ export async function writePerWorkspaceAgentFiles(
   if (enabled.length > 0) {
     const content = buildPerWorkspaceAgentFile(workspace, projects);
     for (const name of enabled) {
-      await getStorage().writeTextFile(await joinPath(workspacePath, name), content);
+      await writeHostTextFile(await joinPath(workspacePath, name), content);
     }
   }
 

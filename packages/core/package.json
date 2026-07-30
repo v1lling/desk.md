@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./host": "./src/host.ts",
     "./types": "./src/types/index.ts"
   },
   "dependencies": {

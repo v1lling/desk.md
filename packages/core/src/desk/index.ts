@@ -9,7 +9,8 @@
 // External callers reach domain CRUD via getDeskService() from ./service.
 // The module-level functions below stay exported for use *inside* lib/desk
 // (LocalDeskService binds them; aggregators like dashboard.ts call them directly).
-export * from "./service";
+export { getDeskService, encode, decode } from "./service";
+export type { DeskService } from "./service";
 export * from "./workspaces";
 export * from "./projects";
 export * from "./tasks";
@@ -20,7 +21,6 @@ export * from "./personal";
 // ── File system & parsing ───────────────────────────────────────────
 // env re-exports the platform checks (isTauri/isMacOS/needsTrafficLightPadding)
 export * from "./env";
-export * from "./storage";
 export * from "./parser";
 export * from "./frontmatter";
 export * from "./constants";
@@ -58,18 +58,12 @@ export * from "./settings";
 export * from "./index-cache";
 export * from "./aiignore";
 
-// ── Injectable host seams (wired by app/server at boot) ─────────────
-export * from "./data-root";
-export * from "./editor-notifier";
-export * from "./agent-file-writer";
-
 // ── Pub/sub for editor sync (pure; wired to the watcher by the app) ──
 export * from "./editor-event-bus";
 
 // ── Domain-write bus + path classification (the maintenance trigger) ──
 export * from "./domain-write-bus";
 export * from "./path-identity";
-export * from "./runtime";
 
 // ── Infrastructure ──────────────────────────────────────────────────
 // Note: the file watcher and the React file-tree hooks are UI/Tauri glue and

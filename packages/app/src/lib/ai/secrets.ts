@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@desk/core";
-import type { AIKeyRef } from "@desk/core";
+import type { AIKeyRef } from "@desk/core/host";
 
 /** Local alias: the key namespace is owned by core's AI key-resolver seam. */
 export type SecretKeyRef = AIKeyRef;
@@ -49,4 +49,3 @@ export async function setSecret(key: SecretKeyRef, value: string): Promise<void>
   const service = SECRET_SERVICE[key];
   await invoke("secret_set", { service, value });
 }
-

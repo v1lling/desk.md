@@ -18,10 +18,9 @@ import {
   importFiles,
   resetContentCache,
   resetFileTreeService,
-  setDataRootResolver,
-  setStorage,
   updateTask,
-} from "../../packages/core/src";
+} from "@desk/core";
+import { setDataRootResolver, setStorage } from "@desk/core/host";
 import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
 
 class RejectTaskWritesProvider extends NodeFsProvider {

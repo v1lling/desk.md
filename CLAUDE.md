@@ -36,6 +36,13 @@ The codebase is an npm-workspaces monorepo under `packages/`:
 a Vite alias in `packages/app/vite.config.ts` and npm-workspace symlinks point at
 `packages/core/src`. The server consumes core as source via `tsx`.
 
+Feature code imports the public domain API from `@desk/core`. Runtime wiring and
+raw storage types live on the separate `@desk/core/host` entry point, used only
+by application/server bootstrap and explicit host adapters. In the app,
+`lib/host-files.ts` is the sole adapter for byte-level file access; components,
+hooks, pages, and stores must use `DeskService` or that adapter. ESLint enforces
+these boundaries.
+
 **Host seams (dependency injection).** `@desk/core` is UI/runtime-agnostic; three
 couplings are injectable registries (set/get) that the host wires before any domain call:
 

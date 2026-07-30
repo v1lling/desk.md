@@ -23,10 +23,10 @@ export function isDomainRemote(): boolean {
 }
 
 /**
- * The ONLY condition under which client code may touch `getStorage()` directly: a Tauri
+ * The ONLY condition under which client code may use the host-file adapter: a Tauri
  * app whose domain runs locally. In every other posture (native-remote, hosted web,
  * browser-mock) domain data must go through `getDeskService()`; in the remote postures a
- * GuardStorageProvider makes a stray `getStorage()` throw instead of hitting the wrong disk.
+ * GuardStorageProvider makes stray host-file access throw instead of hitting the wrong disk.
  */
 export function isLocalDisk(): boolean {
   return isTauri() && !isDomainRemote();
