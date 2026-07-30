@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import { titleFromFilename } from "../index";
+import { titleFromFilename } from "../title";
 import type { ConversionResult } from "../types";
 
 let cachedService: TurndownService | null = null;

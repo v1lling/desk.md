@@ -16,11 +16,14 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
-  // i18n: forbid hardcoded user-visible strings in components/pages. New strings
-  // must go through t() with a key in src/i18n/en.json. LLM-facing files (see
-  // ignores below) keep English in source because they're fed to the model.
+  // i18n: forbid hardcoded user-visible strings in app components/pages. New
+  // strings must go through t() with a key in src/i18n/en.json. LLM-facing
+  // files (see ignores below) keep English in source because models read them.
   {
-    files: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}"],
+    files: [
+      "packages/app/src/components/**/*.{ts,tsx}",
+      "packages/app/src/pages/**/*.{ts,tsx}",
+    ],
     plugins: { i18next },
     rules: {
       "i18next/no-literal-string": ["warn", {
@@ -53,16 +56,17 @@ export default tseslint.config(
   },
   {
     ignores: [
-      "dist/**",
-      "build/**",
-      "src-tauri/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/node_modules/**",
+      "packages/app/src-tauri/**",
       "scripts/**",
       // LLM-facing strings: prompts, agent files, tool descriptions. These are
       // intentionally English in source because the model reads them.
-      "src/lib/ai/prompts.ts",
-      "src/lib/ai/**/prompts.ts",
-      "src/lib/smart-index/agent-files.ts",
-      "src/lib/smart-index/artifacts.ts",
+      "packages/app/src/lib/ai/prompts.ts",
+      "packages/app/src/lib/ai/**/prompts.ts",
+      "packages/app/src/lib/smart-index/agent-files.ts",
+      "packages/app/src/lib/smart-index/artifacts.ts",
     ],
   }
 );

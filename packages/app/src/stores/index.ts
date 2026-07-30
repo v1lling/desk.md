@@ -56,8 +56,8 @@ export {
   useMoveDoc,
   useCreateDocInFolder,
   useImportFiles,
-  useFolderAIStates,
 } from "./content";
+export { useFolderAIStates } from "@/hooks/use-folder-ai-states";
 
 // ── Meetings ────────────────────────────────────────────────────────
 export {

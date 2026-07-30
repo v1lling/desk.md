@@ -166,7 +166,7 @@ export function RichTextEditor({
           "min-h-[100px]"
         ),
       },
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (_view, event) => {
         // Prevent sorting/dragging when staring to edit
         if (event.key === " ") {
           event.stopPropagation();

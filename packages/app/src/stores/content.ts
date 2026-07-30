@@ -456,7 +456,3 @@ export function useImportFiles() {
     },
   });
 }
-
-// Folder AI inclusion hook — re-exported for backwards compatibility
-// Canonical location: src/hooks/use-folder-ai-states.ts
-export { useFolderAIStates } from "@/hooks/use-folder-ai-states";

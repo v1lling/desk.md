@@ -23,5 +23,17 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Type-check & build
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Storage integration fixture
+        run: npm run verify:storage
+
+      - name: Build desktop webview
         run: npm run build
+
+      - name: Build hosted web app
+        run: npm run build:hosted -w @desk/app

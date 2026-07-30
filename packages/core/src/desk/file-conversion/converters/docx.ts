@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import { titleFromFilename } from "../index";
+import { titleFromFilename } from "../title";
 import { htmlToMarkdown } from "./html";
 import type { ConversionResult } from "../types";
 

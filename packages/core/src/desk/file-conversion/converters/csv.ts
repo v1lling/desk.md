@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { titleFromFilename } from "../index";
+import { titleFromFilename } from "../title";
 import { rowsToMarkdownTable } from "./table-utils";
 import type { ConversionResult } from "../types";
 

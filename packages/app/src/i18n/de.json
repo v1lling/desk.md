@@ -60,8 +60,7 @@
       "desk": "Desk",
       "workspaceViews": "Arbeitsbereich-Ansichten",
       "projectsSection": "Projekte",
-      "allProjects": "Alle Projekte",
-      "newProject": "Neues Projekt"
+      "allProjects": "Alle Projekte"
     },
     "secondarySidebar": {
       "expandPanel": "Panel ausklappen"

@@ -2,6 +2,7 @@ import { getExtension } from "../file-utils";
 import type { ConversionResult, ConvertibleKind } from "./types";
 
 export type { ConversionResult, ConvertibleKind } from "./types";
+export { titleFromFilename } from "./title";
 
 const EXT_TO_KIND: Record<string, ConvertibleKind> = {
   docx: "docx",
@@ -19,12 +20,6 @@ function getConvertibleKind(filename: string): ConvertibleKind | null {
   const ext = getExtension(filename);
   if (!ext) return null;
   return EXT_TO_KIND[ext] ?? null;
-}
-
-export function titleFromFilename(filename: string): string {
-  const lastDot = filename.lastIndexOf(".");
-  const base = lastDot > 0 ? filename.slice(0, lastDot) : filename;
-  return base.trim() || filename;
 }
 
 export async function convertFileToMarkdown(

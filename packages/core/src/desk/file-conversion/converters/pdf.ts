@@ -1,4 +1,4 @@
-import { titleFromFilename } from "../index";
+import { titleFromFilename } from "../title";
 import type { ConversionResult } from "../types";
 
 interface TextItem {

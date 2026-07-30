@@ -10,7 +10,9 @@
     "dev": "npm run dev -w @desk/app",
     "build": "npm run build -w @desk/app",
     "preview": "npm run preview -w @desk/app",
-    "lint": "npm run lint -w @desk/app",
+    "lint": "eslint packages/core/src packages/app/src packages/server/src",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/app && tsc --noEmit -p packages/server",
     "screenshots": "node scripts/screenshots.mjs",
     "screenshots:banner": "node scripts/screenshots.mjs --banner-only",
@@ -21,7 +23,14 @@
     "dev:server": "npm run dev -w @desk/server"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.3",
+    "@types/node": "^22",
+    "eslint": "^9",
+    "eslint-plugin-i18next": "^6.1.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "tsx": "^4.23.1",
     "typescript": "^5",
-    "@types/node": "^22"
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.1.10"
   }
 }
