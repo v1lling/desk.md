@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { SettingsSection } from "@/components/ui/settings-section";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -26,26 +24,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAIMaintenanceSettingsStore } from "@/stores/ai-maintenance-settings";
-import { useSmartIndex } from "@/hooks/use-smart-index";
-import { useProviderConfigured } from "@/hooks/use-ai-maintenance-info";
-import { describeAIError } from "@/lib/ai-error";
-import { ensureAIConsent } from "@/stores/ai-consent";
-import { useWorkspaces } from "@/stores";
-import { rebuildWorkspaceIndex, readWorkspaceIndex, writeRebuiltWorkspaceIndex } from "@desk/core";
-import { smartIndexKeys } from "@/lib/query-client";
-import { isLocalDisk, isDomainRemote } from "@/lib/connection";
-import { writeWorkspaceIndexArtifact } from "@/lib/smart-index/artifacts";
-import {
-  writePerWorkspaceAgentFiles,
-  writeTopLevelAgentFiles,
-  deleteGeneratedAgentFiles,
-} from "@/lib/smart-index/agent-files";
-import { getDeskService } from "@desk/core";
-import type { BuildIndexProgress, BuildIndexResult } from "@desk/core";
+import { useSmartIndexMaintenance } from "@/hooks/use-smart-index-maintenance";
 import { formatRelativeTime } from "./smart-index-utils";
-
-/** Last full-rebuild result plus when it ran — ephemeral UI state, not persisted. */
-type LastBuildResult = BuildIndexResult & { at: string };
 
 export function SmartIndexSection() {
   const { t } = useTranslation();
@@ -56,149 +36,23 @@ export function SmartIndexSection() {
     setSummaryDetail,
     providerType,
   } = useAIMaintenanceSettingsStore();
-
-  // Whether the host that owns the data can summarize — one source of truth, truthful in both
-  // modes (this machine's Keychain locally, the server's env in hosted mode).
-  const aiKeyConfigured = useProviderConfigured(providerType);
-  const remote = isDomainRemote();
-
-  // AI maintenance runs where the data lives: in-process on local disk, on the server in
-  // remote mode. Only the browser-mock dev loop has no host that could build.
-  const canBuild = isLocalDisk() || remote;
-
-  // Core owns .desk/index/indexes.json; the UI only reads it (one writer). Build progress and
-  // the last-run summary are ephemeral UI state, never persisted into the index file.
-  const queryClient = useQueryClient();
-  const { data: indexes = {} } = useSmartIndex();
-  const { data: workspaces = [] } = useWorkspaces();
-
-  const [isBuilding, setIsBuilding] = useState(false);
-  const [lastResult, setLastResult] = useState<LastBuildResult | null>(null);
-  const [indexProgress, setIndexProgress] = useState<BuildIndexProgress | null>(null);
-  const [indexResult, setIndexResult] = useState<BuildIndexResult | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-
-  const allEntries = Object.values(indexes).flatMap((idx) => idx.entries);
-  const totalIndexFiles = allEntries.length;
-  // Every file is in the catalog; `summary` is the optional AI enrichment. Coverage =
-  // how many files have an AI summary vs still pending (no key, or not yet summarized).
-  const summarizedCount = allEntries.filter((e) => e.summary).length;
-  const pendingCount = totalIndexFiles - summarizedCount;
-
-  // Per-workspace rows: file count + when last touched (background auto-summary OR rebuild).
-  const workspaceRows = Object.values(indexes)
-    .map((idx) => ({
-      id: idx.workspaceId,
-      name: idx.workspaceName,
-      fileCount: idx.fileCount,
-      updatedAt: idx.updatedAt ?? idx.builtAt,
-      color: workspaces.find((w) => w.id === idx.workspaceId)?.color ?? "#6366f1",
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const handleBuildIndex = async () => {
-    // Privacy gate (local mode): only when a provider key is configured does the build send
-    // file previews externally. In remote mode the server's env key is the operator's consent.
-    if (!remote && aiKeyConfigured && !(await ensureAIConsent())) return;
-
-    setIsBuilding(true);
-    setIndexProgress(null);
-    setIndexResult(null);
-
-    try {
-      let accumulatedResult: BuildIndexResult | null = null;
-
-      for (const workspace of workspaces) {
-        let result: BuildIndexResult;
-        if (remote) {
-          // The SERVER rebuilds and persists its own index (spinner only, no progress over RPC).
-          result = await getDeskService().rebuildSmartIndex(workspace.id);
-        } else {
-          // Pre-rebuild snapshot from DISK, not the TanStack query: the query may not have
-          // resolved yet (summary reuse would silently regenerate everything), and the merge
-          // write below needs the true pre-rebuild state to detect concurrent engine writes.
-          const existingIndex = await readWorkspaceIndex(workspace.id);
-          const { index, result: localResult } = await rebuildWorkspaceIndex(
-            workspace.id,
-            workspace.name,
-            existingIndex,
-            setIndexProgress
-          );
-          result = localResult;
-          // One writer: persist through core (local disk), same path the engine uses.
-          await writeRebuiltWorkspaceIndex(index, existingIndex);
-          await writeWorkspaceIndexArtifact(index);
-          // Refresh per-workspace agent files (project list may have changed)
-          getDeskService().getProjects(workspace.id).then((projects) =>
-            writePerWorkspaceAgentFiles(workspace.id, workspace, projects)
-          ).catch(() => {});
-        }
-
-        if (!accumulatedResult) {
-          accumulatedResult = result;
-        } else {
-          accumulatedResult = {
-            totalFiles: accumulatedResult.totalFiles + result.totalFiles,
-            summarized: accumulatedResult.summarized + result.summarized,
-            reused: accumulatedResult.reused + result.reused,
-            excluded: accumulatedResult.excluded + result.excluded,
-            errors: [...accumulatedResult.errors, ...result.errors],
-          };
-        }
-      }
-
-      if (accumulatedResult) {
-        setIndexResult(accumulatedResult);
-        setLastResult({ ...accumulatedResult, at: new Date().toISOString() });
-        toast.success(
-          t("toasts.settings.indexBuilt", {
-            files: accumulatedResult.totalFiles,
-            workspaces: workspaces.length,
-          }),
-        );
-        // Refresh top-level agent files
-        writeTopLevelAgentFiles(workspaces).catch(() => {});
-      }
-    } catch (error) {
-      const message = describeAIError(error, t) ?? String(error);
-      toast.error(t("errors.settings.indexBuildFailed", { message }));
-    } finally {
-      setIsBuilding(false);
-      setIndexProgress(null);
-      // Re-read the file core just wrote (local or server), so the stats/rows refresh.
-      void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
-    }
-  };
-
-  // Wipe everything: empty the Smart Index and delete the generated
-  // CLAUDE.md / AGENTS.md / GEMINI.md / WORKSPACE_INDEX.md files from disk.
-  const handleClearCatalog = async () => {
-    try {
-      for (const workspace of workspaces) {
-        await getDeskService().clearSmartIndex(workspace.id);
-      }
-    } catch (error) {
-      // In remote mode this is an RPC per workspace — an unreachable server must surface as
-      // a toast, not an unhandled rejection that leaves the confirm dialog hanging.
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(t("errors.settings.catalogClearedPartial", { message }));
-      setShowClearConfirm(false);
-      return;
-    }
-    void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
-    setIndexResult(null);
-    setLastResult(null);
-    try {
-      await deleteGeneratedAgentFiles(workspaces);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(t("errors.settings.catalogClearedPartial", { message }));
-      setShowClearConfirm(false);
-      return;
-    }
-    toast.success(t("toasts.settings.catalogCleared"));
-    setShowClearConfirm(false);
-  };
+  const {
+    aiKeyConfigured,
+    remote,
+    canBuild,
+    totalIndexFiles,
+    summarizedCount,
+    pendingCount,
+    workspaceRows,
+    isBuilding,
+    lastResult,
+    indexProgress,
+    indexResult,
+    showClearConfirm,
+    setShowClearConfirm,
+    buildIndex,
+    clearCatalog,
+  } = useSmartIndexMaintenance(providerType);
 
   return (
     <>
@@ -256,7 +110,7 @@ export function SmartIndexSection() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={handleBuildIndex}
+                onClick={buildIndex}
                 disabled={isBuilding || !canBuild}
               >
                 {isBuilding ? (
@@ -402,7 +256,7 @@ export function SmartIndexSection() {
         description={t("settings.smartIndex.clearDialog.description")}
         confirmLabel={t("settings.smartIndex.clearDialog.confirmLabel")}
         variant="destructive"
-        onConfirm={handleClearCatalog}
+        onConfirm={clearCatalog}
       />
     </>
   );
