@@ -181,9 +181,10 @@ export async function getMeetingsByProject(
  */
 export async function getMeeting(
   workspaceId: string,
-  meetingId: string
+  projectId: string,
+  meetingId: string,
 ): Promise<Meeting | null> {
-  const meetings = await getMeetings(workspaceId);
+  const meetings = await getMeetingsByProject(workspaceId, projectId);
   return meetings.find((meeting) => meeting.id === meetingId) || null;
 }
 
@@ -276,7 +277,7 @@ export async function moveMeetingToProject(
   toProjectId: string
 ): Promise<Meeting | null> {
   if (fromProjectId === toProjectId) {
-    const meetings = await getMeetings(workspaceId);
+    const meetings = await getMeetingsByProject(workspaceId, fromProjectId);
     return meetings.find((m) => m.id === meetingId) || null;
   }
 

@@ -14,25 +14,28 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import type { TaskStatus, TaskPriority } from "@desk/core/types";
+import { getEntityTabId } from "@/lib/tab-identity";
+import { useTabStore } from "@/stores/tabs";
 
 interface TaskEditorProps {
   taskId: string;
   workspaceId: string;
-  projectId?: string;
+  projectId: string;
   onClose: () => void;
 }
 
-export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
+export function TaskEditor({ taskId, workspaceId, projectId, onClose }: TaskEditorProps) {
   const { t } = useTranslation();
-  const tabId = `task-${taskId}`;
+  const tabId = getEntityTabId("task", { id: taskId, workspaceId, projectId });
   const handleInternalLinkClick = useInternalLinkHandler();
-  const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, taskId);
+  const { data: task, isLoading: isLoadingTask } = useTask(workspaceId, projectId, taskId);
 
   // Mutations
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const moveTaskToProject = useMoveTaskToProject();
   const removeTaskFromOrder = useRemoveTaskFromOrder();
+  const moveEntityTabToProject = useTabStore((state) => state.moveEntityTabToProject);
   const { data: projects = [] } = useProjects(workspaceId);
 
   // Metadata state
@@ -61,7 +64,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     }
     // Re-init only when the task identity changes, not on every metadata edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task?.id, workspaceId]);
+  }, [task?.id, workspaceId, projectId]);
 
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.
@@ -121,6 +124,7 @@ export function TaskEditor({ taskId, workspaceId, onClose }: TaskEditorProps) {
     acceptPathChange,
     move: moveTaskToProject.mutateAsync,
     entityLabel: "task",
+    onMoved: (newProjectId) => moveEntityTabToProject(tabId, newProjectId),
     buildMoveArgs: (id, ws, from, to) => ({ taskId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
   });
 

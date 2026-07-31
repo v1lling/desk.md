@@ -28,24 +28,24 @@ export function TabContent({ children }: TabContentProps) {
           {tab.type === "desk" ? (
             // Desk tab shows the current page content
             <div className="h-full overflow-hidden">{children}</div>
-          ) : tab.type === "doc" && tab.entityId ? (
+          ) : tab.type === "doc" && tab.entityId && tab.workspaceId && tab.projectId ? (
             <DocEditor
               docId={tab.entityId}
-              workspaceId={tab.workspaceId || ""}
+              workspaceId={tab.workspaceId}
               projectId={tab.projectId}
               onClose={() => closeTab(tab.id)}
             />
-          ) : tab.type === "task" && tab.entityId ? (
+          ) : tab.type === "task" && tab.entityId && tab.workspaceId && tab.projectId ? (
             <TaskEditor
               taskId={tab.entityId}
-              workspaceId={tab.workspaceId || ""}
+              workspaceId={tab.workspaceId}
               projectId={tab.projectId}
               onClose={() => closeTab(tab.id)}
             />
-          ) : tab.type === "meeting" && tab.entityId ? (
+          ) : tab.type === "meeting" && tab.entityId && tab.workspaceId && tab.projectId ? (
             <MeetingEditor
               meetingId={tab.entityId}
-              workspaceId={tab.workspaceId || ""}
+              workspaceId={tab.workspaceId}
               projectId={tab.projectId}
               onClose={() => closeTab(tab.id)}
             />

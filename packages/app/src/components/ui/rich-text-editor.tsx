@@ -273,9 +273,20 @@ export function RichTextEditor({
 
   // Insert a note link at cursor position
   const handleNoteLinkSelect = useCallback(
-    (item: { type: SearchItemType; id: string; title: string }) => {
+    (item: {
+      type: SearchItemType;
+      id: string;
+      title: string;
+      workspaceId: string;
+      projectId: string;
+    }) => {
       if (!editor) return;
-      const href = createNoteLinkHref(item.type as NoteLinkType, item.id);
+      const href = createNoteLinkHref(
+        item.type as NoteLinkType,
+        item.id,
+        item.workspaceId,
+        item.projectId,
+      );
       const { from, to } = editor.state.selection;
       const hasSelection = from !== to;
 

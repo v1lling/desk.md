@@ -9,6 +9,7 @@ import { TaskCard } from "./task-card";
 import { taskStatusColors, taskStatusLabels } from "@/lib/design-tokens";
 import type { Task, TaskStatus } from "@desk/core/types";
 import { cn } from "@/lib/utils";
+import { getScopedEntityKey } from "@desk/core";
 
 interface KanbanColumnProps {
   status: TaskStatus;
@@ -73,21 +74,25 @@ export function KanbanColumn({
         )}
       >
         <SortableContext
-          items={tasks.map((task) => task.id)}
+          items={tasks.map(getScopedEntityKey)}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-2">
             {tasks.map((task) => (
               <TaskCard
-                key={task.id}
+                key={getScopedEntityKey(task)}
                 task={task}
+                sortableId={getScopedEntityKey(task)}
                 onClick={() => onTaskClick?.(task)}
                 showProject={showProject}
                 projectName={getProjectName?.(task.projectId)}
-                isHighlighted={highlightedTasks?.has(task.id)}
+                isHighlighted={
+                  highlightedTasks?.has(getScopedEntityKey(task))
+                  || highlightedTasks?.has(task.id)
+                }
                 onToggleHighlight={
                   onToggleHighlight
-                    ? () => onToggleHighlight(task.id)
+                    ? () => onToggleHighlight(getScopedEntityKey(task))
                     : undefined
                 }
                 workspaceColor={workspaceColor}

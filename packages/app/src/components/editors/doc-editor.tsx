@@ -14,20 +14,21 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { getEntityTabId } from "@/lib/tab-identity";
 
 interface DocEditorProps {
   docId: string;
   workspaceId: string;
-  projectId?: string;
+  projectId: string;
   onClose: () => void;
 }
 
-export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
+export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorProps) {
   const { t } = useTranslation();
-  const tabId = `doc-${docId}`;
+  const tabId = getEntityTabId("doc", { id: docId, workspaceId, projectId });
   const handleInternalLinkClick = useInternalLinkHandler();
 
-  const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, docId);
+  const { data: doc, isLoading: isLoadingDoc } = useDoc(workspaceId, projectId, docId);
   const { data: projects = [] } = useProjects(workspaceId);
 
   // Mutations
@@ -54,7 +55,7 @@ export function DocEditor({ docId, workspaceId, onClose }: DocEditorProps) {
     }
     // Re-init only when the doc identity changes, not on every metadata edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.id, workspaceId]);
+  }, [doc?.id, workspaceId, projectId]);
 
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.

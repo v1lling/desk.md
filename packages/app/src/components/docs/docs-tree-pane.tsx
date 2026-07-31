@@ -52,6 +52,7 @@ import { NewDocModal } from "./new-doc-modal";
 import { DocsTree, type DocAuthorFilter } from "./tree/docs-tree";
 import { ConvertFilesDialog, type ConvertChoice } from "./convert-files-dialog";
 import { isConvertibleFile } from "@desk/core";
+import { getScopedEntityKey } from "@desk/core";
 
 interface DocsTreePaneProps {
   workspaceId: string;
@@ -64,9 +65,15 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
   const { openDoc } = useOpenTab();
   // Select the active doc id directly so re-renders only fire when this primitive changes,
   // not whenever any tab in the array gets a new reference.
-  const activeDocId = useTabStore((s) => {
+  const activeDocKey = useTabStore((s) => {
     const t = s.tabs.find((t) => t.id === s.activeTabId);
-    return t?.type === "doc" ? t.entityId ?? null : null;
+    return t?.type === "doc" && t.entityId && t.workspaceId && t.projectId
+      ? getScopedEntityKey({
+          id: t.entityId,
+          workspaceId: t.workspaceId,
+          projectId: t.projectId,
+        })
+      : null;
   });
 
   const createFolder = useCreateFolder();
@@ -386,7 +393,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
       >
         <DocsTree
           workspaceId={workspaceId}
-          activeDocId={activeDocId}
+          activeDocKey={activeDocKey}
           searchQuery={searchQuery}
           sortBy={sortBy}
           sortDir={sortDir}

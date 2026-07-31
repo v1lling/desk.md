@@ -15,10 +15,12 @@ import {
   decodeTaskFrontmatter,
   decodeWorkspaceFrontmatter,
   getDoc,
+  getMeeting,
   getMeetingsByProject,
   getProject,
   getProjects,
   getTasksByProject,
+  getTask,
   parseMarkdown,
   resetContentCache,
   resetFileTreeService,
@@ -166,7 +168,7 @@ describe("frontmatter decoding", () => {
     await addFrontmatter(createdDoc.filePath, { customDoc: 7 });
     resetContentCache();
     resetFileTreeService();
-    const doc = await getDoc(workspace.id, createdDoc.id);
+    const doc = await getDoc(workspace.id, project.id, createdDoc.id);
     expect(doc).not.toBeNull();
     await updateDoc(doc!, { title: "Updated document" });
     expect(await frontmatterAt(createdDoc.filePath)).toMatchObject({
@@ -190,6 +192,73 @@ describe("frontmatter decoding", () => {
       customMeeting: "keep",
       title: "Updated meeting",
     });
+  });
+
+  it("loads duplicate file IDs from their owning project", async () => {
+    const workspace = await createWorkspace({ id: "acme", name: "Acme", home: true });
+    const crm = await createProject({ workspaceId: workspace.id, name: "CRM" });
+    const library = await createProject({
+      workspaceId: workspace.id,
+      name: "Storage Library",
+    });
+
+    const crmDoc = await createDoc({
+      workspaceId: workspace.id,
+      projectId: crm.id,
+      title: "Current state",
+      content: "CRM state",
+    });
+    const libraryDoc = await createDoc({
+      workspaceId: workspace.id,
+      projectId: library.id,
+      title: "Current state",
+      content: "Library state",
+    });
+    const crmTask = await createTask({
+      workspaceId: workspace.id,
+      projectId: crm.id,
+      title: "Follow up",
+      content: "CRM task",
+    });
+    const libraryTask = await createTask({
+      workspaceId: workspace.id,
+      projectId: library.id,
+      title: "Follow up",
+      content: "Library task",
+    });
+    const crmMeeting = await createMeeting({
+      workspaceId: workspace.id,
+      projectId: crm.id,
+      title: "Status",
+      content: "CRM meeting",
+    });
+    const libraryMeeting = await createMeeting({
+      workspaceId: workspace.id,
+      projectId: library.id,
+      title: "Status",
+      content: "Library meeting",
+    });
+
+    expect(crmDoc.id).toBe(libraryDoc.id);
+    expect(crmTask.id).toBe(libraryTask.id);
+    expect(crmMeeting.id).toBe(libraryMeeting.id);
+
+    resetContentCache();
+    resetFileTreeService();
+
+    const loadedDoc = await getDoc(workspace.id, library.id, libraryDoc.id);
+    const loadedTask = await getTask(workspace.id, library.id, libraryTask.id);
+    const loadedMeeting = await getMeeting(
+      workspace.id,
+      library.id,
+      libraryMeeting.id,
+    );
+    expect(loadedDoc).toMatchObject({ projectId: library.id });
+    expect(loadedDoc?.content).toContain("Library state");
+    expect(loadedTask).toMatchObject({ projectId: library.id });
+    expect(loadedTask?.content).toContain("Library task");
+    expect(loadedMeeting).toMatchObject({ projectId: library.id });
+    expect(loadedMeeting?.content).toContain("Library meeting");
   });
 
   it("returns partially valid records with diagnostics and isolates invalid YAML", async () => {

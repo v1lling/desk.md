@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Meeting } from "@desk/core/types";
-import { getDeskService } from "@desk/core";
+import { getDeskService, isSameEntity } from "@desk/core";
 
 // Query keys
 export const meetingKeys = {
@@ -8,8 +8,8 @@ export const meetingKeys = {
   byWorkspace: (workspaceId: string) => [...meetingKeys.all, "workspace", workspaceId] as const,
   byProject: (workspaceId: string, projectId: string) =>
     [...meetingKeys.byWorkspace(workspaceId), "project", projectId] as const,
-  detail: (workspaceId: string, meetingId: string) =>
-    [...meetingKeys.byWorkspace(workspaceId), "detail", meetingId] as const,
+  detail: (workspaceId: string, projectId: string, meetingId: string) =>
+    [...meetingKeys.byWorkspace(workspaceId), "project", projectId, "detail", meetingId] as const,
 };
 
 /**
@@ -43,14 +43,20 @@ export function useProjectMeetings(workspaceId: string | null, projectId: string
 /**
  * Hook to fetch a single meeting
  */
-export function useMeeting(workspaceId: string | null, meetingId: string | null) {
+export function useMeeting(
+  workspaceId: string | null,
+  projectId: string | null,
+  meetingId: string | null,
+) {
   return useQuery({
-    queryKey: meetingKeys.detail(workspaceId || "", meetingId || ""),
+    queryKey: meetingKeys.detail(workspaceId || "", projectId || "", meetingId || ""),
     queryFn: async () => {
-      if (!workspaceId || !meetingId) throw new Error("workspaceId and meetingId are required");
-      return getDeskService().getMeeting(workspaceId, meetingId);
+      if (!workspaceId || !projectId || !meetingId) {
+        throw new Error("workspaceId, projectId and meetingId are required");
+      }
+      return getDeskService().getMeeting(workspaceId, projectId, meetingId);
     },
-    enabled: !!workspaceId && !!meetingId,
+    enabled: !!workspaceId && !!projectId && !!meetingId,
   });
 }
 
@@ -102,12 +108,16 @@ export function useUpdateMeeting() {
           { queryKey: meetingKeys.all },
           (old) => {
             if (!Array.isArray(old)) return old;
-            return old.map(m => m.id === updatedMeeting.id ? updatedMeeting : m);
+            return old.map(m => isSameEntity(m, updatedMeeting) ? updatedMeeting : m);
           }
         );
         // Also update detail query directly
         queryClient.setQueryData(
-          meetingKeys.detail(updatedMeeting.workspaceId, updatedMeeting.id),
+          meetingKeys.detail(
+            updatedMeeting.workspaceId,
+            updatedMeeting.projectId,
+            updatedMeeting.id,
+          ),
           updatedMeeting
         );
       }
@@ -138,7 +148,11 @@ export function useMoveMeetingToProject() {
         queryKey: meetingKeys.byWorkspace(variables.workspaceId),
       });
       queryClient.invalidateQueries({
-        queryKey: meetingKeys.detail(variables.workspaceId, variables.meetingId),
+        queryKey: meetingKeys.detail(
+          variables.workspaceId,
+          variables.fromProjectId,
+          variables.meetingId,
+        ),
       });
     },
   });

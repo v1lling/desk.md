@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { MeetingCard } from "./meeting-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { format, parseISO } from "date-fns";
-import { compareDatesDesc } from "@desk/core";
+import { compareDatesDesc, getScopedEntityKey } from "@desk/core";
 import type { Meeting } from "@desk/core/types";
 
 interface MeetingListProps {
@@ -56,7 +56,8 @@ export function MeetingList({ meetings, onMeetingClick }: MeetingListProps) {
     [meetings, t],
   );
   // No "Latest" pill when only undated meetings exist — there is no recency to claim.
-  const mostRecentId = grouped[0]?.key !== NO_DATE_KEY ? grouped[0]?.meetings[0]?.id : undefined;
+  const mostRecent = grouped[0]?.key !== NO_DATE_KEY ? grouped[0]?.meetings[0] : undefined;
+  const mostRecentKey = mostRecent ? getScopedEntityKey(mostRecent) : undefined;
 
   if (meetings.length === 0) {
     return (
@@ -77,10 +78,10 @@ export function MeetingList({ meetings, onMeetingClick }: MeetingListProps) {
           <div className="space-y-2">
             {group.meetings.map((meeting) => (
               <MeetingCard
-                key={meeting.id}
+                key={getScopedEntityKey(meeting)}
                 meeting={meeting}
                 onClick={() => onMeetingClick?.(meeting)}
-                isLatest={meeting.id === mostRecentId}
+                isLatest={getScopedEntityKey(meeting) === mostRecentKey}
               />
             ))}
           </div>

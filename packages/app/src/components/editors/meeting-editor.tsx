@@ -13,23 +13,30 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { getEntityTabId } from "@/lib/tab-identity";
+import { useTabStore } from "@/stores/tabs";
 
 interface MeetingEditorProps {
   meetingId: string;
   workspaceId: string;
-  projectId?: string;
+  projectId: string;
   onClose: () => void;
 }
 
-export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditorProps) {
+export function MeetingEditor({ meetingId, workspaceId, projectId, onClose }: MeetingEditorProps) {
   const { t } = useTranslation();
-  const tabId = `meeting-${meetingId}`;
+  const tabId = getEntityTabId("meeting", { id: meetingId, workspaceId, projectId });
   const handleInternalLinkClick = useInternalLinkHandler();
-  const { data: meeting, isLoading: isLoadingMeeting } = useMeeting(workspaceId, meetingId);
+  const { data: meeting, isLoading: isLoadingMeeting } = useMeeting(
+    workspaceId,
+    projectId,
+    meetingId,
+  );
 
   const updateMeeting = useUpdateMeeting();
   const deleteMeeting = useDeleteMeeting();
   const moveMeetingToProject = useMoveMeetingToProject();
+  const moveEntityTabToProject = useTabStore((state) => state.moveEntityTabToProject);
   const { data: projects = [] } = useProjects(workspaceId);
 
   // Metadata state
@@ -54,7 +61,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     }
     // Re-init only when the meeting identity changes, not on every metadata edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meeting?.id, workspaceId]);
+  }, [meeting?.id, workspaceId, projectId]);
 
   // Hosted/web body save: persist through the update mutation (server merges
   // frontmatter). Ignored in Tauri, which writes to disk directly.
@@ -114,6 +121,7 @@ export function MeetingEditor({ meetingId, workspaceId, onClose }: MeetingEditor
     acceptPathChange,
     move: moveMeetingToProject.mutateAsync,
     entityLabel: "meeting",
+    onMoved: (newProjectId) => moveEntityTabToProject(tabId, newProjectId),
     buildMoveArgs: (id, ws, from, to) => ({ meetingId: id, workspaceId: ws, fromProjectId: from, toProjectId: to }),
   });
 

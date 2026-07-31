@@ -13,7 +13,13 @@ export function useInternalLinkHandler() {
 
   return useCallback(
     (link: NoteLink) => {
-      const item = findByTypeAndId(link.type, link.id);
+      const item = findByTypeAndId(
+        link.type,
+        link.id,
+        link.workspaceId && link.projectId
+          ? { workspaceId: link.workspaceId, projectId: link.projectId }
+          : undefined,
+      );
       if (!item) {
         toast.error(i18next.t("toasts.link.notFound"));
         return;

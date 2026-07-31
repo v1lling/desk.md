@@ -162,10 +162,18 @@ export function isIndexReady(): boolean {
  */
 export function findByTypeAndId(
   type: SearchItemType,
-  id: string
+  id: string,
+  scope?: { workspaceId: string; projectId: string },
 ): SearchItem | null {
   if (!isInitialized) return null;
-  return items.find((i) => i.type === type && i.id === id) ?? null;
+  const matches = items.filter((i) => i.type === type && i.id === id);
+  if (scope) {
+    return matches.find(
+      (i) => i.workspaceId === scope.workspaceId && i.projectId === scope.projectId,
+    ) ?? null;
+  }
+  // Legacy links contain no owner. Resolve only when the old ID is unambiguous.
+  return matches.length === 1 ? matches[0] : null;
 }
 
 // Helper functions to convert domain objects to SearchItems

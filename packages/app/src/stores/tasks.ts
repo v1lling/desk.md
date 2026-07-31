@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
-import { getDeskService } from "@desk/core";
+import { getDeskService, isSameEntity } from "@desk/core";
 import { plannerKeys } from "./planner";
 
 // Query keys
@@ -10,8 +10,8 @@ export const taskKeys = {
   byWorkspace: (workspaceId: string) => [...taskKeys.all, "workspace", workspaceId] as const,
   byProject: (workspaceId: string, projectId: string) =>
     [...taskKeys.byWorkspace(workspaceId), "project", projectId] as const,
-  detail: (workspaceId: string, taskId: string) =>
-    [...taskKeys.byWorkspace(workspaceId), "detail", taskId] as const,
+  detail: (workspaceId: string, projectId: string, taskId: string) =>
+    [...taskKeys.byWorkspace(workspaceId), "project", projectId, "detail", taskId] as const,
 };
 
 /**
@@ -46,14 +46,20 @@ export function useProjectTasks(workspaceId: string | null, projectId: string | 
  * Hook to fetch a single task
  * Works for all workspaces
  */
-export function useTask(workspaceId: string | null, taskId: string | null) {
+export function useTask(
+  workspaceId: string | null,
+  projectId: string | null,
+  taskId: string | null,
+) {
   return useQuery({
-    queryKey: taskKeys.detail(workspaceId || "", taskId || ""),
+    queryKey: taskKeys.detail(workspaceId || "", projectId || "", taskId || ""),
     queryFn: async () => {
-      if (!workspaceId || !taskId) throw new Error("workspaceId and taskId are required");
-      return getDeskService().getTask(workspaceId, taskId);
+      if (!workspaceId || !projectId || !taskId) {
+        throw new Error("workspaceId, projectId and taskId are required");
+      }
+      return getDeskService().getTask(workspaceId, projectId, taskId);
     },
-    enabled: !!workspaceId && !!taskId,
+    enabled: !!workspaceId && !!projectId && !!taskId,
   });
 }
 
@@ -111,7 +117,7 @@ export function useUpdateTask() {
           { queryKey: taskKeys.all },
           (old) => {
             if (!Array.isArray(old)) return old;
-            return old.map(t => t.id === updatedTask.id ? updatedTask : t);
+            return old.map(t => isSameEntity(t, updatedTask) ? updatedTask : t);
           }
         );
         // Same patch for the planner's cross-workspace list, so a task edited from a tab
@@ -122,13 +128,13 @@ export function useUpdateTask() {
           (old) => {
             if (!Array.isArray(old)) return old;
             return old.map((t) =>
-              t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+              isSameEntity(t, updatedTask) ? { ...t, ...updatedTask } : t
             );
           }
         );
         // Also update detail query directly
         queryClient.setQueryData(
-          taskKeys.detail(updatedTask.workspaceId, updatedTask.id),
+          taskKeys.detail(updatedTask.workspaceId, updatedTask.projectId, updatedTask.id),
           updatedTask
         );
       }
@@ -165,7 +171,7 @@ export function useMoveTask() {
   return useMutation({
     mutationFn: ({ taskId, newStatus, workspaceId, projectId }: { taskId: string; newStatus: TaskStatus; workspaceId?: string; projectId?: string }) =>
       getDeskService().moveTask(taskId, newStatus, workspaceId, projectId),
-    onMutate: async ({ taskId, newStatus }) => {
+    onMutate: async ({ taskId, newStatus, workspaceId, projectId }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.all });
       await queryClient.cancelQueries({ queryKey: plannerKeys.all });
@@ -181,7 +187,11 @@ export function useMoveTask() {
       const patch = <T extends Task>(old: T[] | undefined) => {
         if (!Array.isArray(old)) return old;
         return old.map((task) =>
-          task.id === taskId ? { ...task, status: newStatus } : task
+          task.id === taskId
+            && (!workspaceId || task.workspaceId === workspaceId)
+            && (!projectId || task.projectId === projectId)
+            ? { ...task, status: newStatus }
+            : task
         );
       };
       queryClient.setQueriesData<Task[]>({ queryKey: taskKeys.all }, patch);
@@ -227,9 +237,12 @@ export function useMoveTaskToProject() {
       });
       // Invalidate the detail query so the task object refreshes with new filePath/projectId
       queryClient.invalidateQueries({
-        queryKey: taskKeys.detail(variables.workspaceId, variables.taskId),
+        queryKey: taskKeys.detail(
+          variables.workspaceId,
+          variables.fromProjectId,
+          variables.taskId,
+        ),
       });
     },
   });
 }
-

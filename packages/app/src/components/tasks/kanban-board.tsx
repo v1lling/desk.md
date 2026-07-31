@@ -33,6 +33,7 @@ import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@desk/core/types";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getScopedEntityKey } from "@desk/core";
 
 /**
  * What the pointer is inside wins; corner distance is only the fallback.
@@ -141,7 +142,7 @@ export function KanbanBoard({
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      const task = tasks.find((t) => t.id === event.active.id);
+      const task = tasks.find((t) => getScopedEntityKey(t) === event.active.id);
       if (task) {
         setActiveTask(task);
         setActiveColumn(task.status);
@@ -168,7 +169,7 @@ export function KanbanBoard({
         setActiveColumn(overId);
       } else {
         // Over a task - find its status
-        const overTask = tasks.find((t) => t.id === overId);
+        const overTask = tasks.find((t) => getScopedEntityKey(t) === overId);
         if (overTask) {
           setActiveColumn(overTask.status);
         }
@@ -185,11 +186,11 @@ export function KanbanBoard({
 
       if (!over) return;
 
-      const taskId = active.id as string;
+      const taskKey = active.id as string;
       const overId = over.id as string;
 
       // Find the dragged task
-      const task = tasks.find((t) => t.id === taskId);
+      const task = tasks.find((t) => getScopedEntityKey(t) === taskKey);
       if (!task) return;
 
       // Determine target status
@@ -203,7 +204,7 @@ export function KanbanBoard({
       ) {
         targetStatus = overId;
       } else {
-        const overTask = tasks.find((t) => t.id === overId);
+        const overTask = tasks.find((t) => getScopedEntityKey(t) === overId);
         if (!overTask) return;
         targetStatus = overTask.status;
       }
@@ -215,18 +216,18 @@ export function KanbanBoard({
 
       // Build new order for all columns (used for both project and All Tasks view)
       const newOrder: Record<TaskStatus, string[]> = {
-        backlog: groupedTasks.backlog.map((t) => t.id),
-        todo: groupedTasks.todo.map((t) => t.id),
-        doing: groupedTasks.doing.map((t) => t.id),
-        waiting: groupedTasks.waiting.map((t) => t.id),
-        done: groupedTasks.done.map((t) => t.id),
+        backlog: groupedTasks.backlog.map(getScopedEntityKey),
+        todo: groupedTasks.todo.map(getScopedEntityKey),
+        doing: groupedTasks.doing.map(getScopedEntityKey),
+        waiting: groupedTasks.waiting.map(getScopedEntityKey),
+        done: groupedTasks.done.map(getScopedEntityKey),
       };
 
       if (statusChanged) {
         // Moving to different column
         // Remove from old column
         newOrder[task.status] = newOrder[task.status].filter(
-          (id) => id !== taskId
+          (id) => id !== taskKey
         );
 
         // Add to new column at the right position
@@ -238,28 +239,28 @@ export function KanbanBoard({
           overId === "done"
         ) {
           // Dropped on column itself - add at end
-          newOrder[targetStatus].push(taskId);
+          newOrder[targetStatus].push(taskKey);
         } else {
           // Dropped on a task - insert at that position
           const overIndex = newOrder[targetStatus].indexOf(overId);
           if (overIndex >= 0) {
-            newOrder[targetStatus].splice(overIndex, 0, taskId);
+            newOrder[targetStatus].splice(overIndex, 0, taskKey);
           } else {
-            newOrder[targetStatus].push(taskId);
+            newOrder[targetStatus].push(taskKey);
           }
         }
 
         // Update status in backend
         moveTask.mutate({
-          taskId,
+          taskId: task.id,
           newStatus: targetStatus,
           workspaceId: currentWorkspaceId,
-          projectId: projectId,
+          projectId: task.projectId,
         });
       } else {
         // Same column - just reorder
-        if (overId !== taskId) {
-          const oldIndex = newOrder[targetStatus].indexOf(taskId);
+        if (overId !== taskKey) {
+          const oldIndex = newOrder[targetStatus].indexOf(taskKey);
           const newIndex = newOrder[targetStatus].indexOf(overId);
 
           if (oldIndex >= 0 && newIndex >= 0) {
@@ -285,7 +286,6 @@ export function KanbanBoard({
       groupedTasks,
       moveTask,
       updateTaskOrder,
-      projectId,
       currentWorkspaceId,
       effectiveProjectId,
     ]

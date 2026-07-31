@@ -25,6 +25,7 @@ import {
   isIndexReady,
   type SearchResult,
   type SearchItemType,
+  getScopedEntityKey,
 } from "@desk/core";
 import { useNavigationStore } from "@/stores/navigation";
 import { useOpenTab } from "@/stores/tabs";
@@ -163,7 +164,7 @@ export function GlobalSearch() {
           <CommandGroup heading={t("search.globalSearch.recentHeading")}>
             {results.map((result) => (
               <SearchResultItem
-                key={`${result.item.type}-${result.item.id}`}
+                key={`${result.item.type}-${getScopedEntityKey(result.item)}`}
                 result={result}
                 onSelect={handleSelect}
               />
@@ -175,7 +176,7 @@ export function GlobalSearch() {
           <CommandGroup heading={t("search.globalSearch.resultsHeading")}>
             {results.map((result) => (
               <SearchResultItem
-                key={`${result.item.type}-${result.item.id}`}
+                key={`${result.item.type}-${getScopedEntityKey(result.item)}`}
                 result={result}
                 onSelect={handleSelect}
               />

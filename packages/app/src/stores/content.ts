@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Doc, ContentScope, Asset } from "@desk/core/types";
-import { getDeskService } from "@desk/core";
+import { getDeskService, isSameEntity } from "@desk/core";
 import type { ConvertibleAction, DocLocation } from "@desk/core";
 
 // Query keys for content (docs, assets, folders)
@@ -9,8 +9,8 @@ export const contentKeys = {
   byWorkspace: (workspaceId: string) => [...contentKeys.all, "workspace", workspaceId] as const,
   byProject: (workspaceId: string, projectId: string) =>
     [...contentKeys.byWorkspace(workspaceId), "project", projectId] as const,
-  detail: (workspaceId: string, docId: string) =>
-    [...contentKeys.byWorkspace(workspaceId), "detail", docId] as const,
+  detail: (workspaceId: string, projectId: string, docId: string) =>
+    [...contentKeys.byWorkspace(workspaceId), "project", projectId, "detail", docId] as const,
   tree: (scope: ContentScope, workspaceId?: string, projectId?: string) =>
     [...contentKeys.all, "tree", scope, workspaceId || "", projectId || ""] as const,
   // Workspace docs shell (workspace content + project folders)
@@ -35,14 +35,20 @@ export function useDocs(workspaceId: string | null) {
 /**
  * Hook to fetch a single doc
  */
-export function useDoc(workspaceId: string | null, docId: string | null) {
+export function useDoc(
+  workspaceId: string | null,
+  projectId: string | null,
+  docId: string | null,
+) {
   return useQuery({
-    queryKey: contentKeys.detail(workspaceId || "", docId || ""),
+    queryKey: contentKeys.detail(workspaceId || "", projectId || "", docId || ""),
     queryFn: async () => {
-      if (!workspaceId || !docId) throw new Error("workspaceId and docId are required");
-      return getDeskService().getDoc(workspaceId, docId);
+      if (!workspaceId || !projectId || !docId) {
+        throw new Error("workspaceId, projectId and docId are required");
+      }
+      return getDeskService().getDoc(workspaceId, projectId, docId);
     },
-    enabled: !!workspaceId && !!docId,
+    enabled: !!workspaceId && !!projectId && !!docId,
   });
 }
 
@@ -93,12 +99,12 @@ export function useUpdateDoc() {
           { queryKey: contentKeys.all },
           (old) => {
             if (!Array.isArray(old)) return old;
-            return old.map(d => d.id === updatedDoc.id ? updatedDoc : d);
+            return old.map(d => isSameEntity(d, updatedDoc) ? updatedDoc : d);
           }
         );
         // Also update detail query directly
         queryClient.setQueryData(
-          contentKeys.detail(updatedDoc.workspaceId, updatedDoc.id),
+          contentKeys.detail(updatedDoc.workspaceId, updatedDoc.projectId, updatedDoc.id),
           updatedDoc
         );
       }

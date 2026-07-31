@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import i18next from "i18next";
+import { getEntityTabId } from "@/lib/tab-identity";
 
 import type { IncomingEmail } from "@/lib/email/types";
 
@@ -30,6 +31,7 @@ interface TabState {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   updateTab: (tabId: string, updates: Partial<TabItem>) => void;
+  moveEntityTabToProject: (tabId: string, projectId: string) => void;
   setTabDirty: (tabId: string, isDirty: boolean) => void;
   closeOtherTabs: (tabId: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
@@ -39,7 +41,12 @@ interface TabState {
   clearPendingSaveAndClose: () => void;
 
   // Queries
-  getTabByEntityId: (type: TabType, entityId: string) => TabItem | undefined;
+  getTabByEntityId: (
+    type: TabType,
+    workspaceId: string,
+    projectId: string,
+    entityId: string,
+  ) => TabItem | undefined;
 }
 
 function makeDeskTab(): TabItem {
@@ -57,6 +64,45 @@ function stripSessionOnlyTabData(tab: TabItem): Omit<TabItem, "emailData"> {
   return next;
 }
 
+function migratePersistedTabs(persistedState: unknown): unknown {
+  const state = persistedState as Partial<TabState> | undefined;
+  if (!state?.tabs) return persistedState;
+
+  const previousActiveId = state.activeTabId;
+  let nextActiveId = "desk";
+  const seen = new Set<string>();
+  const tabs: TabItem[] = [];
+
+  for (const oldTab of state.tabs) {
+    let tab: TabItem | null = null;
+    if (oldTab.type === "desk") {
+      tab = { ...oldTab, id: "desk" };
+    } else if (
+      oldTab.type !== "email"
+      && oldTab.entityId
+      && oldTab.workspaceId
+      && oldTab.projectId
+    ) {
+      tab = {
+        ...oldTab,
+        id: getEntityTabId(oldTab.type, {
+          id: oldTab.entityId,
+          workspaceId: oldTab.workspaceId,
+          projectId: oldTab.projectId,
+        }),
+      };
+    }
+
+    if (!tab || seen.has(tab.id)) continue;
+    seen.add(tab.id);
+    tabs.push(tab);
+    if (oldTab.id === previousActiveId) nextActiveId = tab.id;
+  }
+
+  if (!seen.has("desk")) tabs.unshift(makeDeskTab());
+  return { ...state, tabs, activeTabId: nextActiveId };
+}
+
 export const useTabStore = create<TabState>()(
   persist(
     (set, get) => ({
@@ -68,9 +114,18 @@ export const useTabStore = create<TabState>()(
         const { tabs } = get();
 
         // Check if tab for this entity already exists (not for email tabs which are always new)
-        if (newTab.type !== "desk" && newTab.type !== "email" && newTab.entityId) {
+        if (
+          newTab.type !== "desk"
+          && newTab.type !== "email"
+          && newTab.entityId
+          && newTab.workspaceId
+          && newTab.projectId
+        ) {
           const existing = tabs.find(
-            (t) => t.type === newTab.type && t.entityId === newTab.entityId
+            (t) => t.type === newTab.type
+              && t.entityId === newTab.entityId
+              && t.workspaceId === newTab.workspaceId
+              && t.projectId === newTab.projectId
           );
           if (existing) {
             set({ activeTabId: existing.id });
@@ -86,7 +141,12 @@ export const useTabStore = create<TabState>()(
           // Email tabs use timestamp for unique ID (session only)
           id = `email-${Date.now()}`;
         } else {
-          id = `${newTab.type}-${newTab.entityId}`;
+          if (!newTab.entityId || !newTab.workspaceId || !newTab.projectId) return;
+          id = getEntityTabId(newTab.type, {
+            id: newTab.entityId,
+            workspaceId: newTab.workspaceId,
+            projectId: newTab.projectId,
+          });
         }
         const tab: TabItem = { ...newTab, id };
 
@@ -137,6 +197,29 @@ export const useTabStore = create<TabState>()(
         }));
       },
 
+      moveEntityTabToProject: (tabId, projectId) => {
+        const tab = get().tabs.find((candidate) => candidate.id === tabId);
+        if (
+          !tab
+          || tab.type === "desk"
+          || tab.type === "email"
+          || !tab.entityId
+          || !tab.workspaceId
+        ) return;
+
+        const id = getEntityTabId(tab.type, {
+          id: tab.entityId,
+          workspaceId: tab.workspaceId,
+          projectId,
+        });
+        set((state) => ({
+          tabs: state.tabs.map((candidate) =>
+            candidate.id === tabId ? { ...candidate, id, projectId } : candidate
+          ),
+          activeTabId: state.activeTabId === tabId ? id : state.activeTabId,
+        }));
+      },
+
       setTabDirty: (tabId, isDirty) => {
         set((state) => ({
           tabs: state.tabs.map((t) =>
@@ -165,8 +248,13 @@ export const useTabStore = create<TabState>()(
         });
       },
 
-      getTabByEntityId: (type, entityId) => {
-        return get().tabs.find((t) => t.type === type && t.entityId === entityId);
+      getTabByEntityId: (type, workspaceId, projectId, entityId) => {
+        return get().tabs.find(
+          (t) => t.type === type
+            && t.entityId === entityId
+            && t.workspaceId === workspaceId
+            && t.projectId === projectId,
+        );
       },
 
       requestSaveAndClose: (tabId) => {
@@ -179,6 +267,8 @@ export const useTabStore = create<TabState>()(
     }),
     {
       name: "desk-tabs",
+      version: 2,
+      migrate: migratePersistedTabs,
       partialize: (state) => ({
         // Filter out session-only email tabs and strip emailData
         tabs: state.tabs
@@ -197,7 +287,7 @@ export function useOpenTab() {
   const openTab = useTabStore((state) => state.openTab);
 
   return {
-    openDoc: (doc: { id: string; title: string; workspaceId: string; projectId?: string }) => {
+    openDoc: (doc: { id: string; title: string; workspaceId: string; projectId: string }) => {
       openTab({
         type: "doc",
         entityId: doc.id,
@@ -206,7 +296,7 @@ export function useOpenTab() {
         projectId: doc.projectId,
       });
     },
-    openTask: (task: { id: string; title: string; workspaceId: string; projectId?: string }) => {
+    openTask: (task: { id: string; title: string; workspaceId: string; projectId: string }) => {
       openTab({
         type: "task",
         entityId: task.id,
@@ -215,7 +305,7 @@ export function useOpenTab() {
         projectId: task.projectId,
       });
     },
-    openMeeting: (meeting: { id: string; title: string; workspaceId: string; projectId?: string }) => {
+    openMeeting: (meeting: { id: string; title: string; workspaceId: string; projectId: string }) => {
       openTab({
         type: "meeting",
         entityId: meeting.id,

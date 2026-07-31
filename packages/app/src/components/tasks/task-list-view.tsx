@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { AIBadge } from "@/components/ui/ai-badge";
 import type { Task, TaskStatus } from "@desk/core/types";
+import { getScopedEntityKey } from "@desk/core";
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -94,7 +95,7 @@ export function TaskListView({
       <div className="space-y-2 max-w-3xl">
         {tasks.map((task) => (
           <TaskListItem
-            key={task.id}
+            key={getScopedEntityKey(task)}
             task={task}
             onClick={onTaskClick}
             showProject={showProject}
@@ -143,7 +144,7 @@ export function TaskListView({
               <div className="space-y-2">
                 {(statusTasks as Task[]).map((task) => (
                   <TaskListItem
-                    key={task.id}
+                    key={getScopedEntityKey(task)}
                     task={task}
                     onClick={onTaskClick}
                     showProject={showProject}

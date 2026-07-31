@@ -25,7 +25,7 @@ import {
   useUpdateDoc,
   useFolderAIStates,
 } from "@/stores";
-import { getDeskService } from "@desk/core";
+import { getDeskService, getScopedEntityKey } from "@desk/core";
 import {
   PROJECT_TREE_PATH_PREFIX,
   resolveTreePath,
@@ -149,7 +149,7 @@ export type DocAuthorFilter = "all" | "mine" | "generated";
 export interface DocsTreeProps {
   workspaceId: string;
   /** Active doc id from the tab store — used to highlight the matching tree row. */
-  activeDocId: string | null;
+  activeDocKey: string | null;
   searchQuery: string;
   sortBy: DocSortBy;
   sortDir: "asc" | "desc";
@@ -168,7 +168,7 @@ export interface DocsTreeProps {
 
 export function DocsTree({
   workspaceId,
-  activeDocId,
+  activeDocKey,
   searchQuery,
   sortBy,
   sortDir,
@@ -368,11 +368,15 @@ export function DocsTree({
   const treeRef = useRef<TreeApi<ArboristNode> | null>(null);
 
   const selectedArboristId = useMemo(() => {
-    if (!activeDocId) return undefined;
-    // Find the ArboristNode whose underlying doc has this id
+    if (!activeDocKey) return undefined;
+    // Match the full owning scope: file-derived IDs repeat across projects.
     function walk(nodes: ArboristNode[]): string | undefined {
       for (const n of nodes) {
-        if (n.kind === "doc" && n.node.type === "doc" && n.node.doc.id === activeDocId) {
+        if (
+          n.kind === "doc"
+          && n.node.type === "doc"
+          && getScopedEntityKey(n.node.doc) === activeDocKey
+        ) {
           return n.id;
         }
         if (n.children) {
@@ -383,7 +387,7 @@ export function DocsTree({
       return undefined;
     }
     return walk(arboristData);
-  }, [activeDocId, arboristData]);
+  }, [activeDocKey, arboristData]);
 
   // ── Arborist handlers ────────────────────────────────────────────────────────
 

@@ -12,6 +12,7 @@
  */
 
 import { compareDatesDesc } from "./parser";
+import { getScopedEntityKey } from "./entity-identity";
 import { getDeskPath, joinPath } from "./env";
 import { getStorage } from "./storage";
 import { PATH_SEGMENTS, FILE_NAMES } from "./constants";
@@ -126,7 +127,14 @@ export async function updateTaskOrder(
  * Sort tasks by custom order from view state
  * Tasks not in the order array are appended at the end (by created date)
  */
-export function sortTasksByOrder<T extends { id: string; created?: string }>(
+export function sortTasksByOrder<
+  T extends {
+    id: string;
+    created?: string;
+    workspaceId?: string;
+    projectId?: string;
+  },
+>(
   tasks: T[],
   order: string[] | undefined
 ): T[] {
@@ -137,10 +145,20 @@ export function sortTasksByOrder<T extends { id: string; created?: string }>(
 
   // Create a map of id -> index for O(1) lookup
   const orderMap = new Map(order.map((id, index) => [id, index]));
+  const orderedId = (task: T): string => (
+    task.workspaceId && task.projectId
+      ? getScopedEntityKey({
+          id: task.id,
+          workspaceId: task.workspaceId,
+          projectId: task.projectId,
+        })
+      : task.id
+  );
 
   return [...tasks].sort((a, b) => {
-    const aIndex = orderMap.get(a.id);
-    const bIndex = orderMap.get(b.id);
+    // Bare IDs remain a fallback for view-state files written by older versions.
+    const aIndex = orderMap.get(orderedId(a)) ?? orderMap.get(a.id);
+    const bIndex = orderMap.get(orderedId(b)) ?? orderMap.get(b.id);
 
     // Both have custom order
     if (aIndex !== undefined && bIndex !== undefined) {

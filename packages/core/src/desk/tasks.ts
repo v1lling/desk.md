@@ -183,9 +183,10 @@ export async function getTasksByProject(
  */
 export async function getTask(
   workspaceId: string,
-  taskId: string
+  projectId: string,
+  taskId: string,
 ): Promise<Task | null> {
-  const tasks = await getTasks(workspaceId);
+  const tasks = await getTasksByProject(workspaceId, projectId);
   return tasks.find((task) => task.id === taskId) || null;
 }
 
@@ -317,7 +318,7 @@ export async function moveTaskToProject(
   toProjectId: string
 ): Promise<Task | null> {
   if (fromProjectId === toProjectId) {
-    const tasks = await getTasks(workspaceId);
+    const tasks = await getTasksByProject(workspaceId, fromProjectId);
     return tasks.find((t) => t.id === taskId) || null;
   }
 

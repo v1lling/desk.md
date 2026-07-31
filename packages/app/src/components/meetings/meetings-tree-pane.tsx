@@ -25,6 +25,7 @@ import {
   useTabStore,
 } from "@/stores";
 import { NewMeetingModal } from "./new-meeting-modal";
+import { getScopedEntityKey } from "@desk/core";
 
 const ALL_PROJECTS = "all";
 const UNASSIGNED = "_unassigned";
@@ -75,8 +76,17 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
   const deleteMeeting = useDeleteMeeting();
 
   const activeTab = useTabStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
-  const activeMeetingId =
-    activeTab?.type === "meeting" && activeTab.entityId ? activeTab.entityId : null;
+  const activeMeetingKey =
+    activeTab?.type === "meeting"
+      && activeTab.entityId
+      && activeTab.workspaceId
+      && activeTab.projectId
+      ? getScopedEntityKey({
+          id: activeTab.entityId,
+          workspaceId: activeTab.workspaceId,
+          projectId: activeTab.projectId,
+        })
+      : null;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -114,10 +124,12 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
   );
 
   // Most recent *dated* meeting in the current filter scope — anchors the "Latest" pill.
-  const latestId = useMemo(() => {
+  const latestKey = useMemo(() => {
     const dated = filtered.filter((m) => m.date);
     if (dated.length === 0) return null;
-    return dated.reduce((acc, m) => (m.date! > acc.date! ? m : acc), dated[0]).id;
+    return getScopedEntityKey(
+      dated.reduce((acc, m) => (m.date! > acc.date! ? m : acc), dated[0]),
+    );
   }, [filtered]);
 
   const handleOpenMeeting = useCallback((meeting: Meeting) => openMeeting(meeting), [openMeeting]);
@@ -212,15 +224,16 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
             <div key={group.key} className="mb-1">
               <SectionLabel sticky>{group.label}</SectionLabel>
               {group.meetings.map((meeting) => {
-                const isLatest = meeting.id === latestId;
+                const meetingKey = getScopedEntityKey(meeting);
+                const isLatest = meetingKey === latestKey;
                 const projectName = meeting.projectId
                   ? (projectsById.get(meeting.projectId) ?? null)
                   : null;
                 const showSecondLine = showProjectTag && !!projectName;
                 return (
                   <ListRow
-                    key={meeting.id}
-                    isActive={meeting.id === activeMeetingId}
+                    key={meetingKey}
+                    isActive={meetingKey === activeMeetingKey}
                     onClick={() => handleOpenMeeting(meeting)}
                     leading={
                       <Calendar

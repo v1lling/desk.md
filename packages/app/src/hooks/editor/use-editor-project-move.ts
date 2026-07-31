@@ -19,6 +19,7 @@ interface UseEditorProjectMoveOptions<TArgs> {
   entityLabel: string;
   /** Build the args object for the move mutation */
   buildMoveArgs: (entityId: string, workspaceId: string, fromProjectId: string, toProjectId: string) => TArgs;
+  onMoved?: (projectId: string) => void;
 }
 
 export function useEditorProjectMove<TArgs>({
@@ -28,6 +29,7 @@ export function useEditorProjectMove<TArgs>({
   move,
   entityLabel,
   buildMoveArgs,
+  onMoved,
 }: UseEditorProjectMoveOptions<TArgs>) {
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [originalProjectId, setOriginalProjectId] = useState("");
@@ -63,12 +65,13 @@ export function useEditorProjectMove<TArgs>({
           acceptPathChange(result.filePath);
         }
         setOriginalProjectId(newProjectId);
+        onMoved?.(newProjectId);
       } catch {
         setCurrentProjectId(originalProjectId);
         toast.error(i18next.t("toasts.editor.moveProject.failed", { entity: entityLabel }));
       }
     },
-    [entity, originalProjectId, move, acceptPathChange, save, entityLabel, buildMoveArgs]
+    [entity, originalProjectId, move, acceptPathChange, save, entityLabel, buildMoveArgs, onMoved]
   );
 
   return { currentProjectId, handleProjectChange };

@@ -22,6 +22,7 @@ import {
 } from "./file-operations";
 import { getDocsPath } from "./paths";
 import { getAllDocs, getAllDocsForWorkspace } from "./content-tree";
+import { WORKSPACE_LEVEL_PROJECT_ID } from "./constants";
 
 // Re-export all from split modules
 export {
@@ -73,9 +74,11 @@ export async function getDocsByProject(
  */
 export async function getDoc(
   workspaceId: string,
-  docId: string
+  projectId: string,
+  docId: string,
 ): Promise<Doc | null> {
-  const docs = await getAllDocsForWorkspace(workspaceId);
+  const scope = projectId === WORKSPACE_LEVEL_PROJECT_ID ? "workspace" : "project";
+  const docs = await getAllDocs(scope, workspaceId, projectId);
   return docs.find((doc) => doc.id === docId) || null;
 }
 

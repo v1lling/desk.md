@@ -16,6 +16,7 @@ import {
   isIndexReady,
   type SearchResult,
   type SearchItemType,
+  getScopedEntityKey,
 } from "@desk/core";
 
 const LINKABLE_TYPES: SearchItemType[] = ["doc", "task", "meeting"];
@@ -33,6 +34,8 @@ interface NoteLinkPickerProps {
     type: SearchItemType;
     id: string;
     title: string;
+    workspaceId: string;
+    projectId: string;
   }) => void;
 }
 
@@ -82,6 +85,8 @@ export function NoteLinkPicker({
         type: result.item.type,
         id: result.item.id,
         title: result.item.title,
+        workspaceId: result.item.workspaceId,
+        projectId: result.item.projectId,
       });
       onOpenChange(false);
     },
@@ -102,7 +107,7 @@ export function NoteLinkPicker({
         <CommandGroup heading={query.trim() ? t("ui.noteLinkPicker.results") : t("ui.noteLinkPicker.recent")}>
           {results.map((result) => (
             <CommandItem
-              key={`${result.item.type}-${result.item.id}`}
+              key={`${result.item.type}-${getScopedEntityKey(result.item)}`}
               value={`${result.item.type}-${result.item.id}-${result.item.title}`}
               onSelect={() => handleSelect(result)}
               className="flex items-center gap-3 py-2"

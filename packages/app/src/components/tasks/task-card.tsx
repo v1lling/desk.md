@@ -18,6 +18,7 @@ import { AIBadge } from "@/components/ui/ai-badge";
 
 interface TaskCardProps {
   task: Task;
+  sortableId?: string;
   onClick?: () => void;
   showProject?: boolean;
   projectName?: string | null;
@@ -33,6 +34,7 @@ interface TaskCardProps {
 
 export function TaskCard({
   task,
+  sortableId,
   onClick,
   showProject,
   projectName,
@@ -49,7 +51,7 @@ export function TaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: sortableId ?? task.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
