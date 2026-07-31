@@ -144,7 +144,7 @@ async function verify(root: string) {
     author: "ai",
   });
   await updateTask(task.id, { status: "doing" }, "acme", "website");
-  assert.equal((await getTask("acme", task.id))?.author, "ai");
+  assert.equal((await getTask("acme", "website", task.id))?.author, "ai");
 
   const meeting = await createMeeting({
     workspaceId: "acme",
@@ -153,7 +153,7 @@ async function verify(root: string) {
     author: "ai",
   });
   await updateMeeting(meeting.id, { title: "AI meeting updated" }, "acme", "website");
-  assert.equal((await getMeeting("acme", meeting.id))?.author, "ai");
+  assert.equal((await getMeeting("acme", "website", meeting.id))?.author, "ai");
 
   // Update failures must reject so editors keep their drafts and show an error.
   setStorage(new RejectEntityWritesProvider(root));
