@@ -3,11 +3,11 @@
  *
  * This binds the @desk/core domain functions to the DeskService
  * contract. The functions are unchanged: they read/write through getStorage()
- * and keep their built-in browser dev-mock fallback (`if (!isTauri())`), so this
+ * and keep their built-in browser-fixture fallback (`if (!isTauri())`), so this
  * one implementation covers both the Tauri desktop app and browser development.
  *
- * The server (step 2) runs this exact object against a NodeFsProvider; the web /
- * native-hosted client uses a RemoteDeskService instead (step 3). Nothing here
+ * The server runs this exact object against a NodeFsProvider; hosted web and
+ * native remote clients use a RemoteDeskService instead. Nothing here
  * changes for either — that is the point of the seam.
  */
 import * as tasksApi from "../tasks";

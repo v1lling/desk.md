@@ -1,5 +1,5 @@
 /**
- * RPC transport codec for the DeskService HTTP boundary (SEAM 2, step 3).
+ * RPC transport codec for the DeskService HTTP boundary.
  *
  * The DeskService contract is JSON-clean except for ONE wire-hostile type:
  * `Uint8Array`, carried in `importFiles(files)` (raw bytes of dropped files).

@@ -4,8 +4,8 @@
  * These typed values are converted to canonical Markdown files by browser-seed.
  * They are read-only fixture inputs, never a second persistence model.
  * - Easy modification and testing
- * - Single source of truth for mock state
- * - Clear separation between mock data and business logic
+ * - Single source of truth for browser fixture state
+ * - Clear separation between fixture data and business logic
  *
  * All names below are fictional sample data.
  */
@@ -20,7 +20,7 @@ import type {
 } from "../types";
 
 /**
- * ISO date (YYYY-MM-DD) offset from today by `days`. Keeps mock data fresh —
+ * ISO date (YYYY-MM-DD) offset from today by `days`. Keeps fixture data fresh —
  * due dates and timestamps stay realistic no matter when the app is run, so
  * screenshots and dev sessions never show a board full of long-overdue tasks.
  */

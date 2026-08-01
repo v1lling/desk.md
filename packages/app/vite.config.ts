@@ -24,12 +24,17 @@ const coreHostMaintenanceSrc = fileURLToPath(
 const coreTypesSrc = fileURLToPath(new URL("../core/src/types/index.ts", import.meta.url));
 
 let commit = "dev";
-try {
-  commit = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-    .toString()
-    .trim();
-} catch {
-  // no git / shallow clone — leave as "dev"
+const buildCommit = process.env.DESK_BUILD_COMMIT?.trim();
+if (buildCommit) {
+  commit = buildCommit.slice(0, 12);
+} else {
+  try {
+    commit = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    // no git / shallow clone — leave as "dev"
+  }
 }
 
 const buildTime = new Date().toISOString();

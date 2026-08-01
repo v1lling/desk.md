@@ -8,7 +8,7 @@ interface ImportMetaEnv {
   /**
    * Set to "1" by `npm run build:hosted` (the server's hosted web build) — selects the
    * same-origin cookie RemoteDeskService at boot. When unset (the default `build`, used
-   * by the Tauri desktop app and the browser-mock dev preview), native hosted-mode code
+   * by the Tauri desktop app and the browser-fixture dev preview), native remote-mode code
    * is bundled and lit up at runtime by isTauri(); see main.tsx / app-shell.tsx.
    */
   readonly VITE_DESK_HOSTED?: string;

@@ -5,7 +5,7 @@
  * provider API key lives:
  *   - Tauri app     → OS Keychain (app/lib/ai/secrets.ts, wired in main.tsx)
  *   - @desk/server  → environment (ANTHROPIC_API_KEY / OPENAI_API_KEY, wired in boot.ts)
- *   - browser mock  → nowhere (default resolver returns null; AI features stay off)
+ *   - browser fixture → nowhere (default resolver returns null; AI features stay off)
  *
  * The default returns null rather than throwing: "no key" is a normal, representable state that
  * every caller already handles (metadata-only indexing, disabled refresh buttons).

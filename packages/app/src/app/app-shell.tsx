@@ -22,13 +22,13 @@ interface AppShellProps {
 }
 
 // Hosted mode only: the auth gate (and better-auth) is lazy-loaded behind the
-// build flag, so the Tauri / browser-mock bundles never include it. When the flag
+// build flag, so the Tauri / browser-fixture bundles never include it. When the flag
 // is unset this constant-folds to null and Rollup drops the dynamic import.
 const HostedAuthGate = import.meta.env.VITE_DESK_HOSTED
   ? lazy(() => import("@/components/auth/hosted-auth-gate"))
   : null;
 
-// Native hosted mode (step 3b-native): the same lazy gate for the desktop build.
+// Native remote mode: the same lazy gate for the desktop build.
 // Bundling is gated on the constant `!VITE_DESK_HOSTED` (so the lean hosted web build
 // tree-shakes it out); whether it's actually shown is a runtime decision — only in a
 // Tauri webview (isTauri(), true on macOS/Windows/Linux) and only when the user has
@@ -196,7 +196,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   // Native remote mode: the desktop app points at a server → gate behind the native
-  // (bearer) auth gate. Guarded by isTauri() so the browser-mock dev build (which now
+  // (bearer) auth gate. Guarded by isTauri() so the browser-fixture dev build (which now
   // bundles the gate too) never shows it. Local mode falls through to the normal
   // setup-wizard path, so switching back to "This Mac" never traps the user behind a login.
   if (NativeAuthGate && isTauri() && connectionMode === "remote") {
@@ -207,7 +207,7 @@ export function AppShell({ children }: AppShellProps) {
     );
   }
 
-  // Local mode (Tauri / browser-mock): onboarding gate, then the shell.
+  // Local mode (Tauri / browser fixture): onboarding gate, then the shell.
   if (!setupCompleted) {
     return <SetupWizard />;
   }

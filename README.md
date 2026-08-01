@@ -173,7 +173,7 @@ self-hosted web, API, OAuth, and MCP services.
 
 ```bash
 npm install
-npm run dev          # browser with mock data
+npm run dev          # browser with development fixtures
 npm run tauri:dev    # desktop app with the real filesystem
 ```
 

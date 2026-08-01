@@ -21,7 +21,7 @@ type Step = "welcome" | "location" | "server-url" | "data-folder" | "existing-de
 
 // Connecting to a remote server is a native-desktop capability: bundled in every
 // non-hosted build (`!VITE_DESK_HOSTED`) but only offered inside a Tauri webview
-// (isTauri()) — the browser-mock dev build stays local-only.
+// (isTauri()) — the browser-fixture dev build stays local-only.
 const SUPPORTS_REMOTE = !import.meta.env.VITE_DESK_HOSTED && isTauri();
 
 const HOME_WORKSPACE_COLOR = "#6366f1";

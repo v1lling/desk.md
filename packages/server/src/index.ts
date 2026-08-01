@@ -58,8 +58,10 @@ app.use("/api/auth/*", mcpCors);
 const distDir = relative(process.cwd(), new URL("../../app/dist", import.meta.url).pathname);
 const indexHtml = `${distDir}/index.html`;
 
-// Liveness (open). Intentionally minimal — no data-root path leak on an open endpoint.
-app.get("/health", (c) => c.json({ ok: true }));
+// Liveness (open). The source revision makes a deployed image traceable without
+// exposing configuration or filesystem details.
+const buildRevision = process.env.DESK_BUILD_COMMIT?.trim() || "dev";
+app.get("/health", (c) => c.json({ ok: true, revision: buildRevision }));
 
 // Better Auth handler — sign-up/in/out, session. Must precede the static
 // catch-all. Takes a web Request, which Hono exposes as c.req.raw.
@@ -69,7 +71,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // create-account vs login screen before anyone is authenticated.
 app.get("/api/auth-status", async (c) => c.json({ hasUsers: await hasUsers() }));
 
-// MCP front door (step 4, read-only) + its protected-resource metadata. OAuth-gated
+// Read-only MCP front door + its protected-resource metadata. OAuth-gated
 // (RFC 8707 audience-bound tokens from the Better Auth AS). Before the static catch-all.
 registerMcp(app);
 

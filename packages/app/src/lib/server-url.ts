@@ -1,5 +1,5 @@
 /**
- * Normalize a user-typed desk.md server URL (step 3b-native).
+ * Normalize a user-typed desk.md server URL for the native remote client.
  *
  * Accepts inputs like "nas.example", "https://nas.example/" and returns a clean origin
  * ("https://nas.example") with a default https:// scheme and no trailing slash. Returns

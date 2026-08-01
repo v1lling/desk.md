@@ -24,11 +24,11 @@ management app where everything is stored as plain Markdown files you own.
 ```bash
 npm install
 
-npm run dev          # Browser with mock data (port 3001) — fastest loop, no Rust needed
+npm run dev          # Browser with fixture data (port 3001) — fastest loop, no Rust needed
 npm run tauri:dev    # Desktop app with real file system access
 ```
 
-Browser mode (`npm run dev`) runs against mock data and is enough for most
+Browser mode (`npm run dev`) runs against deterministic fixture data and is enough for most
 UI work. Use `npm run tauri:dev` when you need real file system behavior.
 
 ## Before opening a pull request
@@ -36,19 +36,16 @@ UI work. Use `npm run tauri:dev` when you need real file system behavior.
 Run these checks and make sure they pass:
 
 ```bash
-npm run typecheck    # core, app, and server
+npm run typecheck    # core, app, server, tests, and scripts
 npm run lint         # ESLint
-npm run build        # production app build
-```
-
-For storage, parser, or domain CRUD changes, also run the filesystem integration
-fixture:
-
-```bash
+npm test             # unit and regression tests
 npm run verify:storage
+npm run build        # desktop webview production build
+npm run build:hosted -w @desk/app
 ```
 
-CI runs lint and the production build on every pull request.
+CI runs all five checks and both production builds on every pull request. Rust
+CI also runs on macOS, Linux, and Windows when Tauri source changes.
 
 If your change affects the UI shown in the README, regenerate its screenshots:
 
@@ -56,7 +53,7 @@ If your change affects the UI shown in the README, regenerate its screenshots:
 npm run screenshots  # rebuilds the banner + screenshots in assets/
 ```
 
-This runs the app in browser mock mode and captures each page in light and dark
+This runs the app in browser fixture mode and captures each page in light and dark
 (needs the Playwright browser once: `npx playwright install chromium`).
 
 ## Pull request guidelines

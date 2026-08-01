@@ -69,7 +69,7 @@ async function bootstrap() {
     }
   });
 
-  // Hosted mode (step 3a): when this bundle is built for the server
+  // Hosted web mode: when this bundle is built for the server
   // (VITE_DESK_HOSTED=1, via `npm run build:hosted`), the domain runs on the
   // server — inject a RemoteDeskService so every getDeskService() call goes over
   // HTTP instead of the in-process LocalDeskService. Same-origin → cookie auth, no CORS.
@@ -81,7 +81,7 @@ async function bootstrap() {
     setStorage(new GuardStorageProvider());
     setDeskService(createRemoteDeskService(window.location.origin));
   } else {
-    // Native hosted mode (step 3b-native): the same Tauri app can point at a remote
+    // Native remote mode: the same Tauri app can point at a remote
     // desk.md server instead of local disk. "Native" is detected at runtime via
     // isTauri() — true on every Tauri desktop platform (macOS/Windows/Linux) — so no
     // build flag is needed; the DMG/MSI/AppImage is always native. This whole branch is
@@ -89,7 +89,7 @@ async function bootstrap() {
     // hosted web build. The choice is a runtime boot-store setting, so flipping it +
     // reloading re-wires the service; requests go through the Tauri HTTP plugin (Rust
     // reqwest, bypasses CSP/CORS) with a Keychain-backed Bearer token. Local mode (and
-    // the browser-mock dev build, where isTauri() is false) keeps LocalDeskService.
+    // the browser-fixture dev build, where isTauri() is false) keeps LocalDeskService.
     const { isTauri } = await import("@desk/core");
     const boot = useBootStore.getState();
     if (isTauri() && boot.connectionMode === "remote" && boot.serverUrl) {

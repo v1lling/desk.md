@@ -8,8 +8,8 @@
  * runs: the server's `.desk/settings/<key>.json` in hosted mode (shared), the local
  * disk in Tauri local mode — exactly like content.
  *
- * Browser-mock dev (no real backend) has no DeskService to persist to, so it falls
- * back to localStorage, keeping the dev loop unchanged. "Browser-mock" = not Tauri
+ * Browser-fixture dev (no real backend) has no DeskService to persist to, so it falls
+ * back to localStorage, keeping the dev loop unchanged. "Browser fixture" = not Tauri
  * AND not the hosted web build; the hosted web build (`VITE_DESK_HOSTED`) has a real
  * RemoteDeskService and uses it.
  */

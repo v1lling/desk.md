@@ -6,6 +6,8 @@
 # that must match the runtime architecture.
 
 FROM node:22-bookworm AS build
+ARG DESK_BUILD_COMMIT=dev
+ENV DESK_BUILD_COMMIT=${DESK_BUILD_COMMIT}
 WORKDIR /app
 # Install deps against the workspace manifests first (better layer caching).
 COPY package.json package-lock.json ./
@@ -19,7 +21,10 @@ COPY . .
 RUN npm run build:hosted -w @desk/app
 
 FROM node:22-bookworm-slim AS run
+ARG DESK_BUILD_COMMIT=dev
 ENV NODE_ENV=production
+ENV DESK_BUILD_COMMIT=${DESK_BUILD_COMMIT}
+LABEL org.opencontainers.image.revision=${DESK_BUILD_COMMIT}
 WORKDIR /app
 COPY --from=build /app /app
 # The server resolves the SPA dist relative to its own cwd, so run from its package dir.

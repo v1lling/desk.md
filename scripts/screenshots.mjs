@@ -5,7 +5,7 @@
  * dark images in `assets/`, so the README never shows a stale UI.
  *
  * How it works:
- *  - Runs the app in browser mock mode (`npm run dev`, port 3001). If a dev
+ *  - Runs the app in browser fixture mode (`npm run dev`, port 3001). If a dev
  *    server is already up it is reused; otherwise one is started and stopped.
  *  - Seeds localStorage so onboarding is skipped and the theme + workspace are
  *    deterministic, then screenshots each page in light and dark.
@@ -187,7 +187,7 @@ function seedScript(theme) {
   `;
 }
 
-/** Wait until the app shell has hydrated and mock data is showing. */
+/** Wait until the app shell has hydrated and fixture data is showing. */
 async function waitForApp(page) {
   await page.waitForSelector("text=Acme Co", { timeout: 20_000 });
   await page.evaluate(() => document.fonts.ready);

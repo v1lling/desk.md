@@ -34,7 +34,7 @@ interface AuthScreenProps {
 }
 
 /**
- * Hosted-mode login + first-run account creation (step 3b). Rendered by the
+ * Hosted login + first-run account creation. Rendered by the
  * app-shell gate when running hosted (web VITE_DESK_HOSTED, or native remote mode)
  * and unauthenticated. On success the session is established (cookie on web, Keychain
  * bearer token on native) and the screen reloads so the app boots authenticated.

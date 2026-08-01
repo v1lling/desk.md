@@ -1,5 +1,5 @@
 /**
- * Native hosted-mode session token store (step 3b-native).
+ * Native remote-mode session token store.
  *
  * The native client authenticates to a remote desk.md server with Better Auth's
  * bearer plugin: sign-in returns the session token in the `set-auth-token` header,

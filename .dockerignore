@@ -1,5 +1,11 @@
 # Keep the build context small and force a clean in-image install/build.
 .git
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+**/*.pem
 node_modules
 **/node_modules
 packages/*/dist
@@ -10,4 +16,9 @@ packages/app/src-tauri/gen
 deploy/data
 data
 scratchpad
+docs
+.claude
+.codex
+.playwright-mcp
+coverage
 .DS_Store

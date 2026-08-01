@@ -14,6 +14,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        DESK_BUILD_COMMIT: "${DESK_BUILD_COMMIT:-dev}"
     image: deskmd:latest
     container_name: deskmd
     restart: unless-stopped

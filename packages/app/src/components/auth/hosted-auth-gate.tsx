@@ -4,8 +4,8 @@ import { signIn, signUp, useSession } from "@/lib/auth-client";
 import { AuthScreen } from "./auth-screen";
 
 /**
- * Hosted-mode auth gate (step 3b) — lazy-loaded, so better-auth never enters the
- * Tauri / browser-mock bundles (see app-shell). Three states mirroring the local
+ * Hosted-mode auth gate — lazy-loaded, so better-auth never enters the
+ * Tauri / browser-fixture bundles (see app-shell). Three states mirroring the local
  * setup-wizard flow:
  *   loading            → spinner
  *   no session         → AuthScreen ("create account" on a fresh deployment where

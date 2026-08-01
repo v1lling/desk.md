@@ -18,7 +18,7 @@ const PlannerPage = lazy(() => import("./pages/planner"));
 // Hosted-web only: the OAuth AS's login + consent pages (the redirect targets that let a
 // Claude/ChatGPT custom connector complete its grant). Gated on the constant
 // `VITE_DESK_HOSTED` (null in native), so Rollup drops the dynamic import and the Tauri /
-// browser-mock bundles never pull in better-auth (or auth-client) through here.
+// browser-fixture bundles never pull in better-auth (or auth-client) through here.
 const OAuthSignIn = import.meta.env.VITE_DESK_HOSTED
   ? lazy(() => import("./pages/oauth-sign-in"))
   : null;

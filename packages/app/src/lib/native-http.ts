@@ -1,5 +1,5 @@
 /**
- * Native hosted-mode HTTP transport (step 3b-native).
+ * Native remote-mode HTTP transport.
  *
  * Re-exports the `@tauri-apps/plugin-http` fetch — a drop-in for the web `fetch` whose
  * request runs in Rust (reqwest), not in the webview. That matters for two reasons:
@@ -11,7 +11,7 @@
  *
  * Imported only from code paths reached inside a Tauri webview (main.tsx / the native
  * auth client), gated for bundling behind `!VITE_DESK_HOSTED`, so the hosted web build
- * never pulls it in. It runs but lies dormant in the browser-mock dev bundle.
+ * never pulls it in. It runs but lies dormant in the browser-fixture dev bundle.
  */
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 

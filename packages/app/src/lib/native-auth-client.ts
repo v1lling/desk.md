@@ -1,5 +1,5 @@
 /**
- * Native hosted-mode Better Auth client (step 3b-native).
+ * Native remote-mode Better Auth client.
  *
  * Unlike the web client ([auth-client.ts]), which is same-origin and cookie-based,
  * this client talks to a user-chosen remote server and authenticates with a bearer

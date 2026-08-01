@@ -156,7 +156,7 @@ export function useEditorSession({
     setFileDeleted(false);
 
     if (!isLocalDisk()) {
-      // Not local disk (remote or browser-mock): the content already came from the
+      // Not local disk (remote or browser fixture): the content already came from the
       // domain (useDoc/useTask/useMeeting → getDeskService()), so use initialContent
       // instead of reading the local filesystem (which the guard blocks in remote).
       setContentState(initialContent);
@@ -307,7 +307,7 @@ export function useEditorSession({
         return false;
       }
 
-      // Local disk (and browser mock): save through the core funnel, which preserves the
+      // Local disk (and browser fixture): save through the core funnel, which preserves the
       // on-disk frontmatter, stamps `updated`, and publishes on the domain-write bus like
       // every other record write — the maintenance engine's trigger.
       const { frontmatter } = await saveHostMarkdownBody(path, contentToSave);

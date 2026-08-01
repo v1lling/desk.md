@@ -1,5 +1,5 @@
 /**
- * RemoteDeskService — SEAM 2 client (step 3a).
+ * RemoteDeskService — client for the remote DeskService boundary.
  *
  * A thin fetch client implementing the full DeskService contract by POSTing each
  * method call to the server's `/api/desk/:op` RPC endpoint, where the same domain
@@ -7,7 +7,7 @@
  * boots in hosted mode (see main.tsx); after that, every getDeskService() caller
  * (all 6 stores, behind React Query) transparently targets the server.
  *
- * A single Proxy covers all ~57 methods — there is no per-method code, so the
+ * A single Proxy covers the full service contract — there is no per-method code, so the
  * client can't drift from the interface. Bodies use the @desk/core rpc-codec
  * (base64 for the one Uint8Array arg in importFiles); errors thrown here surface
  * through React Query unchanged.
@@ -29,8 +29,8 @@ void _allDeskServiceMethodsAreAsync;
 
 /**
  * Transport options. Defaults (hosted web, same-origin) use the browser `fetch` with
- * `credentials: "include"` to carry the session cookie. The native client (step
- * 3b-native) is cross-origin and cookie-less: it passes `fetchImpl` from
+ * `credentials: "include"` to carry the session cookie. The native client is
+ * cross-origin and cookie-less: it passes `fetchImpl` from
  * `@tauri-apps/plugin-http` (Rust reqwest — bypasses webview CSP + CORS) and
  * `authHeader` returning `Bearer <token>` from the Keychain.
  */

@@ -1,5 +1,5 @@
 /**
- * Connection-mode helpers (step 3b-native).
+ * Connection-mode helpers for local and remote domain ownership.
  *
  * `isRemoteMode()` is true when the native app is pointed at a remote desk.md server
  * rather than local disk. Local-disk-only affordances (reveal in Finder, open in
@@ -25,7 +25,7 @@ export function isDomainRemote(): boolean {
 /**
  * The ONLY condition under which client code may use the host-file adapter: a Tauri
  * app whose domain runs locally. In every other posture (native-remote, hosted web,
- * browser-mock) domain data must go through `getDeskService()`; in the remote postures a
+ * browser-fixture) domain data must go through `getDeskService()`; in the remote postures a
  * GuardStorageProvider makes stray host-file access throw instead of hitting the wrong disk.
  */
 export function isLocalDisk(): boolean {

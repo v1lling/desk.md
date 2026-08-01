@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
 
 /**
- * Hosted-mode "Account" settings (step 3b) — lazy-loaded behind the
+ * Hosted-mode "Account" settings — lazy-loaded behind the
  * VITE_DESK_HOSTED flag so better-auth never enters the desktop bundle. Just a
  * sign-out for now; the local Tauri app never renders this.
  */

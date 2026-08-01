@@ -20,7 +20,8 @@ docker compose up -d
 
 Open <http://localhost:8787> and create your account — **the first sign-up wins** (the
 deployment is single-account by default; the same login also gates AI connectors). Check
-health with `curl localhost:8787/health` → `{"ok":true}`.
+health with `curl localhost:8787/health`. The response includes `ok: true` and the
+source revision embedded in the image (`dev` for an ordinary local build).
 
 This builds the image from the repo's root `Dockerfile`. Data lives in `./data` (override
 with `DESK_DATA_DIR`).
@@ -56,9 +57,9 @@ responses, so if your proxy buffers, disable buffering and raise read/send timeo
 
 Once it's on a public HTTPS URL, add `https://desk.example.com/mcp` as a custom connector in
 Claude.ai or ChatGPT (or point Claude Code at it via `mcp-remote`). The client self-registers,
-sends you through sign-in + consent, and then has **read-only** access:
-`desk_workspace_info`, `desk_tree`, `desk_read`, `desk_search`, `desk_catalog`. No static API
-key to manage — it's the standard OAuth grant.
+sends you through sign-in + consent, and then has **read-only** access through
+`desk_context`, `desk_catalog`, `desk_search`, and `desk_read`, plus workspace and
+project context resources. No static API key to manage — it's the standard OAuth grant.
 
 > Don't put the server behind a separate SSO/zero-trust gate (Cloudflare Access, etc.).
 > desk.md's own OAuth is the access control; an extra login in front breaks the connector grant.
@@ -82,7 +83,10 @@ For developing the client from source against a live server (`npm run tauri:dev`
 
 See [.env.example](.env.example) for the full list. Required: `BETTER_AUTH_SECRET`. For
 production also set `DESK_PUBLIC_URL`. Optional: `DESK_DATA_DIR`, `DESK_PORT`,
-`DESK_TRUSTED_ORIGINS`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
+`DESK_TRUSTED_ORIGINS`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and
+`DESK_BUILD_COMMIT` (source revision metadata; deployment scripts should set it to
+`git rev-parse HEAD`). `.env` files, private keys, ignored host configs, local docs,
+and generated artifacts are excluded from the Docker build context.
 
 ---
 

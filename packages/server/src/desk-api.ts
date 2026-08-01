@@ -1,5 +1,5 @@
 /**
- * Domain HTTP API — SEAM 2 over the wire (step 3a) + session gate (step 3b).
+ * Domain HTTP API — the DeskService boundary over the wire, behind a session gate.
  *
  * One RPC endpoint, `POST /api/desk/:op`, that dispatches to the server's
  * in-process DeskService (LocalDeskService on NodeFsProvider). The web client's
@@ -45,7 +45,7 @@ export function registerDeskApi(app: Hono): void {
     // else. SameSite=Lax already blocks the cookie cross-site, but this makes the
     // posture explicit and content-type-independent. A present Origin must be in
     // the allowlist; an absent Origin (curl, server-to-server) is allowed through.
-    // The native client (step 3b-native) authenticates with a Bearer token, but may
+    // The native client authenticates with a Bearer token, but may
     // still carry a Tauri/dev Origin (tauri://localhost, or the dev port) — that's in
     // ALLOWED_ORIGINS via TRUSTED_ORIGINS, so it passes here and is gated by the session
     // check below. (Bearer auth is CSRF-immune regardless, not being an ambient credential.)

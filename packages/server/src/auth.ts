@@ -1,5 +1,5 @@
 /**
- * Better Auth instance — first-party human login for the hosted tier (step 3b).
+ * Better Auth instance — first-party human login for hosted deployments.
  *
  * Owns the security-sensitive parts (password hashing, sessions, CSRF, endpoint
  * throttling) and a few SQLite tables. The markdown stays on the filesystem; this
@@ -133,7 +133,7 @@ const authOptions = {
   emailAndPassword: {
     enabled: true,
   },
-  // Bearer-token sessions for the cross-origin native client (step 3b-native). The
+  // Bearer-token sessions for the cross-origin native client. The
   // Tauri webview (origin tauri://localhost) can't carry the same-origin SameSite=Lax
   // cookie, so the native app reads the session token from the `set-auth-token`
   // response header at sign-in, stores it in the macOS Keychain, and sends it as
@@ -148,7 +148,7 @@ const authOptions = {
     // OAuth 2.1 Authorization Server (Better Auth's newer, non-deprecating plugin). This is
     // the "direct OAuth" front door the Claude.ai / ChatGPT custom-connector UIs require:
     // it serves the discovery metadata, Dynamic Client Registration, auth-code + PKCE(S256),
-    // consent, and the token endpoint. Step 4+5 (MCP front door) sits behind it.
+    // consent, and the token endpoint. The MCP front door sits behind it.
     oauthProvider({
       loginPage: "/sign-in",
       consentPage: "/oauth/consent",

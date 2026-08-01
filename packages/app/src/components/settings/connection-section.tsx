@@ -15,7 +15,7 @@ import { clearSessionToken } from "@/lib/session-token";
 import { normalizeServerUrl } from "@/lib/server-url";
 
 /**
- * Native hosted-mode "Connection" settings (step 3b-native) — lazy-loaded in every
+ * Native remote-mode "Connection" settings — lazy-loaded in every
  * non-hosted build (gated on `!VITE_DESK_HOSTED`) and rendered only inside a Tauri
  * webview (isTauri()). Lets the desktop app switch between local disk and a remote
  * desk.md server.

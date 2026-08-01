@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * Where the native app runs the domain (step 3b-native):
+ * Where the native app runs the domain:
  *   - "local"  → in-process on the Mac filesystem (default; the only mode pre-3b-native)
  *   - "remote" → thin client of a deployed desk.md server (RemoteDeskService over HTTP)
  * This is a client-side setting, independent of `dataPath`/`setupCompleted`, so switching

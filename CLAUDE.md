@@ -8,19 +8,20 @@ All commands run from the repo root. The root `package.json` is an npm-workspace
 manifest; each script delegates to the relevant package (`-w @desk/app` / `@desk/server`).
 
 ```bash
-npm run dev          # Browser with mock data (port 3001) — @desk/app
+npm run dev          # Browser with development fixtures (port 3001) — @desk/app
 npm run tauri:dev    # Desktop with real file system — @desk/app
 npm run build        # Type-check + production web build — run before committing — @desk/app
+npm run build:hosted -w @desk/app # Hosted production web build
 npm run typecheck    # tsc --noEmit across core, app, and server
 npm run lint         # ESLint (flat config in packages/app/eslint.config.mjs)
+npm test             # Vitest unit and regression suite
 npm run verify:storage # Node filesystem integration fixture for domain storage behavior
 npm run tauri:build  # Production desktop build — @desk/app
 npm run dev:server   # Run @desk/server (tsx watch)
 ```
 
-> Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. There is no general
-> test runner or `test` script; verify storage/domain changes with `npm run verify:storage` and
-> finish with `npm run build` plus a proportional manual run.
+> Build/dev require Node 22 (nvm). Node 24 breaks rollup's native binary. Run the
+> proportional checks for a change, and use the full CI command set before release.
 
 ## Monorepo Layout
 
@@ -43,7 +44,7 @@ by application/server bootstrap and explicit host adapters. In the app,
 hooks, pages, and stores must use `DeskService` or that adapter. ESLint enforces
 these boundaries.
 
-**Host seams (dependency injection).** `@desk/core` is UI/runtime-agnostic; three
+**Host seams (dependency injection).** `@desk/core` is UI/runtime-agnostic; five
 couplings are injectable registries (set/get) that the host wires before any domain call:
 
 | Seam | Setter | app wires it to | server wires it to |
@@ -259,7 +260,7 @@ external-agent interface, not generated markdown.
 |-----------|---------|
 | `packages/app/src/lib/smart-index/` | Smart Index artifacts, agent files, and `.aiignore` controls |
 | `packages/app/src/lib/smart-index/agent-files.ts` | Generates CLAUDE.md + AGENTS.md for external agents |
-| `packages/app/src/stores/agent-settings.ts` | Agent-file emit toggles + background-AI settings (Zustand, persisted) |
+| `packages/app/src/stores/agent-settings.ts` | Device-local emit toggles for generated agent files (Zustand, persisted) |
 | `packages/core/src/desk/maintenance/` | Background engine: index updates (bus-triggered, debounced) |
 
 ## UI Patterns
@@ -477,7 +478,7 @@ pipx install appicongen
 - Projects Hub at `/projects` — a single route; the project is selected via the
   secondary sidebar (`useProjectSelectionStore`) and its overview dashboard renders
   in the Desk tab. No `/projects/:id` route.
-- Mock data used when `isTauri() === false`
+- Deterministic fixture data is used when `isTauri() === false`
 - `_unassigned` is a special directory for items without a project
 - The **home workspace** is an ordinary workspace folder marked `home: true` in its `workspace.md`; resolve its id via `getHomeWorkspaceId()` (cached). It holds the capture inbox, is undeletable, and sorts first.
 - `_capture` is the triage inbox, a special directory inside the home workspace

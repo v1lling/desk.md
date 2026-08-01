@@ -6,10 +6,10 @@ import { nativeFetch } from "@/lib/native-http";
 import { AuthScreen } from "./auth-screen";
 
 /**
- * Native hosted-mode auth gate (step 3b-native) — the desktop counterpart of
+ * Native remote-mode auth gate — the desktop counterpart of
  * [hosted-auth-gate.tsx]. Lazy-loaded in every non-hosted build (`!VITE_DESK_HOSTED`)
  * and rendered by the app-shell only inside a Tauri webview (isTauri()) when
- * `connectionMode === "remote"`, so the browser-mock build never shows it and local
+ * `connectionMode === "remote"`, so the browser-fixture build never shows it and local
  * mode never sees a login.
  *
  * Same three states as the web gate, but pointed at the user's chosen server and
