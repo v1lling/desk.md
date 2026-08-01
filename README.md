@@ -17,19 +17,16 @@ truth that remains accessible to both people and agents.
 
 I built it for my own freelance and personal work, and I use it every day.
 
-## Two jobs, one source of truth
+## Why I built Desk
 
-### A calm place to run your work
+I wanted a place to manage projects, tasks, documents, meetings, quick capture, and weekly planning without giving up the files underneath.
+I had used Obsidian, Notion, and a few other tools, but kept running into the
+same trade-off: flexible tools that needed a lot of setup or plugins, or a ready-made app that locked me into its own format and interface.
+Desk gives me the structure and interface I was missing, while the workspace
+itself stays ordinary Markdown.
 
-Workspaces, project overviews, task boards, documents, meetings, quick capture,
-and a weekly planner live in one coherent app. The work model is built in rather
-than assembled and maintained from plugins.
-
-### A source of truth agents can use
-
-Work content is stored as Markdown with readable YAML frontmatter. Local agents
-can work with the folder directly; a self-hosted Desk server exposes the same
-information through an OAuth-protected MCP endpoint.
+That also means local agents can work with the folder directly. When Desk is
+self-hosted, the same content is available through an OAuth-protected MCP endpoint.
 
 <p align="center">
   <picture>
@@ -40,9 +37,9 @@ information through an OAuth-protected MCP endpoint.
 
 ## Built for one person running real work
 
-Desk is especially useful for freelancers, consultants, developers, makers, and
-other independent people who manage several streams of work and care about
-owning their data.
+Desk is especially useful for freelancers, consultants, developers, makers,
+and other independent professionals who manage several streams of work and
+care about owning their data.
 
 - **Projects with orientation.** Every workspace and project has a user-owned
   Markdown overview, plus its tasks, documents, meetings, and recent activity.
@@ -50,32 +47,32 @@ owning their data.
   capture, status filters, and a weekly time-block planner.
 - **Documents and meetings.** A WYSIWYG Markdown editor, nested folders, meeting
   notes, and drag-and-drop conversion from Word, PDF, Excel, CSV, and HTML.
-- **A focused daily UI.** Workspace switching, persistent editor tabs, global
+- **Made for daily use.** Workspace switching, persistent editor tabs, global
   search, keyboard shortcuts, and protection for unsaved work.
 - **Files that remain files.** Ordinary filesystem tools can open, back up, sync,
-  search, and version the workspace. Hosted authentication uses SQLite; work
-  content remains in Markdown.
+  search, and version the workspace.
 
 Desk is intentionally a single-user product today. It is not a team PM system
 with assignments, permissions, or real-time collaboration.
 
-## Agents without an AI workspace takeover
+## Agent access
 
-Desk has no in-app chatbot. It organizes durable source material for external
-AI tools.
+Desk does not put a chatbot in the middle of your work. It gives the AI tools
+you already use a controlled way to read the context behind it.
+Desk organizes durable source material for external
+AI tools — but it does not try to be an AI workspace itself.
 
 - **Local filesystem access.** Desk can generate `CLAUDE.md`, `AGENTS.md`,
   `GEMINI.md`, and per-workspace `WORKSPACE_INDEX.md` files so local agents
   understand the structure and read the right overview first.
 - **Hosted MCP access.** A self-hosted server lets Claude, ChatGPT, Claude Code,
-  and other MCP clients browse, search, and read the workspace over OAuth. MCP
-  tools are read-only for now.
-- **Optional Smart Index.** An Anthropic or OpenAI API key enables a summarized
+  and other MCP clients get workspace/project context, search globally, browse a
+  structured catalog, and read exact sources over OAuth.
+- **Optional Smart Index.** An Anthropic or OpenAI API key enables a summarized file
   catalog that helps agents find relevant files quickly.
 - **Explicit boundaries.** `.aiignore` excludes content from the Smart Index and
   Desk's agent read layer, while generated local guidance carries the same
-  boundary. `author: ai` records provenance without creating a separate AI
-  content system.
+  boundary.
 
 ## Local or self-hosted
 
@@ -134,7 +131,7 @@ docker compose up -d
 See the [self-hosting guide](./deploy/README.md) for HTTPS, reverse-proxy, AI,
 and MCP setup.
 
-## More of the app
+## A closer look
 
 <table>
   <tr>
