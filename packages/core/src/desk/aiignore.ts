@@ -5,8 +5,7 @@
  * Local agent queries and hosted MCP both honour the correct workspace's
  * `.aiignore`, against whichever disk the domain runs on.
  *
- * Stored at the workspace root: `{workspace}/.aiignore`. Each non-comment line is
- * an exact workspace-relative path, a `folder/` prefix, or a `*.ext` suffix glob.
+ * Stored at the workspace root: `{workspace}/.aiignore`, using gitignore syntax.
  *
  * Paths passed in may be absolute (a file's `filePath`, always produced by the
  * SAME side that runs this code — local in local mode, the server in hosted mode)
@@ -16,6 +15,7 @@
 import { joinPath } from "./env";
 import { getStorage } from "./storage";
 import { getWorkspacePath } from "./paths";
+import ignore from "ignore";
 
 const AIIGNORE_FILENAME = ".aiignore";
 
@@ -57,23 +57,12 @@ export async function toRelativePath(filePath: string, workspaceId: string): Pro
   return normalizedFile;
 }
 
-/** Exact match, `folder/` directory prefix, or `*.ext` suffix glob. */
-function matchesEntry(relativePath: string, entry: string): boolean {
-  if (relativePath === entry) return true;
-  if (entry.endsWith("/") && relativePath.startsWith(entry)) return true;
-  if (entry.startsWith("*")) {
-    const extension = entry.slice(1);
-    if (relativePath.endsWith(extension)) return true;
-  }
-  return false;
-}
-
 /** Pure: is a workspace-relative path excluded by the given pre-loaded entries? */
 export function isPathExcludedByAIIgnore(relativePath: string, entries: string[]): boolean {
-  for (const entry of entries) {
-    if (matchesEntry(relativePath, entry)) return true;
-  }
-  return false;
+  if (entries.length === 0) return false;
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\//, "");
+  if (!normalized || normalized.split("/").includes("..")) return false;
+  return ignore().add(entries).ignores(normalized);
 }
 
 /** Load `.aiignore` entries for a workspace (empty when absent). */
@@ -128,7 +117,7 @@ export async function getAiExclusionState(
 
     // Folder exclusions take precedence (the toggle is disabled for them in the UI).
     for (const entry of entries) {
-      if (entry.endsWith("/") && relativePath.startsWith(entry)) {
+      if (!entry.startsWith("!") && entry.endsWith("/") && relativePath.startsWith(entry)) {
         return {
           isExcluded: true,
           isInExcludedFolder: true,
@@ -136,15 +125,10 @@ export async function getAiExclusionState(
         };
       }
     }
-    for (const entry of entries) {
-      if (entry.endsWith("/")) continue;
-      if (relativePath === entry) return { isExcluded: true, isInExcludedFolder: false };
-      if (entry.startsWith("*")) {
-        const extension = entry.slice(1);
-        if (relativePath.endsWith(extension)) return { isExcluded: true, isInExcludedFolder: false };
-      }
-    }
-    return { isExcluded: false, isInExcludedFolder: false };
+    return {
+      isExcluded: isPathExcludedByAIIgnore(relativePath, entries),
+      isInExcludedFolder: false,
+    };
   } catch {
     return { isExcluded: false, isInExcludedFolder: false };
   }
@@ -177,11 +161,7 @@ export async function getFolderAIInclusion(folderPath: string, workspaceId: stri
   try {
     const folderPattern = toFolderPattern(folderPath);
     const entries = await readAIIgnoreEntries(workspaceId);
-    for (const entry of entries) {
-      if (entry === folderPattern) return false;
-      if (entry.endsWith("/") && folderPattern.startsWith(entry)) return false;
-    }
-    return true;
+    return !isPathExcludedByAIIgnore(folderPattern, entries);
   } catch {
     return true;
   }

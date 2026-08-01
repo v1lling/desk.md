@@ -93,7 +93,7 @@ The conventions agents see live in **one** constant, `DESK_SPACE_NORMS`
 server's `instructions` (hosted mode). Change the norms there, not in the renderers.
 
 The Smart Index catalogs regular documents, tasks, and meetings. Entity overview files stay
-outside that summarized catalog but remain visible to agent tree/read/search operations.
+outside that summarized catalog and are provided through agent context/read operations.
 
 ## Tech Stack
 
@@ -149,7 +149,7 @@ type ContentScope = 'personal' | 'workspace' | 'project';
 | `desk/service/` | `DeskService` interface + `LocalDeskService` binding the domain functions |
 | `desk/env.ts` | Data-root resolution, path joining, bootstrap (not I/O) |
 | `desk/platform.ts` | Pure runtime checks (`isTauri`/`isMacOS`), dependency-free to avoid import cycles |
-| `desk/agent-queries.ts` | Read-side queries (tree/read/search) for MCP + the Smart Index, backed by `StorageProvider` |
+| `desk/agent-read/` | Shared context/catalog/search/read model for hosted MCP, backed by `StorageProvider` |
 | `desk/overview.ts` | Shared seed template for user-owned workspace/project overview bodies |
 | `desk/file-cache/` | File tree cache for list views (LRU cache) — pure logic only |
 | `desk/ai/` | Runtime-agnostic AI layer: providers, `AIService`, prompts, `setAIKeyResolver` seam |
@@ -239,9 +239,9 @@ interface IncomingEmail {
 
 ## AI Context
 
-The Smart Index builds an AI-summarized file catalog per workspace. There is no in-app chat assistant — external agents reach desk over **MCP** (`@desk/server`, read-only tools `desk_workspace_info`/`desk_tree`/`desk_read`/`desk_search`/`desk_catalog`, plus the `draft-email-reply` prompt) in hosted mode, and over generated `CLAUDE.md`/`AGENTS.md` in local mode. There are no Rust `desk_*` commands.
+The Smart Index builds an AI-summarized file catalog per workspace. There is no in-app chat assistant — external agents reach desk over **MCP** (`@desk/server`, read-only tools `desk_context`/`desk_catalog`/`desk_search`/`desk_read`, plus the `draft-email-reply` prompt) in hosted mode, and over generated `CLAUDE.md`/`AGENTS.md` in local mode. There are no Rust `desk_*` commands.
 
-**Read layer routes through `DeskService`, not bare `getStorage()`.** The read queries (`deskTree`/`deskReadFile`/`deskFullTextSearch`/`deskWorkspaceInfo`, promoted to `DeskService`) plus the Smart Index read (`getIndexCache` → `.desk/index/indexes.json`; writes are core-internal via the maintenance engine's `index-store-io`) all go through `getDeskService()`. So in hosted mode they run on the **server** (the catalog lives server-side for MCP), not the client's local disk. The MCP tools on the server read through the same `DeskService`.
+**Read layer routes through `DeskService`, not bare `getStorage()`.** The shared agent read model (`deskContext`/`deskCatalog`/`deskSearch`/`deskRead`, promoted to `DeskService`) plus the Smart Index read (`getIndexCache` → `.desk/index/indexes.json`; writes are core-internal via the maintenance engine's `index-store-io`) all go through `getDeskService()`. So in hosted mode they run on the **server**, not the client's local disk. MCP is a thin adapter over the same service.
 
 **AI maintenance runs where the data lives.** The AI layer (providers, `AIService`, prompts) is
 core (`desk/ai/`, key via the `setAIKeyResolver` seam); the maintenance engine (`desk/maintenance/`)

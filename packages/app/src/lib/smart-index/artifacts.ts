@@ -55,6 +55,7 @@ function buildWorkspaceIndex(index: WorkspaceIndex): string {
     if (entry.projectName) meta.push(`project=${entry.projectName}`);
     if (entry.status) meta.push(`status=${entry.status}`);
     if (entry.priority) meta.push(`priority=${entry.priority}`);
+    if (entry.due) meta.push(`due=${entry.due}`);
     if (entry.date) meta.push(`date=${entry.date}`);
     if (entry.author) meta.push(`author=${entry.author}`);
 

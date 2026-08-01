@@ -68,6 +68,7 @@ function entrySig(e: IndexEntry): string {
     e.updated ?? null,
     e.status ?? null,
     e.priority ?? null,
+    e.due ?? null,
   ]);
 }
 

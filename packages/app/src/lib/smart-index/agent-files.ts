@@ -51,11 +51,6 @@ function buildTopLevelAgentFile(workspaces: Workspace[], deskPath: string): stri
   lines.push("");
   lines.push("# Desk: AI Agent Guide");
   lines.push("");
-  lines.push(
-    "Desk is a markdown-based work management system. All data lives as `.md` files with YAML frontmatter on the local filesystem: workspaces, projects, tasks, docs, meetings. You're meant to read across it; that's why it's structured this way."
-  );
-  lines.push("");
-
   // How this space works — the shared norms. Same constant the MCP server ships as
   // `instructions`, so a local agent and a hosted one read the identical conventions.
   lines.push(DESK_SPACE_NORMS);
@@ -239,19 +234,6 @@ function buildPerWorkspaceAgentFile(workspace: Workspace, projects: Project[]): 
   if (workspace.isHome) {
     lines.push("- **Home workspace**: holds the `_capture/` triage inbox; cannot be deleted.");
   }
-  lines.push("");
-
-  // Workspace-specific instructions — user-editable block
-  const workspaceInstructions =
-    useAgentInstructionsStore.getState().perWorkspace[workspace.id] ?? "";
-  lines.push("## Workspace-specific instructions");
-  lines.push("");
-  lines.push(
-    userInstructionsBlock(
-      workspaceInstructions,
-      "No workspace-specific instructions configured (Settings → Agents)."
-    )
-  );
   lines.push("");
 
   lines.push("## Projects");

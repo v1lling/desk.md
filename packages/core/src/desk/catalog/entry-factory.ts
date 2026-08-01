@@ -27,6 +27,7 @@ export interface BuildCatalogEntryInput {
   projectName?: string;
   status?: string;
   priority?: string;
+  due?: string;
   date?: string;
 }
 
@@ -48,6 +49,7 @@ export async function buildCatalogEntry(input: BuildCatalogEntryInput): Promise<
     projectName: input.projectName,
     status: input.status,
     priority: input.priority,
+    due: input.due,
     date: input.date,
   };
 }

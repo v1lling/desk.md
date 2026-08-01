@@ -114,6 +114,7 @@ export async function updateIndexForFile(
       updated: normalizeDateTime(frontmatter.updated),
       status: typeof frontmatter.status === "string" ? frontmatter.status : undefined,
       priority: typeof frontmatter.priority === "string" ? frontmatter.priority : undefined,
+      due: normalizeOptionalDate(frontmatter.due),
       date: normalizeOptionalDate(frontmatter.date),
       author: frontmatter.author === "ai" ? "ai" : undefined,
       content,

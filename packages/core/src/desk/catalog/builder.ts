@@ -81,6 +81,7 @@ export async function buildWorkspaceCatalog(workspaceId: string): Promise<Worksp
         projectName: projectNameMap.get(task.projectId),
         status: task.status,
         priority: task.priority,
+        due: task.due,
       })
     );
   }

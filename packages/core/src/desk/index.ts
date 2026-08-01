@@ -21,6 +21,22 @@ export * from "./tree-path";
 export * from "./file-utils";
 export * from "./note-link";
 export * from "./norms";
+export * from "./agent-instructions";
+export type {
+  AgentEntryType,
+  AgentAuthor,
+  AgentCatalogEntry,
+  AgentCatalogQuery,
+  AgentCatalogResult,
+  AgentSearchQuery,
+  AgentSearchResult,
+  AgentContextQuery,
+  AgentContextResult,
+  AgentReadQuery,
+  AgentReadResult,
+  AgentReadErrorCode,
+} from "./agent-read";
+export { AgentReadError, asSafeAgentReadError } from "./agent-read";
 
 // Pure document-tree, overview, and planner helpers.
 export * from "./content-tree-utils";

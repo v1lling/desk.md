@@ -29,8 +29,7 @@ import type * as contentApi from "../content";
 import type * as dashboardApi from "../dashboard";
 import type * as viewStateApi from "../view-state";
 import type * as settingsApi from "../settings";
-import type * as agentQueriesApi from "../agent-queries";
-import type * as catalogApi from "../catalog";
+import type * as agentReadApi from "../agent-read";
 import type * as indexCacheApi from "../index-cache";
 import type * as aiignoreApi from "../aiignore";
 import type * as aiUsageApi from "../ai-usage";
@@ -126,19 +125,13 @@ export interface DeskService {
   getSetting: typeof settingsApi.getSetting;
   setSetting: typeof settingsApi.setSetting;
 
-  // ── Agent read operations (agent-queries) — the tree/read/search layer.
-  // Promoted to the service so it runs server-side in hosted mode (one
-  // round-trip; the server does the local-disk sweep) instead of hitting the
-  // client's local disk. This is also the tool layer MCP wraps server-side.
-  deskWorkspaceInfo: typeof agentQueriesApi.deskWorkspaceInfo;
-  deskTree: typeof agentQueriesApi.deskTree;
-  deskReadFile: typeof agentQueriesApi.deskReadFile;
-  deskFullTextSearch: typeof agentQueriesApi.deskFullTextSearch;
-
-  // ── Catalog (always-complete, AI-free metadata index) — promoted to the service so
-  // a native-remote client builds the *server's* catalog in one round-trip, and the
-  // MCP server builds it live (never empty). Summaries are merged on top separately.
-  buildWorkspaceCatalog: typeof catalogApi.buildWorkspaceCatalog;
+  // ── Agent read model — shared by hosted MCP and available over the domain seam.
+  // Paths, privacy, ranking, pagination, and safe result types stay in core; MCP is
+  // only a protocol adapter around these operations.
+  deskContext: typeof agentReadApi.deskContextV2;
+  deskCatalog: typeof agentReadApi.deskCatalogV2;
+  deskSearch: typeof agentReadApi.deskSearchV2;
+  deskRead: typeof agentReadApi.deskReadV2;
 
   // ── Smart Index cache (.desk/index/indexes.json) — DERIVED, but routed through
   // the service so the catalog follows the domain (server-side in hosted mode, where the
@@ -160,7 +153,7 @@ export interface DeskService {
 
   // ── .aiignore management (per-workspace AI exclusions) — routed through the
   // service so the UI toggles + index reads operate on the *server's* .aiignore in
-  // hosted mode. Enforcement itself lives in agent-queries (read side); these are
+  // hosted mode. Enforcement itself lives in the shared agent-read model; these are
   // the read/write management ops. (isPathExcludedByAIIgnore stays a pure import.)
   setAIInclusion: typeof aiignoreApi.setAIInclusion;
   getAiExclusionState: typeof aiignoreApi.getAiExclusionState;

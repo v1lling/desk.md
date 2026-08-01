@@ -33,6 +33,7 @@ export interface CatalogEntry {
   // Task-specific
   status?: string;
   priority?: string;
+  due?: string;
   // Meeting-specific
   date?: string;
 }

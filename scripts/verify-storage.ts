@@ -34,9 +34,10 @@ async function verify(root: string) {
     createProject,
     createTask,
     createWorkspace,
-    deskFullTextSearch,
-    deskReadFile,
-    deskTree,
+    deskCatalog,
+    deskContext,
+    deskRead,
+    deskSearch,
     getContentTree,
     getMeeting,
     getProject,
@@ -119,27 +120,19 @@ async function verify(root: string) {
   assert.equal(JSON.stringify(tree).includes("Imports"), true);
 
   await writeFile(join(root, "workspaces/acme/.aiignore"), "projects/website/\n");
-  const agentTree = await deskTree("acme");
+  const agentCatalog = await deskCatalog({ workspace: "acme", limit: 200 });
   assert.equal(
-    agentTree.entries.some((entry) => entry.path === "workspace.md" && entry.kind === "workspace"),
-    true,
-  );
-  assert.equal(
-    agentTree.entries.some((entry) => entry.path.includes("projects/website/docs/")),
+    agentCatalog.entries.some((entry) => entry.path.includes("projects/website/")),
     false,
   );
-  assert.match(
-    (await deskReadFile("workspaces/acme/projects/website/project.md")).content,
-    /Edited project orientation/,
+  const projectContext = await deskContext({ workspace: "acme", project: "website" });
+  assert.equal(projectContext.project_overview?.overview_excluded, true);
+  await assert.rejects(
+    deskRead({ workspace: "acme", path: "projects/website/project.md" }),
+    /excluded from agent access/,
   );
-  assert.equal(
-    agentTree.entries.some(
-      (entry) => entry.path === "projects/website/project.md" && entry.kind === "project",
-    ),
-    true,
-  );
-  const overviewSearch = await deskFullTextSearch("Edited project orientation", "workspaces/acme");
-  assert.equal(overviewSearch.matches.some((match) => match.path.endsWith("project.md")), true);
+  const overviewSearch = await deskSearch({ query: "Edited project orientation", workspace: "acme" });
+  assert.equal(overviewSearch.total, 0);
 
   const task = await createTask({
     workspaceId: "acme",

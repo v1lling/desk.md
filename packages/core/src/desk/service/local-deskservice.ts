@@ -19,8 +19,7 @@ import * as contentApi from "../content";
 import * as dashboardApi from "../dashboard";
 import * as viewStateApi from "../view-state";
 import * as settingsApi from "../settings";
-import * as agentQueriesApi from "../agent-queries";
-import * as catalogApi from "../catalog";
+import * as agentReadApi from "../agent-read";
 import * as indexCacheApi from "../index-cache";
 import * as aiignoreApi from "../aiignore";
 import * as aiUsageApi from "../ai-usage";
@@ -112,14 +111,11 @@ export const localDeskService: DeskService = {
   getSetting: settingsApi.getSetting,
   setSetting: settingsApi.setSetting,
 
-  // Agent read operations (agent-queries)
-  deskWorkspaceInfo: agentQueriesApi.deskWorkspaceInfo,
-  deskTree: agentQueriesApi.deskTree,
-  deskReadFile: agentQueriesApi.deskReadFile,
-  deskFullTextSearch: agentQueriesApi.deskFullTextSearch,
-
-  // Catalog (always-complete, AI-free metadata index)
-  buildWorkspaceCatalog: catalogApi.buildWorkspaceCatalog,
+  // Agent read model
+  deskContext: agentReadApi.deskContextV2,
+  deskCatalog: agentReadApi.deskCatalogV2,
+  deskSearch: agentReadApi.deskSearchV2,
+  deskRead: agentReadApi.deskReadV2,
 
   // Smart Index cache (.desk/index/indexes.json)
   getIndexCache: indexCacheApi.getIndexCache,
