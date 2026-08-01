@@ -1,6 +1,7 @@
 {
   "name": "desk-md-monorepo",
   "private": true,
+  "type": "module",
   "workspaces": [
     "packages/core",
     "packages/app",
