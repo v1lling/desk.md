@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { SettingsSection } from "@/components/ui/settings-section";
-import { Label } from "@/components/ui/label";
+import {
+  SettingsField,
+  SettingsGroup,
+  SettingsNotice,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/ui/settings-section";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Eye, EyeOff, Info, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,8 +61,7 @@ function AIUsageStats() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label>{t("settings.ai.usage.title")}</Label>
+      <div className="flex justify-end">
         {records.length > 0 && (
           <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
             clearUsage.mutate(undefined, {
@@ -72,12 +76,12 @@ function AIUsageStats() {
       {stats.totalRequests === 0 ? (
         <p className="text-sm text-muted-foreground">{t("settings.ai.usage.noUsage")}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg border p-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-border/70 bg-background/50 p-3">
             <p className="text-2xl font-semibold">{formatNumber(stats.totalTokens)}</p>
             <p className="text-xs text-muted-foreground">{t("settings.ai.usage.totalTokens")}</p>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="rounded-lg border border-border/70 bg-background/50 p-3">
             <p className="text-2xl font-semibold">{stats.totalRequests}</p>
             <p className="text-xs text-muted-foreground">{t("settings.ai.usage.requests")}</p>
           </div>
@@ -170,18 +174,16 @@ export function AITab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SettingsSection
-        icon={<Sparkles className="h-4 w-4" />}
         title={t("settings.ai.provider.title")}
         description={t("settings.ai.provider.description")}
       >
-        <div className="divide-y divide-border/40">
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.ai.provider.label")}</Label>
-              <p className="text-sm text-muted-foreground">{t("settings.ai.provider.helperText")}</p>
-            </div>
+        <SettingsGroup>
+          <SettingsRow
+            label={t("settings.ai.provider.label")}
+            description={t("settings.ai.provider.helperText")}
+          >
             <Select
               value={safeProviderType}
               onValueChange={(value: AIProviderType) => {
@@ -189,7 +191,7 @@ export function AITab() {
                 toast.success(t("toasts.settings.providerSet", { provider: providerLabel(value) }));
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -197,22 +199,20 @@ export function AITab() {
                 <SelectItem value="anthropic">{t("settings.ai.providers.anthropic")}</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.ai.model.label")}</Label>
-              <p className="text-sm text-muted-foreground">{t("settings.ai.model.helperText")}</p>
-            </div>
+          </SettingsRow>
+          <SettingsRow
+            label={t("settings.ai.model.label")}
+            description={t("settings.ai.model.helperText")}
+          >
             <Select
               value={activeModel}
               onValueChange={(value) => {
                 setModelForProvider(safeProviderType, value);
-                const label = modelOptions.find((m) => m.id === value)?.label ?? value;
+                const label = modelOptions.find((model) => model.id === value)?.label ?? value;
                 toast.success(t("toasts.settings.modelSet", { model: label }));
               }}
             >
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[240px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -223,150 +223,135 @@ export function AITab() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {remote ? (
-            // Remote mode: keys live on the SERVER (env vars) — the local Keychain plays no
-            // part. Show the server's truthful per-provider state instead of a key input.
-            <div className="space-y-2 py-3">
-              <Label className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4" />
-                {t("settings.ai.serverMode.title")}
-              </Label>
-              <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  {t("settings.ai.serverMode.description")}
-                </p>
-                <p className="text-sm">
-                  {maintenanceInfo?.providerConfigured[safeProviderType]
-                    ? t("settings.ai.serverMode.providerConfigured", {
-                        provider: providerLabel(safeProviderType),
-                      })
-                    : t("settings.ai.serverMode.providerNotConfigured", {
-                        provider: providerLabel(safeProviderType),
-                      })}
-                </p>
-              </div>
-            </div>
-          ) : (
-          <div className="space-y-2 py-3">
-            <Label htmlFor="api-key" className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4" />
-              {t("settings.ai.apiKey.label", { provider: providerLabel(safeProviderType) })}
-            </Label>
-
-            {browserMode && (
-              <div className="rounded-lg border bg-muted/40 p-3">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <div className="space-y-1 text-sm">
-                    <p className="font-medium">{t("settings.ai.browserMode.title")}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {t("settings.ai.browserMode.description")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {loadError && !browserMode && (
-              <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                  <div className="space-y-1 text-sm flex-1 min-w-0">
-                    <p className="font-medium text-destructive">{t("settings.ai.keychainError.title")}</p>
-                    <p className="text-xs text-destructive/90">
-                      {t("settings.ai.keychainError.description")}
-                    </p>
-                    {linuxKeyringHint(loadError, t) && (
-                      <p className="text-xs text-destructive/90">{linuxKeyringHint(loadError, t)}</p>
-                    )}
-                    <details className="text-xs text-destructive/80">
-                      <summary className="cursor-pointer">{t("settings.ai.keychainError.errorDetails")}</summary>
-                      <p className="mt-1 font-mono break-all">{loadError}</p>
-                    </details>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="api-key"
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder={
-                    safeProviderType === "openai"
-                      ? t("settings.ai.apiKey.placeholderOpenai")
-                      : t("settings.ai.apiKey.placeholderAnthropic")
-                  }
-                  className="font-mono text-sm pr-10"
-                  disabled={browserMode}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  disabled={browserMode}
-                  aria-label={
-                    showApiKey
-                      ? t("settings.ai.apiKey.hideAriaLabel")
-                      : t("settings.ai.apiKey.showAriaLabel")
-                  }
-                >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              <Button onClick={handleSaveApiKey} disabled={isSavingKey || browserMode}>
-                {t("common.buttons.save")}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.ai.apiKey.storedNotice")}
-            </p>
-            {/* Only warn once the info has LOADED — `!undefined` while the query is in flight
-                would flash a false "not configured" line on every mount. */}
-            {!browserMode && !loadError && maintenanceInfo && !maintenanceInfo.providerConfigured[safeProviderType] && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                {t("settings.ai.apiKey.notConfigured")}
-              </p>
-            )}
-          </div>
-          )}
-
-          <div className="py-3">
-            <AIUsageStats />
-          </div>
-        </div>
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
 
       <SettingsSection
-        icon={<ShieldCheck className="h-4 w-4" />}
+        title={t("settings.ai.credentials.title")}
+        description={t("settings.ai.credentials.description")}
+      >
+        {remote ? (
+          <SettingsNotice title={t("settings.ai.serverMode.title")}>
+            <p>{t("settings.ai.serverMode.description")}</p>
+            <p className="mt-2 font-medium text-foreground">
+              {maintenanceInfo?.providerConfigured[safeProviderType]
+                ? t("settings.ai.serverMode.providerConfigured", {
+                    provider: providerLabel(safeProviderType),
+                  })
+                : t("settings.ai.serverMode.providerNotConfigured", {
+                    provider: providerLabel(safeProviderType),
+                  })}
+            </p>
+          </SettingsNotice>
+        ) : (
+          <SettingsGroup>
+            <SettingsField
+              label={t("settings.ai.apiKey.label", { provider: providerLabel(safeProviderType) })}
+              htmlFor="api-key"
+              footer={t("settings.ai.apiKey.storedNotice")}
+            >
+              {browserMode && (
+                <SettingsNotice title={t("settings.ai.browserMode.title")}>
+                  {t("settings.ai.browserMode.description")}
+                </SettingsNotice>
+              )}
+              {loadError && !browserMode && (
+                <SettingsNotice tone="error" title={t("settings.ai.keychainError.title")}>
+                  <p>{t("settings.ai.keychainError.description")}</p>
+                  {linuxKeyringHint(loadError, t) && <p>{linuxKeyringHint(loadError, t)}</p>}
+                  <details>
+                    <summary className="cursor-pointer">
+                      {t("settings.ai.keychainError.errorDetails")}
+                    </summary>
+                    <p className="mt-1 break-all font-mono">{loadError}</p>
+                  </details>
+                </SettingsNotice>
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative flex-1">
+                  <Input
+                    id="api-key"
+                    type={showApiKey ? "text" : "password"}
+                    value={apiKeyInput}
+                    onChange={(event) => setApiKeyInput(event.target.value)}
+                    placeholder={
+                      safeProviderType === "openai"
+                        ? t("settings.ai.apiKey.placeholderOpenai")
+                        : t("settings.ai.apiKey.placeholderAnthropic")
+                    }
+                    className="bg-background/80 pr-10 font-mono text-sm"
+                    disabled={browserMode}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    disabled={browserMode}
+                    aria-label={
+                      showApiKey
+                        ? t("settings.ai.apiKey.hideAriaLabel")
+                        : t("settings.ai.apiKey.showAriaLabel")
+                    }
+                  >
+                    {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </Button>
+                </div>
+                <Button onClick={handleSaveApiKey} disabled={isSavingKey || browserMode}>
+                  {t("common.buttons.save")}
+                </Button>
+              </div>
+              {!browserMode &&
+                !loadError &&
+                maintenanceInfo &&
+                !maintenanceInfo.providerConfigured[safeProviderType] && (
+                  <SettingsNotice tone="warning">
+                    {t("settings.ai.apiKey.notConfigured")}
+                  </SettingsNotice>
+                )}
+            </SettingsField>
+          </SettingsGroup>
+        )}
+      </SettingsSection>
+
+      <SettingsSection
+        title={t("settings.ai.usage.title")}
+        description={t("settings.ai.usage.description")}
+      >
+        <SettingsGroup>
+          <SettingsField>
+            <AIUsageStats />
+          </SettingsField>
+        </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection
         title={t("settings.ai.privacy.title")}
         description={t("settings.ai.privacy.description")}
       >
-        <div className="space-y-3 py-3 text-sm text-muted-foreground">
-          <p>{t("settings.ai.privacy.intro")}</p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>
-              <span className="text-foreground">{t("settings.ai.privacy.smartIndexLabel")}</span>
-              {t("settings.ai.privacy.smartIndexBody")}
-            </li>
-          </ul>
-          <p>{t("settings.ai.privacy.retention")}</p>
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <p className="font-medium text-foreground">{t("settings.ai.privacy.acknowledgement.title")}</p>
-              <p className="text-xs">
-                {aiConsentGiven
-                  ? t("settings.ai.privacy.acknowledgement.given")
-                  : t("settings.ai.privacy.acknowledgement.notGiven")}
-              </p>
-            </div>
+        <SettingsGroup>
+          <SettingsField className="text-sm leading-relaxed text-muted-foreground">
+            <p>{t("settings.ai.privacy.intro")}</p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <span className="text-foreground">
+                  {t("settings.ai.privacy.smartIndexLabel")}
+                </span>
+                {t("settings.ai.privacy.smartIndexBody")}
+              </li>
+            </ul>
+            <p>{t("settings.ai.privacy.retention")}</p>
+          </SettingsField>
+          <SettingsRow
+            label={t("settings.ai.privacy.acknowledgement.title")}
+            description={
+              aiConsentGiven
+                ? t("settings.ai.privacy.acknowledgement.given")
+                : t("settings.ai.privacy.acknowledgement.notGiven")
+            }
+          >
             {aiConsentGiven && (
               <Button
                 variant="outline"
@@ -379,8 +364,8 @@ export function AITab() {
                 {t("settings.ai.privacy.acknowledgement.revoke")}
               </Button>
             )}
-          </div>
-        </div>
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
 
       <SmartIndexSection />

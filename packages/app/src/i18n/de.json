@@ -288,6 +288,15 @@
     }
   },
   "settings": {
+    "pageDescriptions": {
+      "general": "Sprache, Erscheinungsbild und Navigation von Desk festlegen.",
+      "planner": "Arbeitszeiten und sichtbare Tage im Wochenplaner festlegen.",
+      "templates": "Wiederverwendbare Inhalte für neue Meetings, Dokumente und Aufgaben definieren.",
+      "ai": "KI-Anbieter, Datenschutz, Nutzung und Dateiindex konfigurieren.",
+      "agents": "Steuere den Kontext, den Desk externen Agenten lokal oder über MCP bereitstellt.",
+      "data": "Verbindungen, Konten, Speicher und Anwendungseinstellungen verwalten.",
+      "about": "Versionsinformationen, Updates, Projektlinks und Lizenz anzeigen."
+    },
     "general": {
       "appearance": {
         "title": "Erscheinungsbild",
@@ -319,6 +328,10 @@
     "planner": {
       "title": "Planer",
       "description": "Wochenplaner konfigurieren",
+      "schedule": {
+        "title": "Zeitplan",
+        "description": "Lege die Stunden und Tage fest, die in der Wochenansicht erscheinen."
+      },
       "workDayStart": {
         "label": "Arbeitsbeginn",
         "description": "Wann dein Arbeitstag beginnt"
@@ -335,6 +348,8 @@
     "templates": {
       "title": "Vorlagen",
       "description": "Standardinhalte für neue Meetings, Dokumente und Aufgaben definieren. Globale Vorgaben festlegen oder pro Arbeitsbereich anpassen.",
+      "scopeTitle": "Vorlagenbereich",
+      "scopeDescription": "Bearbeite globale Vorgaben oder Anpassungen für einen bestimmten Arbeitsbereich.",
       "scopeLabel": "Bereich",
       "globalDefaults": "Globale Vorgaben",
       "cardTitle": "{{label}}-Vorlage",
@@ -371,6 +386,10 @@
         "openai": "OpenAI",
         "anthropic": "Anthropic"
       },
+      "credentials": {
+        "title": "Zugangsdaten",
+        "description": "Verbinde den ausgewählten Anbieter sicher mit Desk."
+      },
       "model": {
         "label": "Modell",
         "helperText": "Standardmodell für den Anbieter"
@@ -398,6 +417,7 @@
       },
       "usage": {
         "title": "Nutzungsstatistik",
+        "description": "Lokal erfasste KI-Anfragen und Token-Nutzung prüfen.",
         "clear": "Zurücksetzen",
         "noUsage": "Noch keine Nutzung",
         "totalTokens": "Tokens gesamt",
@@ -426,8 +446,8 @@
     },
     "agents": {
       "title": "Externe Agenten",
-      "description": "Markdown-Dateien neben deinen Daten erzeugen, damit externe CLI-Agenten deine Arbeit ohne Einrichtung verstehen.",
-      "notice": "Diese Einstellungen gelten für <strong>externe CLI-Agenten</strong> (Claude Code, Codex, Gemini CLI), die deinen Datenordner direkt lesen.",
+      "description": "Steuere den Kontext, den Desk externen Agenten lokal oder über MCP bereitstellt.",
+      "notice": "Diese Einstellungen gelten für <strong>externe Agenten</strong>, die lokale Dateien oder deine gehostete MCP-Verbindung verwenden.",
       "emit": {
         "title": "Dateien erzeugen",
         "description": "Wähle, welche Agenten-Dateien in deinen Datenordner geschrieben werden. Gleicher Inhalt, drei Dateinamen.",
@@ -438,25 +458,14 @@
       },
       "global": {
         "title": "Globale Anweisungen",
-        "description": "Werden in die obersten Agenten-Dateien eingefügt. Gilt für alle Arbeitsbereiche."
-      },
-      "perWorkspace": {
-        "title": "Pro Arbeitsbereich",
-        "description": "Arbeitsbereich-spezifische Anweisungen, die an die Agenten-Dateien dieses Arbeitsbereichs angehängt werden.",
-        "workspaceLabel": "Arbeitsbereich",
-        "selectPlaceholder": "Arbeitsbereich auswählen…",
-        "homeBadge": "(Persönlich)",
-        "selectPrompt": "Wähle einen Arbeitsbereich, um dessen Anweisungen zu bearbeiten."
+        "description": "Gilt für alle Arbeitsbereiche und wird über lokale Agenten-Dateien oder desk_context per MCP bereitgestellt."
       },
       "instructions": {
         "globalLabel": "Globale Anweisungen",
-        "workspaceLabel": "Arbeitsbereich-Anweisungen",
-        "globalDescription": "Werden bei jedem Neugenerieren zwischen den <code>desk:user-instructions</code>-Markern in die obersten CLAUDE.md / AGENTS.md / GEMINI.md eingefügt.",
-        "workspaceDescription": "Werden bei jedem Neugenerieren zwischen den <code>desk:user-instructions</code>-Markern in CLAUDE.md / AGENTS.md / GEMINI.md dieses Arbeitsbereichs eingefügt.",
+        "globalDescription": "Wird in lokale Agenten-Dateien eingefügt und vom MCP-Tool <code>desk_context</code> zurückgegeben.",
         "globalPlaceholder": "z. B. Antworte immer auf Deutsch. Verwende Conventional-Commit-Präfixe beim Schreiben von Dateien.",
-        "workspacePlaceholder": "z. B. Dieser Arbeitsbereich gehört zu Kunde X. Verweise in Drafts nie auf interne Projekte.",
-        "charCount_one": "{{count}} Zeichen · wird automatisch gespeichert · wird beim nächsten Neugenerieren geschrieben.",
-        "charCount_other": "{{count}} Zeichen · wird automatisch gespeichert · wird beim nächsten Neugenerieren geschrieben."
+        "charCount_one": "{{count}} Zeichen · wird automatisch gespeichert.",
+        "charCount_other": "{{count}} Zeichen · wird automatisch gespeichert."
       },
       "preview": {
         "toggle": "Generierte CLAUDE.md anzeigen",
@@ -470,7 +479,9 @@
         "description": "Auf einem Server verbinden sich externe Agenten über MCP statt über generierte Dateien.",
         "notice": "Wenn Desk auf einem Server läuft, werden die generierten Dateien CLAUDE.md / AGENTS.md / GEMINI.md nicht geschrieben. Externe Agenten (Claude, ChatGPT) verbinden sich stattdessen über <strong>MCP</strong> mit deinem Desk.",
         "endpointLabel": "MCP-Endpunkt",
-        "hint": "Füge diese URL als MCP-Server in deinem KI-Client hinzu. Die Anmeldung erfolgt über OAuth und stellt schreibgeschützte Tools für deine Workspaces bereit."
+        "hint": "Füge diese URL als MCP-Server in deinem KI-Client hinzu. Die Anmeldung erfolgt über OAuth und stellt schreibgeschützte Tools für deine Workspaces bereit.",
+        "copy": "Kopieren",
+        "copied": "MCP-Endpunkt kopiert"
       }
     },
     "data": {
@@ -551,6 +562,7 @@
       "license": {
         "title": "Lizenz",
         "description": "Open Source unter der GNU General Public License",
+        "identifier": "Lizenzkennung",
         "viewLicense": "Lizenz anzeigen"
       }
     },

@@ -36,10 +36,4 @@ export const appSurfaceClasses = {
   card: "border border-border/80 bg-card text-card-foreground shadow-sm",
   denseCard: "border border-border/80 bg-card text-card-foreground",
   mutedSurface: "bg-muted/35",
-  // Section surface tokens — list-first layout
-  sectionGroup: "",
-  sectionGroupInset: "bg-muted/20 rounded-lg",
-  sectionDivider: "h-px bg-border/60",
-  sectionLabel: "text-[10px] font-medium uppercase tracking-wider text-muted-foreground/75",
 } as const;
-

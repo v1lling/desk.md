@@ -5,19 +5,13 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getDeskPath, joinPath } from "@desk/core";
-import { getWorkspacePath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
 import { hostFileExists, readHostTextFile } from "@/lib/host-files";
 
-interface Props {
-  scope: "global" | string;
-}
-
 // CLAUDE/AGENTS/GEMINI have identical content — previewing CLAUDE.md is enough.
-export function AgentFilePreviewCard({ scope }: Props) {
+export function AgentFilePreviewCard() {
   const { t } = useTranslation();
-  const isGlobal = scope === "global";
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +26,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const parent = isGlobal ? await getDeskPath() : await getWorkspacePath(scope);
+      const parent = await getDeskPath();
       const filePath = await joinPath(parent, FILE_NAMES.CLAUDE_MD);
       if (!(await hostFileExists(filePath))) {
         setContent(null);
@@ -55,7 +49,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
   const handleReveal = async () => {
     if (!isLocalDisk()) return;
     try {
-      const parent = isGlobal ? await getDeskPath() : await getWorkspacePath(scope);
+      const parent = await getDeskPath();
       await openShell(parent);
     } catch {
       // best-effort
@@ -63,7 +57,7 @@ export function AgentFilePreviewCard({ scope }: Props) {
   };
 
   return (
-    <div className="space-y-2 py-3 border-t border-border/40">
+    <div className="space-y-3 px-4 py-3.5">
       <div className="flex items-center justify-between">
         <button
           type="button"

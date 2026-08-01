@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { HardDrive, Server, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { SettingsSection } from "@/components/ui/settings-section";
+import {
+  SettingsField,
+  SettingsGroup,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useBootStore } from "@/stores/boot";
 import { createNativeAuthClient } from "@/lib/native-auth-client";
 import { clearSessionToken } from "@/lib/session-token";
@@ -69,60 +73,56 @@ export default function ConnectionSection() {
   if (connectionMode === "remote") {
     return (
       <SettingsSection
-        icon={<Server className="h-4 w-4" />}
         title={t("settings.data.connection.title")}
         description={t("settings.data.connection.description")}
       >
-        <div className="divide-y divide-border/40">
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5 min-w-0">
-              <Label>{t("settings.data.connection.remoteLabel")}</Label>
-              <p className="text-sm text-muted-foreground truncate">{serverUrl}</p>
-            </div>
+        <SettingsGroup>
+          <SettingsRow
+            label={t("settings.data.connection.remoteLabel")}
+            description={<span className="break-all">{serverUrl}</span>}
+          >
             <Button variant="outline" onClick={handleSignOut} disabled={busy}>
               <LogOut className="mr-2 h-4 w-4" />
               {t("auth.signOut")}
             </Button>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.data.connection.switchToLocalLabel")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.data.connection.switchToLocalDescription")}
-              </p>
-            </div>
+          </SettingsRow>
+          <SettingsRow
+            label={t("settings.data.connection.switchToLocalLabel")}
+            description={t("settings.data.connection.switchToLocalDescription")}
+          >
             <Button variant="outline" onClick={handleSwitchToLocal} disabled={busy}>
               <HardDrive className="mr-2 h-4 w-4" />
               {t("settings.data.connection.switchToLocal")}
             </Button>
-          </div>
-        </div>
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
     );
   }
 
   return (
     <SettingsSection
-      icon={<HardDrive className="h-4 w-4" />}
       title={t("settings.data.connection.title")}
       description={t("settings.data.connection.description")}
     >
-      <div className="divide-y divide-border/40">
-        <div className="flex items-center justify-between py-3">
-          <div className="space-y-0.5 min-w-0">
-            <Label>{t("settings.data.connection.localLabel")}</Label>
-            <p className="text-sm text-muted-foreground truncate">{dataPath}</p>
-          </div>
+      <SettingsGroup>
+        <SettingsRow
+          label={t("settings.data.connection.localLabel")}
+          description={<span className="break-all">{dataPath}</span>}
+        >
           {!showConnect && (
             <Button variant="outline" onClick={() => setShowConnect(true)}>
               <Server className="mr-2 h-4 w-4" />
               {t("settings.data.connection.connectToServer")}
             </Button>
           )}
-        </div>
+        </SettingsRow>
         {showConnect && (
-          <div className="py-3 space-y-2">
-            <Label htmlFor="serverUrl">{t("settings.data.connection.serverUrlLabel")}</Label>
+          <SettingsField
+            label={t("settings.data.connection.serverUrlLabel")}
+            htmlFor="serverUrl"
+            footer={t("settings.data.connection.connectHint")}
+          >
             <div className="flex gap-2">
               <Input
                 id="serverUrl"
@@ -132,19 +132,16 @@ export default function ConnectionSection() {
                   setError(null);
                 }}
                 placeholder="https://nas.example"
-                className="flex-1"
+                className="flex-1 bg-background/80"
               />
               <Button onClick={handleConnect} disabled={busy || !urlInput.trim()}>
                 {t("settings.data.connection.connect")}
               </Button>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <p className="text-xs text-muted-foreground">
-              {t("settings.data.connection.connectHint")}
-            </p>
-          </div>
+          </SettingsField>
         )}
-      </div>
+      </SettingsGroup>
     </SettingsSection>
   );
 }

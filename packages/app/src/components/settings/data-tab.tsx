@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { SettingsSection } from "@/components/ui/settings-section";
-import { Label } from "@/components/ui/label";
+import { SettingsField, SettingsGroup, SettingsSection } from "@/components/ui/settings-section";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FolderOpen, Loader2, CheckCircle2, FolderPlus, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useBootStore } from "@/stores/boot";
@@ -130,7 +129,7 @@ export function DataTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Connection — local/remote backend toggle (native, non-hosted builds, Tauri only). */}
       {ConnectionSection && isTauri() && (
         <Suspense fallback={null}>
@@ -148,19 +147,22 @@ export function DataTab() {
       {/* Data Storage — local mode only (a remote backend owns the data root). */}
       {!remote && (
         <SettingsSection
-          icon={<FolderOpen className="h-4 w-4" />}
           title={t("settings.data.storage.title")}
           description={t("settings.data.storage.description")}
         >
-          <div className="space-y-2">
-            <Label htmlFor="data-path">{t("settings.data.storage.pathLabel")}</Label>
+          <SettingsGroup>
+            <SettingsField
+              label={t("settings.data.storage.pathLabel")}
+              htmlFor="data-path"
+              footer={t("settings.data.storage.helperText")}
+            >
             <div className="flex gap-2">
               <Input
                 id="data-path"
                 value={pendingPath || dataPath}
                 onChange={(e) => setPendingPath(e.target.value)}
                 placeholder={t("settings.data.storage.pathPlaceholder")}
-                className="font-mono text-sm"
+                className="bg-background/80 font-mono text-sm"
               />
               <Button
                 variant="outline"
@@ -171,25 +173,23 @@ export function DataTab() {
                 {t("settings.data.storage.change")}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.data.storage.helperText")}
-            </p>
-          </div>
+            </SettingsField>
+          </SettingsGroup>
         </SettingsSection>
       )}
 
       {/* Reset Settings */}
       <SettingsSection
-        icon={<RotateCcw className="h-4 w-4" />}
         title={t("settings.data.reset.title")}
         description={t("settings.data.reset.description")}
       >
-        <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
-          {t("settings.data.reset.button")}
-        </Button>
-        <p className="text-xs text-muted-foreground mt-2">
-          {t("settings.data.reset.helperText")}
-        </p>
+        <SettingsGroup tone="danger">
+          <SettingsField footer={t("settings.data.reset.helperText")}>
+            <Button variant="destructive" onClick={() => setShowResetConfirm(true)}>
+              {t("settings.data.reset.button")}
+            </Button>
+          </SettingsField>
+        </SettingsGroup>
       </SettingsSection>
 
       {/* Reset Settings Confirmation Dialog */}

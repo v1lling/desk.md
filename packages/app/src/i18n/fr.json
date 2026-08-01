@@ -288,6 +288,15 @@
     }
   },
   "settings": {
+    "pageDescriptions": {
+      "general": "Choisissez la langue, l'apparence et les préférences de navigation de Desk.",
+      "planner": "Définissez les horaires et les jours affichés dans votre planificateur hebdomadaire.",
+      "templates": "Définissez du contenu réutilisable pour les nouvelles réunions, documents et tâches.",
+      "ai": "Configurez les fournisseurs d'IA, la confidentialité, l'utilisation et l'indexation.",
+      "agents": "Contrôlez le contexte que Desk fournit aux agents externes, localement ou via MCP.",
+      "data": "Gérez les connexions, les comptes, le stockage et les paramètres de l'application.",
+      "about": "Consultez la version, les mises à jour, les liens du projet et la licence."
+    },
     "general": {
       "appearance": {
         "title": "Apparence",
@@ -319,6 +328,10 @@
     "planner": {
       "title": "Planificateur",
       "description": "Configurer le planificateur hebdomadaire",
+      "schedule": {
+        "title": "Horaires",
+        "description": "Choisissez les heures et les jours affichés dans la vue hebdomadaire."
+      },
       "workDayStart": {
         "label": "Début de journée",
         "description": "Heure à laquelle votre journée commence"
@@ -335,6 +348,8 @@
     "templates": {
       "title": "Modèles",
       "description": "Définir le contenu par défaut des nouvelles réunions, documents et tâches. Configurez des valeurs globales ou personnalisez par espace.",
+      "scopeTitle": "Portée des modèles",
+      "scopeDescription": "Modifiez les valeurs globales ou celles d'un espace spécifique.",
       "scopeLabel": "Portée",
       "globalDefaults": "Valeurs globales",
       "cardTitle": "Modèle {{label}}",
@@ -371,6 +386,10 @@
         "openai": "OpenAI",
         "anthropic": "Anthropic"
       },
+      "credentials": {
+        "title": "Identifiants",
+        "description": "Connectez le fournisseur sélectionné à Desk de manière sécurisée."
+      },
       "model": {
         "label": "Modèle",
         "helperText": "Modèle par défaut du fournisseur"
@@ -398,6 +417,7 @@
       },
       "usage": {
         "title": "Statistiques d'utilisation",
+        "description": "Consultez les requêtes d'IA et l'utilisation des tokens enregistrées localement.",
         "clear": "Effacer",
         "noUsage": "Aucune utilisation pour l'instant",
         "totalTokens": "Tokens au total",
@@ -426,8 +446,8 @@
     },
     "agents": {
       "title": "Agents externes",
-      "description": "Générer des fichiers Markdown à côté de vos données pour que les agents CLI externes comprennent votre travail sans configuration.",
-      "notice": "Ces paramètres s'appliquent aux <strong>agents CLI externes</strong> (Claude Code, Codex, Gemini CLI) qui lisent votre dossier de données directement.",
+      "description": "Contrôlez le contexte que Desk fournit aux agents externes, localement ou via MCP.",
+      "notice": "Ces paramètres s'appliquent aux <strong>agents externes</strong> utilisant des fichiers locaux ou votre connexion MCP hébergée.",
       "emit": {
         "title": "Générer les fichiers",
         "description": "Choisissez quels fichiers d'agent écrire dans votre dossier de données. Contenu identique, trois noms de fichier.",
@@ -438,25 +458,14 @@
       },
       "global": {
         "title": "Instructions globales",
-        "description": "Intégrées dans les fichiers d'agent racine. S'applique à tous les espaces."
-      },
-      "perWorkspace": {
-        "title": "Par espace",
-        "description": "Instructions spécifiques à un espace, ajoutées aux fichiers d'agent de cet espace.",
-        "workspaceLabel": "Espace",
-        "selectPlaceholder": "Sélectionner un espace…",
-        "homeBadge": "(personnel)",
-        "selectPrompt": "Sélectionnez un espace pour modifier ses instructions."
+        "description": "S'applique à tous les espaces et est fournie via les fichiers d'agent locaux ou desk_context par MCP."
       },
       "instructions": {
         "globalLabel": "Instructions globales",
-        "workspaceLabel": "Instructions de l'espace",
-        "globalDescription": "Intégrées dans les fichiers CLAUDE.md / AGENTS.md / GEMINI.md racine entre les marqueurs <code>desk:user-instructions</code> à chaque régénération.",
-        "workspaceDescription": "Intégrées dans les fichiers CLAUDE.md / AGENTS.md / GEMINI.md de cet espace entre les marqueurs <code>desk:user-instructions</code> à chaque régénération.",
+        "globalDescription": "Incluse dans les fichiers d'agent locaux et renvoyée par l'outil MCP <code>desk_context</code>.",
         "globalPlaceholder": "ex. Réponds toujours en français. Utilise des préfixes Conventional Commit lors de l'écriture de fichiers.",
-        "workspacePlaceholder": "ex. Cet espace est pour le client X. Ne mentionne jamais de projets internes dans les brouillons.",
-        "charCount_one": "{{count}} caractère · enregistré automatiquement · écrit à la prochaine régénération.",
-        "charCount_other": "{{count}} caractères · enregistrés automatiquement · écrits à la prochaine régénération."
+        "charCount_one": "{{count}} caractère · enregistré automatiquement.",
+        "charCount_other": "{{count}} caractères · enregistrés automatiquement."
       },
       "preview": {
         "toggle": "Aperçu du CLAUDE.md généré",
@@ -470,7 +479,9 @@
         "description": "Sur un serveur, les agents externes se connectent via MCP plutôt que via des fichiers générés.",
         "notice": "Quand Desk s'exécute sur un serveur, les fichiers générés CLAUDE.md / AGENTS.md / GEMINI.md ne sont pas écrits. Les agents externes (Claude, ChatGPT) se connectent à votre desk via <strong>MCP</strong> à la place.",
         "endpointLabel": "Point de terminaison MCP",
-        "hint": "Ajoutez cette URL comme serveur MCP dans votre client IA. La connexion se fait via OAuth et expose des outils en lecture seule sur vos espaces de travail."
+        "hint": "Ajoutez cette URL comme serveur MCP dans votre client IA. La connexion se fait via OAuth et expose des outils en lecture seule sur vos espaces de travail.",
+        "copy": "Copier",
+        "copied": "Point d'accès MCP copié"
       }
     },
     "data": {
@@ -551,6 +562,7 @@
       "license": {
         "title": "Licence",
         "description": "Open source sous GNU General Public License",
+        "identifier": "Identifiant de licence",
         "viewLicense": "Voir la licence"
       }
     },

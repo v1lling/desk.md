@@ -1,5 +1,10 @@
-import { SettingsSection } from "@/components/ui/settings-section";
-import { Label } from "@/components/ui/label";
+import {
+  SettingsField,
+  SettingsGroup,
+  SettingsNotice,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -13,12 +18,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SummaryDetail } from "@desk/core";
 import {
   Loader2,
-  AlertCircle,
   FileText,
   RefreshCw,
   Trash2,
-  Database,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -57,20 +59,21 @@ export function SmartIndexSection() {
   return (
     <>
       <SettingsSection
-        icon={<Database className="h-4 w-4" />}
         title={t("settings.smartIndex.status.title")}
         description={t("settings.smartIndex.status.description")}
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 rounded-lg border p-3">
+        <SettingsGroup>
+          <SettingsField>
+          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/50 p-3">
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-2xl font-semibold">{totalIndexFiles}</p>
                 <p className="text-xs text-muted-foreground">{t("settings.smartIndex.status.filesIndexed")}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-lg border p-3">
+            <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/50 p-3">
               <Sparkles className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">
@@ -87,7 +90,7 @@ export function SmartIndexSection() {
           </div>
 
           {workspaceRows.length > 0 && (
-            <div className="divide-y divide-border/40 rounded-lg border">
+              <div className="divide-y divide-border/60 rounded-lg border border-border/70 bg-background/30">
               {workspaceRows.map((row) => (
                 <div key={row.id} className="flex items-center justify-between gap-3 px-3 py-2">
                   <span className="flex items-center gap-2 min-w-0">
@@ -146,13 +149,11 @@ export function SmartIndexSection() {
             )}
 
             {indexResult && indexResult.errors.length > 0 && (
-              <div className="mt-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-                  <span className="text-sm font-medium text-destructive">
-                    {t("settings.smartIndex.errors.title", { count: indexResult.errors.length })}
-                  </span>
-                </div>
+              <SettingsNotice
+                tone="error"
+                title={t("settings.smartIndex.errors.title", { count: indexResult.errors.length })}
+                className="mt-3"
+              >
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {indexResult.errors.slice(0, 10).map((error, idx) => (
                     <p key={idx} className="text-xs text-destructive/90 font-mono break-all">
@@ -160,7 +161,7 @@ export function SmartIndexSection() {
                     </p>
                   ))}
                 </div>
-              </div>
+              </SettingsNotice>
             )}
 
             {!isBuilding && lastResult && (
@@ -180,7 +181,8 @@ export function SmartIndexSection() {
               </div>
             )}
 
-            <div className="mt-2 space-y-1 rounded-lg border p-3 text-sm text-muted-foreground">
+            <SettingsNotice className="mt-2">
+              <div className="space-y-1">
               <p>{t("settings.smartIndex.info.oneCatalog")}</p>
               {canBuild && <p>{t("settings.smartIndex.info.incremental")}</p>}
               {canBuild && !remote && <p>{t("settings.smartIndex.info.offlineChanges")}</p>}
@@ -190,23 +192,23 @@ export function SmartIndexSection() {
               ) : (
                 !aiKeyConfigured && <p>{t("settings.smartIndex.info.noProvider")}</p>
               )}
-            </div>
+              </div>
+            </SettingsNotice>
           </div>
         </div>
+          </SettingsField>
+        </SettingsGroup>
       </SettingsSection>
 
       <SettingsSection
-        icon={<SlidersHorizontal className="h-4 w-4" />}
         title={t("settings.smartIndex.config.title")}
         description={t("settings.smartIndex.config.description")}
       >
-        <div className="flex items-center justify-between py-3">
-          <div className="space-y-0.5">
-            <Label>{t("settings.smartIndex.autoSummarize.label")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.smartIndex.autoSummarize.description")}
-            </p>
-          </div>
+        <SettingsGroup>
+        <SettingsRow
+          label={t("settings.smartIndex.autoSummarize.label")}
+          description={t("settings.smartIndex.autoSummarize.description")}
+        >
           <Switch
             checked={autoSummarizeOnSave}
             onCheckedChange={(checked) => {
@@ -218,25 +220,24 @@ export function SmartIndexSection() {
               );
             }}
           />
-        </div>
+        </SettingsRow>
         {autoSummarizeOnSave && aiKeyConfigured && (
-          <p className="pb-3 text-xs text-amber-600 dark:text-amber-400">
-            {t("settings.smartIndex.autoSummarize.activeWarning")}
-          </p>
+          <SettingsField className="bg-amber-500/5">
+            <SettingsNotice tone="warning">
+              {t("settings.smartIndex.autoSummarize.activeWarning")}
+            </SettingsNotice>
+          </SettingsField>
         )}
 
-        <div className="flex items-center justify-between py-3 border-t border-border/40">
-          <div className="space-y-0.5 pr-4">
-            <Label>{t("settings.smartIndex.detail.label")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.smartIndex.detail.description")}
-            </p>
-          </div>
+        <SettingsRow
+          label={t("settings.smartIndex.detail.label")}
+          description={t("settings.smartIndex.detail.description")}
+        >
           <Select
             value={summaryDetail}
             onValueChange={(v) => setSummaryDetail(v as SummaryDetail)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[190px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -245,8 +246,8 @@ export function SmartIndexSection() {
               <SelectItem value="detailed">{t("settings.smartIndex.detail.options.detailed")}</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
+        </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
 
       <ConfirmDialog

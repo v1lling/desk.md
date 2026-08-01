@@ -1,6 +1,8 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Calendar, FileText, FolderOpen, Info, Settings, Sparkles, Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SettingsPageHeader } from "@/components/ui/settings-section";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { SettingsNav, type SettingsCategory } from "@/components/settings/settings-nav";
 
@@ -38,6 +40,47 @@ const CONTENT: Record<SettingsCategory, React.ComponentType> = {
   about: AboutTab,
 };
 
+const PAGE_META: Record<
+  SettingsCategory,
+  { titleKey: string; descriptionKey: string; icon: typeof Settings }
+> = {
+  general: {
+    titleKey: "settings.nav.general",
+    descriptionKey: "settings.pageDescriptions.general",
+    icon: Settings,
+  },
+  planner: {
+    titleKey: "settings.nav.planner",
+    descriptionKey: "settings.pageDescriptions.planner",
+    icon: Calendar,
+  },
+  templates: {
+    titleKey: "settings.nav.templates",
+    descriptionKey: "settings.pageDescriptions.templates",
+    icon: FileText,
+  },
+  ai: {
+    titleKey: "settings.nav.ai",
+    descriptionKey: "settings.pageDescriptions.ai",
+    icon: Sparkles,
+  },
+  agents: {
+    titleKey: "settings.agents.title",
+    descriptionKey: "settings.pageDescriptions.agents",
+    icon: Users,
+  },
+  data: {
+    titleKey: "settings.nav.data",
+    descriptionKey: "settings.pageDescriptions.data",
+    icon: FolderOpen,
+  },
+  about: {
+    titleKey: "settings.nav.about",
+    descriptionKey: "settings.pageDescriptions.about",
+    icon: Info,
+  },
+};
+
 export default function SettingsPage() {
   const { t } = useTranslation();
   const [category, setCategory] = useState<SettingsCategory>("general");
@@ -49,12 +92,19 @@ export default function SettingsPage() {
   useSecondarySidebar("/settings", nav);
 
   const Active = CONTENT[category];
+  const pageMeta = PAGE_META[category];
+  const PageIcon = pageMeta.icon;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* key per category remounts the scroll container so each tab starts at the top */}
       <ScrollArea key={category} className="flex-1 min-h-0">
-        <div className="p-4 max-w-3xl">
+        <div className="mx-auto w-full max-w-[820px] space-y-8 px-6 py-8 lg:px-8">
+          <SettingsPageHeader
+            title={t(pageMeta.titleKey)}
+            description={t(pageMeta.descriptionKey)}
+            icon={<PageIcon className="size-4" />}
+          />
           <Suspense
             fallback={
               <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">

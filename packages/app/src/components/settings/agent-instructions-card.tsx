@@ -1,55 +1,31 @@
-import { Label } from "@/components/ui/label";
+import { SettingsField } from "@/components/ui/settings-section";
 import { Textarea } from "@/components/ui/textarea";
 import { Trans, useTranslation } from "react-i18next";
 import { useAgentInstructionsStore } from "@/stores/agent-instructions";
 
-interface Props {
-  /** "global" for top-level files; a workspaceId for per-workspace files. */
-  scope: "global" | string;
-}
-
-export function AgentInstructionsCard({ scope }: Props) {
+export function AgentInstructionsCard() {
   const { t } = useTranslation();
-  const isGlobal = scope === "global";
-  const { global, perWorkspace, setGlobal, setForWorkspace } = useAgentInstructionsStore();
-
-  const value = isGlobal ? global : (perWorkspace[scope] ?? "");
-  const placeholder = isGlobal
-    ? t("settings.agents.instructions.globalPlaceholder")
-    : t("settings.agents.instructions.workspacePlaceholder");
-
-  const handleChange = (next: string) => {
-    if (isGlobal) setGlobal(next);
-    else setForWorkspace(scope, next);
-  };
+  const { global, setGlobal } = useAgentInstructionsStore();
 
   return (
-    <div className="space-y-2 py-3">
-      <Label htmlFor={`agent-instructions-${scope}`}>
-        {isGlobal
-          ? t("settings.agents.instructions.globalLabel")
-          : t("settings.agents.instructions.workspaceLabel")}
-      </Label>
-      <p className="text-sm text-muted-foreground">
+    <SettingsField
+      description={
         <Trans
-          i18nKey={
-            isGlobal
-              ? "settings.agents.instructions.globalDescription"
-              : "settings.agents.instructions.workspaceDescription"
-          }
+          i18nKey="settings.agents.instructions.globalDescription"
           components={{ code: <code className="text-xs" /> }}
         />
-      </p>
+      }
+      footer={t("settings.agents.instructions.charCount", { count: global.length })}
+    >
       <Textarea
-        id={`agent-instructions-${scope}`}
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={placeholder}
-        className="min-h-[140px] font-mono text-sm"
+        id="agent-instructions-global"
+        aria-label={t("settings.agents.instructions.globalLabel")}
+        value={global}
+        onChange={(e) => setGlobal(e.target.value)}
+        placeholder={t("settings.agents.instructions.globalPlaceholder")}
+        maxLength={8_000}
+        className="min-h-[180px] resize-y bg-background/80 font-mono text-sm leading-relaxed"
       />
-      <p className="text-xs text-muted-foreground">
-        {t("settings.agents.instructions.charCount", { count: value.length })}
-      </p>
-    </div>
+    </SettingsField>
   );
 }

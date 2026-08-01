@@ -1,5 +1,4 @@
-import { SettingsSection } from "@/components/ui/settings-section";
-import { Label } from "@/components/ui/label";
+import { SettingsGroup, SettingsRow, SettingsSection } from "@/components/ui/settings-section";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@/stores/preferences";
 
@@ -23,20 +21,16 @@ export function PlannerTab() {
   } = usePreferencesStore();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SettingsSection
-        icon={<Calendar className="h-4 w-4" />}
-        title={t("settings.planner.title")}
-        description={t("settings.planner.description")}
+        title={t("settings.planner.schedule.title")}
+        description={t("settings.planner.schedule.description")}
       >
-        <div className="divide-y divide-border/40">
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.planner.workDayStart.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.planner.workDayStart.description")}
-              </p>
-            </div>
+        <SettingsGroup>
+          <SettingsRow
+            label={t("settings.planner.workDayStart.label")}
+            description={t("settings.planner.workDayStart.description")}
+          >
             <Select
               value={String(workDayStartHour)}
               onValueChange={(v) => {
@@ -45,7 +39,7 @@ export function PlannerTab() {
                 setWorkDayHours(start, workDayEndHour);
               }}
             >
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-full sm:w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -56,15 +50,12 @@ export function PlannerTab() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </SettingsRow>
 
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.planner.workDayEnd.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.planner.workDayEnd.description")}
-              </p>
-            </div>
+          <SettingsRow
+            label={t("settings.planner.workDayEnd.label")}
+            description={t("settings.planner.workDayEnd.description")}
+          >
             <Select
               value={String(workDayEndHour)}
               onValueChange={(v) => {
@@ -73,7 +64,7 @@ export function PlannerTab() {
                 setWorkDayHours(workDayStartHour, end);
               }}
             >
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-full sm:w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -84,21 +75,18 @@ export function PlannerTab() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </SettingsRow>
 
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.planner.showWeekends.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.planner.showWeekends.description")}
-              </p>
-            </div>
+          <SettingsRow
+            label={t("settings.planner.showWeekends.label")}
+            description={t("settings.planner.showWeekends.description")}
+          >
             <Switch
               checked={showWeekends}
               onCheckedChange={setShowWeekends}
             />
-          </div>
-        </div>
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
     </div>
   );

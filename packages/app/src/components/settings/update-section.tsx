@@ -1,6 +1,6 @@
-import { SettingsSection } from "@/components/ui/settings-section";
+import { SettingsField, SettingsGroup, SettingsSection } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { isTauri } from "@desk/core";
@@ -14,11 +14,12 @@ export function UpdateSection() {
 
   return (
     <SettingsSection
-      icon={<Download className="h-4 w-4" />}
       title={t("settings.about.updates.title")}
       description={t("settings.about.updates.description")}
     >
-      <div className="space-y-3">
+      <SettingsGroup>
+        <SettingsField>
+          <div className="space-y-3">
         {status === "idle" && !error && (
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
@@ -77,7 +78,9 @@ export function UpdateSection() {
             </Button>
           </div>
         )}
-      </div>
+          </div>
+        </SettingsField>
+      </SettingsGroup>
     </SettingsSection>
   );
 }

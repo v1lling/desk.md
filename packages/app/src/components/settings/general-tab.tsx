@@ -1,5 +1,4 @@
-import { SettingsSection } from "@/components/ui/settings-section";
-import { Label } from "@/components/ui/label";
+import { SettingsGroup, SettingsRow, SettingsSection } from "@/components/ui/settings-section";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -8,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette, Monitor, Sun, Moon } from "lucide-react";
+import { Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
@@ -47,23 +46,18 @@ export function GeneralTab() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Appearance */}
+    <div className="space-y-8">
       <SettingsSection
-        icon={<Palette className="h-4 w-4" />}
         title={t("settings.general.appearance.title")}
         description={t("settings.general.appearance.description")}
       >
-        <div className="divide-y divide-border/40">
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.general.theme.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.general.theme.description")}
-              </p>
-            </div>
+        <SettingsGroup>
+          <SettingsRow
+            label={t("settings.general.theme.label")}
+            description={t("settings.general.theme.description")}
+          >
             <Select value={theme} onValueChange={handleThemeChange}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -87,20 +81,17 @@ export function GeneralTab() {
                 </SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </SettingsRow>
 
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.general.language.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.general.language.description")}
-              </p>
-            </div>
+          <SettingsRow
+            label={t("settings.general.language.label")}
+            description={t("settings.general.language.description")}
+          >
             <Select
               value={language}
               onValueChange={(v: Language) => setLanguage(v)}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -115,15 +106,12 @@ export function GeneralTab() {
                 </SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </SettingsRow>
 
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label>{t("settings.general.compactSidebar.label")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.general.compactSidebar.description")}
-              </p>
-            </div>
+          <SettingsRow
+            label={t("settings.general.compactSidebar.label")}
+            description={t("settings.general.compactSidebar.description")}
+          >
             <Switch
               checked={isCollapsed}
               onCheckedChange={(checked) => {
@@ -135,8 +123,8 @@ export function GeneralTab() {
                 );
               }}
             />
-          </div>
-        </div>
+          </SettingsRow>
+        </SettingsGroup>
       </SettingsSection>
     </div>
   );

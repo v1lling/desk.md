@@ -300,6 +300,15 @@
     }
   },
   "settings": {
+    "pageDescriptions": {
+      "general": "Choose Desk's language, appearance, and navigation preferences.",
+      "planner": "Set the working hours and days shown in your weekly planner.",
+      "templates": "Define reusable content for new meetings, documents, and tasks.",
+      "ai": "Configure AI providers, privacy, usage, and file indexing.",
+      "agents": "Control the context Desk provides to external agents, locally or through MCP.",
+      "data": "Manage connections, accounts, storage, and application settings.",
+      "about": "View version information, updates, project links, and licensing."
+    },
     "general": {
       "appearance": {
         "title": "Appearance",
@@ -331,6 +340,10 @@
     "planner": {
       "title": "Planner",
       "description": "Configure your weekly planner",
+      "schedule": {
+        "title": "Schedule",
+        "description": "Choose the hours and days shown in the week view."
+      },
       "workDayStart": {
         "label": "Work day start",
         "description": "When your work day begins"
@@ -347,6 +360,8 @@
     "templates": {
       "title": "Templates",
       "description": "Define default content for new meetings, docs, and tasks. Set global defaults or customize per workspace.",
+      "scopeTitle": "Template scope",
+      "scopeDescription": "Edit global defaults or overrides for a specific workspace.",
       "scopeLabel": "Scope",
       "globalDefaults": "Global Defaults",
       "cardTitle": "{{label}} Template",
@@ -383,6 +398,10 @@
         "openai": "OpenAI",
         "anthropic": "Anthropic"
       },
+      "credentials": {
+        "title": "Credentials",
+        "description": "Securely connect the selected provider to Desk."
+      },
       "model": {
         "label": "Model",
         "helperText": "Default model for provider"
@@ -416,6 +435,7 @@
       },
       "usage": {
         "title": "Usage Statistics",
+        "description": "Review locally recorded AI requests and token usage.",
         "clear": "Clear",
         "noUsage": "No usage yet",
         "totalTokens": "Total tokens",
@@ -438,8 +458,8 @@
     },
     "agents": {
       "title": "External Agents",
-      "description": "Generate Markdown files alongside your data so external CLI agents understand your work with no setup.",
-      "notice": "These settings apply to <strong>external CLI agents</strong> (Claude Code, Codex, Gemini CLI) reading your data folder directly.",
+      "description": "Control the context Desk provides to external agents, locally or through MCP.",
+      "notice": "These settings apply to <strong>external agents</strong> using generated local files or your hosted MCP connection.",
       "emit": {
         "title": "Emit Files",
         "description": "Choose which agent files to write into your data folder. Identical content, three filenames.",
@@ -450,25 +470,14 @@
       },
       "global": {
         "title": "Global Instructions",
-        "description": "Inlined into the top-level agent files. Applies across all workspaces."
-      },
-      "perWorkspace": {
-        "title": "Per-Workspace",
-        "description": "Workspace-specific instructions appended to that workspace's agent files.",
-        "workspaceLabel": "Workspace",
-        "selectPlaceholder": "Select a workspace…",
-        "homeBadge": "(home)",
-        "selectPrompt": "Select a workspace to edit its instructions."
+        "description": "Applies across all workspaces and is provided through generated local files or desk_context over MCP."
       },
       "instructions": {
         "globalLabel": "Global Instructions",
-        "workspaceLabel": "Workspace Instructions",
-        "globalDescription": "Inlined into the top-level CLAUDE.md / AGENTS.md / GEMINI.md between <code>desk:user-instructions</code> markers on every regen.",
-        "workspaceDescription": "Inlined into this workspace's CLAUDE.md / AGENTS.md / GEMINI.md between <code>desk:user-instructions</code> markers on every regen.",
+        "globalDescription": "Included in generated local agent files and returned by MCP's <code>desk_context</code> tool.",
         "globalPlaceholder": "e.g., Always reply in German. Use Conventional Commit prefixes when writing files.",
-        "workspacePlaceholder": "e.g., This workspace is for client X. Never reference internal projects in drafts.",
-        "charCount_one": "{{count}} character · saves automatically · written on the next regen.",
-        "charCount_other": "{{count}} characters · saves automatically · written on the next regen."
+        "charCount_one": "{{count}} character · saves automatically.",
+        "charCount_other": "{{count}} characters · saves automatically."
       },
       "preview": {
         "toggle": "Preview generated CLAUDE.md",
@@ -482,7 +491,9 @@
         "description": "On a server, external agents connect over MCP instead of generated files.",
         "notice": "When Desk runs on a server, the generated CLAUDE.md / AGENTS.md / GEMINI.md files aren't written. External agents (Claude, ChatGPT) connect to your desk over <strong>MCP</strong> instead.",
         "endpointLabel": "MCP endpoint",
-        "hint": "Add this URL as an MCP server in your AI client. It signs in with OAuth and exposes read-only tools over your workspaces."
+        "hint": "Add this URL as an MCP server in your AI client. It signs in with OAuth and exposes read-only tools over your workspaces.",
+        "copy": "Copy",
+        "copied": "MCP endpoint copied"
       }
     },
     "data": {
@@ -563,6 +574,7 @@
       "license": {
         "title": "License",
         "description": "Open source under the GNU General Public License",
+        "identifier": "License identifier",
         "viewLicense": "View license"
       }
     },
