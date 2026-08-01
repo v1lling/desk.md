@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import type { WeekPlan, WorkspaceBlock } from "@desk/core/types";
 import { createRemoteSettingStorage } from "./remote-setting-storage";
 import { getDeskService } from "@desk/core";
@@ -290,6 +291,23 @@ export const usePlannerStore = create<PlannerState>()(
     }
   )
 );
+
+/** Async persisted settings must hydrate before an empty plan is treated as real. */
+export function usePlannerHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(() => usePlannerStore.persist.hasHydrated());
+
+  useEffect(() => {
+    setHydrated(usePlannerStore.persist.hasHydrated());
+    const stopHydrating = usePlannerStore.persist.onHydrate(() => setHydrated(false));
+    const finishHydrating = usePlannerStore.persist.onFinishHydration(() => setHydrated(true));
+    return () => {
+      stopHydrating();
+      finishHydrating();
+    };
+  }, []);
+
+  return hydrated;
+}
 
 // ── TanStack Query for cross-workspace tasks ────────────────────────
 

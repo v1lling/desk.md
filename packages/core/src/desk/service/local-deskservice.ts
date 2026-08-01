@@ -94,8 +94,7 @@ export const localDeskService: DeskService = {
   moveDoc: contentApi.moveDoc,
 
   // Dashboard / planner aggregators
-  getFocusTasks: dashboardApi.getFocusTasks,
-  getWorkspaceSummaries: dashboardApi.getWorkspaceSummaries,
+  getDashboardOverview: dashboardApi.getDashboardOverview,
   getAllWorkspaceTasksAllStatuses: dashboardApi.getAllWorkspaceTasksAllStatuses,
 
   // View state (.view.json)
@@ -105,6 +104,7 @@ export const localDeskService: DeskService = {
   setViewMode: viewStateApi.setViewMode,
   setExpandedFolders: viewStateApi.setExpandedFolders,
   toggleTaskHighlight: viewStateApi.toggleTaskHighlight,
+  clearTaskHighlight: viewStateApi.clearTaskHighlight,
   setHiddenStatuses: viewStateApi.setHiddenStatuses,
 
   // Shared settings KV (.desk/settings/*.json)

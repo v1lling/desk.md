@@ -1,6 +1,6 @@
 
 import { useMemo, useState } from "react";
-import { Archive, CheckCircle2, Circle, Clock, Loader2, FolderKanban, ChevronRight } from "lucide-react";
+import { Archive, CheckCircle2, Circle, Clock, Loader2, FolderKanban, ChevronRight, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { formatDate, isOverdue, stripMarkdown } from "@/lib/format";
@@ -28,6 +28,9 @@ interface TaskListViewProps {
   /** Statuses hidden from the list (only applies when grouped by status) */
   hiddenStatuses: Set<TaskStatus>;
   isLoading?: boolean;
+  /** Highlighted task keys for the current workspace/project scope. */
+  highlightedTasks?: Set<string>;
+  onToggleHighlight?: (taskKey: string) => void;
 }
 
 /** Icon mapping for task statuses */
@@ -51,6 +54,8 @@ export function TaskListView({
   groupByStatus = true,
   hiddenStatuses,
   isLoading,
+  highlightedTasks,
+  onToggleHighlight,
 }: TaskListViewProps) {
   const { t } = useTranslation();
   // Track which status sections are collapsed
@@ -100,6 +105,8 @@ export function TaskListView({
             onClick={onTaskClick}
             showProject={showProject}
             getProjectName={getProjectName}
+            highlightedTasks={highlightedTasks}
+            onToggleHighlight={onToggleHighlight}
           />
         ))}
       </div>
@@ -149,6 +156,8 @@ export function TaskListView({
                     onClick={onTaskClick}
                     showProject={showProject}
                     getProjectName={getProjectName}
+                    highlightedTasks={highlightedTasks}
+                    onToggleHighlight={onToggleHighlight}
                   />
                 ))}
               </div>
@@ -165,17 +174,28 @@ interface TaskListItemProps {
   onClick?: (task: Task) => void;
   showProject?: boolean;
   getProjectName?: (projectId: string) => string | null;
+  highlightedTasks?: Set<string>;
+  onToggleHighlight?: (taskKey: string) => void;
 }
 
-function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListItemProps) {
+function TaskListItem({
+  task,
+  onClick,
+  showProject,
+  getProjectName,
+  highlightedTasks,
+  onToggleHighlight,
+}: TaskListItemProps) {
   const { t } = useTranslation();
   const Icon = statusIcons[task.status];
   const projectName = showProject && getProjectName ? getProjectName(task.projectId) : null;
+  const taskKey = getScopedEntityKey(task);
+  const isHighlighted = highlightedTasks?.has(taskKey) || highlightedTasks?.has(task.id);
 
   return (
     <div
       className={cn(
-        "flex items-start gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer",
+        "group flex items-start gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer",
         task.status === "done" && "opacity-60"
       )}
       onClick={() => onClick?.(task)}
@@ -222,6 +242,33 @@ function TaskListItem({ task, onClick, showProject, getProjectName }: TaskListIt
           </p>
         )}
       </div>
+      {onToggleHighlight && (
+        <button
+          type="button"
+          className={cn(
+            "mt-0.5 rounded p-1 text-muted-foreground transition-all hover:bg-muted hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            isHighlighted
+              ? "text-brand-accent opacity-100"
+              : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          )}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleHighlight(taskKey);
+          }}
+          aria-label={
+            isHighlighted
+              ? t("menus.taskContextMenu.removeHighlight")
+              : t("menus.taskContextMenu.highlightForFocus")
+          }
+          title={
+            isHighlighted
+              ? t("menus.taskContextMenu.removeHighlight")
+              : t("menus.taskContextMenu.highlightForFocus")
+          }
+        >
+          <Star className={cn("size-3.5", isHighlighted && "fill-current")} />
+        </button>
+      )}
     </div>
   );
 }

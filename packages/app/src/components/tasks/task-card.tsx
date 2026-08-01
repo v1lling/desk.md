@@ -121,6 +121,34 @@ export function TaskCard({
               )}
             </div>
           </div>
+          {onToggleHighlight && (
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleHighlight();
+              }}
+              className={cn(
+                "mt-0.5 rounded p-1 text-muted-foreground transition-all hover:bg-muted hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                isHighlighted
+                  ? "text-brand-accent opacity-100"
+                  : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+              )}
+              aria-label={
+                isHighlighted
+                  ? t("menus.taskContextMenu.removeHighlight")
+                  : t("menus.taskContextMenu.highlightForFocus")
+              }
+              title={
+                isHighlighted
+                  ? t("menus.taskContextMenu.removeHighlight")
+                  : t("menus.taskContextMenu.highlightForFocus")
+              }
+            >
+              <Star className={cn("size-3.5", isHighlighted && "fill-current")} />
+            </button>
+          )}
         </div>
       </CardContent>
     </Card>

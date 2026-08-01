@@ -29,6 +29,7 @@ import {
   workspaceKeys,
   viewStateKeys,
   captureKeys,
+  dashboardKeys,
 } from "@/stores";
 import {
   getHostContentCache,
@@ -310,6 +311,9 @@ function invalidateQueryTarget(
       break;
     case "workspaces":
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      break;
+    case "dashboard":
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.overviewRoot() });
       break;
     case "file-tree":
       queryClient.invalidateQueries({ queryKey: fileTreeKeys.all });

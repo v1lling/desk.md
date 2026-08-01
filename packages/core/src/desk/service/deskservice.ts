@@ -105,8 +105,7 @@ export interface DeskService {
   // ── Dashboard / planner aggregators (cross-workspace reads) ─────────
   // Promoted to service methods so they run server-side in hosted mode (one
   // round-trip), instead of fanning out N+1 domain calls from the client.
-  getFocusTasks: typeof dashboardApi.getFocusTasks;
-  getWorkspaceSummaries: typeof dashboardApi.getWorkspaceSummaries;
+  getDashboardOverview: typeof dashboardApi.getDashboardOverview;
   getAllWorkspaceTasksAllStatuses: typeof dashboardApi.getAllWorkspaceTasksAllStatuses;
 
   // ── View state (.view.json) — user-level, so it must route server-side in
@@ -118,6 +117,7 @@ export interface DeskService {
   setViewMode: typeof viewStateApi.setViewMode;
   setExpandedFolders: typeof viewStateApi.setExpandedFolders;
   toggleTaskHighlight: typeof viewStateApi.toggleTaskHighlight;
+  clearTaskHighlight: typeof viewStateApi.clearTaskHighlight;
   setHiddenStatuses: typeof viewStateApi.setHiddenStatuses;
 
   // ── Shared settings KV (.desk/settings/*.json) — user-level settings that

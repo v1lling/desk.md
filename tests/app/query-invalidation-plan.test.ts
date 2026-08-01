@@ -31,6 +31,7 @@ describe("watcher query invalidation planning", () => {
           workspaceId: "acme",
           projectId: "rocket",
         },
+        { type: "dashboard" },
       ],
     );
   });
@@ -42,6 +43,7 @@ describe("watcher query invalidation planning", () => {
         { type: "tasks", workspaceId: "home" },
         { type: "capture" },
         { type: "view-state" },
+        { type: "dashboard" },
       ],
     );
   });
@@ -65,6 +67,7 @@ describe("watcher query invalidation planning", () => {
           workspaceId: "acme",
           projectId: "rocket",
         },
+        { type: "dashboard" },
       ],
     );
   });
@@ -77,6 +80,7 @@ describe("watcher query invalidation planning", () => {
         { type: "content", workspaceId: "acme" },
         { type: "meetings", workspaceId: "acme" },
         { type: "projects", workspaceId: "acme" },
+        { type: "dashboard" },
       ],
     );
   });

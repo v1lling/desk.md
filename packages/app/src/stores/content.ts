@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Doc, ContentScope, Asset } from "@desk/core/types";
 import { getDeskService, isSameEntity } from "@desk/core";
 import type { ConvertibleAction, DocLocation } from "@desk/core";
+import { invalidateDashboardOverview } from "./dashboard";
 
 // Query keys for content (docs, assets, folders)
 export const contentKeys = {
@@ -68,6 +69,7 @@ export function useCreateDoc() {
       author?: "ai";
     }) => getDeskService().createDoc(data),
     onSuccess: (newDoc) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.byWorkspace(newDoc.workspaceId),
       });
@@ -91,6 +93,7 @@ export function useUpdateDoc() {
       updates: Partial<Pick<Doc, "title" | "content">>;
     }) => getDeskService().updateDoc(doc, updates),
     onSuccess: (updatedDoc) => {
+      invalidateDashboardOverview(queryClient);
       if (updatedDoc) {
         // Directly update doc in all cached list queries (avoids stale file-tree cache race).
         // Query invalidation alone would trigger a refetch that reads from the still-stale
@@ -122,6 +125,7 @@ export function useDeleteDoc() {
   return useMutation({
     mutationFn: (doc: Doc) => getDeskService().deleteDoc(doc),
     onSuccess: (success, doc) => {
+      invalidateDashboardOverview(queryClient);
       if (success) {
         // Invalidate workspace-scoped queries (prefix-covers project/detail/overview).
         queryClient.invalidateQueries({
@@ -148,6 +152,7 @@ export function useDeleteAsset() {
   return useMutation({
     mutationFn: (asset: Asset) => getDeskService().deleteAsset(asset),
     onSuccess: (success, asset) => {
+      invalidateDashboardOverview(queryClient);
       if (success) {
         // Invalidate workspace-scoped queries (prefix-covers project/detail/overview).
         queryClient.invalidateQueries({
@@ -225,6 +230,7 @@ export function useCreateFolder() {
       projectId?: string;
     }) => getDeskService().createFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
@@ -260,6 +266,7 @@ export function useRenameFolder() {
       projectId?: string;
     }) => getDeskService().renameFolder(scope, oldPath, newName, workspaceId, projectId),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
@@ -293,6 +300,7 @@ export function useDeleteFolder() {
       projectId?: string;
     }) => getDeskService().deleteFolder(scope, folderPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
@@ -328,6 +336,7 @@ export function useMoveFolder() {
       projectId?: string;
     }) => getDeskService().moveFolder(scope, fromPath, toParentPath, workspaceId, projectId),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
@@ -361,6 +370,7 @@ export function useMoveDoc() {
       to: DocLocation;
     }) => getDeskService().moveDoc(docId, workspaceId, from, to),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       const { workspaceId, from, to } = variables;
       // Invalidate both source and destination trees.
       for (const loc of [from, to]) {
@@ -390,6 +400,7 @@ export function useCreateDocInFolder() {
       projectId?: string;
     }) => getDeskService().createDocInFolder(data),
     onSuccess: (_newDoc, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,
@@ -443,6 +454,7 @@ export function useImportFiles() {
         convertibleAction,
       ),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: contentKeys.tree(
           variables.scope,

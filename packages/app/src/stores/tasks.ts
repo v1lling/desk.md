@@ -3,6 +3,7 @@ import type { Task, TaskStatus, TaskPriority, TaskUpdate } from "@desk/core/type
 import type { ActiveTask } from "@desk/core";
 import { getDeskService, isSameEntity } from "@desk/core";
 import { plannerKeys } from "./planner";
+import { invalidateDashboardOverview } from "./dashboard";
 
 // Query keys
 export const taskKeys = {
@@ -80,6 +81,7 @@ export function useCreateTask() {
       templateBody?: string;
     }) => getDeskService().createTask(data),
     onSuccess: (newTask) => {
+      invalidateDashboardOverview(queryClient);
       // Invalidate and refetch tasks for the workspace
       queryClient.invalidateQueries({
         queryKey: taskKeys.byWorkspace(newTask.workspaceId),
@@ -109,6 +111,7 @@ export function useUpdateTask() {
       updates: TaskUpdate;
     }) => getDeskService().updateTask(taskId, updates, workspaceId, projectId),
     onSuccess: (updatedTask) => {
+      invalidateDashboardOverview(queryClient);
       if (updatedTask) {
         // Directly update task in all cached list queries (avoids stale file-tree cache race).
         // Query invalidation alone would trigger a refetch that reads from the still-stale
@@ -152,6 +155,7 @@ export function useDeleteTask() {
     mutationFn: ({ taskId, workspaceId, projectId }: { taskId: string; workspaceId: string; projectId: string }) =>
       getDeskService().deleteTask(taskId, workspaceId, projectId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
+      invalidateDashboardOverview(queryClient);
       if (result.success) {
         queryClient.invalidateQueries({
           queryKey: taskKeys.byWorkspace(result.workspaceId),
@@ -207,6 +211,7 @@ export function useMoveTask() {
         });
       }
     },
+    onSuccess: () => invalidateDashboardOverview(queryClient),
     // No onSettled/invalidate - optimistic update is sufficient
     // Invalidating causes race condition with file write, causing snap-back
   });
@@ -231,6 +236,7 @@ export function useMoveTaskToProject() {
       toProjectId: string;
     }) => getDeskService().moveTaskToProject(taskId, workspaceId, fromProjectId, toProjectId),
     onSuccess: (_result, variables) => {
+      invalidateDashboardOverview(queryClient);
       // Invalidate workspace tasks to refresh lists (kanban, task list)
       queryClient.invalidateQueries({
         queryKey: taskKeys.byWorkspace(variables.workspaceId),

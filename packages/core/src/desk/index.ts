@@ -72,7 +72,14 @@ export * from "./path-identity";
 export * from "./entity-identity";
 
 // Computed result shapes; their storage-backed operations are DeskService methods.
-export type { ActiveTask, WorkspaceSummary } from "./dashboard";
+export type {
+  ActiveTask,
+  DashboardOverview,
+  DashboardOverviewOptions,
+  DashboardTaskItem,
+  RecentWorkItem,
+  RecentWorkKind,
+} from "./dashboard";
 export { sortTasksByOrder } from "./view-state";
 export type { AiExclusionState } from "./aiignore";
 

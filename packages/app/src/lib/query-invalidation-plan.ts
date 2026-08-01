@@ -19,6 +19,7 @@ export type QueryInvalidationTarget =
   | { type: "meetings"; workspaceId: string }
   | { type: "projects"; workspaceId: string }
   | { type: "workspaces" }
+  | { type: "dashboard" }
   | { type: "file-tree" };
 
 /**
@@ -116,6 +117,14 @@ export function planQueryInvalidations(
         if (hasCaptureChanges) targets.push({ type: "capture" });
         break;
     }
+  }
+
+  if (
+    [...affectedTypes].some((itemType) =>
+      ["task", "doc", "meeting", "project", "workspace", "view", "unknown"].includes(itemType),
+    )
+  ) {
+    targets.push({ type: "dashboard" });
   }
 
   targets.push({ type: "file-tree" });

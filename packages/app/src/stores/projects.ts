@@ -3,6 +3,7 @@ import type { ProjectStatus, ProjectUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import { writePerWorkspaceAgentFiles } from "@/lib/smart-index/agent-files";
 import { contentKeys } from "./content";
+import { invalidateDashboardOverview } from "./dashboard";
 
 /** Regenerate per-workspace agent files when projects change */
 function regenerateWorkspaceAgentFiles(workspaceId: string) {
@@ -63,6 +64,7 @@ export function useCreateProject() {
       status?: ProjectStatus;
     }) => getDeskService().createProject(data),
     onSuccess: (newProject) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({
         queryKey: projectKeys.byWorkspace(newProject.workspaceId),
       });
@@ -95,6 +97,7 @@ export function useUpdateProject() {
         return project;
       }),
     onSuccess: (updatedProject, variables) => {
+      invalidateDashboardOverview(queryClient);
       if (updatedProject) {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(variables.workspaceId),
@@ -118,6 +121,7 @@ export function useDeleteProject() {
     mutationFn: ({ projectId, workspaceId }: { projectId: string; workspaceId: string }) =>
       getDeskService().deleteProject(projectId, workspaceId).then((success) => ({ success, workspaceId })),
     onSuccess: (result) => {
+      invalidateDashboardOverview(queryClient);
       if (result.success) {
         queryClient.invalidateQueries({
           queryKey: projectKeys.byWorkspace(result.workspaceId),

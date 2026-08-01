@@ -95,9 +95,10 @@ export {
 
 // ── Dashboard ───────────────────────────────────────────────────────
 export {
-  useFocusTasks,
-  useWorkspaceSummaries,
+  useDashboardOverview,
+  useClearFocusTask,
   dashboardKeys,
+  invalidateDashboardOverview,
 } from "./dashboard";
 
 // ── Tabs ────────────────────────────────────────────────────────────

@@ -250,6 +250,40 @@ export async function toggleTaskHighlight(
 }
 
 /**
+ * Remove a task from Focus regardless of whether it was highlighted from the
+ * workspace board or its project board. Both scoped keys (current format) and
+ * legacy bare IDs are removed so the dashboard action is deterministic.
+ */
+export async function clearTaskHighlight(
+  workspaceId: string,
+  projectId: string,
+  taskId: string,
+): Promise<boolean> {
+  const scopedId = getScopedEntityKey({ id: taskId, workspaceId, projectId });
+  const scopes: Array<string | null> = [null, projectId];
+  let changed = false;
+
+  await Promise.all(
+    scopes.map(async (scopeProjectId) => {
+      const existing = await getViewState(workspaceId, scopeProjectId);
+      const highlighted = existing.highlightedTasks ?? [];
+      const nextHighlighted = highlighted.filter(
+        (id) => id !== scopedId && id !== taskId,
+      );
+      if (nextHighlighted.length === highlighted.length) return;
+
+      changed = true;
+      await saveViewState(workspaceId, scopeProjectId, {
+        ...existing,
+        highlightedTasks: nextHighlighted,
+      });
+    }),
+  );
+
+  return changed;
+}
+
+/**
  * Get highlighted tasks for a project/workspace
  */
 export async function getHighlightedTasks(

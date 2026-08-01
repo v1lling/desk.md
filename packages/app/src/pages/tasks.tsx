@@ -15,6 +15,7 @@ import {
   useHiddenStatuses,
   useOpenTab,
   useWorkspaces,
+  useHighlightedTasks,
 } from "@/stores";
 import { useProjectName, useOpenFromQuery } from "@/hooks";
 import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
@@ -33,6 +34,7 @@ export default function TasksPage() {
   // Status visibility (persisted per-workspace, shared by kanban + list)
   const { hiddenStatuses, toggleStatus } = useHiddenStatuses(currentWorkspaceId, null);
   const { openTask } = useOpenTab();
+  const { highlightedTasks, toggleHighlight } = useHighlightedTasks(currentWorkspaceId, null);
 
   // Initialize project filter from ?project= URL param (e.g., from /projects page)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -166,6 +168,8 @@ export default function TasksPage() {
             groupByStatus
             hiddenStatuses={hiddenStatuses}
             isLoading={workspacesLoading || tasksLoading}
+            highlightedTasks={highlightedTasks}
+            onToggleHighlight={toggleHighlight}
           />
         )}
       </>

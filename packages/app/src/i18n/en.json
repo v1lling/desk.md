@@ -75,19 +75,30 @@
     "dashboard": {
       "focus": {
         "title": "Focus",
-        "highlightedCount_one": "{{count}} highlighted",
-        "highlightedCount_other": "{{count}} highlighted",
-        "loadingLabel": "tasks",
-        "emptyTitle": "No highlighted tasks",
-        "emptyDescription": "Right-click a task on the board and choose \"Highlight for focus\"."
+        "emptyTitle": "No focus tasks yet",
+        "emptyDescription": "Star important tasks to keep a deliberate shortlist here.",
+        "openTasks": "Open tasks",
+        "remove": "Remove {{title}} from Focus",
+        "showMore_one": "Show {{count}} more",
+        "showMore_other": "Show {{count}} more",
+        "showLess": "Show less"
       },
-      "workspaces": {
-        "title": "Workspaces",
-        "loadingLabel": "workspaces",
-        "emptyTitle": "No workspaces yet",
-        "activeCount_one": "{{count}} active",
-        "activeCount_other": "{{count}} active"
+      "today": {
+        "title": "Today",
+        "openPlanner": "Open planner",
+        "emptyTitle": "Nothing scheduled or due",
+        "planDay": "Plan your day",
+        "taskCount_one": "{{count}} task",
+        "taskCount_other": "{{count}} tasks",
+        "dueHeading": "Due and overdue",
+        "moreDue_one": "{{count}} more in Planner",
+        "moreDue_other": "{{count}} more in Planner"
       },
+      "recent": {
+        "title": "Recent work",
+        "unassigned": "Unassigned"
+      },
+      "overviewError": "The dashboard overview could not be loaded. Capture is still available.",
       "capture": {
         "title": "Capture",
         "defaultHomeName": "Home",
@@ -233,8 +244,8 @@
         "docsHeading": "Docs",
         "allDocs": "All docs",
         "noDocs": "No docs yet.",
-        "activityHeading": "Recent activity",
-        "noActivity": "No activity yet.",
+        "activityHeading": "Recent work",
+        "noActivity": "No recent work yet.",
         "counts": {
           "active_one": "{{count}} active",
           "active_other": "{{count}} active",

@@ -75,19 +75,30 @@
     "dashboard": {
       "focus": {
         "title": "Focus",
-        "highlightedCount_one": "{{count}} mise en évidence",
-        "highlightedCount_other": "{{count}} mises en évidence",
-        "loadingLabel": "tâches",
-        "emptyTitle": "Aucune tâche mise en évidence",
-        "emptyDescription": "Clic droit sur une tâche dans le tableau, puis « Mettre en focus »."
+        "emptyTitle": "Aucune tâche ciblée",
+        "emptyDescription": "Ajoutez une étoile aux tâches importantes pour garder ici une sélection intentionnelle.",
+        "openTasks": "Ouvrir les tâches",
+        "remove": "Retirer {{title}} du focus",
+        "showMore_one": "Afficher {{count}} de plus",
+        "showMore_other": "Afficher {{count}} de plus",
+        "showLess": "Afficher moins"
       },
-      "workspaces": {
-        "title": "Espaces",
-        "loadingLabel": "espaces",
-        "emptyTitle": "Aucun espace pour l'instant",
-        "activeCount_one": "{{count}} en cours",
-        "activeCount_other": "{{count}} en cours"
+      "today": {
+        "title": "Aujourd’hui",
+        "openPlanner": "Ouvrir le planning",
+        "emptyTitle": "Rien de planifié ou d’échu",
+        "planDay": "Planifier la journée",
+        "taskCount_one": "{{count}} tâche",
+        "taskCount_other": "{{count}} tâches",
+        "dueHeading": "À faire et en retard",
+        "moreDue_one": "{{count}} de plus dans le planning",
+        "moreDue_other": "{{count}} de plus dans le planning"
       },
+      "recent": {
+        "title": "Travail récent",
+        "unassigned": "Non assigné"
+      },
+      "overviewError": "L’aperçu du tableau de bord n’a pas pu être chargé. La capture reste disponible.",
       "capture": {
         "title": "Capture",
         "defaultHomeName": "Personnel",
@@ -221,8 +232,8 @@
         "docsHeading": "Documents",
         "allDocs": "Tous les documents",
         "noDocs": "Aucun document pour l'instant.",
-        "activityHeading": "Activité récente",
-        "noActivity": "Aucune activité pour l'instant.",
+        "activityHeading": "Travail récent",
+        "noActivity": "Aucun travail récent.",
         "counts": {
           "active_one": "{{count}} en cours",
           "active_other": "{{count}} en cours",

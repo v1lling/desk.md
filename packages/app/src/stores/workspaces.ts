@@ -3,6 +3,7 @@ import type { WorkspaceUpdate } from "@desk/core/types";
 import { getDeskService } from "@desk/core";
 import { writeTopLevelAgentFiles, writePerWorkspaceAgentFiles } from "@/lib/smart-index/agent-files";
 import { useNavigationStore } from "./navigation";
+import { invalidateDashboardOverview } from "./dashboard";
 
 // Query keys
 export const workspaceKeys = {
@@ -36,6 +37,7 @@ export function useCreateWorkspace() {
       home?: boolean;
     }) => getDeskService().createWorkspace(data),
     onSuccess: () => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate top-level agent files (workspace list changed)
       getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
@@ -62,6 +64,7 @@ export function useUpdateWorkspace() {
         return workspace;
       }),
     onSuccess: (updatedWorkspace, { workspaceId }) => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate agent files (name/description may have changed)
       getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});
@@ -83,6 +86,7 @@ export function useDeleteWorkspace() {
   return useMutation({
     mutationFn: (workspaceId: string) => getDeskService().deleteWorkspace(workspaceId),
     onSuccess: () => {
+      invalidateDashboardOverview(queryClient);
       queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
       // Regenerate top-level agent files (workspace removed)
       getDeskService().getWorkspaces().then((ws) => writeTopLevelAgentFiles(ws)).catch(() => {});

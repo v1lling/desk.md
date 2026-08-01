@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Calendar, CheckSquare, FileText, Plus } from "lucide-react";
+import { Calendar, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { formatRelativeTime, safeFormat } from "@/lib/i18n/format";
+import { safeFormat } from "@/lib/i18n/format";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionLabel, ListRow } from "@/components/patterns";
@@ -16,11 +16,13 @@ import {
   useContentTree,
   useCreateTask,
   useOpenTab,
+  useHighlightedTasks,
 } from "@/stores";
 import { extractDocs, compareDatesDesc } from "@desk/core";
 import type { TaskStatus } from "@desk/core/types";
 import { isActiveStatus } from "@/lib/task-status";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { RecentWorkList, type RecentWorkListItem } from "@/components/recent-work-list";
 
 const TASK_CAP = 7;
 const ACTIVITY_CAP = 10;
@@ -44,6 +46,7 @@ export function TasksSection({
   const { t } = useTranslation();
   const { data: tasks = [], isLoading } = useProjectTasks(workspaceId, projectId);
   const { openTask } = useOpenTab();
+  const { highlightedTasks, toggleHighlight } = useHighlightedTasks(workspaceId, projectId);
   const createTask = useCreateTask();
   const [newTitle, setNewTitle] = useState("");
 
@@ -87,6 +90,8 @@ export function TasksSection({
           groupByStatus={false}
           hiddenStatuses={NO_HIDDEN_STATUSES}
           isLoading={isLoading}
+          highlightedTasks={highlightedTasks}
+          onToggleHighlight={toggleHighlight}
         />
       )}
 
@@ -250,24 +255,8 @@ export function DocsSection({
   );
 }
 
-const activityIcons = {
-  task: CheckSquare,
-  meeting: Calendar,
-  doc: FileText,
-} as const;
-
-type ActivityKind = keyof typeof activityIcons;
-
-interface ActivityItem {
-  kind: ActivityKind;
-  id: string;
-  title: string;
-  stamp: string;
-  open: () => void;
-}
-
 /**
- * Recent-activity feed: the project's most recently saved items, keyed off the
+ * Recent-work feed: the project's most recently saved items, keyed off the
  * `updated` frontmatter stamp (falling back to `created` for files that predate
  * it). Items with neither are excluded — the feed shows real activity only.
  */
@@ -285,21 +274,21 @@ export function ActivitySection({
   const { openTask, openMeeting, openDoc } = useOpenTab();
 
   const recent = useMemo(() => {
-    const items: ActivityItem[] = [];
+    const items: RecentWorkListItem[] = [];
     const push = (
-      kind: ActivityKind,
+      kind: RecentWorkListItem["kind"],
       item: { id: string; title: string; updated?: string; created?: string },
-      open: () => void,
+      onOpen: () => void,
     ) => {
-      const stamp = item.updated ?? item.created;
-      if (stamp) items.push({ kind, id: item.id, title: item.title, stamp, open });
+      const activityAt = item.updated ?? item.created;
+      if (activityAt) items.push({ kind, id: item.id, title: item.title, activityAt, onOpen });
     };
 
     for (const task of tasks) push("task", task, () => openTask(task));
     for (const meeting of meetings) push("meeting", meeting, () => openMeeting(meeting));
     for (const doc of extractDocs(tree)) push("doc", doc, () => openDoc(doc));
 
-    items.sort((a, b) => compareDatesDesc(a.stamp, b.stamp));
+    items.sort((a, b) => compareDatesDesc(a.activityAt, b.activityAt));
     return items.slice(0, ACTIVITY_CAP);
   }, [tasks, meetings, tree, openTask, openMeeting, openDoc]);
 
@@ -316,18 +305,7 @@ export function ActivitySection({
         />
       ) : (
         <div className="-mx-4">
-          {recent.map((item) => {
-            const Icon = activityIcons[item.kind];
-            return (
-              <ListRow
-                key={`${item.kind}:${item.id}`}
-                onClick={item.open}
-                leading={<Icon className="size-3.5 shrink-0 text-muted-foreground" />}
-                title={item.title}
-                meta={formatRelativeTime(item.stamp)}
-              />
-            );
-          })}
+          <RecentWorkList items={recent} />
         </div>
       )}
     </section>

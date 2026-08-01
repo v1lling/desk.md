@@ -8,7 +8,11 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { parseISO, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { usePlannerStore, useAllWorkspaceTasksAllStatuses } from "@/stores/planner";
+import {
+  usePlannerStore,
+  useAllWorkspaceTasksAllStatuses,
+  usePlannerHydrated,
+} from "@/stores/planner";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useWorkspaces } from "@/stores/workspaces";
 import {
@@ -36,6 +40,8 @@ import { dayAtClientX, getPlannerViewport } from "./grid-hit-test";
 import { planBlockMove } from "@/lib/planner-interactions";
 import type { WorkspaceBlock } from "@desk/core/types";
 import type { ActiveTask } from "@desk/core";
+import { useMinuteClock } from "@/hooks/use-minute-clock";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 /** Stable empty references — a week with no plan must not allocate on every render. */
 const NO_DAYS: Record<string, WorkspaceBlock[]> = {};
@@ -43,22 +49,8 @@ const NO_BLOCKS: WorkspaceBlock[] = [];
 const NO_INTENTIONS: string[] = [];
 const NO_TASKS: ActiveTask[] = [];
 
-/** Minutes from midnight, re-read once a minute, for the "now" indicator. */
-function currentMinute(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
-}
-
-function useCurrentMinute(): number {
-  const [minute, setMinute] = useState(currentMinute);
-  useEffect(() => {
-    const id = setInterval(() => setMinute(currentMinute()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  return minute;
-}
-
 export function WeekView() {
+  const plannerHydrated = usePlannerHydrated();
   const [currentMonday, setCurrentMonday] = useState(() =>
     getWeekMonday(new Date())
   );
@@ -80,7 +72,7 @@ export function WeekView() {
   // block (struck through) rather than silently vanishing from the week.
   const { data: allTasks = [], isLoading: tasksLoading } = useAllWorkspaceTasksAllStatuses();
   const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces();
-  const nowMinute = useCurrentMinute();
+  const { minute: nowMinute } = useMinuteClock();
 
   const workDayStartHour = usePreferencesStore((s) => s.workDayStartHour);
   const workDayEndHour = usePreferencesStore((s) => s.workDayEndHour);
@@ -334,6 +326,10 @@ export function WeekView() {
     },
     [beginDrag, currentMonday, moveBlock, updateBlockTime]
   );
+
+  if (!plannerHydrated) {
+    return <LoadingSkeleton variant="board" className="flex-1" />;
+  }
 
   return (
     <div className="flex flex-1 min-h-0">

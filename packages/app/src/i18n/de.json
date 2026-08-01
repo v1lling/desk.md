@@ -75,19 +75,30 @@
     "dashboard": {
       "focus": {
         "title": "Fokus",
-        "highlightedCount_one": "{{count}} hervorgehoben",
-        "highlightedCount_other": "{{count}} hervorgehoben",
-        "loadingLabel": "Aufgaben",
-        "emptyTitle": "Keine hervorgehobenen Aufgaben",
-        "emptyDescription": "Rechtsklick auf eine Aufgabe im Board und „Für Fokus hervorheben“ wählen."
+        "emptyTitle": "Noch keine Fokusaufgaben",
+        "emptyDescription": "Markiere wichtige Aufgaben mit einem Stern, um hier eine bewusste Auswahl zu behalten.",
+        "openTasks": "Aufgaben öffnen",
+        "remove": "{{title}} aus dem Fokus entfernen",
+        "showMore_one": "{{count}} weitere anzeigen",
+        "showMore_other": "{{count}} weitere anzeigen",
+        "showLess": "Weniger anzeigen"
       },
-      "workspaces": {
-        "title": "Arbeitsbereiche",
-        "loadingLabel": "Arbeitsbereiche",
-        "emptyTitle": "Noch keine Arbeitsbereiche",
-        "activeCount_one": "{{count}} aktiv",
-        "activeCount_other": "{{count}} aktiv"
+      "today": {
+        "title": "Heute",
+        "openPlanner": "Planer öffnen",
+        "emptyTitle": "Nichts geplant oder fällig",
+        "planDay": "Tag planen",
+        "taskCount_one": "{{count}} Aufgabe",
+        "taskCount_other": "{{count}} Aufgaben",
+        "dueHeading": "Fällig und überfällig",
+        "moreDue_one": "{{count}} weitere im Planer",
+        "moreDue_other": "{{count}} weitere im Planer"
       },
+      "recent": {
+        "title": "Zuletzt bearbeitet",
+        "unassigned": "Nicht zugewiesen"
+      },
+      "overviewError": "Die Dashboard-Übersicht konnte nicht geladen werden. Erfassen ist weiterhin verfügbar.",
       "capture": {
         "title": "Eingang",
         "defaultHomeName": "Persönlich",
@@ -221,8 +232,8 @@
         "docsHeading": "Dokumente",
         "allDocs": "Alle Dokumente",
         "noDocs": "Noch keine Dokumente.",
-        "activityHeading": "Letzte Aktivität",
-        "noActivity": "Noch keine Aktivität.",
+        "activityHeading": "Zuletzt bearbeitet",
+        "noActivity": "Noch keine kürzlich bearbeiteten Inhalte.",
         "counts": {
           "active_one": "{{count}} aktiv",
           "active_other": "{{count}} aktiv",
