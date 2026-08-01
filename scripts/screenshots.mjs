@@ -390,7 +390,7 @@ async function hideTourPointer(page) {
   await page.evaluate(() => document.querySelector("#readme-tour-pointer")?.remove());
 }
 
-/** Turn equally sized framed PNG buffers into a compact animated WebP. */
+/** Turn equally sized framed PNG buffers into a GitHub-compatible animated GIF. */
 async function writeAnimatedTour(frames, outPath) {
   const resized = await Promise.all(
     frames.map(({ image }) => sharp(image).resize({ width: TOUR_WIDTH }).png().toBuffer()),
@@ -408,10 +408,10 @@ async function writeAnimatedTour(frames, outPath) {
     },
   })
     .composite(resized.map((input, index) => ({ input, left: 0, top: index * height })))
-    .webp({
-      quality: 82,
-      alphaQuality: 90,
-      effort: 6,
+    .gif({
+      colours: 256,
+      dither: 0.6,
+      effort: 7,
       loop: 0,
       delay: frames.map(({ delay }) => delay),
     })
@@ -462,8 +462,8 @@ async function captureTour(browser, theme) {
       delay: frame.delay,
     });
   }
-  await writeAnimatedTour(framedFrames, path.join(OUT_DIR, `tour-${theme}.webp`));
-  console.log(`  ✓ tour-${theme}.webp`);
+  await writeAnimatedTour(framedFrames, path.join(OUT_DIR, `tour-${theme}.gif`));
+  console.log(`  ✓ tour-${theme}.gif`);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────

@@ -28,8 +28,8 @@
   <picture>
     <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png">
     <source media="(prefers-reduced-motion: reduce)" srcset="assets/dashboard-light.png">
-    <source media="(prefers-color-scheme: dark)" srcset="assets/tour-dark.webp">
-    <img src="assets/tour-light.webp" alt="A short tour through the dashboard, planner, tasks, documents, meetings, and a project in desk.md" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/tour-dark.gif">
+    <img src="assets/tour-light.gif" alt="A short tour through the dashboard, planner, tasks, documents, meetings, and a project in desk.md" width="100%">
   </picture>
 </p>
 
@@ -45,13 +45,6 @@ itself stays ordinary Markdown.
 
 That also means local agents can work with the folder directly. When Desk is
 self-hosted, the same content is available through an OAuth-protected MCP endpoint.
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/tasks-dark.png">
-    <img src="assets/tasks-light.png" alt="The desk.md Kanban task board" width="100%">
-  </picture>
-</p>
 
 ## Built for one person running real work
 
@@ -149,31 +142,6 @@ docker compose up -d
 
 See the [self-hosting guide](./deploy/README.md) for HTTPS, reverse-proxy, AI,
 and MCP setup.
-
-## A closer look
-
-<table>
-  <tr>
-    <td width="50%">
-      <a href="assets/projects-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.png"><img src="assets/projects-light.png" alt="Project home with its overview and recent activity"></picture></a>
-      <p align="center"><sub><b>Project home</b></sub></p>
-    </td>
-    <td width="50%">
-      <a href="assets/planner-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/planner-dark.png"><img src="assets/planner-light.png" alt="Weekly planner"></picture></a>
-      <p align="center"><sub><b>Weekly planner</b></sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <a href="assets/docs-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/docs-dark.png"><img src="assets/docs-light.png" alt="Document tree and Markdown editor"></picture></a>
-      <p align="center"><sub><b>Documents</b></sub></p>
-    </td>
-    <td width="50%">
-      <a href="assets/meetings-light.png"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/meetings-dark.png"><img src="assets/meetings-light.png" alt="Meeting notes"></picture></a>
-      <p align="center"><sub><b>Meetings</b></sub></p>
-    </td>
-  </tr>
-</table>
 
 ## Roadmap
 
