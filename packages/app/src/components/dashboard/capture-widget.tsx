@@ -1,9 +1,10 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2, Loader2 } from "lucide-react";
+import { Zap, Plus, MoreHorizontal, User, FolderKanban, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingState } from "@/components/ui/loading-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -133,10 +134,11 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
             variant="ghost"
             size="icon"
             disabled={!newTaskTitle.trim() || createTask.isPending}
+            aria-label={t("common.buttons.add")}
             className="absolute right-0 top-0 h-9 w-9"
           >
             {createTask.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
+              <InlineProgress />
             ) : (
               <Plus className="size-4" />
             )}
@@ -146,7 +148,7 @@ export function CaptureWidget({ onTriageComplete }: CaptureWidgetProps) {
 
       {/* Task List */}
       {isLoading ? (
-        <LoadingState label={t("pages.dashboard.capture.loadingLabel")} display="inline" className="py-6" />
+        <LoadingSkeleton variant="list" rows={3} className="py-1" />
       ) : !hasTasks ? (
         <EmptyState title={t("pages.dashboard.capture.emptyTitle")} display="inline" className="py-6" />
       ) : (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { signIn, signUp } from "@/lib/auth-client";
+import { AppBootScreen } from "@/app/boot-screen";
 
 /**
  * OAuth login page (hosted-web only) — the `loginPage` the OAuth AS redirects an
@@ -14,7 +14,6 @@ import { signIn, signUp } from "@/lib/auth-client";
  * Mounted outside the auth gate (see app.tsx) so the AS can land here pre-session.
  */
 export default function OAuthSignIn() {
-  const { t } = useTranslation();
   const [hasUsers, setHasUsers] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -50,11 +49,7 @@ export default function OAuthSignIn() {
   };
 
   if (hasUsers === null) {
-    return (
-      <div className="flex h-screen bg-background items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
-      </div>
-    );
+    return <AppBootScreen />;
   }
 
   return (

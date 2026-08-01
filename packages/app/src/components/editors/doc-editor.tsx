@@ -10,7 +10,6 @@ import { EditorPathBar } from "./editor-path-bar";
 import { EditorRenderStates } from "./editor-render-states";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MetadataToolbar } from "@/components/ui/metadata-toolbar";
-import { LoadingState } from "@/components/ui/loading-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -167,7 +166,7 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
     fileDeleted,
     pathChanged,
     newPath,
-    isLoading: isLoadingDoc,
+    isLoading: isLoadingDoc || (!!doc && (isLoadingContent || !isEditorReady)),
     entity: doc,
     entityLabel: "doc",
     onClose,
@@ -215,20 +214,14 @@ export function DocEditor({ docId, workspaceId, projectId, onClose }: DocEditorP
       <ScrollArea className="flex-1 min-h-0">
         {/* pt-3 + the editor's own py-1 (4px) = 16px, symmetric with the divider's mt-4 */}
         <div className="max-w-4xl mx-auto px-6 pt-3 pb-6">
-          {isEditorReady ? (
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
-              placeholder={t("editors.doc.contentPlaceholder")}
-              minHeight="400px"
-              borderless
-              onInternalLinkClick={handleInternalLinkClick}
-            />
-          ) : (
-            <div className="h-[400px] flex items-center justify-center">
-              <LoadingState label="editor" display="inline" />
-            </div>
-          )}
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder={t("editors.doc.contentPlaceholder")}
+            minHeight="400px"
+            borderless
+            onInternalLinkClick={handleInternalLinkClick}
+          />
         </div>
       </ScrollArea>
 

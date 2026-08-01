@@ -11,7 +11,7 @@ import {
 } from "@/lib/design-tokens";
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingState } from "@/components/ui/loading-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { AIBadge } from "@/components/ui/ai-badge";
 import type { Task, TaskStatus } from "@desk/core/types";
 import { getScopedEntityKey } from "@desk/core";
@@ -83,7 +83,7 @@ export function TaskListView({
   }, [tasks, groupByStatus]);
 
   if (isLoading) {
-    return <LoadingState label={t("entities.task.pluralLowercase")} />;
+    return <LoadingSkeleton variant="list" rows={7} announce />;
   }
 
   if (tasks.length === 0) {

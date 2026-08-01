@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Check, User, FolderKanban } from "lucide-react";
+import { Check, User, FolderKanban } from "lucide-react";
 import { useUpdateTask } from "@/stores";
 import { SPECIAL_DIRS } from "@desk/core";
 import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
@@ -157,7 +158,7 @@ export function TriageDetailModal({
             {t("modals.triageDetail.skip")}
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+            {isPending && <InlineProgress />}
             {t("modals.triageDetail.saveDetails")}
           </Button>
         </DialogFooter>

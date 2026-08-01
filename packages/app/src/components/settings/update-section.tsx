@@ -1,6 +1,7 @@
 import { SettingsField, SettingsGroup, SettingsSection } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { InlineProgress } from "@/components/ui/inline-progress";
+import { RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { isTauri } from "@desk/core";
@@ -35,7 +36,7 @@ export function UpdateSection() {
 
         {status === "checking" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <InlineProgress />
             {t("settings.about.updates.checking")}
           </div>
         )}
@@ -61,7 +62,7 @@ export function UpdateSection() {
 
         {status === "downloading" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <InlineProgress />
             {t("settings.about.updates.downloading")}
           </div>
         )}

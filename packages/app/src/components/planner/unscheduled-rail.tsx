@@ -18,6 +18,7 @@ import { isOverdue } from "@/lib/format";
 import { useOpenTab } from "@/stores/tabs";
 import { usePreferencesStore } from "@/stores/preferences";
 import type { ActiveTask } from "@desk/core";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 interface UnscheduledRailProps {
   tasks: ActiveTask[];
@@ -26,6 +27,7 @@ interface UnscheduledRailProps {
   onTaskMouseDown: (task: ActiveTask, e: React.MouseEvent) => void;
   /** The task currently being dragged out of the rail, if any. */
   draggingTaskId?: string;
+  isLoading?: boolean;
 }
 
 type BucketKey = "overdue" | "dueThisWeek" | "later" | "noDate";
@@ -37,6 +39,7 @@ export function UnscheduledRail({
   days,
   onTaskMouseDown,
   draggingTaskId,
+  isLoading = false,
 }: UnscheduledRailProps) {
   const { t } = useTranslation();
   const { openTask } = useOpenTab();
@@ -112,7 +115,9 @@ export function UnscheduledRail({
       </div>
 
       <div className="flex-1 min-h-0">
-        {tasks.length === 0 ? (
+        {isLoading ? (
+          <LoadingSkeleton variant="tree" rows={7} className="px-1 py-2" />
+        ) : tasks.length === 0 ? (
           <p className="p-4 text-center text-[11px] text-muted-foreground/70">
             {t("pages.planner.rail.empty")}
           </p>

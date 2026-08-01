@@ -78,8 +78,8 @@ export function WeekView() {
   const weekPlans = usePlannerStore((s) => s.weekPlans);
   // All statuses: a task finished after it was planned must stay visible in its
   // block (struck through) rather than silently vanishing from the week.
-  const { data: allTasks = [] } = useAllWorkspaceTasksAllStatuses();
-  const { data: workspaces = [] } = useWorkspaces();
+  const { data: allTasks = [], isLoading: tasksLoading } = useAllWorkspaceTasksAllStatuses();
+  const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces();
   const nowMinute = useCurrentMinute();
 
   const workDayStartHour = usePreferencesStore((s) => s.workDayStartHour);
@@ -475,6 +475,7 @@ export function WeekView() {
 
       <UnscheduledRail
         tasks={unscheduledTasks}
+        isLoading={tasksLoading || workspacesLoading}
         days={days}
         onTaskMouseDown={startTaskDrag}
         draggingTaskId={dragTask?.id}

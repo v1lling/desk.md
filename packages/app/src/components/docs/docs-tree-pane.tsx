@@ -6,12 +6,12 @@ import {
   ArrowUpAZ,
   FolderOpen,
   FolderPlus,
-  Loader2,
   Upload,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -456,7 +456,7 @@ export function DocsTreePane({ workspaceId }: DocsTreePaneProps) {
               onClick={handleSubmitNewFolder}
               disabled={!newFolderName.trim() || creatingFolder}
             >
-              {creatingFolder && <Loader2 className="size-4 animate-spin mr-2" />}
+              {creatingFolder && <InlineProgress />}
               {t("common.buttons.create")}
             </Button>
           </DialogFooter>

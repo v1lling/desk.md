@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import {
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
 import { useCreateProject, useCurrentWorkspace } from "@/stores";
 import type { ProjectStatus } from "@desk/core/types";
 import { toast } from "sonner";
@@ -121,7 +121,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
             </Button>
             <Button type="submit" disabled={!name.trim() || !currentWorkspace || createProject.isPending}>
               {createProject.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <InlineProgress />
               )}
               {t("modals.newProject.submit")}
             </Button>

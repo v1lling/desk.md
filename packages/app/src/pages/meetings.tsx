@@ -2,17 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Calendar } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { useCurrentWorkspace, useMeetings, useOpenTab } from "@/stores";
+import { useCurrentWorkspace, useMeetings, useOpenTab, useWorkspaces } from "@/stores";
 import { useOpenFromQuery } from "@/hooks";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { StatePanel } from "@/components/ui/state-panel";
 import { MeetingsTreePane } from "@/components/meetings";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 export default function MeetingsPage() {
   const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: meetings = [] } = useMeetings(currentWorkspaceId);
+  const { isLoading: workspacesLoading } = useWorkspaces();
+  const { data: meetings = [], isLoading: meetingsLoading } = useMeetings(currentWorkspaceId);
   const { openMeeting } = useOpenTab();
 
   useOpenFromQuery(meetings, openMeeting, "/meetings");
@@ -56,6 +58,10 @@ export default function MeetingsPage() {
     [currentWorkspaceId, initialProjectFilter],
   );
   useSecondarySidebar("/meetings", pane);
+
+  if (workspacesLoading || meetingsLoading) {
+    return <LoadingSkeleton variant="page" />;
+  }
 
   if (!currentWorkspaceId) {
     return (

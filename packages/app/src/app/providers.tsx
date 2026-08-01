@@ -19,6 +19,8 @@ import { SaveChangesDialog } from "@/components/ui/save-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { EmailDropOverlay } from "@/components/email/email-drop-overlay";
 import { toast } from "sonner";
+import { AppBootScreen } from "./boot-screen";
+import { applyThemePreference } from "@/lib/theme";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -89,7 +91,7 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
   }
 
   if (!initialized) {
-    return null;
+    return <AppBootScreen />;
   }
 
   return <>{children}</>;
@@ -209,24 +211,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = usePreferencesStore((state) => state.theme);
 
   useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === "system") {
-      const systemDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      root.classList.toggle("dark", systemDark);
-
-      // Listen for system theme changes
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (e: MediaQueryListEvent) => {
-        root.classList.toggle("dark", e.matches);
-      };
-      mediaQuery.addEventListener("change", handler);
-      return () => mediaQuery.removeEventListener("change", handler);
-    } else {
-      root.classList.toggle("dark", theme === "dark");
-    }
+    return applyThemePreference(theme);
   }, [theme]);
 
   return <>{children}</>;

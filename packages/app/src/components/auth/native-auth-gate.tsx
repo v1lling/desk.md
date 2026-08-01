@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import { useBootStore } from "@/stores/boot";
 import { createNativeAuthClient } from "@/lib/native-auth-client";
 import { nativeFetch } from "@/lib/native-http";
 import { AuthScreen } from "./auth-screen";
+import { AppBootScreen } from "@/app/boot-screen";
 
 /**
  * Native remote-mode auth gate — the desktop counterpart of
@@ -14,12 +14,11 @@ import { AuthScreen } from "./auth-screen";
  *
  * Same three states as the web gate, but pointed at the user's chosen server and
  * authenticating with a Keychain bearer token instead of a same-origin cookie:
- *   loading        → spinner
+ *   loading        → branded boot surface
  *   no session     → AuthScreen ("create" on a fresh server, else "login")
  *   authenticated  → the app shell (children)
  */
 export default function NativeAuthGate({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
   const serverUrl = useBootStore((s) => s.serverUrl);
   // One client per server URL. Stable across renders so useSession is stable.
   const client = useMemo(() => createNativeAuthClient(serverUrl), [serverUrl]);
@@ -44,11 +43,7 @@ export default function NativeAuthGate({ children }: { children: ReactNode }) {
   }, [serverUrl]);
 
   if (isPending || hasUsers === null) {
-    return (
-      <div className="flex h-screen bg-background items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
-      </div>
-    );
+    return <AppBootScreen />;
   }
 
   if (!session) {

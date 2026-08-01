@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { FormGrid } from "@/components/ui/form-grid";
@@ -19,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
 import { DateField } from "@/components/ui/date-field";
 import { useCreateTask, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import type { TaskPriority } from "@desk/core/types";
@@ -181,7 +181,7 @@ export function NewTaskModal({ open, onClose, defaultProjectId }: NewTaskModalPr
             </Button>
             <Button type="submit" disabled={!title.trim() || createTask.isPending}>
               {createTask.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <InlineProgress />
               )}
               {t("modals.newTask.submit")}
             </Button>

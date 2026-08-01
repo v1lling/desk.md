@@ -20,6 +20,7 @@ import {
 import { extractDocs, compareDatesDesc } from "@desk/core";
 import type { TaskStatus } from "@desk/core/types";
 import { isActiveStatus } from "@/lib/task-status";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 const TASK_CAP = 7;
 const ACTIVITY_CAP = 10;
@@ -122,7 +123,7 @@ export function MeetingsSection({
   projectId: string;
 }) {
   const { t } = useTranslation();
-  const { data: meetings = [] } = useProjectMeetings(workspaceId, projectId);
+  const { data: meetings = [], isLoading } = useProjectMeetings(workspaceId, projectId);
   const { openMeeting } = useOpenTab();
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
 
@@ -155,7 +156,9 @@ export function MeetingsSection({
         {t("pages.projects.home.meetingsHeading")}
       </SectionLabel>
 
-      {recent.length === 0 ? (
+      {isLoading ? (
+        <LoadingSkeleton variant="list" rows={3} className="py-1" />
+      ) : recent.length === 0 ? (
         <EmptyState
           display="inline"
           className="py-6"
@@ -197,7 +200,7 @@ export function DocsSection({
   projectId: string;
 }) {
   const { t } = useTranslation();
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId);
+  const { data: tree = [], isLoading } = useContentTree("project", workspaceId, projectId);
   const { openDoc } = useOpenTab();
 
   const recent = useMemo(
@@ -221,7 +224,9 @@ export function DocsSection({
         {t("pages.projects.home.docsHeading")}
       </SectionLabel>
 
-      {recent.length === 0 ? (
+      {isLoading ? (
+        <LoadingSkeleton variant="list" rows={4} className="py-1" />
+      ) : recent.length === 0 ? (
         <EmptyState display="inline" className="py-6" title={t("pages.projects.home.noDocs")} />
       ) : (
         <div className="-mx-4">
@@ -274,9 +279,9 @@ export function ActivitySection({
   projectId: string;
 }) {
   const { t } = useTranslation();
-  const { data: tasks = [] } = useProjectTasks(workspaceId, projectId);
-  const { data: meetings = [] } = useProjectMeetings(workspaceId, projectId);
-  const { data: tree = [] } = useContentTree("project", workspaceId, projectId);
+  const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(workspaceId, projectId);
+  const { data: meetings = [], isLoading: meetingsLoading } = useProjectMeetings(workspaceId, projectId);
+  const { data: tree = [], isLoading: docsLoading } = useContentTree("project", workspaceId, projectId);
   const { openTask, openMeeting, openDoc } = useOpenTab();
 
   const recent = useMemo(() => {
@@ -301,7 +306,9 @@ export function ActivitySection({
   return (
     <section>
       <SectionLabel className="mb-1">{t("pages.projects.home.activityHeading")}</SectionLabel>
-      {recent.length === 0 ? (
+      {tasksLoading || meetingsLoading || docsLoading ? (
+        <LoadingSkeleton variant="list" rows={5} className="py-1" />
+      ) : recent.length === 0 ? (
         <EmptyState
           display="inline"
           className="py-6"

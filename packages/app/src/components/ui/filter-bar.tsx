@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { densityClasses, type Density } from "@/lib/enterprise-ui";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface FilterOption {
   value: string;
@@ -31,6 +32,7 @@ interface FilterBarProps {
   className?: string;
   rightElement?: React.ReactNode;
   density?: Density;
+  isLoading?: boolean;
 }
 
 export function FilterBar({
@@ -40,6 +42,7 @@ export function FilterBar({
   className,
   rightElement,
   density = "regular",
+  isLoading = false,
 }: FilterBarProps) {
   const { t } = useTranslation();
   const rowHeight = densityClasses[density].section;
@@ -66,9 +69,13 @@ export function FilterBar({
         </div>
       ))}
       <div className="ml-auto flex items-center gap-2">
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {count} {countLabel}
-        </span>
+        {isLoading ? (
+          <Skeleton className="h-3 w-16" />
+        ) : (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {count} {countLabel}
+          </span>
+        )}
         {rightElement}
       </div>
     </div>

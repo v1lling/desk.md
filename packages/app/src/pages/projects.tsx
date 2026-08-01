@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useCurrentWorkspace, useProjects } from "@/stores";
+import { useCurrentWorkspace, useProjects, useWorkspaces } from "@/stores";
 import { useProjectSelectionStore } from "@/stores/project-selection";
 import { StatePanel } from "@/components/ui/state-panel";
 import { ProjectsBrowse, ProjectHome } from "@/components/projects";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 /**
  * Projects — a single `/projects` route. With no selection it shows the
@@ -16,7 +17,8 @@ export default function ProjectsPage() {
   const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: projects = [] } = useProjects(currentWorkspaceId);
+  const { isLoading: workspacesLoading } = useWorkspaces();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects(currentWorkspaceId);
 
   const selectedProjectId = useProjectSelectionStore((s) => s.selectedProjectId);
   const setSelectedProject = useProjectSelectionStore((s) => s.setSelectedProject);
@@ -39,6 +41,10 @@ export default function ProjectsPage() {
     () => projects.find((p) => p.id === selectedProjectId) ?? null,
     [projects, selectedProjectId],
   );
+
+  if (workspacesLoading || projectsLoading) {
+    return <LoadingSkeleton variant="page" />;
+  }
 
   if (!currentWorkspaceId) {
     return (

@@ -8,12 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Loader2 } from "lucide-react";
 import { useUpdateWorkspace, useDeleteWorkspace, useHomeWorkspace } from "@/stores/workspaces";
 import { useNavigationStore } from "@/stores/navigation";
 import { toast } from "sonner";
@@ -169,7 +169,7 @@ export function EditWorkspaceModal({ open, onClose, workspace }: EditWorkspaceMo
               </Button>
               <Button type="submit" disabled={!name.trim() || updateWorkspace.isPending}>
                 {updateWorkspace.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <InlineProgress />
                 )}
                 {t("common.buttons.save")}
               </Button>

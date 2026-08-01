@@ -9,10 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
-import { Loader2 } from "lucide-react";
 import { useCreateWorkspace } from "@/stores/workspaces";
 import { useNavigationStore } from "@/stores/navigation";
 import { slugify } from "@desk/core";
@@ -116,7 +116,7 @@ export function NewWorkspaceModal({ open, onClose }: NewWorkspaceModalProps) {
             </Button>
             <Button type="submit" disabled={!name.trim() || createWorkspace.isPending}>
               {createWorkspace.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <InlineProgress />
               )}
               {t("modals.newWorkspace.submit")}
             </Button>

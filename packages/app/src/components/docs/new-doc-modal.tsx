@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import {
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Folder } from "lucide-react";
+import { Folder } from "lucide-react";
 import { useCreateDoc, useCreateDocInFolder, useProjects, useCurrentWorkspace, useOpenTab } from "@/stores";
 import { toast } from "sonner";
 import type { ContentScope } from "@desk/core/types";
@@ -208,7 +209,7 @@ export function NewDocModal({
               disabled={!title.trim() || isPending}
             >
               {isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <InlineProgress />
               )}
               {t("modals.newDoc.submit")}
             </Button>

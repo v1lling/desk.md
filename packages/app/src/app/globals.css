@@ -202,6 +202,67 @@
   }
 }
 
+/* Loading motion lives here so boot and content placeholders share one policy. */
+@keyframes desk-boot-breathe {
+  0%, 100% {
+    transform: scale(0.965);
+    opacity: 0.82;
+    filter: saturate(0.92);
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+    filter: saturate(1.04);
+  }
+}
+
+@keyframes desk-skeleton-shimmer {
+  0% { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
+
+@keyframes desk-loading-reveal {
+  to { opacity: 1; }
+}
+
+.desk-boot-mark {
+  animation: desk-boot-breathe 2200ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  box-shadow: 0 10px 26px oklch(0.1 0.03 260 / 0.24);
+  transform-origin: center;
+}
+
+.desk-loading-reveal {
+  opacity: 0;
+  animation: desk-loading-reveal 1ms linear var(--desk-loading-delay, 160ms) forwards;
+}
+
+.desk-skeleton {
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in oklch, var(--muted) 86%, transparent) 20%,
+    color-mix(in oklch, var(--foreground) 9%, var(--muted)) 42%,
+    color-mix(in oklch, var(--muted) 86%, transparent) 64%
+  );
+  background-size: 220% 100%;
+  animation: desk-skeleton-shimmer 1800ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-boot-mark,
+  .desk-skeleton {
+    animation: none;
+  }
+
+  .desk-boot-mark {
+    opacity: 1;
+    transform: none;
+  }
+
+  .desk-loading-reveal {
+    animation-duration: 1ms;
+  }
+}
+
 /* OverlayScrollbars custom theme - works on all platforms including Tauri/WKWebView */
 .os-theme-desk {
   --os-size: 8px;

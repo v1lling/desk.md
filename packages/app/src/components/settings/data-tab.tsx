@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { SettingsField, SettingsGroup, SettingsSection } from "@/components/ui/settings-section";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Loader2, CheckCircle2, FolderPlus } from "lucide-react";
+import { CheckCircle2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useBootStore } from "@/stores/boot";
@@ -169,7 +170,7 @@ export function DataTab() {
                 onClick={handleCheckDataPath}
                 disabled={isCheckingPath || !pendingPath.trim() || pendingPath === dataPath}
               >
-                {isCheckingPath && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCheckingPath && <InlineProgress />}
                 {t("settings.data.storage.change")}
               </Button>
             </div>

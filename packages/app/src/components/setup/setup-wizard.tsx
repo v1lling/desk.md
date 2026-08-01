@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBootStore } from "@/stores/boot";
@@ -12,7 +13,7 @@ import {
   expandHostFsScope,
   initializeHostDeskDirectory,
 } from "@/lib/host-files";
-import { Loader2, FolderSearch, HardDrive, Server } from "lucide-react";
+import { FolderSearch, HardDrive, Server } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeServerUrl } from "@/lib/server-url";
 import type { Workspace } from "@desk/core/types";
@@ -299,7 +300,7 @@ export function SetupWizard() {
                   {t("common.buttons.back")}
                 </Button>
                 <Button className="flex-1" onClick={handleCheckDataFolder} disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <InlineProgress />}
                   {t("common.buttons.continue")}
                 </Button>
               </div>
@@ -376,7 +377,7 @@ export function SetupWizard() {
                   onClick={handleFinish}
                   disabled={!workspaceName.trim() || isLoading}
                 >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <InlineProgress />}
                   {t("setup.workspace.finish")}
                 </Button>
               </div>

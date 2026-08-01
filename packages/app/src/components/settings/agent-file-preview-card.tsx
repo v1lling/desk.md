@@ -4,6 +4,7 @@ import { open as openShell } from "@tauri-apps/plugin-shell";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { getDeskPath, joinPath } from "@desk/core";
 import { FILE_NAMES } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
@@ -81,7 +82,7 @@ export function AgentFilePreviewCard() {
       {open && (
         <div className="space-y-2">
           {loading && (
-            <p className="text-xs text-muted-foreground italic">{t("common.buttons.loading")}</p>
+            <LoadingSkeleton variant="list" rows={2} className="py-1" />
           )}
           {error && (
             <p className="text-xs text-amber-600 dark:text-amber-400">{error}</p>

@@ -10,7 +10,6 @@ import { Tree, type TreeApi } from "react-arborist";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useQueries } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import type { Asset, Doc, FileTreeNode } from "@desk/core/types";
 import {
   contentKeys,
@@ -44,6 +43,7 @@ import {
   type DocAuthorFilter,
 } from "./docs-tree-model";
 import { useDocsTreeActions } from "./use-docs-tree-actions";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 // ── Public props ──────────────────────────────────────────────────────────────
 
@@ -303,10 +303,7 @@ export function DocsTree({
   return (
     <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
       {isLoading ? (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          <Loader2 className="size-4 animate-spin mr-2" />
-          {t("common.buttons.loading")}
-        </div>
+        <LoadingSkeleton variant="tree" rows={8} className="px-1 py-2" />
       ) : (
         <DocsTreeHandlersProvider handlers={handlers}>
           {size.width > 0 && size.height > 0 && (

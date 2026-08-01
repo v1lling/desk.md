@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -139,7 +139,7 @@ export function AuthScreen({ mode, auth, onSuccess }: AuthScreenProps) {
             className="w-full"
             disabled={isLoading || !email.trim() || !password}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && <InlineProgress />}
             {isCreate ? t("auth.create.submit") : t("auth.login.submit")}
           </Button>
         </form>

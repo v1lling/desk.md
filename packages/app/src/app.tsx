@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { Providers } from "./app/providers";
 import { AppShell } from "./app/app-shell";
+import { AppBootScreen } from "./app/boot-screen";
 import { Toaster } from "@/components/ui/sonner";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { GlobalSearch } from "@/components/global-search";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -26,26 +27,12 @@ const OAuthConsent = import.meta.env.VITE_DESK_HOSTED
   ? lazy(() => import("./pages/oauth-consent"))
   : null;
 
-function LoadingView({ fullScreen = false }: { fullScreen?: boolean }) {
-  const { t } = useTranslation();
-
-  return (
-    <div
-      className={`flex items-center justify-center bg-background ${fullScreen ? "h-screen" : "h-full"}`}
-    >
-      <div className="animate-pulse text-sm text-muted-foreground">
-        {t("common.buttons.loading")}
-      </div>
-    </div>
-  );
-}
-
 /** The normal app: shell (with its auth gate) + global search. */
 function AppTree() {
   return (
     <>
       <AppShell>
-        <Suspense fallback={<LoadingView />}>
+        <Suspense fallback={<LoadingSkeleton variant="page" />}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/planner" element={<PlannerPage />} />
@@ -71,7 +58,7 @@ export function App() {
           {OAuthSignIn && OAuthConsent ? (
             // The OAuth pages must render OUTSIDE the app shell's auth gate (the AS lands
             // here pre-session). Everything else falls through to the normal app.
-            <Suspense fallback={<LoadingView fullScreen />}>
+            <Suspense fallback={<AppBootScreen />}>
               <Routes>
                 <Route path="/sign-in" element={<OAuthSignIn />} />
                 <Route path="/oauth/consent" element={<OAuthConsent />} />

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
+import { AppBootScreen } from "@/app/boot-screen";
 
 /**
  * OAuth consent page (hosted-web only) — the `consentPage` the OAuth AS redirects to once
@@ -87,11 +88,7 @@ export default function OAuthConsent() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-background items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t("common.buttons.loading")}</div>
-      </div>
-    );
+    return <AppBootScreen />;
   }
 
   return (
@@ -134,7 +131,7 @@ export default function OAuthConsent() {
               {t("auth.consent.deny")}
             </Button>
             <Button className="flex-1" onClick={() => decide(true)} disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitting && <InlineProgress />}
               {t("auth.consent.allow")}
             </Button>
           </div>

@@ -6,6 +6,7 @@ import {
   SettingsSection,
 } from "@/components/ui/settings-section";
 import { Button } from "@/components/ui/button";
+import { InlineProgress } from "@/components/ui/inline-progress";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -17,7 +18,6 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SummaryDetail } from "@desk/core";
 import {
-  Loader2,
   FileText,
   RefreshCw,
   Trash2,
@@ -117,7 +117,7 @@ export function SmartIndexSection() {
                 disabled={isBuilding || !canBuild}
               >
                 {isBuilding ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <InlineProgress />
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}

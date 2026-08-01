@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
-import { useCurrentWorkspace } from "@/stores";
+import { useCurrentWorkspace, useWorkspaces } from "@/stores";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { StatePanel } from "@/components/ui/state-panel";
 import { DocsTreePane } from "@/components/docs/docs-tree-pane";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 export default function DocsPage() {
   const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
+  const { isLoading: workspacesLoading } = useWorkspaces();
   const currentWorkspaceId = currentWorkspace?.id || null;
 
   // Register the doc tree as the secondary sidebar slot for /docs.
@@ -18,6 +20,10 @@ export default function DocsPage() {
     [currentWorkspaceId],
   );
   useSecondarySidebar("/docs", pane);
+
+  if (workspacesLoading) {
+    return <LoadingSkeleton variant="page" />;
+  }
 
   if (!currentWorkspaceId || !currentWorkspace) {
     return (

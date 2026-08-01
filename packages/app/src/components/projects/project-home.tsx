@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatePanel } from "@/components/ui/state-panel";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EntityOverview } from "@/components/entity-overview";
 import { ProjectHomeHeader } from "@/components/projects/project-home-header";
 import {
@@ -56,7 +57,7 @@ export function ProjectHome({ workspaceId, projectId }: ProjectHomeProps) {
   };
 
   if (isLoading) {
-    return <StatePanel variant="loading" title={t("pages.projects.home.loading")} className="h-full" />;
+    return <LoadingSkeleton variant="page" />;
   }
 
   if (!project) {

@@ -14,6 +14,7 @@ import {
   useViewMode,
   useHiddenStatuses,
   useOpenTab,
+  useWorkspaces,
 } from "@/stores";
 import { useProjectName, useOpenFromQuery } from "@/hooks";
 import { priorityMeta, priorityOrder } from "@/lib/design-tokens";
@@ -23,7 +24,8 @@ export default function TasksPage() {
   const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
-  const { data: tasks = [] } = useTasks(currentWorkspaceId);
+  const { isLoading: workspacesLoading } = useWorkspaces();
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks(currentWorkspaceId);
   const { projects, getProjectName } = useProjectName(currentWorkspaceId);
 
   // View mode for All Tasks (workspace-level, projectId = null)
@@ -128,6 +130,7 @@ export default function TasksPage() {
       ]}
       count={filteredTasks.length}
       countLabel={t("pages.tasks.countLabel")}
+      isLoading={workspacesLoading || tasksLoading}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       modal={
@@ -142,6 +145,7 @@ export default function TasksPage() {
           <StatusVisibilityToggle
             counts={statusCounts}
             hiddenStatuses={hiddenStatuses}
+            isLoading={workspacesLoading || tasksLoading}
             onToggle={toggleStatus}
           />
         </div>
@@ -151,6 +155,7 @@ export default function TasksPage() {
             showProject
             tasks={filteredTasks}
             hiddenStatuses={hiddenStatuses}
+            isLoading={workspacesLoading || tasksLoading}
           />
         ) : (
           <TaskListView
@@ -160,6 +165,7 @@ export default function TasksPage() {
             getProjectName={getProjectName}
             groupByStatus
             hiddenStatuses={hiddenStatuses}
+            isLoading={workspacesLoading || tasksLoading}
           />
         )}
       </>

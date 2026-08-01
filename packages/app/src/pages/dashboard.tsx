@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Circle, CheckCircle2, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingState } from "@/components/ui/loading-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import type { Task } from "@desk/core/types";
 import type { ActiveTask, WorkspaceSummary } from "@desk/core";
 import { DataCard } from "@/components/ui/data-card";
@@ -42,7 +42,7 @@ function FocusWidget({ tasks, isLoading }: { tasks: ActiveTask[]; isLoading: boo
       </div>
 
       {isLoading ? (
-        <LoadingState label={t("pages.dashboard.focus.loadingLabel")} display="inline" className="py-8" />
+        <LoadingSkeleton variant="list" rows={4} className="py-2" />
       ) : tasks.length === 0 ? (
         <EmptyState
           title={t("pages.dashboard.focus.emptyTitle")}
@@ -97,7 +97,7 @@ function WorkspacesWidget({
       </div>
 
       {isLoading ? (
-        <LoadingState label={t("pages.dashboard.workspaces.loadingLabel")} display="inline" className="py-8" />
+        <LoadingSkeleton variant="list" rows={3} className="py-2" />
       ) : summaries.length === 0 ? (
         <EmptyState title={t("pages.dashboard.workspaces.emptyTitle")} display="inline" className="py-8" />
       ) : (

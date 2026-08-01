@@ -23,6 +23,7 @@ import { useWorkspaces, useCurrentWorkspace } from "@/stores/workspaces";
 import { useNavigationStore } from "@/stores/navigation";
 import { NewWorkspaceModal } from "@/components/workspaces/new-workspace-modal";
 import { EditWorkspaceModal } from "@/components/workspaces/edit-workspace-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface WorkspaceSelectorProps {
   isCollapsed?: boolean;
@@ -43,7 +44,7 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
   if (isLoading) {
     return (
       <div className="px-2 py-3">
-        <div className="h-10 bg-sidebar-accent/50 rounded-md animate-pulse" />
+        <Skeleton className="h-10 w-full" />
       </div>
     );
   }

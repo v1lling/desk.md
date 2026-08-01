@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsPageHeader } from "@/components/ui/settings-section";
 import { useSecondarySidebar } from "@/hooks/use-secondary-sidebar";
 import { SettingsNav, type SettingsCategory } from "@/components/settings/settings-nav";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 const GeneralTab = lazy(() =>
   import("@/components/settings/general-tab").then(({ GeneralTab }) => ({ default: GeneralTab })),
@@ -106,11 +107,7 @@ export default function SettingsPage() {
             icon={<PageIcon className="size-4" />}
           />
           <Suspense
-            fallback={
-              <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
-                {t("common.buttons.loading")}
-              </div>
-            }
+            fallback={<LoadingSkeleton variant="page" className="min-h-96" />}
           >
             <Active />
           </Suspense>

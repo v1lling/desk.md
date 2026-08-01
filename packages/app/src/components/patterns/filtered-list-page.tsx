@@ -17,6 +17,7 @@ interface FilteredListPageProps {
   children: React.ReactNode;
   modal?: React.ReactNode;
   density?: Density;
+  isLoading?: boolean;
 }
 
 export function FilteredListPage({
@@ -30,6 +31,7 @@ export function FilteredListPage({
   children,
   modal,
   density = "regular",
+  isLoading = false,
 }: FilteredListPageProps) {
   const isKanban = viewMode === "kanban";
   const contentPadding = isKanban ? "px-4 pt-2 pb-4" : densityClasses[density].content;
@@ -56,6 +58,7 @@ export function FilteredListPage({
         countLabel={countLabel}
         rightElement={rightElement}
         density={density}
+        isLoading={isLoading}
       />
 
       {/* Kanban fills the viewport: the OverlayScrollbars viewport becomes a flex column and

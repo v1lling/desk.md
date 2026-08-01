@@ -4,7 +4,7 @@
  * Returns null if none apply (editor should render normally).
  */
 import { useTranslation } from "react-i18next";
-import { LoadingState } from "@/components/ui/loading-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { FileMovedBanner, FileDeletedBanner } from "@/components/ui/editor-banners";
 
@@ -73,11 +73,7 @@ export function EditorRenderStates({
   }
 
   if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <LoadingState label={entityLabel} display="inline" />
-      </div>
-    );
+    return <LoadingSkeleton variant="editor" />;
   }
 
   if (!entity) {

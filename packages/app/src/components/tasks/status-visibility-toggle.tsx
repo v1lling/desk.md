@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { TaskStatus } from "@desk/core/types";
 import { taskStatusColors, taskStatusLabels, taskStatusOrder } from "@/lib/design-tokens";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface StatusVisibilityToggleProps {
   /** Task count per status, for the pill labels. */
@@ -10,6 +11,7 @@ interface StatusVisibilityToggleProps {
   hiddenStatuses: Set<TaskStatus>;
   /** Toggle a status's visibility. */
   onToggle: (status: TaskStatus) => void;
+  isLoading?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ export function StatusVisibilityToggle({
   counts,
   hiddenStatuses,
   onToggle,
+  isLoading = false,
 }: StatusVisibilityToggleProps) {
   const { t } = useTranslation();
   return (
@@ -54,7 +57,11 @@ export function StatusVisibilityToggle({
               )}
             />
             <span>{label}</span>
-            <span className="tabular-nums opacity-60">{counts[status] ?? 0}</span>
+            {isLoading ? (
+              <Skeleton className="h-2.5 w-2.5" />
+            ) : (
+              <span className="tabular-nums opacity-60">{counts[status] ?? 0}</span>
+            )}
           </button>
         );
       })}

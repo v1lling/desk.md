@@ -26,6 +26,7 @@ import {
 } from "@/stores";
 import { NewMeetingModal } from "./new-meeting-modal";
 import { getScopedEntityKey } from "@desk/core";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 const ALL_PROJECTS = "all";
 const UNASSIGNED = "_unassigned";
@@ -70,8 +71,8 @@ function groupByMonth(meetings: Meeting[], dir: "asc" | "desc", noDateLabel: str
 
 export function MeetingsTreePane({ workspaceId, initialProjectFilter }: MeetingsTreePaneProps) {
   const { t } = useTranslation();
-  const { data: meetings = [] } = useMeetings(workspaceId);
-  const { data: projects = [] } = useProjects(workspaceId);
+  const { data: meetings = [], isLoading: meetingsLoading } = useMeetings(workspaceId);
+  const { data: projects = [], isLoading: projectsLoading } = useProjects(workspaceId);
   const { openMeeting } = useOpenTab();
   const deleteMeeting = useDeleteMeeting();
 
@@ -208,7 +209,9 @@ export function MeetingsTreePane({ workspaceId, initialProjectFilter }: Meetings
           onClick: () => setNewMeetingOpen(true),
         }}
       >
-        {filtered.length === 0 ? (
+        {meetingsLoading || projectsLoading ? (
+          <LoadingSkeleton variant="tree" rows={8} className="px-1 py-2" />
+        ) : filtered.length === 0 ? (
           <StatePanel
             variant="empty"
             display="inline"

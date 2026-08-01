@@ -7,6 +7,8 @@ import "./i18n";
 import { Buffer as BufferPolyfill } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { AppBootScreen } from "./app/boot-screen";
+import { applyThemePreference, readPersistedTheme } from "./lib/theme";
 
 // gray-matter — used by every Markdown parse (parseMarkdown) — calls
 // `Buffer.from()` at runtime. The Tauri/browser WebView has no Node `Buffer`
@@ -15,6 +17,17 @@ import { createRoot } from "react-dom/client";
 if (typeof globalThis.Buffer === "undefined") {
   globalThis.Buffer = BufferPolyfill as unknown as typeof globalThis.Buffer;
 }
+
+// Paint the branded boot surface before host wiring and dynamic imports begin.
+// The same component is reused by provider/auth gates, so startup reads as one
+// continuous state rather than a series of unrelated loaders.
+const stopInitialThemeSync = applyThemePreference(readPersistedTheme());
+const root = createRoot(document.getElementById("root")!);
+root.render(
+  <StrictMode>
+    <AppBootScreen />
+  </StrictMode>
+);
 
 async function bootstrap() {
   // Wire the @desk/core host seams before any domain call. The domain layer is
@@ -118,7 +131,8 @@ async function bootstrap() {
   // only evaluated now, after the FS scope is in place.
   const { App } = await import("./app");
 
-  createRoot(document.getElementById("root")!).render(
+  stopInitialThemeSync();
+  root.render(
     <StrictMode>
       <App />
     </StrictMode>

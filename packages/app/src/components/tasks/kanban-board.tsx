@@ -17,7 +17,6 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
 import { TaskCard } from "./task-card";
-import { useTranslation } from "react-i18next";
 import { taskStatusOrder } from "@/lib/design-tokens";
 import {
   useTasks,
@@ -31,7 +30,7 @@ import {
 } from "@/stores";
 import { useProjectName } from "@/hooks";
 import type { Task, TaskStatus } from "@desk/core/types";
-import { LoadingState } from "@/components/ui/loading-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getScopedEntityKey } from "@desk/core";
 
@@ -72,7 +71,6 @@ export function KanbanBoard({
   hiddenStatuses,
   isLoading: externalIsLoading,
 }: KanbanBoardProps) {
-  const { t } = useTranslation();
   const currentWorkspace = useCurrentWorkspace();
   const currentWorkspaceId = currentWorkspace?.id || null;
 
@@ -292,7 +290,7 @@ export function KanbanBoard({
   );
 
   if (isLoading) {
-    return <LoadingState label={t("entities.task.pluralLowercase")} />;
+    return <LoadingSkeleton variant="board" announce />;
   }
 
   return (
