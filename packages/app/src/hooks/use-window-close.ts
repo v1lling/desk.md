@@ -1,6 +1,5 @@
 
 import { useEffect, useCallback, useState, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { useTabStore } from "@/stores/tabs";
 import { isTauri } from "@desk/core";
@@ -45,6 +44,7 @@ export function useWindowClose(onCloseRequested?: (dirtyTabs: string[]) => void)
     let unlisten: (() => void) | undefined;
 
     const setupListener = async () => {
+      const { listen } = await import("@tauri-apps/api/event");
       unlisten = await listen("window-close-requested", async () => {
         // Get current tabs state (not stale closure value)
         const currentTabs = useTabStore.getState().tabs;
