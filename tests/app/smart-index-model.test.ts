@@ -20,8 +20,11 @@ function workspaceIndex(
     fileCount: summaries.length,
     entries: summaries.map((summary, index) => ({
       path: `docs/${index}.md`,
+      filePath: `/desk/workspaces/${workspaceId}/docs/${index}.md`,
       type: "doc",
       title: `Document ${index}`,
+      contentHash: `hash-${index}`,
+      projectId: "_workspace",
       summary,
     })),
   };

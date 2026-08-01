@@ -16,7 +16,6 @@ import {
   decodeWorkspaceFrontmatter,
   getDoc,
   getMeeting,
-  getMeetingsByProject,
   getProject,
   getProjects,
   getTasksByProject,

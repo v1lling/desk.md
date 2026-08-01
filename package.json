@@ -13,7 +13,7 @@
     "lint": "eslint packages/core/src packages/app/src packages/server/src",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/app && tsc --noEmit -p packages/server",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/app && tsc --noEmit -p packages/server && tsc --noEmit -p tsconfig.tooling.json",
     "screenshots": "node scripts/screenshots.mjs",
     "screenshots:banner": "node scripts/screenshots.mjs --banner-only",
     "verify:storage": "tsx scripts/verify-storage.ts",
