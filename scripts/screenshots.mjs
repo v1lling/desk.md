@@ -9,6 +9,8 @@
  *    server is already up it is reused; otherwise one is started and stopped.
  *  - Seeds localStorage so onboarding is skipped and the theme + workspace are
  *    deterministic, then screenshots each page in light and dark.
+ *  - Records a compact animated README tour by clicking through the real app
+ *    navigation: Dashboard, Planner, Tasks, Docs, Meetings, then a project.
  *  - Frames every page shot as a macOS-style window (rounded corners, soft
  *    shadow, traffic-light dots) by compositing in a second pass.
  *  - Renders the header banner from an inline HTML template (app icon + Geist
@@ -26,6 +28,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "assets");
@@ -37,12 +40,32 @@ const BASE_URL = `http://localhost:${PORT}`;
 // space: sidebar 224 + handle 4 + main px-4 (32) + 3×280 columns + 2×12 gaps.
 const VIEWPORT = { width: 1128, height: 760 };
 const THEMES = /** @type {const} */ (["light", "dark"]);
+const TOUR_WIDTH = 1200;
+
+async function openScreenshotDoc(page) {
+  await page
+    .getByRole("treeitem", { name: /website redesign/i })
+    .click({ timeout: 10_000 });
+  await page.waitForTimeout(500);
+  await page
+    .getByRole("treeitem", { name: "Content Inventory", exact: true })
+    .click({ timeout: 10_000 });
+  await page.waitForTimeout(700);
+}
+
+async function openScreenshotMeeting(page) {
+  await page
+    .getByText("Client Kickoff", { exact: true })
+    .click({ timeout: 10_000 });
+  await page.waitForTimeout(700);
+}
 
 /**
  * Pages to capture. `route` is opened directly; `?open=` deep-links a tab.
  * `prep` runs extra interaction (the Docs page needs an item opened).
  */
 const PAGES = [
+  { name: "dashboard", route: "/" },
   { name: "tasks", route: "/tasks" },
   { name: "planner", route: "/planner" },
   { name: "projects", route: "/projects?open=website-redesign" },
@@ -50,20 +73,23 @@ const PAGES = [
   {
     name: "docs",
     route: "/docs",
-    prep: async (page) => {
-      // The Docs page main pane is empty until a doc is opened. The tree groups
-      // docs under project folders (named by project id) — expand one, then
-      // open a doc so the editor fills the pane.
-      await page
-        .getByRole("treeitem", { name: /website-redesign/ })
-        .click({ timeout: 10_000 });
-      await page.waitForTimeout(500);
-      await page
-        .getByRole("treeitem", { name: "Content Inventory", exact: true })
-        .click({ timeout: 10_000 });
-      await page.waitForTimeout(700);
-    },
+    // The Docs page main pane is empty until a document is opened.
+    prep: openScreenshotDoc,
   },
+];
+
+/**
+ * One continuous tour through the real sidebar. Each destination is reached by
+ * clicking the app UI, rather than loading six unrelated routes, so the result
+ * reads like a small product demo. A short pointer frame makes each click clear.
+ */
+const TOUR_STEPS = [
+  { name: "Dashboard", route: "/" },
+  { name: "Planner", route: "/planner" },
+  { name: "Tasks", route: "/tasks" },
+  { name: "Docs", route: "/docs", prep: openScreenshotDoc },
+  { name: "Meetings", route: "/meetings", prep: openScreenshotMeeting },
+  { name: "Website Redesign", route: "/projects" },
 ];
 
 // ── Dev server ──────────────────────────────────────────────────────────────
@@ -303,8 +329,9 @@ async function frameWindow(browser, rawBuffer, outPath, theme) {
   await page.setContent(frameHtml(rawBuffer.toString("base64"), w, h, pad, theme), {
     waitUntil: "load",
   });
-  await page.screenshot({ path: outPath, omitBackground: true });
+  const framed = await page.screenshot({ path: outPath, omitBackground: true });
   await context.close();
+  return framed;
 }
 
 // ── Page screenshots ────────────────────────────────────────────────────────
@@ -333,6 +360,110 @@ async function capturePages(browser, theme) {
     await frameWindow(browser, raw, path.join(OUT_DIR, `${shot.name}-${theme}.png`), theme);
     console.log(`  ✓ ${shot.name}-${theme}.png`);
   }
+}
+
+// ── Animated product tour ──────────────────────────────────────────────────
+
+/** Draw a visible mouse pointer over a sidebar destination for one short frame. */
+async function showTourPointer(page, locator) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("Could not locate a sidebar destination for the tour.");
+  await page.evaluate(({ x, y }) => {
+    document.querySelector("#readme-tour-pointer")?.remove();
+    const pointer = document.createElement("div");
+    pointer.id = "readme-tour-pointer";
+    pointer.style.cssText = `
+      position: fixed; left: ${x}px; top: ${y}px; z-index: 2147483647;
+      width: 32px; height: 32px; pointer-events: none;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
+    `;
+    pointer.innerHTML = `
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="rgba(59,130,246,.20)" stroke="rgba(59,130,246,.75)" stroke-width="2"/>
+        <path d="M8 5.5v18l4.5-4.2 3.4 7 3.7-1.8-3.4-6.8H23z" fill="white" stroke="#18181b" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>`;
+    document.body.append(pointer);
+  }, { x: box.x + box.width * 0.62, y: box.y + box.height * 0.35 });
+}
+
+async function hideTourPointer(page) {
+  await page.evaluate(() => document.querySelector("#readme-tour-pointer")?.remove());
+}
+
+/** Turn equally sized framed PNG buffers into a compact animated WebP. */
+async function writeAnimatedTour(frames, outPath) {
+  const resized = await Promise.all(
+    frames.map(({ image }) => sharp(image).resize({ width: TOUR_WIDTH }).png().toBuffer()),
+  );
+  const { width, height } = await sharp(resized[0]).metadata();
+  if (!width || !height) throw new Error("Could not determine tour frame dimensions.");
+
+  await sharp({
+    create: {
+      width,
+      height: height * resized.length,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      pageHeight: height,
+    },
+  })
+    .composite(resized.map((input, index) => ({ input, left: 0, top: index * height })))
+    .webp({
+      quality: 82,
+      alphaQuality: 90,
+      effort: 6,
+      loop: 0,
+      delay: frames.map(({ delay }) => delay),
+    })
+    .toFile(outPath);
+}
+
+async function captureTour(browser, theme) {
+  const context = await browser.newContext({
+    viewport: VIEWPORT,
+    deviceScaleFactor: 2,
+    colorScheme: theme,
+  });
+  await context.addInitScript(seedScript(theme));
+  const page = await context.newPage();
+  const frames = [];
+
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
+  frames.push({ image: await page.screenshot(), delay: 1800 });
+
+  for (const step of TOUR_STEPS.slice(1)) {
+    // Count badges are part of the accessible link name (for example
+    // "Tasks 12"), so anchor the label at the start instead of matching it
+    // exactly. `.first()` selects the primary sidebar when a tab has the same
+    // title.
+    const destination = page
+      .getByRole("link", { name: new RegExp(`^${step.name}(?:\\s|$)`, "i") })
+      .first();
+    await showTourPointer(page, destination);
+    frames.push({ image: await page.screenshot(), delay: 350 });
+    await hideTourPointer(page);
+
+    await destination.click({ timeout: 10_000 });
+    await page.waitForURL((url) => url.pathname === step.route, { timeout: 10_000 });
+    await waitForApp(page);
+    if (step.prep) await step.prep(page);
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(250);
+    frames.push({ image: await page.screenshot(), delay: 1800 });
+  }
+
+  await context.close();
+
+  const framedFrames = [];
+  for (const frame of frames) {
+    framedFrames.push({
+      image: await frameWindow(browser, frame.image, undefined, theme),
+      delay: frame.delay,
+    });
+  }
+  await writeAnimatedTour(framedFrames, path.join(OUT_DIR, `tour-${theme}.webp`));
+  console.log(`  ✓ tour-${theme}.webp`);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -396,7 +527,10 @@ async function main() {
     for (const theme of THEMES) {
       console.log(`\nCapturing ${theme} theme…`);
       await captureBanner(browser, theme, iconB64, fontB64);
-      if (!bannerOnly) await capturePages(browser, theme);
+      if (!bannerOnly) {
+        await capturePages(browser, theme);
+        await captureTour(browser, theme);
+      }
     }
   } finally {
     await browser.close();

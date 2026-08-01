@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="desk.md, personal work management in plain Markdown" width="75%">
+    <img src="assets/banner-light.png" alt="desk.md, personal work management in plain Markdown" width="55%">
   </picture>
 </p>
 
@@ -11,11 +11,29 @@
   <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=white">
 </p>
 
-desk.md is a personal workspace for projects, tasks, documents, and meetings.
-It combines a calm interface for daily work with a plain-Markdown source of
-truth that remains accessible to both people and agents.
+<p align="center">
+  A calm personal workspace for projects, tasks, documents, meetings, and weekly planning.<br>
+  The source of truth stays plain Markdown, accessible to you and the agents you choose.
+</p>
 
-I built it for my own freelance and personal work, and I use it every day.
+<p align="center">
+  <a href="https://github.com/v1lling/desk.md/releases/latest"><b>Download Desk</b></a>
+  &nbsp;·&nbsp;
+  <a href="#self-host"><b>Self-host</b></a>
+  &nbsp;·&nbsp;
+  <a href="#run-from-source"><b>Run from source</b></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png">
+    <source media="(prefers-reduced-motion: reduce)" srcset="assets/dashboard-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/tour-dark.webp">
+    <img src="assets/tour-light.webp" alt="A short tour through the dashboard, planner, tasks, documents, meetings, and a project in desk.md" width="100%">
+  </picture>
+</p>
+
+<p align="center"><sub>Dashboard · Planner · Tasks · Documents · Meetings · Project</sub></p>
 
 ## Why I built Desk
 
@@ -42,7 +60,8 @@ and other independent professionals who manage several streams of work and
 care about owning their data.
 
 - **Projects with orientation.** Every workspace and project has a user-owned
-  Markdown overview, plus its tasks, documents, meetings, and recent activity.
+  Markdown overview, focused current work, and a lightweight schedule/history
+  timeline assembled from its tasks, documents, and meetings.
 - **Tasks and planning.** Kanban and list views, priorities, due dates, quick
   capture, status filters, and a weekly time-block planner.
 - **Documents and meetings.** A WYSIWYG Markdown editor, nested folders, meeting
@@ -163,7 +182,7 @@ Ideas being explored:
 - MCP write tools for explicitly requested notes and tasks
 - Local-model support for the Smart Index
 - Better mobile-web capture and review
-- Lightweight project timelines, milestones, and task dependencies
+- Optional task relationships and richer mobile-web capture
 
 ## Run from source
 
