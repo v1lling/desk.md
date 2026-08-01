@@ -6,7 +6,11 @@
  */
 
 import { onFileChange, type WatchEvent } from "./desk-watcher";
-import { getFileTreeService, getContentCache, type FileChangeEvent } from "@desk/core";
+import type { FileChangeEvent } from "@desk/core";
+import {
+  getHostContentCache,
+  getHostFileTreeService,
+} from "./host-files";
 
 // Track if we're connected to the watcher
 let isConnected = false;
@@ -32,8 +36,8 @@ function mapEventKind(kind: WatchEvent["kind"]): FileChangeEvent["type"] {
  * Handle a watch event from the file watcher
  */
 function handleWatchEvent(event: WatchEvent): void {
-  const service = getFileTreeService();
-  const cache = getContentCache();
+  const service = getHostFileTreeService();
+  const cache = getHostContentCache();
 
   // Convert to our event format
   const fileEvent: FileChangeEvent = {
@@ -80,4 +84,3 @@ export function disconnectFromWatcher(): void {
   unsubscribe = null;
   isConnected = false;
 }
-

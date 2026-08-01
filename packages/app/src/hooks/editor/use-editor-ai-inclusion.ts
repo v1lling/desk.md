@@ -4,7 +4,8 @@
  */
 import { useState, useCallback, useEffect } from "react";
 import { getAiExclusionState, setAIInclusion } from "@/lib/smart-index/aiignore";
-import { getDeskService, readWorkspaceIndex } from "@desk/core";
+import { getDeskService } from "@desk/core";
+import { readLocalWorkspaceIndex } from "@/lib/host-maintenance";
 import type { AiExclusionState } from "@/lib/smart-index/aiignore";
 import { toast } from "sonner";
 import i18next from "i18next";
@@ -44,7 +45,7 @@ export function useEditorAIInclusion(
           void queryClient.invalidateQueries({ queryKey: smartIndexKeys.all });
           if (isLocalDisk()) {
             const { writeWorkspaceIndexArtifact } = await import("@/lib/smart-index/artifacts");
-            const index = await readWorkspaceIndex(workspaceId);
+            const index = await readLocalWorkspaceIndex(workspaceId);
             if (index) await writeWorkspaceIndexArtifact(index);
           }
         }

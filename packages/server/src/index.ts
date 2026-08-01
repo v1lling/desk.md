@@ -14,7 +14,7 @@ import { boot } from "./boot";
 import { registerDeskApi } from "./desk-api";
 import { registerMcp } from "./mcp";
 import { auth, hasUsers, migrateAuth } from "./auth";
-import { startMaintenanceEngine } from "@desk/core";
+import { startMaintenanceEngine } from "@desk/core/host/maintenance";
 
 boot();
 

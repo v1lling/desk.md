@@ -28,12 +28,47 @@ const hostOnlyCoreImports = [
   "AIKeyRef",
   "AIKeyResolver",
   "resetDeskRuntime",
+  "expandFsScope",
+  "initDeskDirectory",
+  "saveMarkdownBody",
+  "writeMarkdownFile",
+  "getContentCache",
+  "getFileTreeService",
+  "startMaintenanceEngine",
+  "notifyExternalChanges",
+  "readWorkspaceIndex",
+  "rebuildWorkspaceIndex",
+  "writeRebuiltWorkspaceIndex",
+];
+
+const serviceOnlyCoreImports = [
+  "getTasks", "getTasksByProject", "getTask", "createTask", "updateTask",
+  "deleteTask", "moveTask", "moveTaskToProject",
+  "getProjects", "getProject", "createProject", "updateProject", "deleteProject",
+  "getWorkspaces", "getWorkspace", "createWorkspace", "updateWorkspace", "deleteWorkspace",
+  "getMeetings", "getMeetingsByProject", "getMeeting", "createMeeting",
+  "updateMeeting", "deleteMeeting", "moveMeetingToProject",
+  "getCaptureTasks", "createCaptureTask", "updateCaptureTask", "deleteCaptureTask",
+  "moveCaptureToPersonal", "moveCaptureToWorkspace",
+  "getDocs", "getDocsByProject", "getDoc", "createDoc", "updateDoc",
+  "deleteDoc", "deleteAsset", "getContentTree", "getAllDocs",
+  "getAllDocsForWorkspace", "getWorkspaceDocsShell", "createFolder",
+  "renameFolder", "moveFolder", "deleteFolder", "createDocInFolder",
+  "importFiles", "moveDoc",
+  "getFocusTasks", "getWorkspaceSummaries", "getAllWorkspaceTasksAllStatuses",
+  "getViewState", "updateTaskOrder", "removeTaskFromOrder", "setViewMode",
+  "setExpandedFolders", "toggleTaskHighlight", "setHiddenStatuses",
+  "getSetting", "setSetting", "deskWorkspaceInfo", "deskTree", "deskReadFile",
+  "deskFullTextSearch", "buildWorkspaceCatalog", "getIndexCache", "getAIUsage",
+  "clearAIUsage", "rebuildSmartIndex", "removeIndexEntry", "clearWorkspaceIndex",
+  "getAIMaintenanceInfo", "setAIInclusion", "getAiExclusionState",
+  "getFolderAIInclusion", "setFolderAIInclusion",
 ];
 
 const coreRootBoundary = {
   name: "@desk/core",
-  importNames: hostOnlyCoreImports,
-  message: "Import runtime wiring from '@desk/core/host'; feature code belongs on the public domain API.",
+  importNames: [...hostOnlyCoreImports, ...serviceOnlyCoreImports],
+  message: "Use DeskService for domain I/O and '@desk/core/host' only from approved host adapters.",
 };
 
 export default tseslint.config(
@@ -60,6 +95,7 @@ export default tseslint.config(
     ignores: [
       "packages/app/src/main.tsx",
       "packages/app/src/lib/host-files.ts",
+      "packages/app/src/lib/host-maintenance.ts",
       "packages/app/src/lib/ai/secrets.ts",
     ],
     rules: {
@@ -70,7 +106,19 @@ export default tseslint.config(
             name: "@desk/core/host",
             message: "Runtime wiring is restricted to app bootstrap and approved host adapters.",
           },
+          {
+            name: "@desk/core/host/files",
+            message: "Filesystem ownership is restricted to the approved host-file adapter.",
+          },
+          {
+            name: "@desk/core/host/maintenance",
+            message: "Maintenance ownership is restricted to the approved maintenance adapter.",
+          },
         ],
+        patterns: [{
+          group: ["@desk/core/src/**", "**/core/src/**"],
+          message: "Do not bypass the @desk/core public and host entry points.",
+        }],
       }],
     },
   },

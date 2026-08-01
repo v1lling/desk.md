@@ -17,6 +17,10 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf8")) as {
 const monorepoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const coreSrc = fileURLToPath(new URL("../core/src/index.ts", import.meta.url));
 const coreHostSrc = fileURLToPath(new URL("../core/src/host.ts", import.meta.url));
+const coreHostFilesSrc = fileURLToPath(new URL("../core/src/host/files.ts", import.meta.url));
+const coreHostMaintenanceSrc = fileURLToPath(
+  new URL("../core/src/host/maintenance.ts", import.meta.url),
+);
 const coreTypesSrc = fileURLToPath(new URL("../core/src/types/index.ts", import.meta.url));
 
 let commit = "dev";
@@ -40,6 +44,8 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   resolve: {
     alias: {
+      "@desk/core/host/files": coreHostFilesSrc,
+      "@desk/core/host/maintenance": coreHostMaintenanceSrc,
       "@desk/core/host": coreHostSrc,
       "@desk/core/types": coreTypesSrc,
       "@desk/core": coreSrc,

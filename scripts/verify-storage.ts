@@ -4,26 +4,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  createDocInFolder,
-  createFolder,
-  createMeeting,
-  createProject,
-  createTask,
-  createWorkspace,
-  deskFullTextSearch,
-  deskReadFile,
-  deskTree,
-  getContentTree,
-  getMeeting,
-  getProject,
-  getTask,
-  getWorkspace,
-  importFiles,
-  moveDoc,
-  updateMeeting,
-  updateProject,
-  updateTask,
-  updateWorkspace,
+  getDeskService,
 } from "@desk/core";
 import { setDataRootResolver, setStorage } from "@desk/core/host";
 import { NodeFsProvider } from "../packages/server/src/node-fs-provider";
@@ -45,6 +26,29 @@ class RejectEntityWritesProvider extends NodeFsProvider {
 async function verify(root: string) {
   setStorage(new NodeFsProvider(root));
   setDataRootResolver(async () => root);
+
+  const {
+    createDocInFolder,
+    createFolder,
+    createMeeting,
+    createProject,
+    createTask,
+    createWorkspace,
+    deskFullTextSearch,
+    deskReadFile,
+    deskTree,
+    getContentTree,
+    getMeeting,
+    getProject,
+    getTask,
+    getWorkspace,
+    importFiles,
+    moveDoc,
+    updateMeeting,
+    updateProject,
+    updateTask,
+    updateWorkspace,
+  } = getDeskService();
 
   const workspace = await createWorkspace({
     id: "acme",

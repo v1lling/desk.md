@@ -18,8 +18,9 @@ import { useBootStore } from "@/stores/boot";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { isTauri, expandFsScope } from "@desk/core";
+import { isTauri } from "@desk/core";
 import { getDeskService } from "@desk/core";
+import { expandHostFsScope } from "@/lib/host-files";
 import { isRemoteMode } from "@/lib/connection";
 import type { Workspace } from "@desk/core/types";
 
@@ -102,7 +103,7 @@ export function DataTab() {
     setDataPath(pendingPath);
     if (isTauri()) {
       try {
-        await expandFsScope(pendingPath);
+        await expandHostFsScope(pendingPath);
       } catch (error) {
         console.error("Failed to update file scope for new data path:", error);
       }

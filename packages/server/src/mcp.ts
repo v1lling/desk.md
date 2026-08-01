@@ -25,7 +25,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
-import { getDeskService, readWorkspaceIndex, PATH_SEGMENTS, DESK_SPACE_NORMS } from "@desk/core";
+import { getDeskService, PATH_SEGMENTS, DESK_SPACE_NORMS } from "@desk/core";
+import { readWorkspaceIndex } from "@desk/core/host/maintenance";
 import type { WorkspaceCatalog } from "@desk/core";
 import { auth, baseURL, MCP_RESOURCE, OAUTH_ISSUER, OAUTH_JWKS_URL } from "./auth";
 

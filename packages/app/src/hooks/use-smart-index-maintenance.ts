@@ -4,13 +4,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getDeskService,
-  readWorkspaceIndex,
-  rebuildWorkspaceIndex,
-  writeRebuiltWorkspaceIndex,
   type AIProviderType,
   type BuildIndexProgress,
   type BuildIndexResult,
 } from "@desk/core";
+import {
+  readLocalWorkspaceIndex,
+  rebuildLocalWorkspaceIndex,
+  writeRebuiltLocalWorkspaceIndex,
+} from "@/lib/host-maintenance";
 import { useSmartIndex } from "@/hooks/use-smart-index";
 import { useProviderConfigured } from "@/hooks/use-ai-maintenance-info";
 import { useWorkspaces } from "@/stores";
@@ -67,8 +69,8 @@ export function useSmartIndexMaintenance(providerType: AIProviderType) {
         } else {
           // Read the pre-rebuild snapshot from disk rather than a possibly unresolved query.
           // The merge write also needs the real persisted state to detect concurrent writes.
-          const existingIndex = await readWorkspaceIndex(workspace.id);
-          const rebuilt = await rebuildWorkspaceIndex(
+          const existingIndex = await readLocalWorkspaceIndex(workspace.id);
+          const rebuilt = await rebuildLocalWorkspaceIndex(
             workspace.id,
             workspace.name,
             existingIndex,
@@ -76,7 +78,7 @@ export function useSmartIndexMaintenance(providerType: AIProviderType) {
           );
           result = rebuilt.result;
           // Core remains the sole index writer; UI-owned artifacts are refreshed afterwards.
-          await writeRebuiltWorkspaceIndex(rebuilt.index, existingIndex);
+          await writeRebuiltLocalWorkspaceIndex(rebuilt.index, existingIndex);
           await writeWorkspaceIndexArtifact(rebuilt.index);
           getDeskService()
             .getProjects(workspace.id)

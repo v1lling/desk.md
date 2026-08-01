@@ -1,72 +1,73 @@
 /**
- * Desk file system library — barrel export
+ * Public @desk/core domain surface.
  *
- * All CRUD operations, file system abstractions, and utilities
- * for the desk.md data model.
+ * Application I/O goes through DeskService. This barrel intentionally contains
+ * only the service contract, domain types, errors, constants, and pure helpers.
+ * Runtime wiring and local-owner filesystem/maintenance operations live at
+ * @desk/core/host.
  */
 
-// ── Domain operations (SEAM 2) ──────────────────────────────────────
-// External callers reach domain CRUD via getDeskService() from ./service.
-// The module-level functions below stay exported for use *inside* lib/desk
-// (LocalDeskService binds them; aggregators like dashboard.ts call them directly).
+// Domain service and RPC transport codec.
 export { getDeskService, encode, decode } from "./service";
 export type { DeskService } from "./service";
-export * from "./workspaces";
-export * from "./projects";
-export * from "./tasks";
-export * from "./content";
-export * from "./meetings";
-export * from "./personal";
 
-// ── File system & parsing ───────────────────────────────────────────
-// env re-exports the platform checks (isTauri/isMacOS/needsTrafficLightPadding)
-export * from "./env";
+// Supported environment and path helpers. Filesystem scope/bootstrap are host-owned.
+export { isTauri, isMacOS, needsTrafficLightPadding, getDeskPath, joinPath } from "./env";
 export * from "./parser";
 export * from "./frontmatter";
 export * from "./constants";
 export * from "./paths";
 export * from "./tree-path";
 export * from "./file-utils";
-export * from "./file-operations";
 export * from "./note-link";
 export * from "./norms";
 
-// ── Docs tree + queries + planner ───────────────────────────────────
-export * from "./content-tree";
+// Pure document-tree, overview, and planner helpers.
+export * from "./content-tree-utils";
 export * from "./overview";
-export * from "./agent-queries";
 export * from "./planner";
+export type { DocLocation, ConvertibleAction, ImportFilesResult } from "./content";
 
-// ── Catalog (always-complete, AI-free metadata index) ───────────────
-export * from "./catalog";
+// Catalog and Smart Index data contracts.
+export type {
+  CatalogEntry,
+  IndexEntry,
+  WorkspaceCatalog,
+  WorkspaceIndex,
+} from "./catalog/types";
+export {
+  getSummaryPreviewLength,
+  SUMMARY_BATCH_SIZE,
+} from "./maintenance/types";
+export type {
+  SummaryDetail,
+  BuildIndexProgress,
+  BuildIndexResult,
+} from "./maintenance/types";
+export { AI_MAINTENANCE_DEFAULTS } from "./maintenance/config";
+export type { AIMaintenanceSettings } from "./maintenance/config";
 
-// ── AI (runtime-agnostic provider/service layer; key via injectable seam) ──
+// Runtime-agnostic AI API and typed provider errors.
 export * from "./ai";
-export * from "./ai-usage";
 
-// ── Maintenance engine (Smart Index; runs where the data lives) ──
-export * from "./maintenance";
-
-// ── Search ──────────────────────────────────────────────────────────
-export * from "./search";
+// In-memory search and scoped identity helpers.
 export * from "./search-index";
-
-// ── Computed / aggregated data ──────────────────────────────────────
-export * from "./dashboard";
-export * from "./view-state";
-export * from "./settings";
-export * from "./index-cache";
-export * from "./aiignore";
-
-// ── Pub/sub for editor sync (pure; wired to the watcher by the app) ──
-export * from "./editor-event-bus";
-
-// ── Domain-write bus + path classification (the maintenance trigger) ──
-export * from "./domain-write-bus";
 export * from "./path-identity";
 export * from "./entity-identity";
 
-// ── Infrastructure ──────────────────────────────────────────────────
-// Note: the file watcher and the React file-tree hooks are UI/Tauri glue and
-// live in the app (packages/app/src/lib), not core.
-export * from "./file-cache";
+// Computed result shapes; their storage-backed operations are DeskService methods.
+export type { ActiveTask, WorkspaceSummary } from "./dashboard";
+export { sortTasksByOrder } from "./view-state";
+export type { AiExclusionState } from "./aiignore";
+
+// App-local editor synchronization does not perform persistence itself.
+export {
+  subscribeToEditorEvents,
+  publishContentUpdate,
+  publishPathChange,
+  publishDeleted,
+} from "./editor-event-bus";
+export type { EditorEventHandlers } from "./editor-event-bus";
+
+// The app watcher shares this event shape, while cache ownership stays host-only.
+export type { FileChangeEvent } from "./file-cache";

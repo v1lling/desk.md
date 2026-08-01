@@ -3,8 +3,21 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  getDeskService,
+} from "@desk/core";
+import { setDataRootResolver, setStorage } from "@desk/core/host";
+import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
+import { clearHomeWorkspaceCache } from "../../packages/core/src/desk/workspaces";
+import {
   FileCollisionError,
-  clearHomeWorkspaceCache,
+  moveDirectoryWithContents,
+} from "../../packages/core/src/desk/file-operations";
+import {
+  resetContentCache,
+  resetFileTreeService,
+} from "../../packages/core/src/desk/file-cache";
+
+const {
   createCaptureTask,
   createDoc,
   createDocInFolder,
@@ -14,14 +27,9 @@ import {
   createWorkspace,
   getTasksByProject,
   moveTaskToProject,
-  moveDirectoryWithContents,
   importFiles,
-  resetContentCache,
-  resetFileTreeService,
   updateTask,
-} from "@desk/core";
-import { setDataRootResolver, setStorage } from "@desk/core/host";
-import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
+} = getDeskService();
 
 class RejectTaskWritesProvider extends NodeFsProvider {
   override async writeTextFile(path: string, content: string): Promise<void> {

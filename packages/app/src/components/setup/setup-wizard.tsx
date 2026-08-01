@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { useBootStore } from "@/stores/boot";
 import { useNavigationStore } from "@/stores/navigation";
 import { useCreateWorkspace } from "@/stores/workspaces";
-import { initDeskDirectory, slugify, isTauri, needsTrafficLightPadding, expandFsScope } from "@desk/core";
+import { slugify, isTauri, needsTrafficLightPadding } from "@desk/core";
 import { getDeskService } from "@desk/core";
+import {
+  expandHostFsScope,
+  initializeHostDeskDirectory,
+} from "@/lib/host-files";
 import { Loader2, FolderSearch, HardDrive, Server } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeServerUrl } from "@/lib/server-url";
@@ -68,7 +72,7 @@ export function SetupWizard() {
 
     try {
       setSettingsDataPath(dataPath);
-      await expandFsScope(dataPath);
+      await expandHostFsScope(dataPath);
 
       if (isTauri()) {
         const workspaces = await getDeskService().getWorkspaces();
@@ -121,7 +125,7 @@ export function SetupWizard() {
 
     try {
       setSettingsDataPath(dataPath);
-      await initDeskDirectory();
+      await initializeHostDeskDirectory();
 
       const workspaceId = slugify(workspaceName);
       await createWorkspace.mutateAsync({

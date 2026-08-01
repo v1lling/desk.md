@@ -30,7 +30,10 @@ import {
   viewStateKeys,
   captureKeys,
 } from "@/stores";
-import { getFileTreeService, getContentCache } from "@desk/core";
+import {
+  getHostContentCache,
+  getHostFileTreeService,
+} from "@/lib/host-files";
 import { connectToWatcher, disconnectFromWatcher } from "@/lib/cache-invalidator";
 import { fileTreeKeys } from "@/lib/file-tree-hooks";
 import {
@@ -41,7 +44,8 @@ import { publishContentUpdate, publishDeleted } from "@desk/core";
 import { hostFileExists, readHostTextFile } from "@/lib/host-files";
 import { parseMarkdown } from "@desk/core";
 import { isLocalDisk } from "@/lib/connection";
-import { getDeskService, notifyExternalChanges } from "@desk/core";
+import { getDeskService } from "@desk/core";
+import { notifyLocalMaintenanceOfExternalChanges } from "@/lib/host-maintenance";
 import {
   writePerWorkspaceAgentFiles,
   writeTopLevelAgentFiles,
@@ -113,7 +117,7 @@ export function useQueryInvalidator() {
     isInitialized.current = true;
 
     // Initialize file tree service first
-    const fileTreeService = getFileTreeService();
+    const fileTreeService = getHostFileTreeService();
     fileTreeService.initialize().then(() => {
       // Connect file tree service to watcher
       connectToWatcher();
@@ -166,7 +170,10 @@ async function handleFileChange(
   // app's own writes from the domain-write bus already; this covers EXTERNAL edits — an agent
   // or script writing into the folder gets the same index update. The double
   // arrival of our own writes is absorbed by the engine's debounces.
-  notifyExternalChanges(event.paths, event.kind === "remove" ? "remove" : "modify");
+  notifyLocalMaintenanceOfExternalChanges(
+    event.paths,
+    event.kind === "remove" ? "remove" : "modify",
+  );
 }
 
 /**
@@ -180,8 +187,8 @@ function invalidateQueriesForPaths(
   paths: string[],
   queryClient: ReturnType<typeof useQueryClient>
 ): void {
-  const contentCache = getContentCache();
-  const fileTreeService = getFileTreeService();
+  const contentCache = getHostContentCache();
+  const fileTreeService = getHostFileTreeService();
   for (const path of paths) {
     contentCache.invalidate(path);
     contentCache.invalidatePrefix(path + "/");

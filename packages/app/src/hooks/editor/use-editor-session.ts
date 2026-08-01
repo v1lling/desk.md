@@ -17,8 +17,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useOpenEditorRegistry } from "@/stores/open-editor-registry";
 import { subscribeToEditorEvents } from "@desk/core";
 import { isLocalDisk, isDomainRemote } from "@/lib/connection";
-import { readHostTextFile } from "@/lib/host-files";
-import { writeMarkdownFile, saveMarkdownBody } from "@desk/core";
+import {
+  readHostTextFile,
+  saveHostMarkdownBody,
+  writeHostMarkdownFile,
+} from "@/lib/host-files";
 import { parseMarkdown } from "@desk/core";
 import type { EditorType } from "@/stores/open-editor-registry";
 
@@ -307,7 +310,7 @@ export function useEditorSession({
       // Local disk (and browser mock): save through the core funnel, which preserves the
       // on-disk frontmatter, stamps `updated`, and publishes on the domain-write bus like
       // every other record write — the maintenance engine's trigger.
-      const { frontmatter } = await saveMarkdownBody(path, contentToSave);
+      const { frontmatter } = await saveHostMarkdownBody(path, contentToSave);
       lastFrontmatterRef.current = frontmatter; // Snapshot for delete-recovery
       lastSavedRef.current = contentToSave;
       // Update registry so file watcher knows this was our save
@@ -338,7 +341,7 @@ export function useEditorSession({
     const contentToSave = cleanEmptyParagraphs(contentRef.current);
 
     try {
-      await writeMarkdownFile(path, lastFrontmatterRef.current, contentToSave);
+      await writeHostMarkdownFile(path, lastFrontmatterRef.current, contentToSave);
       lastSavedRef.current = contentToSave;
       const registry = getRegistry();
       registry.clearDeleted(path);

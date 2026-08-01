@@ -3,35 +3,41 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  clearHomeWorkspaceCache,
-  createDoc,
-  createMeeting,
-  createProject,
-  createTask,
-  createWorkspace,
   decodeDocFrontmatter,
   decodeMeetingFrontmatter,
   decodeProjectFrontmatter,
   decodeTaskFrontmatter,
   decodeWorkspaceFrontmatter,
+  getDeskService,
+  parseMarkdown,
+  serializeMarkdown,
+} from "@desk/core";
+import { setDataRootResolver, setStorage } from "@desk/core/host";
+import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
+import { clearHomeWorkspaceCache } from "../../packages/core/src/desk/workspaces";
+import {
+  resetContentCache,
+  resetFileTreeService,
+} from "../../packages/core/src/desk/file-cache";
+
+const {
+  createDoc,
+  createMeeting,
+  createProject,
+  createTask,
+  createWorkspace,
   getDoc,
   getMeeting,
   getProject,
   getProjects,
   getTasksByProject,
   getTask,
-  parseMarkdown,
-  resetContentCache,
-  resetFileTreeService,
-  serializeMarkdown,
   updateDoc,
   updateMeeting,
   updateProject,
   updateTask,
   updateWorkspace,
-} from "@desk/core";
-import { setDataRootResolver, setStorage } from "@desk/core/host";
-import { NodeFsProvider } from "../../packages/server/src/node-fs-provider";
+} = getDeskService();
 
 describe("frontmatter decoding", () => {
   let root: string;

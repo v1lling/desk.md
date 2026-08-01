@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   SPECIAL_DIRS,
   WORKSPACE_LEVEL_PROJECT_ID,
+  getDeskService,
+} from "@desk/core";
+import { InMemoryStorageProvider, resetDeskRuntime } from "@desk/core/host";
+import { getAllDocs } from "../../packages/core/src/desk/content-tree";
+
+const {
   createDoc,
   createMeeting,
   createProject,
@@ -12,7 +18,6 @@ import {
   deleteProject,
   deleteTask,
   deleteWorkspace,
-  getAllDocs,
   getMeetingsByProject,
   getProjects,
   getTasksByProject,
@@ -26,8 +31,7 @@ import {
   updateProject,
   updateTask,
   updateWorkspace,
-} from "@desk/core";
-import { InMemoryStorageProvider, resetDeskRuntime } from "@desk/core/host";
+} = getDeskService();
 
 describe("InMemoryStorageProvider", () => {
   it("implements recursive directories, binary files, metadata, moves, and deletes", async () => {

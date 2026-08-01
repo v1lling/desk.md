@@ -5,7 +5,10 @@ import { useState, useEffect, useCallback } from "react";
 import { queryClient } from "@/lib/query-client";
 import { useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@/stores/preferences";
-import { initDeskDirectory, expandFsScope } from "@desk/core";
+import {
+  expandHostFsScope,
+  initializeHostDeskDirectory,
+} from "@/lib/host-files";
 import { isLocalDisk } from "@/lib/connection";
 import { useQueryInvalidator } from "@/hooks/use-query-invalidator";
 import { useSearchIndex } from "@/hooks/use-search-index";
@@ -66,8 +69,8 @@ function TauriInitializer({ children }: { children: React.ReactNode }) {
     // on the server. Gate on isLocalDisk(), never bare isTauri() (the rule in CLAUDE.md).
     if (isLocalDisk()) {
       try {
-        await expandFsScope();
-        await initDeskDirectory();
+        await expandHostFsScope();
+        await initializeHostDeskDirectory();
       } catch (error) {
         console.error("[Desk] Failed to initialize:", error);
         setInitError(error instanceof Error ? error.message : String(error));
